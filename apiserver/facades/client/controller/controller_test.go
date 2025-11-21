@@ -569,6 +569,93 @@ func (s *controllerSuite) TestInitiateMigration(c *gc.C) {
 	}
 }
 
+func (s *controllerSuite) TestInitiateMigrationDryRun(c *gc.C) {
+	st := s.Factory.MakeModel(c, nil)
+	defer st.Close()
+
+	model, err := st.Model()
+	c.Assert(err, jc.ErrorIsNil)
+
+	controller.SetPreCheckResult(s, nil)
+
+	args := params.InitiateMigrationArgs{
+		DryRun: true, // Set dryrun true and we'll expect no migration to exist.
+		Specs: []params.MigrationSpec{
+			{
+				ModelTag: model.ModelTag().String(),
+				TargetInfo: params.MigrationTargetInfo{
+					ControllerTag:   randomControllerTag(),
+					ControllerAlias: "target-controller",
+					Addrs:           []string{"3.3.3.3:3333"},
+					CACert:          "cert",
+					AuthTag:         names.NewUserTag("admin").String(),
+					Password:        "secret",
+					Token:           "token",
+				},
+			},
+		},
+	}
+	out, err := s.controller.InitiateMigration(args)
+	c.Assert(err, jc.ErrorIsNil)
+	c.Assert(out.Results, gc.HasLen, 1)
+
+	spec := args.Specs[0]
+	result := out.Results[0]
+
+	c.Assert(result.Error, gc.IsNil)
+	c.Check(result.ModelTag, gc.Equals, spec.ModelTag)
+	expectedId := "" // "" Represents a dry run.
+	c.Check(result.MigrationId, gc.Equals, expectedId)
+
+	// Ensure the migration made did not made it to the db.
+	_, err = st.LatestMigration()
+	c.Assert(err, gc.ErrorMatches, errors.NotFoundf("migration").Error())
+}
+
+func (s *controllerSuite) TestInitiateMigrationDryRunFails(c *gc.C) {
+	st := s.Factory.MakeModel(c, nil)
+	defer st.Close()
+
+	model, err := st.Model()
+	c.Assert(err, jc.ErrorIsNil)
+
+	controller.SetPreCheckResult(s, errors.New("precheck failed"))
+
+	args := params.InitiateMigrationArgs{
+		DryRun: true, // Set dryrun true and we'll expect no migration to exist.
+		Specs: []params.MigrationSpec{
+			{
+				ModelTag: model.ModelTag().String(),
+				TargetInfo: params.MigrationTargetInfo{
+					ControllerTag:   randomControllerTag(),
+					ControllerAlias: "target-controller",
+					Addrs:           []string{"3.3.3.3:3333"},
+					CACert:          "cert",
+					AuthTag:         names.NewUserTag("admin").String(),
+					Password:        "secret",
+					Token:           "token",
+				},
+			},
+		},
+	}
+	out, err := s.controller.InitiateMigration(args)
+	c.Assert(err, jc.ErrorIsNil)
+	c.Assert(out.Results, gc.HasLen, 1)
+
+	spec := args.Specs[0]
+	result := out.Results[0]
+
+	// Ensure the precheck failed is reported on dry runs.
+	c.Assert(result.Error, gc.ErrorMatches, "precheck failed")
+	c.Check(result.ModelTag, gc.Equals, spec.ModelTag)
+	expectedId := "" // "" Represents a dry run.
+	c.Check(result.MigrationId, gc.Equals, expectedId)
+
+	// Ensure the migration made did not made it to the db.
+	_, err = st.LatestMigration()
+	c.Assert(err, gc.ErrorMatches, errors.NotFoundf("migration").Error())
+}
+
 func (s *controllerSuite) TestInitiateMigrationSpecError(c *gc.C) {
 	// Create a hosted model to migrate.
 	st := s.Factory.MakeModel(c, nil)

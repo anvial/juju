@@ -83,6 +83,24 @@ func (s *Suite) TestInitiateMigration(c *gc.C) {
 	s.checkInitiateMigration(c, makeSpec())
 }
 
+func (s *Suite) TestInitiateMigrationDryRun(c *gc.C) {
+	spec := makeSpec()
+	expectedArgs := specToArgs(spec)
+	expectedArgs.DryRun = true
+
+	client, stub := makeInitiateMigrationClient(params.InitiateMigrationResults{
+		Results: []params.InitiateMigrationResult{{
+			MigrationId: "",
+		}},
+	})
+	id, err := client.InitiateMigration(spec, true)
+	c.Assert(err, jc.ErrorIsNil)
+	c.Check(id, gc.Equals, "")
+	stub.CheckCalls(c, []jujutesting.StubCall{
+		{"Controller.InitiateMigration", []interface{}{expectedArgs}},
+	})
+}
+
 func (s *Suite) TestInitiateMigrationEmptyCACert(c *gc.C) {
 	spec := makeSpec()
 	spec.TargetCACert = ""
@@ -101,7 +119,7 @@ func (s *Suite) checkInitiateMigration(c *gc.C, spec controller.MigrationSpec) {
 			MigrationId: "id",
 		}},
 	})
-	id, err := client.InitiateMigration(spec)
+	id, err := client.InitiateMigration(spec, false)
 	c.Assert(err, jc.ErrorIsNil)
 	c.Check(id, gc.Equals, "id")
 	stub.CheckCalls(c, []jujutesting.StubCall{
@@ -142,7 +160,7 @@ func (s *Suite) TestInitiateMigrationError(c *gc.C) {
 			Error: apiservererrors.ServerError(errors.New("boom")),
 		}},
 	})
-	id, err := client.InitiateMigration(makeSpec())
+	id, err := client.InitiateMigration(makeSpec(), false)
 	c.Check(id, gc.Equals, "")
 	c.Check(err, gc.ErrorMatches, "boom")
 }
@@ -154,7 +172,7 @@ func (s *Suite) TestInitiateMigrationResultMismatch(c *gc.C) {
 			{MigrationId: "wtf"},
 		},
 	})
-	id, err := client.InitiateMigration(makeSpec())
+	id, err := client.InitiateMigration(makeSpec(), false)
 	c.Check(id, gc.Equals, "")
 	c.Check(err, gc.ErrorMatches, "unexpected number of results returned")
 }
@@ -164,7 +182,7 @@ func (s *Suite) TestInitiateMigrationCallError(c *gc.C) {
 		return errors.New("boom")
 	})
 	client := controller.NewClient(apiCaller)
-	id, err := client.InitiateMigration(makeSpec())
+	id, err := client.InitiateMigration(makeSpec(), false)
 	c.Check(id, gc.Equals, "")
 	c.Check(err, gc.ErrorMatches, "boom")
 }
@@ -173,7 +191,7 @@ func (s *Suite) TestInitiateMigrationValidationError(c *gc.C) {
 	client, stub := makeInitiateMigrationClient(params.InitiateMigrationResults{})
 	spec := makeSpec()
 	spec.ModelUUID = "not-a-uuid"
-	id, err := client.InitiateMigration(spec)
+	id, err := client.InitiateMigration(spec, false)
 	c.Check(id, gc.Equals, "")
 	c.Check(err, gc.ErrorMatches, "client-side validation failed: model UUID not valid")
 	c.Check(stub.Calls(), gc.HasLen, 0) // API call shouldn't have happened

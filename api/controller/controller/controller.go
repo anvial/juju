@@ -316,7 +316,7 @@ func (s *MigrationSpec) Validate() error {
 // The API server supports starting multiple migrations in one request
 // but we don't need that at the client side yet (and may never) so
 // this call just supports starting one migration at a time.
-func (c *Client) InitiateMigration(spec MigrationSpec) (string, error) {
+func (c *Client) InitiateMigration(spec MigrationSpec, dryRun bool) (string, error) {
 	if err := spec.Validate(); err != nil {
 		return "", errors.Annotatef(err, "client-side validation failed")
 	}
@@ -327,6 +327,7 @@ func (c *Client) InitiateMigration(spec MigrationSpec) (string, error) {
 	}
 
 	args := params.InitiateMigrationArgs{
+		DryRun: dryRun,
 		Specs: []params.MigrationSpec{{
 			ModelTag: names.NewModelTag(spec.ModelUUID).String(),
 			TargetInfo: params.MigrationTargetInfo{

@@ -17,7 +17,8 @@ const MigrationModelHTTPHeader = "X-Juju-Migration-Model-UUID"
 // InitiateMigrationArgs holds the details required to start one or
 // more model migrations.
 type InitiateMigrationArgs struct {
-	Specs []MigrationSpec `json:"specs"`
+	Specs  []MigrationSpec `json:"specs"`
+	DryRun bool            `json:"dry-run,omitempty"`
 }
 
 // MigrationSpec holds the details required to start the migration of

@@ -618,7 +618,7 @@ func (c *ControllerAPI) InitiateMigration(reqArgs params.InitiateMigrationArgs) 
 	for i, spec := range reqArgs.Specs {
 		result := &out.Results[i]
 		result.ModelTag = spec.ModelTag
-		id, err := c.initiateOneMigration(spec)
+		id, err := c.initiateOneMigration(spec, reqArgs.DryRun)
 		if err != nil {
 			result.Error = apiservererrors.ServerError(err)
 		} else {
@@ -628,7 +628,7 @@ func (c *ControllerAPI) InitiateMigration(reqArgs params.InitiateMigrationArgs) 
 	return out, nil
 }
 
-func (c *ControllerAPI) initiateOneMigration(spec params.MigrationSpec) (string, error) {
+func (c *ControllerAPI) initiateOneMigration(spec params.MigrationSpec, dryRun bool) (string, error) {
 	modelTag, err := names.ParseModelTag(spec.ModelTag)
 	if err != nil {
 		return "", errors.Annotate(err, "model tag")
@@ -692,6 +692,11 @@ func (c *ControllerAPI) initiateOneMigration(spec params.MigrationSpec) (string,
 		leaders,
 	); err != nil {
 		return "", errors.Trace(err)
+	}
+
+	// We return "" with no error to suggest that a dryrun was requested and successful.
+	if dryRun {
+		return "", nil
 	}
 
 	// Trigger the migration.
