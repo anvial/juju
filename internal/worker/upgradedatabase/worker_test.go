@@ -10,9 +10,6 @@ import (
 
 	"github.com/juju/clock"
 	"github.com/juju/errors"
-	coreagentbinary "github.com/juju/juju/core/agentbinary"
-	"github.com/juju/juju/core/arch"
-	coreerrors "github.com/juju/juju/core/errors"
 	names "github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"github.com/juju/worker/v4"
@@ -20,7 +17,10 @@ import (
 	"github.com/juju/worker/v4/workertest"
 	"go.uber.org/mock/gomock"
 
+	coreagentbinary "github.com/juju/juju/core/agentbinary"
+	"github.com/juju/juju/core/arch"
 	coredatabase "github.com/juju/juju/core/database"
+	coreerrors "github.com/juju/juju/core/errors"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/core/testing"

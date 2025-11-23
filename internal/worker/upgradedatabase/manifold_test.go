@@ -8,7 +8,6 @@ import (
 
 	"github.com/juju/clock"
 	"github.com/juju/errors"
-	controllernodeservice "github.com/juju/juju/domain/controllernode/service"
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"github.com/juju/worker/v4"
@@ -18,6 +17,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/juju/juju/core/semversion"
+	controllernodeservice "github.com/juju/juju/domain/controllernode/service"
 	upgradeservice "github.com/juju/juju/domain/upgrade/service"
 )
 
