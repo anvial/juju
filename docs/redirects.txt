@@ -1,5 +1,6 @@
 # <old URL> <new URL>
 
+reference/plugin/list-of-known-juju-plugins/plugin-juju-metadata reference/juju-cli/plugin-juju-metadata
 reference/charm/charm-development-best-practices/ reference/charm
 # redirects after updating landing pages
 explanation/performance-with-juju explanation/juju-performance
