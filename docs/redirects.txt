@@ -356,9 +356,9 @@ user/reference/pebble reference/pebble
 user/reference/placement-directive reference/placement-directive
 user/reference/plugin reference
 user/reference/plugin/list-of-known-juju-plugins reference
-user/reference/plugin/list-of-known-juju-plugins/plugin-juju-metadata reference/juju-cli/plugin-juju-metadata/
+user/reference/plugin/list-of-known-juju-plugins/plugin-juju-metadata reference/juju-cli/plugin-juju-metadata
 user/reference/plugin/list-of-known-juju-plugins/plugin-juju-stash reference
-user/reference/plugin/plugin-flags reference/plugin/plugin-flags
+user/reference/plugin/plugin-flags reference
 user/reference/relation reference/relation
 user/reference/removing-things reference/removing-things
 user/reference/resource-charm reference/resource-charm
