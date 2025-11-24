@@ -48,9 +48,10 @@ func NewManagedFilesystemSource(
 	filesystems map[names.FilesystemTag]storage.Filesystem,
 ) storage.FilesystemSource {
 	return &managedFilesystemSource{
-		logAndExec,
-		&osDirFuncs{run: logAndExec},
-		volumeBlockDevices, filesystems,
+		run:                logAndExec,
+		dirFuncs:           &osDirFuncs{run: logAndExec},
+		volumeBlockDevices: volumeBlockDevices,
+		filesystems:        filesystems,
 	}
 }
 
@@ -159,11 +160,11 @@ func (s *managedFilesystemSource) attachFilesystem(arg storage.FilesystemAttachm
 		return nil, errors.Trace(err)
 	}
 	return &storage.FilesystemAttachment{
-		arg.Filesystem,
-		arg.Machine,
-		storage.FilesystemAttachmentInfo{
-			arg.Path,
-			arg.ReadOnly,
+		Filesystem: arg.Filesystem,
+		Machine:    arg.Machine,
+		FilesystemAttachmentInfo: storage.FilesystemAttachmentInfo{
+			Path:     arg.Path,
+			ReadOnly: arg.ReadOnly,
 		},
 	}, nil
 }
@@ -231,7 +232,7 @@ func mountFilesystem(run runCommandFunc, dirFuncs dirFuncs, devicePath, UUID, mo
 		logger.Debugf("mounted filesystem on %q at %q", devicePath, mountPoint)
 	}
 	// Look for the mtab entry resulting from the mount and copy it to fstab.
-	// This ensures the mount is available available after a reboot.
+	// This ensures the mount is available after a reboot.
 	etcDir := dirFuncs.etcDir()
 	mtabEntry, err := extractMtabEntry(etcDir, devicePath, mountPoint)
 	if err != nil {
@@ -240,7 +241,7 @@ func mountFilesystem(run runCommandFunc, dirFuncs dirFuncs, devicePath, UUID, mo
 	if mtabEntry == "" {
 		return nil
 	}
-	return ensureFstabEntry(etcDir, devicePath, UUID, mountPoint, mtabEntry)
+	return ensureDeviceFstabEntry(etcDir, devicePath, UUID, mountPoint, mtabEntry)
 }
 
 // extractMtabEntry returns any /etc/mtab entry for the specified
@@ -270,9 +271,9 @@ func extractMtabEntry(etcDir string, devicePath, mountPoint string) (string, err
 	return "", nil
 }
 
-// ensureFstabEntry creates an entry in /etc/fstab for the specified
+// ensureDeviceFstabEntry creates an entry in /etc/fstab for the specified
 // device path and mount point so long as there's no existing entry already.
-func ensureFstabEntry(etcDir, devicePath, UUID, mountPoint, entry string) error {
+func ensureDeviceFstabEntry(etcDir, devicePath, UUID, mountPoint, entry string) error {
 	f, err := os.Open(filepath.Join(etcDir, "fstab"))
 	if err != nil && !os.IsNotExist(err) {
 		return errors.Annotate(err, "opening /etc/fstab")
