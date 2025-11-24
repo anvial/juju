@@ -1,5 +1,12 @@
 # <old URL> <new URL>
 
+
+
+reference/plugin/ reference
+reference/plugin/list-of-known-juju-plugins/#list-of-known-juju-plugins reference
+reference/plugin/list-of-known-juju-plugins/plugin-juju-stash/ reference
+reference/plugin/plugin-flags/ reference
+howto/manage-plugins/ howto
 reference/plugin/list-of-known-juju-plugins/plugin-juju-metadata reference/juju-cli/plugin-juju-metadata
 reference/charm/charm-development-best-practices/ reference/charm
 # redirects after updating landing pages
@@ -347,10 +354,10 @@ user/reference/model reference/model
 user/reference/offer reference/offer
 user/reference/pebble reference/pebble
 user/reference/placement-directive reference/placement-directive
-user/reference/plugin reference/plugin
-user/reference/plugin/list-of-known-juju-plugins reference/plugin/list-of-known-juju-plugins
-user/reference/plugin/list-of-known-juju-plugins/plugin-juju-metadata reference/plugin/list-of-known-juju-plugins/plugin-juju-metadata
-user/reference/plugin/list-of-known-juju-plugins/plugin-juju-stash reference/plugin/list-of-known-juju-plugins/plugin-juju-stash
+user/reference/plugin reference
+user/reference/plugin/list-of-known-juju-plugins reference
+user/reference/plugin/list-of-known-juju-plugins/plugin-juju-metadata reference/juju-cli/plugin-juju-metadata/
+user/reference/plugin/list-of-known-juju-plugins/plugin-juju-stash reference
 user/reference/plugin/plugin-flags reference/plugin/plugin-flags
 user/reference/relation reference/relation
 user/reference/removing-things reference/removing-things
