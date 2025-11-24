@@ -139,7 +139,7 @@ func (s *modelSuite) TestDeleteModel(c *tc.C) {
 
 	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
 
-	err = st.DeleteModel(c.Context(), modelUUID, false)
+	err = st.DeleteModel(c.Context(), modelUUID)
 	c.Assert(err, tc.ErrorIsNil)
 
 	// Ensure the model is gone.
@@ -159,28 +159,8 @@ func (s *modelSuite) TestDeleteModelDyingModel(c *tc.C) {
 
 	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
 
-	err = st.DeleteModel(c.Context(), modelUUID, false)
+	err = st.DeleteModel(c.Context(), modelUUID)
 	c.Assert(err, tc.ErrorIs, removalerrors.RemovalJobIncomplete)
-}
-
-func (s *modelSuite) TestDeleteModelDyingModelWithForce(c *tc.C) {
-	modelUUID := s.getModelUUID(c)
-
-	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, "UPDATE model SET life_id = 1 WHERE uuid = ?", modelUUID)
-		return err
-	})
-	c.Assert(err, tc.ErrorIsNil)
-
-	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
-
-	err = st.DeleteModel(c.Context(), modelUUID, true)
-	c.Assert(err, tc.ErrorIsNil)
-
-	// Ensure the model is gone.
-	exists, err := st.ModelExists(c.Context(), modelUUID)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(exists, tc.Equals, false)
 }
 
 func (s *modelSuite) getModelUUID(c *tc.C) string {

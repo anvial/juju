@@ -136,7 +136,7 @@ AND    life_id = 1`, modelUUID)
 }
 
 // DeleteModel deletes all artifacts associated with a model.
-func (st *State) DeleteModel(ctx context.Context, mUUID string, force bool) error {
+func (st *State) DeleteModel(ctx context.Context, mUUID string) error {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return errors.Capture(err)
@@ -181,7 +181,9 @@ WHERE grant_on = $entityUUID.uuid;
 				Add(removalerrors.EntityStillAlive)
 		}
 
-		if !force && mLife == life.Dying {
+		// We should not of got here, even with force. The model must be dead
+		// before it can be deleted.
+		if mLife == life.Dying {
 			return errors.Errorf("waiting for model to be dead before deletion").
 				Add(removalerrors.RemovalJobIncomplete)
 		}
