@@ -15,7 +15,6 @@ import (
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	"github.com/juju/juju/domain/removal"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
-	internaldatabase "github.com/juju/juju/internal/database"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -317,60 +316,6 @@ func (st *State) GetModelLife(ctx context.Context, mUUID string) (life.Life, err
 	return life, errors.Capture(err)
 }
 
-// HasModelRemovalJobUsedForce returns true if the model has a removal job
-// that uses force. Once force is used, it cannot be undone and it will
-// always return true.
-func (st *State) HasModelRemovalJobUsedForce(ctx context.Context, modelUUID string) (bool, error) {
-	db, err := st.DB(ctx)
-	if err != nil {
-		return false, errors.Capture(err)
-	}
-
-	entityUUIDParam := entityUUID{UUID: modelUUID}
-
-	type forced struct {
-		Force bool `db:"force"`
-	}
-
-	queryStmt, err := st.Prepare(`
-SELECT force AS &forced.*
-FROM removal
-WHERE entity_uuid = $entityUUID.uuid
-AND   removal_type_id = 4
-`, entityUUIDParam, forced{})
-	if err != nil {
-		return false, errors.Errorf("preparing has model removal job used force query: %w", err)
-	}
-
-	var result []forced
-	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := tx.Query(ctx, queryStmt, entityUUIDParam).GetAll(&result); err != nil && !errors.Is(err, sqlair.ErrNoRows) {
-			return errors.Errorf("running has model removal job used force query: %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return false, errors.Capture(err)
-	}
-
-	// If there are no removal jobs for the model uuid, then this is the
-	// likely event that the model has run the scheduling of the removal and
-	// force was used in that job and we've now got detritus from that.
-	if len(result) == 0 {
-		return true, nil
-	}
-
-	var forcedResult bool
-	for _, force := range result {
-		if force.Force {
-			forcedResult = true
-			break
-		}
-	}
-
-	return forcedResult, errors.Capture(err)
-}
-
 // MarkModelAsDead marks the model with the input UUID as dead.
 // If there are model dependents, then this will return an error.
 func (st *State) MarkModelAsDead(ctx context.Context, mUUID string, force bool) error {
@@ -397,8 +342,7 @@ AND    life_id = 1`, modelUUID)
 			return removalerrors.EntityStillAlive
 		}
 
-		err = st.checkNoModelDependents(ctx, tx, force)
-		if err != nil {
+		if err := st.checkNoModelDependents(ctx, tx, force); err != nil {
 			return errors.Capture(err)
 		}
 
@@ -409,70 +353,6 @@ AND    life_id = 1`, modelUUID)
 
 		return nil
 	}))
-}
-
-// DeleteModelArtifacts deletes all artifacts associated with a model.
-func (st *State) DeleteModelArtifacts(ctx context.Context, mUUID string, force bool) error {
-	db, err := st.DB(ctx)
-	if err != nil {
-		return errors.Capture(err)
-	}
-
-	modelUUIDParam := entityUUID{UUID: mUUID}
-
-	// Prepare query for deleting model row.
-	deleteModel := `
-DELETE FROM model 
-WHERE uuid = $entityUUID.uuid;
-`
-	deleteModelStmt, err := st.Prepare(deleteModel, modelUUIDParam)
-	if err != nil {
-		return errors.Capture(err)
-	}
-
-	// Once we get to this point, the model is hosed. We don't expect the
-	// model to be in use.
-	modelTriggerStmt, err := st.Prepare(`DROP TRIGGER IF EXISTS trg_model_immutable_delete;`)
-	if err != nil {
-		return errors.Capture(err)
-	}
-
-	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		mLife, err := st.getModelLife(ctx, tx, modelUUIDParam.UUID)
-		if err != nil {
-			return errors.Errorf("getting model life: %w", err)
-		} else if mLife == life.Alive {
-			return errors.Errorf("cannot delete model %q, model is still alive", modelUUIDParam.UUID).
-				Add(removalerrors.EntityStillAlive)
-		} else if mLife == life.Dying {
-			return errors.Errorf("waiting for model to be dead before deletion").
-				Add(removalerrors.RemovalJobIncomplete)
-		}
-
-		err = st.checkNoModelDependents(ctx, tx, force)
-		if err != nil {
-			return errors.Errorf("checking for dependents: %w", err).Add(removalerrors.RemovalJobIncomplete)
-		}
-
-		// Remove all basic model data associated with the model.
-		if err := st.removeBasicModelData(ctx, tx, modelUUIDParam.UUID); err != nil {
-			return errors.Errorf("removing basic model data: %w", err)
-		}
-
-		if err := tx.Query(ctx, modelTriggerStmt).Run(); err != nil && !internaldatabase.IsExtendedErrorCode(err) {
-			return errors.Errorf("deleting model trigger %w", err)
-		}
-
-		if err := tx.Query(ctx, deleteModelStmt, modelUUIDParam).Run(); err != nil {
-			return errors.Errorf("deleting model: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return errors.Errorf("deleting model: %w", err)
-	}
-	return nil
 }
 
 // IsControllerModel returns true if the model is the controller model.
@@ -548,8 +428,8 @@ func (st *State) checkNoModelDependents(ctx context.Context, tx *sqlair.TX, forc
 
 	// We only care about applications and machines (for IAAS models). We assume
 	// that all dependant entities for each of these entities are already
-	// removed (units for applications etc). So if a model has no applications
-	// or machines, then it is empty.
+	// removed (units for applications etc). So if a model has no applications,
+	// machines or storage, then it is empty.
 
 	applicationsStmt, err := st.Prepare(`SELECT COUNT(*) AS &count.count FROM application`, count)
 	if err != nil {
@@ -560,7 +440,7 @@ func (st *State) checkNoModelDependents(ctx context.Context, tx *sqlair.TX, forc
 	if err != nil {
 		return errors.Errorf("getting application count: %w", err)
 	} else if count.Count > 0 {
-		return errors.Errorf("%d application(s) still exist", count.Count).Add(removalerrors.EntityStillAlive)
+		return errors.Errorf("%d application(s) still exist", count.Count).Add(removalerrors.RemovalJobIncomplete)
 	}
 
 	machinesStmt, err := st.Prepare(`SELECT COUNT(*) AS &count.count FROM machine`, count)
@@ -572,30 +452,61 @@ func (st *State) checkNoModelDependents(ctx context.Context, tx *sqlair.TX, forc
 	if err != nil {
 		return errors.Errorf("getting machine count: %w", err)
 	} else if count.Count > 0 {
-		return errors.Errorf("%d machine(s) still exist", count.Count).Add(removalerrors.EntityStillAlive)
+		return errors.Errorf("%d machine(s) still exist", count.Count).Add(removalerrors.RemovalJobIncomplete)
 	}
 
-	return nil
-}
+	// Ensure that there are no storage entities in the model. If any storage
+	// entity exists, then we cannot remove the model.
+	// This feels like it should just be a join on the filesystem and volume
+	// tables, but to be safe we check all storage related tables.
 
-func (st *State) removeBasicModelData(ctx context.Context, tx *sqlair.TX, mUUID string) error {
-	modelUUIDRec := entityUUID{UUID: mUUID}
-
-	tables := []string{
-		"DELETE FROM model_life WHERE model_uuid = $entityUUID.uuid",
-		"DELETE FROM model_constraint WHERE model_uuid = $entityUUID.uuid",
-		"DELETE FROM model_agent WHERE model_uuid = $entityUUID.uuid",
+	storageAttachment, err := st.Prepare(`SELECT COUNT(*) AS &count.count FROM storage_attachment`, count)
+	if err != nil {
+		return errors.Errorf("preparing storage attachment count query: %w", err)
 	}
 
-	for _, table := range tables {
-		stmt, err := st.Prepare(table, modelUUIDRec)
-		if err != nil {
-			return errors.Capture(err)
-		}
-
-		if err := tx.Query(ctx, stmt, modelUUIDRec).Run(); err != nil {
-			return errors.Errorf("deleting reference to model in table %q: %w", table, err)
-		}
+	err = tx.Query(ctx, storageAttachment).Get(&count)
+	if err != nil {
+		return errors.Errorf("getting storage attachment count: %w", err)
+	} else if count.Count > 0 {
+		return errors.Errorf("%d storage attachment(s) still exist", count.Count).Add(removalerrors.RemovalJobIncomplete)
 	}
+
+	storageInstance, err := st.Prepare(`SELECT COUNT(*) AS &count.count FROM storage_instance`, count)
+	if err != nil {
+		return errors.Errorf("preparing storage instance count query: %w", err)
+	}
+
+	err = tx.Query(ctx, storageInstance).Get(&count)
+	if err != nil {
+		return errors.Errorf("getting storage instance count: %w", err)
+	} else if count.Count > 0 {
+		return errors.Errorf("%d storage instance(s) still exist", count.Count).Add(removalerrors.RemovalJobIncomplete)
+	}
+
+	storageFilesystem, err := st.Prepare(`SELECT COUNT(*) AS &count.count FROM storage_filesystem`, count)
+	if err != nil {
+		return errors.Errorf("preparing storage filesystem count query: %w", err)
+	}
+
+	err = tx.Query(ctx, storageFilesystem).Get(&count)
+	if err != nil {
+		return errors.Errorf("getting storage filesystem count: %w", err)
+	} else if count.Count > 0 {
+		return errors.Errorf("%d storage filesystem(s) still exist", count.Count).Add(removalerrors.RemovalJobIncomplete)
+	}
+
+	storageVolume, err := st.Prepare(`SELECT COUNT(*) AS &count.count FROM storage_volume`, count)
+	if err != nil {
+		return errors.Errorf("preparing storage volume count query: %w", err)
+	}
+
+	err = tx.Query(ctx, storageVolume).Get(&count)
+	if err != nil {
+		return errors.Errorf("getting storage volume count: %w", err)
+	} else if count.Count > 0 {
+		return errors.Errorf("%d storage volume(s) still exist", count.Count).Add(removalerrors.RemovalJobIncomplete)
+	}
+
 	return nil
 }

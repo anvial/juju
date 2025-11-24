@@ -9,12 +9,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/canonical/sqlair"
 	"github.com/juju/tc"
 
+	"github.com/juju/juju/core/machine"
 	applicationservice "github.com/juju/juju/domain/application/service"
 	"github.com/juju/juju/domain/life"
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
+	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/uuid"
 )
@@ -316,52 +319,77 @@ func (s *modelSuite) TestMarkModelAsDead(c *tc.C) {
 	s.checkModelLife(c, modelUUID, life.Dead)
 }
 
-func (s *modelSuite) TestDeleteModel(c *tc.C) {
+func (s *modelSuite) TestMarkModelAsDeadApplicationsExists(c *tc.C) {
 	svc := s.setupApplicationService(c)
-	appUUID := s.createIAASApplication(c, svc, "some-app", applicationservice.AddIAASUnitArg{})
-
-	unitUUID := s.getAllUnitUUIDs(c, appUUID)[0]
-	machineUUID := s.getMachineUUIDFromApp(c, appUUID)
+	s.createIAASApplication(c, svc, "some-app", applicationservice.AddIAASUnitArg{})
 
 	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
 
 	modelUUID := s.getModelUUID(c)
 
-	err := st.DeleteModelArtifacts(c.Context(), modelUUID, false)
-	c.Assert(err, tc.ErrorIs, removalerrors.EntityStillAlive)
+	s.advanceModelLife(c, modelUUID, life.Dying)
 
-	s.advanceModelLife(c, modelUUID, life.Dead)
-	s.advanceApplicationLife(c, appUUID, life.Dead)
-	s.advanceUnitLife(c, unitUUID, life.Dead)
-	s.advanceMachineLife(c, machineUUID, life.Dead)
-	s.advanceInstanceLife(c, machineUUID, life.Dead)
-
-	err = st.DeleteModelArtifacts(c.Context(), modelUUID, false)
+	err := st.MarkModelAsDead(c.Context(), modelUUID, false)
 	c.Assert(err, tc.ErrorIs, removalerrors.RemovalJobIncomplete)
 
-	err = st.DeleteUnit(c.Context(), unitUUID.String(), false)
+	err = st.MarkModelAsDead(c.Context(), modelUUID, true)
 	c.Assert(err, tc.ErrorIsNil)
 
-	err = st.DeleteMachine(c.Context(), machineUUID.String(), false)
-	c.Assert(err, tc.ErrorIsNil)
-
-	err = st.DeleteApplication(c.Context(), appUUID.String(), false)
-	c.Assert(err, tc.ErrorIsNil)
-
-	err = st.DeleteModelArtifacts(c.Context(), modelUUID, false)
-	c.Assert(err, tc.ErrorIsNil)
-
-	// The model should be gone.
-	exists, err := st.ModelExists(c.Context(), modelUUID)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(exists, tc.IsFalse)
+	s.checkModelLife(c, modelUUID, life.Dead)
 }
 
-func (s *modelSuite) TestDeleteModelNotFound(c *tc.C) {
+func (s *modelSuite) TestMarkModelAsDeadMachinesExists(c *tc.C) {
+	s.createMachine(c, machine.Name("0"))
+
 	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
 
-	err := st.DeleteModelArtifacts(c.Context(), "0", false)
-	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
+	modelUUID := s.getModelUUID(c)
+
+	s.advanceModelLife(c, modelUUID, life.Dying)
+
+	err := st.MarkModelAsDead(c.Context(), modelUUID, false)
+	c.Assert(err, tc.ErrorIs, removalerrors.RemovalJobIncomplete)
+
+	err = st.MarkModelAsDead(c.Context(), modelUUID, true)
+	c.Assert(err, tc.ErrorIsNil)
+
+	s.checkModelLife(c, modelUUID, life.Dead)
+}
+
+func (s *modelSuite) TestMarkModelAsDeadModelFilesystemStorageExists(c *tc.C) {
+	s.addModelProvisionedFilesystem(c)
+
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	modelUUID := s.getModelUUID(c)
+
+	s.advanceModelLife(c, modelUUID, life.Dying)
+
+	err := st.MarkModelAsDead(c.Context(), modelUUID, false)
+	c.Assert(err, tc.ErrorIs, removalerrors.RemovalJobIncomplete)
+
+	err = st.MarkModelAsDead(c.Context(), modelUUID, true)
+	c.Assert(err, tc.ErrorIsNil)
+
+	s.checkModelLife(c, modelUUID, life.Dead)
+}
+
+func (s *modelSuite) TestMarkModelAsDeadModelVolumeStorageExists(c *tc.C) {
+	s.addModelProvisionedVolume(c)
+
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	modelUUID := s.getModelUUID(c)
+
+	s.advanceModelLife(c, modelUUID, life.Dying)
+
+	err := st.MarkModelAsDead(c.Context(), modelUUID, false)
+	c.Assert(err, tc.ErrorIs, removalerrors.RemovalJobIncomplete)
+
+	err = st.MarkModelAsDead(c.Context(), modelUUID, true)
+	c.Assert(err, tc.ErrorIsNil)
+
+	s.checkModelLife(c, modelUUID, life.Dead)
 }
 
 func (s *modelSuite) TestIsControllerModel(c *tc.C) {
@@ -403,65 +431,6 @@ func (s *modelSuite) TestIsControllerModelNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
-func (s *modelSuite) TestHasModelRemovalJobUsedForceNoJobFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
-
-	modelUUID := s.getModelUUID(c)
-	usedForce, err := st.HasModelRemovalJobUsedForce(c.Context(), modelUUID)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(usedForce, tc.IsTrue)
-}
-
-func (s *modelSuite) TestHasModelRemovalJobUsedForceNotForced(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
-
-	modelUUID := s.getModelUUID(c)
-
-	removalUUID := tc.Must(c, uuid.NewUUID).String()
-	err := st.ModelScheduleRemoval(c.Context(), removalUUID, modelUUID, false, time.Now().UTC())
-	c.Assert(err, tc.ErrorIsNil)
-
-	usedForce, err := st.HasModelRemovalJobUsedForce(c.Context(), modelUUID)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(usedForce, tc.IsFalse)
-}
-
-func (s *modelSuite) TestHasModelRemovalJobUsedForce(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
-
-	modelUUID := s.getModelUUID(c)
-
-	removalUUID := tc.Must(c, uuid.NewUUID).String()
-	err := st.ModelScheduleRemoval(c.Context(), removalUUID, modelUUID, true, time.Now().UTC())
-	c.Assert(err, tc.ErrorIsNil)
-
-	usedForce, err := st.HasModelRemovalJobUsedForce(c.Context(), modelUUID)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(usedForce, tc.IsTrue)
-}
-
-func (s *modelSuite) TestHasModelRemovalJobUsedForceTaintedPact(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
-
-	modelUUID := s.getModelUUID(c)
-
-	removalUUID := tc.Must(c, uuid.NewUUID).String()
-	err := st.ModelScheduleRemoval(c.Context(), removalUUID, modelUUID, true, time.Now().UTC())
-	c.Assert(err, tc.ErrorIsNil)
-
-	removalUUID = tc.Must(c, uuid.NewUUID).String()
-	err = st.ModelScheduleRemoval(c.Context(), removalUUID, modelUUID, false, time.Now().UTC())
-	c.Assert(err, tc.ErrorIsNil)
-
-	removalUUID = tc.Must(c, uuid.NewUUID).String()
-	err = st.ModelScheduleRemoval(c.Context(), removalUUID, modelUUID, false, time.Now().UTC())
-	c.Assert(err, tc.ErrorIsNil)
-
-	usedForce, err := st.HasModelRemovalJobUsedForce(c.Context(), modelUUID)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(usedForce, tc.IsTrue)
-}
-
 func (s *modelSuite) getModelUUID(c *tc.C) string {
 	var modelUUID string
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
@@ -470,4 +439,48 @@ func (s *modelSuite) getModelUUID(c *tc.C) string {
 	})
 	c.Assert(err, tc.ErrorIsNil)
 	return modelUUID
+}
+
+func (s *modelSuite) createMachine(c *tc.C, machineId machine.Name) {
+	nodeUUID, err := uuid.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+	machineUUID, err := uuid.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	query := `
+INSERT INTO machine (*)
+VALUES ($createMachine.*)
+`
+	machine := createMachine{
+		MachineUUID: machine.UUID(machineUUID.String()),
+		NetNodeUUID: nodeUUID.String(),
+		Name:        machineId,
+		LifeID:      life.Alive,
+	}
+
+	createMachineStmt, err := sqlair.Prepare(query, machine)
+	c.Assert(err, tc.ErrorIsNil)
+
+	createNode := `INSERT INTO net_node (uuid) VALUES ($createMachine.net_node_uuid)`
+	createNodeStmt, err := sqlair.Prepare(createNode, machine)
+	c.Assert(err, tc.ErrorIsNil)
+
+	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
+		if err := tx.Query(ctx, createNodeStmt, machine).Run(); err != nil {
+			return errors.Errorf("creating net node row for bootstrap machine %q: %w", machineId, err)
+		}
+		if err := tx.Query(ctx, createMachineStmt, machine).Run(); err != nil {
+			return errors.Errorf("creating machine row for bootstrap machine %q: %w", machineId, err)
+		}
+		return nil
+	})
+
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+type createMachine struct {
+	MachineUUID machine.UUID `db:"uuid"`
+	NetNodeUUID string       `db:"net_node_uuid"`
+	Name        machine.Name `db:"name"`
+	LifeID      life.Life    `db:"life_id"`
 }

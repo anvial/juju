@@ -20,7 +20,6 @@ import (
 	"github.com/juju/juju/domain/network"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
 	"github.com/juju/juju/domain/removal/internal"
-	schematesting "github.com/juju/juju/domain/schema/testing"
 	"github.com/juju/juju/domain/storage"
 	storageerrors "github.com/juju/juju/domain/storage/errors"
 	"github.com/juju/juju/domain/storageprovisioning"
@@ -29,7 +28,7 @@ import (
 )
 
 type storageSuite struct {
-	schematesting.ModelSuite
+	baseSuite
 }
 
 func TestStorageSuite(t *testing.T) {
@@ -1811,6 +1810,16 @@ func (s *storageSuite) TestGetVolumeAttachmentPlanLifeDead(c *tc.C) {
 	c.Check(l, tc.Equals, life.Dead)
 }
 
+func (s *storageSuite) bindVolumeToStorageInstance(c *tc.C, siUUID, volUUID string) {
+	ctx := c.Context()
+
+	_, err := s.DB().ExecContext(ctx,
+		"INSERT INTO storage_instance_volume (storage_instance_uuid, storage_volume_uuid) VALUES (?, ?)",
+		siUUID, volUUID,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
 // addAppUnitStorage sets up a unit with a storage attachment.
 // The storage instance and attachment UUIDs are returned.
 func (s *storageSuite) addAppUnitStorage(c *tc.C) (string, string) {
@@ -1927,34 +1936,6 @@ func (s *storageSuite) addMachineProvisionedVolume(c *tc.C) string {
 	return volUUID
 }
 
-func (s *storageSuite) addModelProvisionedVolume(c *tc.C) string {
-	ctx := c.Context()
-
-	volUUID := "some-vol-uuid"
-	_, err := s.DB().ExecContext(ctx,
-		"INSERT INTO storage_volume (uuid, volume_id, life_id, provision_scope_id) VALUES (?, ?, ?, ?)",
-		volUUID, "some-vol", 0, 0,
-	)
-	c.Assert(err, tc.ErrorIsNil)
-	_, err = s.DB().ExecContext(ctx,
-		"INSERT INTO storage_volume_status (volume_uuid, status_id) VALUES (?, ?)",
-		volUUID, 0,
-	)
-	c.Assert(err, tc.ErrorIsNil)
-
-	return volUUID
-}
-
-func (s *storageSuite) bindVolumeToStorageInstance(c *tc.C, siUUID, volUUID string) {
-	ctx := c.Context()
-
-	_, err := s.DB().ExecContext(ctx,
-		"INSERT INTO storage_instance_volume (storage_instance_uuid, storage_volume_uuid) VALUES (?, ?)",
-		siUUID, volUUID,
-	)
-	c.Assert(err, tc.ErrorIsNil)
-}
-
 func (s *storageSuite) addFilesystem(c *tc.C) string {
 	ctx := c.Context()
 
@@ -1981,24 +1962,6 @@ func (s *storageSuite) addMachineProvisionedFilesystem(c *tc.C) string {
 	_, err := s.DB().ExecContext(ctx,
 		"INSERT INTO storage_filesystem (uuid, filesystem_id, life_id, provision_scope_id) VALUES (?, ?, ?, ?)",
 		fsUUID, "some-fs", 0, 1,
-	)
-	c.Assert(err, tc.ErrorIsNil)
-	_, err = s.DB().ExecContext(ctx,
-		"INSERT INTO storage_filesystem_status (filesystem_uuid, status_id) VALUES (?, ?)",
-		fsUUID, 0,
-	)
-	c.Assert(err, tc.ErrorIsNil)
-
-	return fsUUID
-}
-
-func (s *storageSuite) addModelProvisionedFilesystem(c *tc.C) string {
-	ctx := c.Context()
-
-	fsUUID := "some-fs-uuid"
-	_, err := s.DB().ExecContext(ctx,
-		"INSERT INTO storage_filesystem (uuid, filesystem_id, life_id, provision_scope_id) VALUES (?, ?, ?, ?)",
-		fsUUID, "some-fs", 0, 0,
 	)
 	c.Assert(err, tc.ErrorIsNil)
 	_, err = s.DB().ExecContext(ctx,
