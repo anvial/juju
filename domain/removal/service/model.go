@@ -67,16 +67,8 @@ type ModelState interface {
 	// GetModelLife retrieves the life state of a model.
 	GetModelLife(ctx context.Context, modelUUID string) (life.Life, error)
 
-	// HasModelRemovalJobUsedForce returns true if the model has a removal job
-	// that uses force. Once force is used, it cannot be undone and it will
-	// always return true.
-	HasModelRemovalJobUsedForce(ctx context.Context, modelUUID string) (bool, error)
-
 	// MarkModelAsDead marks the model with the input UUID as dead.
 	MarkModelAsDead(ctx context.Context, modelUUID string, force bool) error
-
-	// DeleteModelArtifacts deletes all artifacts associated with a model.
-	DeleteModelArtifacts(ctx context.Context, modelUUID string, force bool) error
 }
 
 // RemoveModel checks if a model with the input name exists.
@@ -226,11 +218,9 @@ func (s *Service) removeModel(
 	return modelJobUUID, nil
 }
 
-// DeleteModel removes the model with the given UUID from the database.
-// This will remove all the model's artifacts. Though it won't delete the
-// database itself. That is done by the undertaker worker.
-// The model must be dead before it can be deleted.
-// If the model is alive or dying, an error will be returned.
+// DeleteModel removes the model with the given UUID from the controller
+// database. It is expected that this will only ever be called when the
+// model is set to dead, even with force.
 func (s *Service) DeleteModel(ctx context.Context, modelUUID model.UUID) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -242,35 +232,18 @@ func (s *Service) DeleteModel(ctx context.Context, modelUUID model.UUID) error {
 		return errors.Errorf("getting controller model %q life: %w", modelUUID, err)
 	}
 
-	// We should ensure that the model is dead before we delete it.
-	modelLife, err := s.modelState.GetModelLife(ctx, modelUUID.String())
-	if errors.Is(err, modelerrors.NotFound) {
-		modelLife = life.Dead
-	} else if err != nil {
-		return errors.Errorf("getting model %q life: %w", modelUUID, err)
-	}
-
 	// If the model is alive, we cannot delete it even with force. This is
 	// programming error if we've reached this point and we're still alive.
-	if modelLife == life.Alive || controllerLife == life.Alive {
+	if controllerLife == life.Alive {
 		return errors.Errorf("model %q is still alive", modelUUID).Add(removalerrors.EntityStillAlive)
 	}
 
-	// Locate if any removal jobs have used force for this model. Any removal
-	// job that has used force will taint all future removal attempts. We
-	// don't currently remove any prior removal jobs, so once force is used, it
-	// will always be used.
-	force, err := s.modelState.HasModelRemovalJobUsedForce(ctx, modelUUID.String())
-	if err != nil && !errors.Is(err, removalerrors.RemovalJobNotFound) {
-		return errors.Errorf("getting model %q removal job: %w", modelUUID, err)
-	}
-
 	// If we're not using force, ensure that the life of the model is dead
-	// and not dying. If it is dying, we cannot delete it yet.
-	if !force {
-		if modelLife == life.Dying || controllerLife == life.Dying {
-			return errors.Errorf("model %q is dying", modelUUID).Add(removalerrors.EntityNotDead)
-		}
+	// and not dying. If it is dying, we cannot delete it yet. It is expected
+	// that this will only ever be called when the model is dead from the
+	// undertaker.
+	if controllerLife == life.Dying {
+		return errors.Errorf("model %q is dying", modelUUID).Add(removalerrors.EntityNotDead)
 	}
 
 	// Attempt to destroy the provider of the model. This is best effort,
@@ -284,11 +257,8 @@ func (s *Service) DeleteModel(ctx context.Context, modelUUID model.UUID) error {
 		}
 	}
 
-	if err := s.modelState.DeleteModelArtifacts(ctx, modelUUID.String(), force); err != nil {
-		return errors.Errorf("deleting model artifacts: %w", err)
-	}
-
-	if err := s.controllerState.DeleteModel(ctx, modelUUID.String(), force); err != nil {
+	// If this fails, the undertaker will retry the deletion later.
+	if err := s.controllerState.DeleteModel(ctx, modelUUID.String()); err != nil {
 		return errors.Errorf("deleting model: %w", err)
 	}
 
@@ -368,6 +338,8 @@ func (s *Service) processModelJob(ctx context.Context, job removal.Job) error {
 		}
 	}
 
+	// Marking the models as dead will also ensure that we're not deleting
+	// non-dead entities within the model, unless force is used.
 	if err := s.modelState.MarkModelAsDead(ctx, job.EntityUUID, job.Force); err != nil && !errors.Is(err, modelerrors.NotFound) {
 		return errors.Errorf("marking model %q as dead: %w", job.EntityUUID, err)
 	}
