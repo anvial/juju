@@ -106,8 +106,8 @@ Controller configuration keys:
         time a writer will wait for others to finish writing on the
         same database.
     features:
-      type: list
-      description: A list of runtime changeable features to be updated
+      type: string
+      description: A comma-delimited list of runtime changeable features to be updated
     idle-connection-timeout:
       type: string
       description: |
