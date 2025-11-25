@@ -232,17 +232,13 @@ func (s *Service) DeleteModel(ctx context.Context, modelUUID model.UUID) error {
 		return errors.Errorf("getting controller model %q life: %w", modelUUID, err)
 	}
 
-	// If the model is alive, we cannot delete it even with force. This is
-	// programming error if we've reached this point and we're still alive.
+	// The life of the model should never be anything but dead. This is because
+	// if this is either a clean or forced removal, the model should have been
+	// set to dead prior to this call. There isn't away to get here, other than
+	// via the undertaker, without the model being dead.
 	if controllerLife == life.Alive {
 		return errors.Errorf("model %q is still alive", modelUUID).Add(removalerrors.EntityStillAlive)
-	}
-
-	// If we're not using force, ensure that the life of the model is dead
-	// and not dying. If it is dying, we cannot delete it yet. It is expected
-	// that this will only ever be called when the model is dead from the
-	// undertaker.
-	if controllerLife == life.Dying {
+	} else if controllerLife == life.Dying {
 		return errors.Errorf("model %q is dying", modelUUID).Add(removalerrors.EntityNotDead)
 	}
 
