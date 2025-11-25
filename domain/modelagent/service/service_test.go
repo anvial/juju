@@ -18,7 +18,6 @@ import (
 	"github.com/juju/juju/core/semversion"
 	coreunit "github.com/juju/juju/core/unit"
 	unittesting "github.com/juju/juju/core/unit/testing"
-	jujuversion "github.com/juju/juju/core/version"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
@@ -757,7 +756,7 @@ func (s *serviceSuite) TestSetAgentStream(c *tc.C) {
 // support upgrade tests by contriving a version that needs to be upgraded
 // relative to the current version of Juju.
 func (s *modelUpgradeSuite) getVersionMinorLess() semversion.Number {
-	rval := jujuversion.Current
+	rval := semversion.MustParse("4.0.1")
 	// We don't want to drag the Minor version into negative numbers
 	if rval.Minor > 0 {
 		rval.Minor--
@@ -800,7 +799,7 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersion(c *tc.C) {
 	version2 := semversion.MustParse("4.0-beta2")
 	version3 := semversion.MustParse("4.0-beta3")
 	version4 := semversion.MustParse("4.0-beta4")
-	desiredVersion := jujuversion.Current
+	desiredVersion := semversion.MustParse("4.0.1")
 	// Our service has logic to narrow down to pick the highest version
 	// which is `desiredVersion`.
 	s.controllerState.EXPECT().GetControllerAgentVersions(
@@ -811,6 +810,39 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersion(c *tc.C) {
 		desiredVersion,
 		version4,
 		version1,
+	}, nil).AnyTimes()
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().SetModelTargetAgentVersion(
+		gomock.Any(),
+		currentTargetVersion,
+		desiredVersion,
+	).Return(nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	newVer, err := svc.UpgradeModelTargetAgentVersion(c.Context())
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(newVer, tc.Equals, desiredVersion)
+}
+
+// TestUpgradeModelTargetAgentVersionSameVersions is a happy path test of
+// [Service.UpgradeMoelTargetAgentVersion]. In this test we want to see that the
+// model is upgraded to that highest available version available when multiple
+// versions of the same value is returned by state.
+func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionSameVersions(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentTargetVersion := s.getVersionMinorLess()
+	desiredVersion := semversion.MustParse("4.0.1")
+	// Our service has logic to narrow down to pick the highest version
+	// which is `desiredVersion`.
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{
+		desiredVersion,
+		desiredVersion,
+		desiredVersion,
 	}, nil).AnyTimes()
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
@@ -876,7 +908,7 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionWithStream(c *tc.C
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
+	desiredVersion := semversion.MustParse("4.0.1")
 	s.controllerState.EXPECT().GetControllerAgentVersions(
 		gomock.Any(),
 	).Return([]semversion.Number{desiredVersion}, nil).AnyTimes()
@@ -905,7 +937,8 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionWithStream(c *tc.C
 func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionToDowngrade(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(jujuversion.Current, nil)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).
+		Return(semversion.MustParse("4.0.1"), nil)
 
 	upgradeTo := semversion.MustParse("3.6.1")
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
