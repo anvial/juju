@@ -20,7 +20,6 @@ import (
 	coreagentbinary "github.com/juju/juju/core/agentbinary"
 	"github.com/juju/juju/core/arch"
 	coredatabase "github.com/juju/juju/core/database"
-	coreerrors "github.com/juju/juju/core/errors"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/core/testing"
@@ -855,6 +854,7 @@ func (s *workerSuite) TestUpgradeFailsWhenKilled(c *tc.C) {
 func (s *workerSuite) TestReportControllerNodeAgentVersionFails(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	settingError := errors.New("setting controller node agent version")
 	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
 		gomock.Any(),
 		"0",
@@ -862,13 +862,13 @@ func (s *workerSuite) TestReportControllerNodeAgentVersionFails(c *tc.C) {
 			Number: jujuversion.Current,
 			Arch:   arch.HostArch(),
 		},
-	).Return(coreerrors.NotValid)
+	).Return(settingError)
 
 	w, err := NewUpgradeDatabaseWorker(s.getConfig())
 	c.Assert(err, tc.ErrorIsNil)
 
 	err = workertest.CheckKill(c, w)
-	c.Check(err, tc.ErrorIs, coreerrors.NotValid)
+	c.Check(err, tc.ErrorIs, settingError)
 }
 
 func (s *workerSuite) getConfig() Config {
