@@ -122,6 +122,11 @@ type CrossModelRelationService interface {
 	// GetRemoteApplicationOffererByApplicationName returns the UUID of the remote
 	// application offerer for the given application name.
 	GetRemoteApplicationOffererByApplicationName(context.Context, string) (coreremoteapplication.UUID, error)
+
+	// IsApplicationSynthetic checks if the given application exists in the
+	// model and is a synthetic application (SAAS), based on the charm source being
+	// 'cmr' (cross-model relation).
+	IsApplicationSynthetic(ctx context.Context, appName string) (bool, error)
 }
 
 // CredentialService provides access to credentials.
