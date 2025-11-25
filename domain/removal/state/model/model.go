@@ -342,8 +342,10 @@ AND    life_id = 1`, modelUUID)
 			return removalerrors.EntityStillAlive
 		}
 
-		if err := st.checkNoModelDependents(ctx, tx, force); err != nil {
-			return errors.Capture(err)
+		if !force {
+			if err := st.checkNoModelDependents(ctx, tx); err != nil {
+				return errors.Capture(err)
+			}
 		}
 
 		err := tx.Query(ctx, updateStmt, modelUUID).Run()
@@ -417,13 +419,7 @@ WHERE  model_uuid = $entityUUID.uuid;`, model, modelUUID)
 	return life.Life(model.Life), nil
 }
 
-func (st *State) checkNoModelDependents(ctx context.Context, tx *sqlair.TX, force bool) error {
-	// If we're forcing, we don't care about dependents.
-	if force {
-		st.logger.Infof(ctx, "force flag set, skipping model dependents check")
-		return nil
-	}
-
+func (st *State) checkNoModelDependents(ctx context.Context, tx *sqlair.TX) error {
 	var count count
 
 	// We only care about applications and machines (for IAAS models). We assume
