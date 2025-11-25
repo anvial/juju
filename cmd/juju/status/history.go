@@ -58,7 +58,7 @@ This command will report the history of status changes for
 a given entity.
 
 The statuses are available for the following types.
--type supports:
+--type supports:
 %v
  and sorted by time of occurrence.
 
@@ -84,7 +84,7 @@ Show the status history for the specified unit with the logs for any date after 
 
 Show the status history for the specified application:
 
-    juju show-status-log -type application wordpress
+    juju show-status-log --type application wordpress
 
 Show the status history for the specified machine:
 
@@ -92,7 +92,7 @@ Show the status history for the specified machine:
 
 Show the status history for the model:
 
-    juju show-status-log -type model
+    juju show-status-log --type model
 `
 
 func (c *statusHistoryCommand) Info() *cmd.Info {
