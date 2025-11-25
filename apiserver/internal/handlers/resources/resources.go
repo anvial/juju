@@ -45,11 +45,12 @@ type Downloader interface {
 // ResourceHandler is the HTTP handler for client downloads and
 // uploads of resources.
 type ResourceHandler struct {
-	authFunc              func(*http.Request, ...string) (names.Tag, error)
-	changeAllowedFunc     func(context.Context) error
-	resourceServiceGetter ResourceServiceGetter
-	downloader            Downloader
-	logger                logger.Logger
+	authFunc                 func(*http.Request, ...string) (names.Tag, error)
+	changeAllowedFunc        func(context.Context) error
+	resourceServiceGetter    ResourceServiceGetter
+	applicationServiceGetter ApplicationServiceGetter
+	downloader               Downloader
+	logger                   logger.Logger
 }
 
 // NewResourceHandler returns a new HTTP client resource handler.
@@ -57,15 +58,17 @@ func NewResourceHandler(
 	authFunc func(*http.Request, ...string) (names.Tag, error),
 	changeAllowedFunc func(context.Context) error,
 	resourceServiceGetter ResourceServiceGetter,
+	applicationServiceGetter ApplicationServiceGetter,
 	downloader Downloader,
 	logger logger.Logger,
 ) *ResourceHandler {
 	return &ResourceHandler{
-		authFunc:              authFunc,
-		changeAllowedFunc:     changeAllowedFunc,
-		resourceServiceGetter: resourceServiceGetter,
-		downloader:            downloader,
-		logger:                logger,
+		authFunc:                 authFunc,
+		changeAllowedFunc:        changeAllowedFunc,
+		resourceServiceGetter:    resourceServiceGetter,
+		applicationServiceGetter: applicationServiceGetter,
+		downloader:               downloader,
+		logger:                   logger,
 	}
 }
 
@@ -133,6 +136,23 @@ func (h *ResourceHandler) download(service ResourceService, req *http.Request) (
 	application := query.Get(":application")
 	name := query.Get(":resource")
 
+	appService, err := h.applicationServiceGetter.Application(req)
+	if err != nil {
+		return nil, 0, jujuerrors.Trace(err)
+	}
+
+	appDetails, err := appService.GetApplicationDetailsByName(req.Context(), application)
+	if errors.Is(err, applicationerrors.ApplicationNotFound) {
+		return nil, 0, jujuerrors.NotFoundf("application %s", application)
+	} else if err != nil {
+		return nil, 0, jujuerrors.Trace(err)
+	}
+
+	// Reject synthetic (SAAS) applications - they don't support resource operations
+	if appDetails.IsApplicationSynthetic {
+		return nil, 0, jujuerrors.NotFoundf("application %s", application)
+	}
+
 	uuid, err := service.GetResourceUUIDByApplicationAndResourceName(req.Context(), application, name)
 	if errors.Is(err, resourceerrors.ResourceNotFound) {
 		return nil, 0, jujuerrors.NotFoundf("resource %s of application %s", name, application)
@@ -154,6 +174,27 @@ func (h *ResourceHandler) download(service ResourceService, req *http.Request) (
 }
 
 func (h *ResourceHandler) upload(service ResourceService, req *http.Request, username string) (*params.UploadResult, error) {
+	// Extract application name early to check if it's synthetic.
+	query := req.URL.Query()
+	application := query.Get(":application")
+
+	appService, err := h.applicationServiceGetter.Application(req)
+	if err != nil {
+		return nil, jujuerrors.Trace(err)
+	}
+
+	appDetails, err := appService.GetApplicationDetailsByName(req.Context(), application)
+	if errors.Is(err, applicationerrors.ApplicationNotFound) {
+		return nil, jujuerrors.NotFoundf("application %s", application)
+	} else if err != nil {
+		return nil, jujuerrors.Trace(err)
+	}
+
+	// Reject synthetic (SAAS) applications - they don't support resource operations
+	if appDetails.IsApplicationSynthetic {
+		return nil, jujuerrors.NotFoundf("application %s", application)
+	}
+
 	reader, uploaded, err := h.getUploadedResource(service, req)
 	if err != nil {
 		return nil, errors.Capture(err)

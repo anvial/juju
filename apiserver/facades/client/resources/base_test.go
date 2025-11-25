@@ -18,10 +18,11 @@ import (
 )
 
 type BaseSuite struct {
-	applicationService *MockApplicationService
-	resourceService    *MockResourceService
-	repository         *MockNewCharmRepository
-	factory            func(context.Context, *charm.URL) (NewCharmRepository, error)
+	applicationService        *MockApplicationService
+	resourceService           *MockResourceService
+	crossModelRelationService *MockCrossModelRelationService
+	repository                *MockNewCharmRepository
+	factory                   func(context.Context, *charm.URL) (NewCharmRepository, error)
 }
 
 func (s *BaseSuite) setupMocks(c *tc.C) *gomock.Controller {
@@ -29,6 +30,7 @@ func (s *BaseSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.applicationService = NewMockApplicationService(ctrl)
 	s.resourceService = NewMockResourceService(ctrl)
+	s.crossModelRelationService = NewMockCrossModelRelationService(ctrl)
 	s.repository = NewMockNewCharmRepository(ctrl)
 	s.factory = func(context.Context, *charm.URL) (NewCharmRepository, error) { return s.repository, nil }
 
@@ -36,7 +38,7 @@ func (s *BaseSuite) setupMocks(c *tc.C) *gomock.Controller {
 }
 
 func (s *BaseSuite) newFacade(c *tc.C) *API {
-	facade, err := NewResourcesAPI(s.applicationService, s.resourceService, s.factory,
+	facade, err := NewResourcesAPI(s.applicationService, s.resourceService, s.crossModelRelationService, s.factory,
 		loggertesting.WrapCheckLog(c))
 	c.Assert(err, tc.ErrorIsNil)
 	return facade

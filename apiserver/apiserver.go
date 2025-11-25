@@ -851,6 +851,7 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 		resourceAuthFunc,
 		resourceChangeAllowedFunc,
 		&resourceServiceGetter{ctxt: httpCtxt},
+		&resourcesApplicationServiceGetter{ctxt: httpCtxt},
 		resourcesdownload.NewDownloader(logger.Child("resourcedownloader"), resourcesdownload.DefaultFileSystem()),
 		logger,
 	), "applications")
@@ -1416,6 +1417,19 @@ func (a *resourceServiceGetter) Resource(r *http.Request) (handlersresources.Res
 	}
 
 	return domainServices.Resource(), nil
+}
+
+type resourcesApplicationServiceGetter struct {
+	ctxt httpContext
+}
+
+func (a *resourcesApplicationServiceGetter) Application(r *http.Request) (handlersresources.ApplicationService, error) {
+	domainServices, err := a.ctxt.domainServicesForRequest(r.Context())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return domainServices.Application(), nil
 }
 
 type migratingResourceServiceGetter struct {

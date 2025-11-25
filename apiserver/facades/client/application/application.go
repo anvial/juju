@@ -1709,7 +1709,7 @@ func (api *APIBase) setConfig(ctx context.Context, arg params.ConfigSet) params.
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotImplementedf("config yaml not supported"))}
 	}
 
-	appID, err := api.applicationService.GetApplicationUUIDByName(ctx, arg.ApplicationName)
+	appDetails, err := api.applicationService.GetApplicationDetailsByName(ctx, arg.ApplicationName)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %q", arg.ApplicationName))}
 	} else if errors.Is(err, applicationerrors.ApplicationNameNotValid) {
@@ -1718,7 +1718,12 @@ func (api *APIBase) setConfig(ctx context.Context, arg params.ConfigSet) params.
 		return params.ErrorResult{Error: apiservererrors.ServerError(err)}
 	}
 
-	err = api.applicationService.UpdateApplicationConfig(ctx, appID, arg.Config)
+	// Reject synthetic applications - they don't support config operations.
+	if appDetails.IsApplicationSynthetic {
+		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %s", arg.ApplicationName))}
+	}
+
+	err = api.applicationService.UpdateApplicationConfig(ctx, appDetails.UUID, arg.Config)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %q", arg.ApplicationName))}
 	} else if errors.Is(err, applicationerrors.InvalidApplicationConfig) {
@@ -1747,13 +1752,19 @@ func (api *APIBase) UnsetApplicationsConfig(ctx context.Context, args params.App
 }
 
 func (api *APIBase) unsetApplicationConfig(ctx context.Context, arg params.ApplicationUnset) error {
-	appID, err := api.applicationService.GetApplicationUUIDByName(ctx, arg.ApplicationName)
+	appDetails, err := api.applicationService.GetApplicationDetailsByName(ctx, arg.ApplicationName)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return errors.NotFoundf("application %s", arg.ApplicationName)
 	} else if err != nil {
 		return errors.Trace(err)
 	}
-	err = api.applicationService.UnsetApplicationConfigKeys(ctx, appID, arg.Options)
+
+	// Reject synthetic applications - they don't support config operations.
+	if appDetails.IsApplicationSynthetic {
+		return errors.NotFoundf("application %s", arg.ApplicationName)
+	}
+
+	err = api.applicationService.UnsetApplicationConfigKeys(ctx, appDetails.UUID, arg.Options)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return errors.NotFoundf("application %s", arg.ApplicationName)
 	} else if err != nil {

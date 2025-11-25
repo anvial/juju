@@ -509,6 +509,7 @@ type SetCharmStateParams struct {
 
 // ApplicationDetails contains details about an application.
 type ApplicationDetails struct {
+	UUID                   application.UUID
 	Life                   life.Life
 	Name                   string
 	IsApplicationSynthetic bool

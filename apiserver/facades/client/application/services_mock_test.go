@@ -865,6 +865,45 @@ func (c *MockApplicationServiceGetApplicationConstraintsCall) DoAndReturn(f func
 	return c
 }
 
+// GetApplicationDetailsByName mocks base method.
+func (m *MockApplicationService) GetApplicationDetailsByName(arg0 context.Context, arg1 string) (application0.ApplicationDetails, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetApplicationDetailsByName", arg0, arg1)
+	ret0, _ := ret[0].(application0.ApplicationDetails)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetApplicationDetailsByName indicates an expected call of GetApplicationDetailsByName.
+func (mr *MockApplicationServiceMockRecorder) GetApplicationDetailsByName(arg0, arg1 any) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApplicationDetailsByName", reflect.TypeOf((*MockApplicationService)(nil).GetApplicationDetailsByName), arg0, arg1)
+	return &MockApplicationServiceGetApplicationDetailsByNameCall{Call: call}
+}
+
+// MockApplicationServiceGetApplicationDetailsByNameCall wrap *gomock.Call
+type MockApplicationServiceGetApplicationDetailsByNameCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceGetApplicationDetailsByNameCall) Return(arg0 application0.ApplicationDetails, arg1 error) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceGetApplicationDetailsByNameCall) Do(f func(context.Context, string) (application0.ApplicationDetails, error)) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceGetApplicationDetailsByNameCall) DoAndReturn(f func(context.Context, string) (application0.ApplicationDetails, error)) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetApplicationEndpointBindings mocks base method.
 func (m *MockApplicationService) GetApplicationEndpointBindings(arg0 context.Context, arg1 string) (map[string]network.SpaceUUID, error) {
 	m.ctrl.T.Helper()
@@ -3051,6 +3090,45 @@ func (c *MockCrossModelRelationServiceGetRemoteApplicationOffererByApplicationNa
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockCrossModelRelationServiceGetRemoteApplicationOffererByApplicationNameCall) DoAndReturn(f func(context.Context, string) (remoteapplication.UUID, error)) *MockCrossModelRelationServiceGetRemoteApplicationOffererByApplicationNameCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// IsApplicationSynthetic mocks base method.
+func (m *MockCrossModelRelationService) IsApplicationSynthetic(arg0 context.Context, arg1 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsApplicationSynthetic", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsApplicationSynthetic indicates an expected call of IsApplicationSynthetic.
+func (mr *MockCrossModelRelationServiceMockRecorder) IsApplicationSynthetic(arg0, arg1 any) *MockCrossModelRelationServiceIsApplicationSyntheticCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsApplicationSynthetic", reflect.TypeOf((*MockCrossModelRelationService)(nil).IsApplicationSynthetic), arg0, arg1)
+	return &MockCrossModelRelationServiceIsApplicationSyntheticCall{Call: call}
+}
+
+// MockCrossModelRelationServiceIsApplicationSyntheticCall wrap *gomock.Call
+type MockCrossModelRelationServiceIsApplicationSyntheticCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockCrossModelRelationServiceIsApplicationSyntheticCall) Return(arg0 bool, arg1 error) *MockCrossModelRelationServiceIsApplicationSyntheticCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockCrossModelRelationServiceIsApplicationSyntheticCall) Do(f func(context.Context, string) (bool, error)) *MockCrossModelRelationServiceIsApplicationSyntheticCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockCrossModelRelationServiceIsApplicationSyntheticCall) DoAndReturn(f func(context.Context, string) (bool, error)) *MockCrossModelRelationServiceIsApplicationSyntheticCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
