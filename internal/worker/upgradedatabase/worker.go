@@ -93,12 +93,12 @@ type Config struct {
 	// Agent is the running machine agent.
 	Agent agent.Agent
 
-	// UpgradeService is the upgrade service used to drive the upgrade.
-	UpgradeService UpgradeService
-
 	// ControllerNodeService provides a means to communicate the controller's
 	// running agent version.
 	ControllerNodeService ControllerNodeService
+
+	// UpgradeService is the upgrade service used to drive the upgrade.
+	UpgradeService UpgradeService
 
 	// DBGetter is the database getter used to get the database for each model.
 	DBGetter coredatabase.DBGetter
@@ -211,9 +211,9 @@ func (w *upgradeDBWorker) loop() error {
 	ctx, cancel := w.scopedContext()
 	defer cancel()
 
-	err := w.reportControllerNodeAgentVersion(ctx)
+	err := w.recordControllerNodeAgentVersion(ctx)
 	if err != nil {
-		return err
+		return errors.Annotate(err, "recording controller version")
 	}
 
 	if w.upgradeDone(ctx) {
@@ -530,9 +530,12 @@ func (w *upgradeDBWorker) addWatcher(ctx context.Context, watcher eventsource.Wa
 	return nil
 }
 
-// reportControllerNodeAgentVersion persists the version of the agent when the
-// worker starts.
-func (w *upgradeDBWorker) reportControllerNodeAgentVersion(
+// recordControllerNodeAgentVersion ensures that this controllers current running
+// version is correctly recorded in the controller database against the controller's id.
+// This method MUST be called every time the worker starts regardless of database
+// upgrades to perform. This ensures the database is always a correct reflection
+// of the controller' version.
+func (w *upgradeDBWorker) recordControllerNodeAgentVersion(
 	ctx context.Context,
 ) error {
 	version := coreagentbinary.Version{
@@ -545,7 +548,7 @@ func (w *upgradeDBWorker) reportControllerNodeAgentVersion(
 		version,
 	)
 	if err != nil {
-		return errors.Annotate(err, "setting controller node agent version")
+		return errors.Annotate(err, "recoding controller node agent version")
 	}
 
 	return nil

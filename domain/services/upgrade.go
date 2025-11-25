@@ -41,10 +41,9 @@ func (s *UpgradeServices) Upgrade() *upgradeservice.WatchableService {
 }
 
 // ControllerNode returns the controller node service.
-func (s *UpgradeServices) ControllerNode() *controllernodeservice.WatchableService {
-	return controllernodeservice.NewWatchableService(
+func (s *UpgradeServices) ControllerNode() *controllernodeservice.Service {
+	return controllernodeservice.NewService(
 		controllernodestate.NewState(changestream.NewTxnRunnerFactory(s.controllerDB)),
-		s.controllerWatcherFactory("controllernode"),
 		s.logger.Child("controllernode"),
 	)
 }
