@@ -253,6 +253,8 @@ type ObjectStoreServicesGetter interface {
 
 // UpgradeServices represents a way to get a upgrade services for a controller.
 type UpgradeServices interface {
+	// ControllerNode returns the controller node service.
+	ControllerNode() *controllernodeservice.Service
 	// Upgrade returns the upgrade service.
 	Upgrade() *upgradeservice.WatchableService
 }
