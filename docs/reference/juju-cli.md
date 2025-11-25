@@ -10,6 +10,7 @@ See also: {ref}`manage-juju`
 :hidden:
 juju-cli/list-of-juju-cli-commands/index
 juju-cli/juju-environment-variables
+juju-cli/plugin-juju-metadata
 ```
 
 <!--HARRY SAYS: THIS DOC IS MISSING A LOT OF DETAIL-->
