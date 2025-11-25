@@ -874,44 +874,6 @@ func (c *MockModelDBStateDeleteMachineCall) DoAndReturn(f func(context.Context, 
 	return c
 }
 
-// DeleteModelArtifacts mocks base method.
-func (m *MockModelDBState) DeleteModelArtifacts(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteModelArtifacts", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteModelArtifacts indicates an expected call of DeleteModelArtifacts.
-func (mr *MockModelDBStateMockRecorder) DeleteModelArtifacts(arg0, arg1 any) *MockModelDBStateDeleteModelArtifactsCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteModelArtifacts", reflect.TypeOf((*MockModelDBState)(nil).DeleteModelArtifacts), arg0, arg1)
-	return &MockModelDBStateDeleteModelArtifactsCall{Call: call}
-}
-
-// MockModelDBStateDeleteModelArtifactsCall wrap *gomock.Call
-type MockModelDBStateDeleteModelArtifactsCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockModelDBStateDeleteModelArtifactsCall) Return(arg0 error) *MockModelDBStateDeleteModelArtifactsCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockModelDBStateDeleteModelArtifactsCall) Do(f func(context.Context, string) error) *MockModelDBStateDeleteModelArtifactsCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelDBStateDeleteModelArtifactsCall) DoAndReturn(f func(context.Context, string) error) *MockModelDBStateDeleteModelArtifactsCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // DeleteOffer mocks base method.
 func (m *MockModelDBState) DeleteOffer(arg0 context.Context, arg1 string, arg2 bool) error {
 	m.ctrl.T.Helper()
@@ -1255,17 +1217,17 @@ func (c *MockModelDBStateDeleteStorageInstanceCall) DoAndReturn(f func(context.C
 }
 
 // DeleteUnit mocks base method.
-func (m *MockModelDBState) DeleteUnit(arg0 context.Context, arg1 string) error {
+func (m *MockModelDBState) DeleteUnit(arg0 context.Context, arg1 string, arg2 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteUnit", arg0, arg1)
+	ret := m.ctrl.Call(m, "DeleteUnit", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteUnit indicates an expected call of DeleteUnit.
-func (mr *MockModelDBStateMockRecorder) DeleteUnit(arg0, arg1 any) *MockModelDBStateDeleteUnitCall {
+func (mr *MockModelDBStateMockRecorder) DeleteUnit(arg0, arg1, arg2 any) *MockModelDBStateDeleteUnitCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnit", reflect.TypeOf((*MockModelDBState)(nil).DeleteUnit), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnit", reflect.TypeOf((*MockModelDBState)(nil).DeleteUnit), arg0, arg1, arg2)
 	return &MockModelDBStateDeleteUnitCall{Call: call}
 }
 
@@ -1281,13 +1243,13 @@ func (c *MockModelDBStateDeleteUnitCall) Return(arg0 error) *MockModelDBStateDel
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelDBStateDeleteUnitCall) Do(f func(context.Context, string) error) *MockModelDBStateDeleteUnitCall {
+func (c *MockModelDBStateDeleteUnitCall) Do(f func(context.Context, string, bool) error) *MockModelDBStateDeleteUnitCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelDBStateDeleteUnitCall) DoAndReturn(f func(context.Context, string) error) *MockModelDBStateDeleteUnitCall {
+func (c *MockModelDBStateDeleteUnitCall) DoAndReturn(f func(context.Context, string, bool) error) *MockModelDBStateDeleteUnitCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3347,17 +3309,17 @@ func (c *MockModelDBStateMarkMachineAsDeadCall) DoAndReturn(f func(context.Conte
 }
 
 // MarkModelAsDead mocks base method.
-func (m *MockModelDBState) MarkModelAsDead(arg0 context.Context, arg1 string) error {
+func (m *MockModelDBState) MarkModelAsDead(arg0 context.Context, arg1 string, arg2 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkModelAsDead", arg0, arg1)
+	ret := m.ctrl.Call(m, "MarkModelAsDead", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkModelAsDead indicates an expected call of MarkModelAsDead.
-func (mr *MockModelDBStateMockRecorder) MarkModelAsDead(arg0, arg1 any) *MockModelDBStateMarkModelAsDeadCall {
+func (mr *MockModelDBStateMockRecorder) MarkModelAsDead(arg0, arg1, arg2 any) *MockModelDBStateMarkModelAsDeadCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkModelAsDead", reflect.TypeOf((*MockModelDBState)(nil).MarkModelAsDead), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkModelAsDead", reflect.TypeOf((*MockModelDBState)(nil).MarkModelAsDead), arg0, arg1, arg2)
 	return &MockModelDBStateMarkModelAsDeadCall{Call: call}
 }
 
@@ -3373,13 +3335,13 @@ func (c *MockModelDBStateMarkModelAsDeadCall) Return(arg0 error) *MockModelDBSta
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelDBStateMarkModelAsDeadCall) Do(f func(context.Context, string) error) *MockModelDBStateMarkModelAsDeadCall {
+func (c *MockModelDBStateMarkModelAsDeadCall) Do(f func(context.Context, string, bool) error) *MockModelDBStateMarkModelAsDeadCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelDBStateMarkModelAsDeadCall) DoAndReturn(f func(context.Context, string) error) *MockModelDBStateMarkModelAsDeadCall {
+func (c *MockModelDBStateMarkModelAsDeadCall) DoAndReturn(f func(context.Context, string, bool) error) *MockModelDBStateMarkModelAsDeadCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
