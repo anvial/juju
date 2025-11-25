@@ -47,7 +47,7 @@ func (s *manifoldSuite) setupMocks(c *tc.C) *gomock.Controller {
 		&upgradeservice.WatchableService{},
 	).AnyTimes()
 	s.upgradeServices.EXPECT().ControllerNode().Return(
-		&controllernodeservice.WatchableService{},
+		&controllernodeservice.Service{},
 	).AnyTimes()
 	s.upgradeServicesGetter.EXPECT().ServicesForController().Return(
 		s.upgradeServices,
