@@ -170,21 +170,22 @@ func (api *APIBase) getCharm(ctx context.Context, locator applicationcharm.Charm
 }
 
 func (api *APIBase) getMergedAppAndCharmConfig(ctx context.Context, appName string) (map[string]interface{}, error) {
-	if err := api.checkNotSyntheticApplication(ctx, appName); err != nil {
-		return nil, err
-	}
-
 	// TODO (stickupkid): This should be one call to the application service.
 	// Thee application service should return the merged config, this should
 	// not happen at the API server level.
-	appID, err := api.applicationService.GetApplicationUUIDByName(ctx, appName)
+	appDetails, err := api.applicationService.GetApplicationDetailsByName(ctx, appName)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return nil, errors.NotFoundf("application %s", appName)
 	} else if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	appInfo, err := api.applicationService.GetApplicationAndCharmConfig(ctx, appID)
+	// Reject synthetic applications - they don't support config operations.
+	if appDetails.IsApplicationSynthetic {
+		return nil, errors.NotFoundf("application %s", appName)
+	}
+
+	appInfo, err := api.applicationService.GetApplicationAndCharmConfig(ctx, appDetails.UUID)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return nil, errors.NotFoundf("application %s", appName)
 	} else if err != nil {

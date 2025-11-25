@@ -10,6 +10,7 @@ import (
 
 	coreresource "github.com/juju/juju/core/resource"
 	coreunit "github.com/juju/juju/core/unit"
+	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/resource"
 )
 
@@ -74,4 +75,20 @@ type CrossModelRelationService interface {
 	// IsApplicationSynthetic checks if the given application exists in the model
 	// and is a synthetic application.
 	IsApplicationSynthetic(ctx context.Context, appName string) (bool, error)
+}
+
+// ApplicationService defines operations related to applications.
+type ApplicationService interface {
+	// GetApplicationDetailsByName returns the application details for the given
+	// application name. This includes the UUID, life status, name, and whether
+	// the application is synthetic.
+	GetApplicationDetailsByName(ctx context.Context, name string) (application.ApplicationDetails, error)
+}
+
+// ApplicationServiceGetter is an interface for retrieving an ApplicationService
+// instance.
+type ApplicationServiceGetter interface {
+	// Application retrieves an ApplicationService for handling application-related
+	// operations.
+	Application(*http.Request) (ApplicationService, error)
 }

@@ -38,6 +38,7 @@ import (
 	applicationservice "github.com/juju/juju/domain/application/service"
 	crossmodelrelationerrors "github.com/juju/juju/domain/crossmodelrelation/errors"
 	crossmodelrelationservice "github.com/juju/juju/domain/crossmodelrelation/service"
+	domainlife "github.com/juju/juju/domain/life"
 	"github.com/juju/juju/domain/relation"
 	relationerrors "github.com/juju/juju/domain/relation/errors"
 	"github.com/juju/juju/domain/removal"
@@ -855,8 +856,7 @@ func (s *applicationSuite) TestCharmConfigApplicationNotFound(c *tc.C) {
 
 	s.setupAPI(c)
 
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "foo").Return(false, nil)
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return("", applicationerrors.ApplicationNotFound)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{}, applicationerrors.ApplicationNotFound)
 
 	res, err := s.api.CharmConfig(c.Context(), params.ApplicationGetArgs{
 		Args: []params.ApplicationGet{{
@@ -874,8 +874,12 @@ func (s *applicationSuite) TestCharmConfig(c *tc.C) {
 	s.setupAPI(c)
 	appID := tc.Must(c, application.NewUUID)
 
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "foo").Return(false, nil)
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return(appID, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "foo",
+		IsApplicationSynthetic: false,
+	}, nil)
 	s.applicationService.EXPECT().GetApplicationAndCharmConfig(gomock.Any(), appID).Return(applicationservice.ApplicationConfig{
 		CharmName: "ch",
 		ApplicationConfig: internalcharm.Config{
@@ -927,9 +931,15 @@ func (s *applicationSuite) TestCharmConfigSAASApplicationNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	s.setupAPI(c)
+	appID := tc.Must(c, application.NewUUID)
 
 	// SAAS applications should be rejected with application not found error
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "saas-app").Return(true, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "saas-app").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "saas-app",
+		IsApplicationSynthetic: true,
+	}, nil)
 
 	res, err := s.api.CharmConfig(c.Context(), params.ApplicationGetArgs{
 		Args: []params.ApplicationGet{{
@@ -1019,8 +1029,7 @@ func (s *applicationSuite) TestSetConfigsApplicationNotFound(c *tc.C) {
 
 	s.setupAPI(c)
 
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "foo").Return(false, nil)
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return("", applicationerrors.ApplicationNotFound)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{}, applicationerrors.ApplicationNotFound)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
 		Args: []params.ConfigSet{{
@@ -1038,8 +1047,7 @@ func (s *applicationSuite) TestSetConfigsNotValidApplicationName(c *tc.C) {
 
 	s.setupAPI(c)
 
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "foo").Return(false, nil)
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return("", applicationerrors.ApplicationNameNotValid)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{}, applicationerrors.ApplicationNameNotValid)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
 		Args: []params.ConfigSet{{
@@ -1058,8 +1066,12 @@ func (s *applicationSuite) TestSetConfigsInvalidConfig(c *tc.C) {
 	s.setupAPI(c)
 	appID := tc.Must(c, application.NewUUID)
 
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "foo").Return(false, nil)
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return(appID, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "foo",
+		IsApplicationSynthetic: false,
+	}, nil)
 	s.applicationService.EXPECT().UpdateApplicationConfig(gomock.Any(), appID, gomock.Any()).Return(applicationerrors.InvalidApplicationConfig)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
@@ -1079,8 +1091,12 @@ func (s *applicationSuite) TestSetConfigs(c *tc.C) {
 	s.setupAPI(c)
 	appID := tc.Must(c, application.NewUUID)
 
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "foo").Return(false, nil)
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return(appID, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "foo",
+		IsApplicationSynthetic: false,
+	}, nil)
 	s.applicationService.EXPECT().UpdateApplicationConfig(gomock.Any(), appID, map[string]string{"foo": "bar"}).Return(nil)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
@@ -1098,9 +1114,15 @@ func (s *applicationSuite) TestSetConfigsSAASApplicationNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	s.setupAPI(c)
+	appID := tc.Must(c, application.NewUUID)
 
 	// SAAS applications should be rejected with application not found error
-	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "saas-app").Return(true, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "saas-app").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "saas-app",
+		IsApplicationSynthetic: true,
+	}, nil)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
 		Args: []params.ConfigSet{{

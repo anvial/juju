@@ -16,6 +16,7 @@ import (
 	application "github.com/juju/juju/core/application"
 	charm "github.com/juju/juju/core/charm"
 	resource "github.com/juju/juju/core/resource"
+	application0 "github.com/juju/juju/domain/application"
 	resource0 "github.com/juju/juju/domain/resource"
 	resource1 "github.com/juju/juju/internal/charm/resource"
 	gomock "go.uber.org/mock/gomock"
@@ -42,6 +43,45 @@ func NewMockApplicationService(ctrl *gomock.Controller) *MockApplicationService 
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockApplicationService) EXPECT() *MockApplicationServiceMockRecorder {
 	return m.recorder
+}
+
+// GetApplicationDetailsByName mocks base method.
+func (m *MockApplicationService) GetApplicationDetailsByName(arg0 context.Context, arg1 string) (application0.ApplicationDetails, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetApplicationDetailsByName", arg0, arg1)
+	ret0, _ := ret[0].(application0.ApplicationDetails)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetApplicationDetailsByName indicates an expected call of GetApplicationDetailsByName.
+func (mr *MockApplicationServiceMockRecorder) GetApplicationDetailsByName(arg0, arg1 any) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApplicationDetailsByName", reflect.TypeOf((*MockApplicationService)(nil).GetApplicationDetailsByName), arg0, arg1)
+	return &MockApplicationServiceGetApplicationDetailsByNameCall{Call: call}
+}
+
+// MockApplicationServiceGetApplicationDetailsByNameCall wrap *gomock.Call
+type MockApplicationServiceGetApplicationDetailsByNameCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceGetApplicationDetailsByNameCall) Return(arg0 application0.ApplicationDetails, arg1 error) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceGetApplicationDetailsByNameCall) Do(f func(context.Context, string) (application0.ApplicationDetails, error)) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceGetApplicationDetailsByNameCall) DoAndReturn(f func(context.Context, string) (application0.ApplicationDetails, error)) *MockApplicationServiceGetApplicationDetailsByNameCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
 }
 
 // GetApplicationUUIDByName mocks base method.

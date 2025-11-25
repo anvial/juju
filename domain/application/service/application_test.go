@@ -130,6 +130,43 @@ func (s *applicationServiceSuite) TestGetApplicationUUIDByNameNotFound(c *tc.C) 
 	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotFound)
 }
 
+func (s *applicationServiceSuite) TestGetApplicationDetailsByName(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	id := tc.Must(c, coreapplication.NewUUID)
+	details := application.ApplicationDetails{
+		UUID:                   id,
+		Life:                   life.Alive,
+		Name:                   "foo",
+		IsApplicationSynthetic: false,
+	}
+
+	s.state.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(details, nil)
+
+	obtainedDetails, err := s.service.GetApplicationDetailsByName(c.Context(), "foo")
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(obtainedDetails.UUID, tc.Equals, id)
+	c.Check(obtainedDetails.Name, tc.Equals, "foo")
+	c.Check(obtainedDetails.Life, tc.Equals, life.Alive)
+	c.Check(obtainedDetails.IsApplicationSynthetic, tc.Equals, false)
+}
+
+func (s *applicationServiceSuite) TestGetApplicationDetailsByNameNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.state.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(application.ApplicationDetails{}, applicationerrors.ApplicationNotFound)
+
+	_, err := s.service.GetApplicationDetailsByName(c.Context(), "foo")
+	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotFound)
+}
+
+func (s *applicationServiceSuite) TestGetApplicationDetailsByNameInvalidName(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	_, err := s.service.GetApplicationDetailsByName(c.Context(), "")
+	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNameNotValid)
+}
+
 func (s *applicationServiceSuite) TestGetCharmLocatorByApplicationName(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 

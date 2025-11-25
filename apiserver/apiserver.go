@@ -851,7 +851,7 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 		resourceAuthFunc,
 		resourceChangeAllowedFunc,
 		&resourceServiceGetter{ctxt: httpCtxt},
-		&crossModelRelationServiceGetter{ctxt: httpCtxt},
+		&resourcesApplicationServiceGetter{ctxt: httpCtxt},
 		resourcesdownload.NewDownloader(logger.Child("resourcedownloader"), resourcesdownload.DefaultFileSystem()),
 		logger,
 	), "applications")
@@ -1419,6 +1419,19 @@ func (a *resourceServiceGetter) Resource(r *http.Request) (handlersresources.Res
 	return domainServices.Resource(), nil
 }
 
+type resourcesApplicationServiceGetter struct {
+	ctxt httpContext
+}
+
+func (a *resourcesApplicationServiceGetter) Application(r *http.Request) (handlersresources.ApplicationService, error) {
+	domainServices, err := a.ctxt.domainServicesForRequest(r.Context())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return domainServices.Application(), nil
+}
+
 type migratingResourceServiceGetter struct {
 	ctxt httpContext
 }
@@ -1429,18 +1442,6 @@ func (a *migratingResourceServiceGetter) Resource(r *http.Request) (handlersreso
 		return nil, internalerrors.Capture(err)
 	}
 	return domainServices.Resource(), nil
-}
-
-type crossModelRelationServiceGetter struct {
-	ctxt httpContext
-}
-
-func (a *crossModelRelationServiceGetter) IsApplicationSynthetic(ctx context.Context, appName string) (bool, error) {
-	domainServices, err := a.ctxt.domainServicesForRequest(ctx)
-	if err != nil {
-		return false, errors.Trace(err)
-	}
-	return domainServices.CrossModelRelation().IsApplicationSynthetic(ctx, appName)
 }
 
 type resourceOpenerGetter func(r *http.Request, tagKinds ...string) (coreresource.Opener, error)

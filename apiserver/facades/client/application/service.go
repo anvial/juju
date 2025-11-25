@@ -276,6 +276,13 @@ type ApplicationService interface {
 	// not found.
 	GetApplicationUUIDByName(ctx context.Context, name string) (coreapplication.UUID, error)
 
+	// GetApplicationDetailsByName returns the application details for the given
+	// application name. This includes the UUID, life status, name, and whether
+	// the application is synthetic.
+	// Returns an error satisfying [applicationerrors.ApplicationNotFound] if
+	// the application does not exist.
+	GetApplicationDetailsByName(ctx context.Context, name string) (application.ApplicationDetails, error)
+
 	// GetApplicationConstraints returns the application constraints for the
 	// specified application UUID.
 	// Empty constraints are returned if no constraints exist for the given

@@ -1704,30 +1704,12 @@ func (api *APIBase) SetConfigs(ctx context.Context, args params.ConfigSetArgs) (
 	return result, nil
 }
 
-// checkNotSyntheticApplication checks if the application is a SAAS (synthetic) application.
-// SAAS applications are not allowed to have their config set, unset, or retrieved.
-// If the application is synthetic, it returns an error as if the application was not found.
-func (api *APIBase) checkNotSyntheticApplication(ctx context.Context, appName string) error {
-	isSynthetic, err := api.crossModelRelationService.IsApplicationSynthetic(ctx, appName)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if isSynthetic {
-		return errors.NotFoundf("application %s", appName)
-	}
-	return nil
-}
-
 func (api *APIBase) setConfig(ctx context.Context, arg params.ConfigSet) params.ErrorResult {
 	if arg.ConfigYAML != "" {
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotImplementedf("config yaml not supported"))}
 	}
 
-	if err := api.checkNotSyntheticApplication(ctx, arg.ApplicationName); err != nil {
-		return params.ErrorResult{Error: apiservererrors.ServerError(err)}
-	}
-
-	appID, err := api.applicationService.GetApplicationUUIDByName(ctx, arg.ApplicationName)
+	appDetails, err := api.applicationService.GetApplicationDetailsByName(ctx, arg.ApplicationName)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %q", arg.ApplicationName))}
 	} else if errors.Is(err, applicationerrors.ApplicationNameNotValid) {
@@ -1736,7 +1718,12 @@ func (api *APIBase) setConfig(ctx context.Context, arg params.ConfigSet) params.
 		return params.ErrorResult{Error: apiservererrors.ServerError(err)}
 	}
 
-	err = api.applicationService.UpdateApplicationConfig(ctx, appID, arg.Config)
+	// Reject synthetic applications - they don't support config operations.
+	if appDetails.IsApplicationSynthetic {
+		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %s", arg.ApplicationName))}
+	}
+
+	err = api.applicationService.UpdateApplicationConfig(ctx, appDetails.UUID, arg.Config)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %q", arg.ApplicationName))}
 	} else if errors.Is(err, applicationerrors.InvalidApplicationConfig) {
@@ -1765,17 +1752,19 @@ func (api *APIBase) UnsetApplicationsConfig(ctx context.Context, args params.App
 }
 
 func (api *APIBase) unsetApplicationConfig(ctx context.Context, arg params.ApplicationUnset) error {
-	if err := api.checkNotSyntheticApplication(ctx, arg.ApplicationName); err != nil {
-		return err
-	}
-
-	appID, err := api.applicationService.GetApplicationUUIDByName(ctx, arg.ApplicationName)
+	appDetails, err := api.applicationService.GetApplicationDetailsByName(ctx, arg.ApplicationName)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return errors.NotFoundf("application %s", arg.ApplicationName)
 	} else if err != nil {
 		return errors.Trace(err)
 	}
-	err = api.applicationService.UnsetApplicationConfigKeys(ctx, appID, arg.Options)
+
+	// Reject synthetic applications - they don't support config operations.
+	if appDetails.IsApplicationSynthetic {
+		return errors.NotFoundf("application %s", arg.ApplicationName)
+	}
+
+	err = api.applicationService.UnsetApplicationConfigKeys(ctx, appDetails.UUID, arg.Options)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return errors.NotFoundf("application %s", arg.ApplicationName)
 	} else if err != nil {

@@ -616,6 +616,54 @@ WHERE a.uuid = $applicationDetails.uuid;
 	}
 
 	return application.ApplicationDetails{
+		UUID:                   app.UUID,
+		Life:                   app.LifeID,
+		Name:                   app.Name,
+		IsApplicationSynthetic: app.IsApplicationSynthetic,
+	}, nil
+}
+
+// GetApplicationDetailsByName returns the application details for the named
+// application.
+// The following errors may be returned:
+// - [applicationerrors.ApplicationNotFound] if the application does not exist
+func (st *State) GetApplicationDetailsByName(ctx context.Context, name string) (application.ApplicationDetails, error) {
+	db, err := st.DB(ctx)
+	if err != nil {
+		return application.ApplicationDetails{}, errors.Capture(err)
+	}
+
+	app := applicationDetails{Name: name}
+	query := `
+SELECT a.uuid AS &applicationDetails.uuid,
+	   a.name AS &applicationDetails.name,
+	   a.charm_uuid AS &applicationDetails.charm_uuid,
+	   a.life_id AS &applicationDetails.life_id,
+	   a.space_uuid AS &applicationDetails.space_uuid,
+	   c.source_id = 2 AS &applicationDetails.is_application_synthetic
+FROM application a
+JOIN charm AS c ON c.uuid = a.charm_uuid
+WHERE a.name = $applicationDetails.name;
+`
+	stmt, err := st.Prepare(query, app)
+	if err != nil {
+		return application.ApplicationDetails{}, errors.Capture(err)
+	}
+
+	if err := db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err := tx.Query(ctx, stmt, app).Get(&app)
+		if errors.Is(err, sqlair.ErrNoRows) {
+			return errors.Errorf("application %s not found", name).Add(applicationerrors.ApplicationNotFound)
+		} else if err != nil {
+			return errors.Capture(err)
+		}
+		return nil
+	}); err != nil {
+		return application.ApplicationDetails{}, errors.Capture(err)
+	}
+
+	return application.ApplicationDetails{
+		UUID:                   app.UUID,
 		Life:                   app.LifeID,
 		Name:                   app.Name,
 		IsApplicationSynthetic: app.IsApplicationSynthetic,

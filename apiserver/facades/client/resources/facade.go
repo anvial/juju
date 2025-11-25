@@ -133,23 +133,6 @@ func NewResourcesAPI(
 	return f, nil
 }
 
-// checkNotSyntheticApplication checks if the application is a synthetic
-// application.
-// Synthetic applications are not allowed to have their resources listed, added,
-// or uploaded.
-// If the application is synthetic, it returns an error as if the application
-// was not found.
-func (a *API) checkNotSyntheticApplication(ctx context.Context, appName string) error {
-	isSynthetic, err := a.crossModelRelationService.IsApplicationSynthetic(ctx, appName)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	if isSynthetic {
-		return errors.NotFoundf("application %s", appName)
-	}
-	return nil
-}
-
 // ListResources returns the list of resources for the given application.
 func (a *API) ListResources(ctx context.Context, args params.ListResourcesArgs) (params.ResourcesResults, error) {
 	var r params.ResourcesResults
@@ -167,18 +150,19 @@ func (a *API) ListResources(ctx context.Context, args params.ListResourcesArgs) 
 			continue
 		}
 
-		if err := a.checkNotSyntheticApplication(ctx, tag.Id()); err != nil {
-			r.Results[i] = errorResult(err)
-			continue
-		}
-
-		appID, err := a.applicationService.GetApplicationUUIDByName(ctx, tag.Id())
+		appDetails, err := a.applicationService.GetApplicationDetailsByName(ctx, tag.Id())
 		if err != nil {
 			r.Results[i] = errorResult(err)
 			continue
 		}
 
-		svcRes, err := a.resourceService.ListResources(ctx, appID)
+		// Reject synthetic (SAAS) applications - they don't support resource operations
+		if appDetails.IsApplicationSynthetic {
+			r.Results[i] = errorResult(errors.NotFoundf("application %s", tag.Id()))
+			continue
+		}
+
+		svcRes, err := a.resourceService.ListResources(ctx, appDetails.UUID)
 		if err != nil {
 			r.Results[i] = errorResult(err)
 			continue
@@ -210,8 +194,15 @@ func (a *API) AddPendingResources(
 	}
 	appName := tag.Id()
 
-	if err := a.checkNotSyntheticApplication(ctx, appName); err != nil {
+	appDetails, err := a.applicationService.GetApplicationDetailsByName(ctx, appName)
+	if err != nil {
 		result.Error = apiservererrors.ServerError(err)
+		return result, nil
+	}
+
+	// Reject synthetic (SAAS) applications - they don't support resource operations
+	if appDetails.IsApplicationSynthetic {
+		result.Error = apiservererrors.ServerError(errors.NotFoundf("application %s", appName))
 		return result, nil
 	}
 
