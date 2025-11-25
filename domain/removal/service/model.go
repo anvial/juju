@@ -316,25 +316,22 @@ func (s *Service) processModelJob(ctx context.Context, job removal.Job) error {
 		return errors.Errorf("model %q is alive", job.EntityUUID).Add(removalerrors.EntityStillAlive)
 	}
 
-	// If we're not using force and this is the controller model, we need to
-	// ensure that any other models are also not alive/dying. If we're using
-	// force, we can skip this check.
-	if !job.Force {
-		if isController, err := s.modelState.IsControllerModel(ctx, job.EntityUUID); err != nil {
-			return errors.Capture(err)
-		} else if isController {
-			models, err := s.controllerState.GetModelUUIDs(ctx)
-			if err != nil {
-				return errors.Errorf("getting controller model UUIDs: %w", err)
-			}
+	// If the model is a controller model, we need to ensure that all other models
+	// are at least not alive or dying
+	if isController, err := s.modelState.IsControllerModel(ctx, job.EntityUUID); err != nil {
+		return errors.Capture(err)
+	} else if isController {
+		models, err := s.controllerState.GetModelUUIDs(ctx)
+		if err != nil {
+			return errors.Errorf("getting controller model UUIDs: %w", err)
+		}
 
-			modelsExist, err := s.aliveOrDyingModelsExist(ctx, models)
-			if err != nil {
-				return errors.Errorf("checking if all models are dead: %w", err)
-			} else if modelsExist {
-				return errors.Errorf("cannot remove controller model %q while other models are not dead", job.EntityUUID).Add(
-					removalerrors.RemovalJobIncomplete)
-			}
+		modelsExist, err := s.aliveOrDyingModelsExist(ctx, models, job.Force)
+		if err != nil {
+			return errors.Errorf("checking if all models are dead: %w", err)
+		} else if modelsExist {
+			return errors.Errorf("cannot remove controller model %q while other models are not dead", job.EntityUUID).Add(
+				removalerrors.RemovalJobIncomplete)
 		}
 	}
 
@@ -353,16 +350,24 @@ func (s *Service) processModelJob(ctx context.Context, job removal.Job) error {
 	return nil
 }
 
-func (s *Service) aliveOrDyingModelsExist(ctx context.Context, modelUUIDs []string) (bool, error) {
+func (s *Service) aliveOrDyingModelsExist(ctx context.Context, modelUUIDs []string, force bool) (bool, error) {
 	for _, modelUUID := range modelUUIDs {
 		mLife, err := s.controllerState.GetModelLife(ctx, modelUUID)
-		if errors.Is(err, modelerrors.NotFound) {
+		if errors.Is(err, modelerrors.NotFound) || mLife == life.Dead {
 			continue
 		} else if err != nil {
 			return false, errors.Errorf("getting model %q life: %w", modelUUID, err)
 		}
 
-		if mLife != life.Dead {
+		// If any model is alive, we cannot delete the controller model. Even
+		// if we're using force. This is indicative of a programming error.
+		if mLife == life.Alive {
+			return true, nil
+		}
+
+		// If the model is dying and we're not using force, we cannot delete
+		// the controller model.
+		if !force && mLife == life.Dying {
 			return true, nil
 		}
 	}
