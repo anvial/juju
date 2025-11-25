@@ -99,7 +99,7 @@ func (s *LeadershipService) SetApplicationStatusForUnitLeader(
 		return errors.Capture(err)
 	}
 
-	if err := s.statusHistory.RecordStatus(ctx, status.ApplicationNamespace.WithID(appID.String()), statusInfo); err != nil {
+	if err := s.statusHistory.RecordStatus(ctx, status.ApplicationNamespace.WithID(appName), statusInfo); err != nil {
 		s.logger.Warningf(ctx, "recording setting application status history: %v", err)
 	}
 

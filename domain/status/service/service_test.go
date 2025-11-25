@@ -165,7 +165,7 @@ func (s *serviceSuite) TestSetApplicationStatus(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Check(s.statusHistory.records, tc.DeepEquals, []statusHistoryRecord{{
-		ns: statushistory.Namespace{Kind: corestatus.KindApplication, ID: applicationUUID.String()},
+		ns: statushistory.Namespace{Kind: corestatus.KindApplication, ID: "gitlab"},
 		s: corestatus.StatusInfo{
 			Status:  corestatus.Active,
 			Message: "doink",

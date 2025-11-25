@@ -287,7 +287,7 @@ func (s *Service) SetApplicationStatus(
 		return errors.Capture(err)
 	}
 
-	if err := s.statusHistory.RecordStatus(ctx, status.ApplicationNamespace.WithID(applicationID.String()), statusInfo); err != nil {
+	if err := s.statusHistory.RecordStatus(ctx, status.ApplicationNamespace.WithID(applicationName), statusInfo); err != nil {
 		s.logger.Warningf(ctx, "recording setting application status history: %v", err)
 	}
 
