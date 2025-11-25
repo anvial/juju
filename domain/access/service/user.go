@@ -117,11 +117,21 @@ func (s *UserService) GetUserUUIDByName(
 	return uuid, nil
 }
 
-// GetUserByAuth will find and return the user with UUID. If there is no
-// user for the name and password, then an error that satisfies
-// accesserrors.NotFound will be returned. If supplied with an invalid user name
-// then an error that satisfies accesserrors.UserNameNotValid will be returned.
-// It will not return users that have been previously removed.
+// GetUserByAuth will find and return the user identified by the supplied user
+// name confirming that the users password also matches. Only users that are
+// active within the current controller will be considered.
+//
+// The following errors may be returned:
+// - [accesserrors.UserNotFound] when no user exists matching the supplied
+// user name.
+// - [accesserrors.UserUnauthorized] when the supplied password does not match
+// the controllers stored password for the user.
+// - [accesserrors.UserNameNotValid] when the supplied user name is
+// not considered valid.
+// - [auth.ErrPasswordDestroyed] when the supplied password has already been
+// accessed and cannot be used again.
+// - [auth.ErrPasswordNotValid] when the supplied password is not considered
+// valid.
 func (s *UserService) GetUserByAuth(
 	ctx context.Context,
 	name user.Name,
@@ -131,7 +141,9 @@ func (s *UserService) GetUserByAuth(
 	defer span.End()
 
 	if name.IsZero() {
-		return user.User{}, errors.Errorf("empty username: %w", accesserrors.UserNameNotValid)
+		return user.User{}, errors.Errorf(
+			"empty username: %w", accesserrors.UserNameNotValid,
+		)
 	}
 
 	if err := password.Validate(); err != nil {
