@@ -52,6 +52,7 @@ func (s *resourcesSuite) TestListResourcesOkay(c *tc.C) {
 	apiChRes2.Revision++
 
 	appTag := names.NewApplicationTag("a-application")
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "a-application").Return(false, nil)
 	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(),
 		appTag.Id()).Return("a-application-id", nil)
 	s.resourceService.EXPECT().ListResources(gomock.Any(), coreapplication.UUID("a-application-id")).Return(
@@ -120,6 +121,7 @@ func (s *resourcesSuite) TestListResourcesOkay(c *tc.C) {
 func (s *resourcesSuite) TestListResourcesEmpty(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 	tag := names.NewApplicationTag("a-application")
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "a-application").Return(false, nil)
 	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "a-application").Return("a-application-id", nil)
 	s.resourceService.EXPECT().ListResources(gomock.Any(), coreapplication.UUID("a-application-id")).Return(resource.ApplicationResources{}, nil)
 
@@ -139,6 +141,7 @@ func (s *resourcesSuite) TestListResourcesErrorGetAppID(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 	failure := errors.New("<failure>")
 	tag := names.NewApplicationTag("a-application")
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "a-application").Return(false, nil)
 	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "a-application").Return("", failure)
 
 	results, err := s.newFacade(c).ListResources(c.Context(), params.ListResourcesArgs{
@@ -161,6 +164,7 @@ func (s *resourcesSuite) TestListResourcesError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 	failure := errors.New("<failure>")
 	tag := names.NewApplicationTag("a-application")
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "a-application").Return(false, nil)
 	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "a-application").Return("a-application-id", nil)
 	s.resourceService.EXPECT().ListResources(gomock.Any(), coreapplication.UUID("a-application-id")).Return(resource.ApplicationResources{}, failure)
 
@@ -175,6 +179,30 @@ func (s *resourcesSuite) TestListResourcesError(c *tc.C) {
 		Results: []params.ResourcesResult{{
 			ErrorResult: params.ErrorResult{Error: &params.Error{
 				Message: "<failure>",
+			}},
+		}},
+	})
+}
+
+func (s *resourcesSuite) TestListResourcesSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// SAAS applications should be rejected with application not found error.
+	tag := names.NewApplicationTag("saas-app")
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "saas-app").Return(true, nil)
+
+	results, err := s.newFacade(c).ListResources(c.Context(), params.ListResourcesArgs{
+		Entities: []params.Entity{{
+			Tag: tag.String(),
+		}},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(results, tc.DeepEquals, params.ResourcesResults{
+		Results: []params.ResourcesResult{{
+			ErrorResult: params.ErrorResult{Error: &params.Error{
+				Message: `application saas-app not found`,
+				Code:    "not found",
 			}},
 		}},
 	})
@@ -289,6 +317,7 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesBeforeApplication(c *tc
 	defer s.setupMocks(c).Finish()
 
 	resourceRevision := 42
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "testapp").Return(false, nil)
 	s.expectGetApplicationUUIDByName(applicationerrors.ApplicationNotFound)
 	s.expectResolveResourceForBeforeApplication(resourceRevision)
 	s.expectAddResourcesBeforeApplication(resourceRevision)
@@ -328,6 +357,7 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesUpdateStoreResource(c *
 	defer s.setupMocks(c).Finish()
 
 	resourceRevision := 42
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "testapp").Return(false, nil)
 	s.expectGetApplicationUUIDByName(nil)
 	s.expectResolveResourcesStoreContainer(s.resourceNameTwo, resourceRevision)
 	s.expectGetApplicationResourceIDTwo()
@@ -361,6 +391,7 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesUpdateStoreResource(c *
 func (s *addPendingResourceSuite) TestAddPendingResourcesUpdateUploadResource(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "testapp").Return(false, nil)
 	s.expectGetApplicationUUIDByName(nil)
 	s.expectResolveResourcesUploadContainer(c)
 	s.expectGetApplicationResourceIDTwo()
@@ -385,6 +416,33 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesUpdateUploadResource(c 
 	results, err := s.newFacade(c).AddPendingResources(c.Context(), args)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(results, tc.DeepEquals, expectedResults)
+}
+
+func (s *addPendingResourceSuite) TestAddPendingResourcesSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// SAAS applications should be rejected with application not found error.
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), "saas-app").Return(true, nil)
+
+	saasAppTag := names.NewApplicationTag("saas-app")
+	args := params.AddPendingResourcesArgsV2{
+		Entity: params.Entity{Tag: saasAppTag.String()},
+		URL:    s.curl.String(),
+		Resources: []params.CharmResource{
+			{
+				Name:   "test-resource",
+				Type:   charmresource.TypeFile.String(),
+				Origin: charmresource.OriginUpload.String(),
+				Path:   "test",
+			},
+		},
+	}
+
+	results, err := s.newFacade(c).AddPendingResources(c.Context(), args)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(results.Error, tc.NotNil)
+	c.Check(results.Error.Message, tc.Equals, `application saas-app not found`)
+	c.Check(results.Error.Code, tc.Equals, "not found")
 }
 
 func (s *addPendingResourceSuite) expectResolveResourcesUploadContainer(c *tc.C) {

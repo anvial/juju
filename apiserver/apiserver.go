@@ -851,6 +851,7 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 		resourceAuthFunc,
 		resourceChangeAllowedFunc,
 		&resourceServiceGetter{ctxt: httpCtxt},
+		&crossModelRelationServiceGetter{ctxt: httpCtxt},
 		resourcesdownload.NewDownloader(logger.Child("resourcedownloader"), resourcesdownload.DefaultFileSystem()),
 		logger,
 	), "applications")
@@ -1428,6 +1429,18 @@ func (a *migratingResourceServiceGetter) Resource(r *http.Request) (handlersreso
 		return nil, internalerrors.Capture(err)
 	}
 	return domainServices.Resource(), nil
+}
+
+type crossModelRelationServiceGetter struct {
+	ctxt httpContext
+}
+
+func (a *crossModelRelationServiceGetter) IsApplicationSynthetic(ctx context.Context, appName string) (bool, error) {
+	domainServices, err := a.ctxt.domainServicesForRequest(ctx)
+	if err != nil {
+		return false, errors.Trace(err)
+	}
+	return domainServices.CrossModelRelation().IsApplicationSynthetic(ctx, appName)
 }
 
 type resourceOpenerGetter func(r *http.Request, tagKinds ...string) (coreresource.Opener, error)

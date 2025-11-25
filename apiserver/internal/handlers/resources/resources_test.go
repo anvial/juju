@@ -47,9 +47,10 @@ type ResourcesHandlerSuite struct {
 	resourceReader  io.ReadCloser
 	applicationName string
 
-	resourceService       *MockResourceService
-	resourceServiceGetter *MockResourceServiceGetter
-	downloader            *MockDownloader
+	resourceService           *MockResourceService
+	resourceServiceGetter     *MockResourceServiceGetter
+	crossModelRelationService *MockCrossModelRelationService
+	downloader                *MockDownloader
 }
 
 func TestResourcesHandlerSuite(t *testing.T) {
@@ -96,12 +97,14 @@ func (s *ResourcesHandlerSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.resourceService = NewMockResourceService(ctrl)
 	s.resourceServiceGetter = NewMockResourceServiceGetter(ctrl)
+	s.crossModelRelationService = NewMockCrossModelRelationService(ctrl)
 	s.downloader = NewMockDownloader(ctrl)
 
 	s.handler = NewResourceHandler(
 		s.authFunc,
 		func(context.Context) error { return nil },
 		s.resourceServiceGetter,
+		s.crossModelRelationService,
 		s.downloader,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -140,10 +143,12 @@ func (s *ResourcesHandlerSuite) TestExpectedAuthTags(c *tc.C) {
 		authFunc,
 		func(context.Context) error { return nil },
 		s.resourceServiceGetter,
+		s.crossModelRelationService,
 		s.downloader,
 		loggertesting.WrapCheckLog(c),
 	)
 
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(false, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -201,6 +206,7 @@ func (s *ResourcesHandlerSuite) TestGetSuccess(c *tc.C) {
 	// Arrange:
 	req := s.newDownloadRequest(c)
 
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(false, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -224,6 +230,7 @@ func (s *ResourcesHandlerSuite) TestGetNotFoundError(c *tc.C) {
 	// Arrange:
 	req := s.newDownloadRequest(c)
 
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(false, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -241,6 +248,7 @@ func (s *ResourcesHandlerSuite) TestPutSuccessAttachResource(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	// Arrange:
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(false, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(gomock.Any(), s.applicationName, s.resourceName).Return(s.resourceUUID, nil)
 	newResourceUUID := coreresourcetesting.GenResourceUUID(c)
 	s.resourceService.EXPECT().UpdateUploadResource(gomock.Any(), s.resourceUUID).Return(newResourceUUID, nil)
@@ -301,6 +309,7 @@ func (s *ResourcesHandlerSuite) TestPutChangeBlocked(c *tc.C) {
 		s.authFunc,
 		changeAllowedFunc,
 		s.resourceServiceGetter,
+		s.crossModelRelationService,
 		s.downloader,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -320,6 +329,7 @@ func (s *ResourcesHandlerSuite) TestPutSuccessDockerResource(c *tc.C) {
 	// Arrange:
 	req := s.newUploadRequest(c)
 
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(false, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -477,6 +487,7 @@ func (s *ResourcesHandlerSuite) TestPutNotFoundError(c *tc.C) {
 	// Arrange:
 	req := s.newUploadRequest(c)
 
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(false, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -487,6 +498,38 @@ func (s *ResourcesHandlerSuite) TestPutNotFoundError(c *tc.C) {
 	s.serveHTTP(req)
 
 	// Assert:
+	s.checkErrResp(c, http.StatusNotFound, "application/json")
+}
+
+func (s *ResourcesHandlerSuite) TestGetSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	req := s.newDownloadRequest(c)
+
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(true, nil)
+
+	// Act
+	s.serveHTTP(req)
+
+	// Assert: SAAS applications should be rejected with application not found
+	// error.
+	s.checkErrResp(c, http.StatusNotFound, "application/json")
+}
+
+func (s *ResourcesHandlerSuite) TestPutSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	req := s.newUploadRequest(c)
+
+	s.crossModelRelationService.EXPECT().IsApplicationSynthetic(gomock.Any(), s.applicationName).Return(true, nil)
+
+	// Act
+	s.serveHTTP(req)
+
+	// Assert: SAAS applications should be rejected with application not found
+	// error.
 	s.checkErrResp(c, http.StatusNotFound, "application/json")
 }
 

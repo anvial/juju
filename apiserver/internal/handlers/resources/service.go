@@ -68,3 +68,10 @@ type ResourceServiceGetter interface {
 	// operations.
 	Resource(*http.Request) (ResourceService, error)
 }
+
+// CrossModelRelationService provides access to the cross model relation service.
+type CrossModelRelationService interface {
+	// IsApplicationSynthetic checks if the given application exists in the model
+	// and is a synthetic application.
+	IsApplicationSynthetic(ctx context.Context, appName string) (bool, error)
+}

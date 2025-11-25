@@ -45,3 +45,10 @@ type ApplicationService interface {
 	// GetApplicationUUIDByName returns an application UUID by application name.
 	GetApplicationUUIDByName(ctx context.Context, name string) (coreapplication.UUID, error)
 }
+
+// CrossModelRelationService provides access to the cross model relation service.
+type CrossModelRelationService interface {
+	// IsApplicationSynthetic checks if the given application exists in the model
+	// and is a synthetic application.
+	IsApplicationSynthetic(ctx context.Context, appName string) (bool, error)
+}

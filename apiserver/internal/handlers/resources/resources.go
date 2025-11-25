@@ -45,11 +45,12 @@ type Downloader interface {
 // ResourceHandler is the HTTP handler for client downloads and
 // uploads of resources.
 type ResourceHandler struct {
-	authFunc              func(*http.Request, ...string) (names.Tag, error)
-	changeAllowedFunc     func(context.Context) error
-	resourceServiceGetter ResourceServiceGetter
-	downloader            Downloader
-	logger                logger.Logger
+	authFunc                  func(*http.Request, ...string) (names.Tag, error)
+	changeAllowedFunc         func(context.Context) error
+	resourceServiceGetter     ResourceServiceGetter
+	crossModelRelationService CrossModelRelationService
+	downloader                Downloader
+	logger                    logger.Logger
 }
 
 // NewResourceHandler returns a new HTTP client resource handler.
@@ -57,16 +58,35 @@ func NewResourceHandler(
 	authFunc func(*http.Request, ...string) (names.Tag, error),
 	changeAllowedFunc func(context.Context) error,
 	resourceServiceGetter ResourceServiceGetter,
+	crossModelRelationService CrossModelRelationService,
 	downloader Downloader,
 	logger logger.Logger,
 ) *ResourceHandler {
 	return &ResourceHandler{
-		authFunc:              authFunc,
-		changeAllowedFunc:     changeAllowedFunc,
-		resourceServiceGetter: resourceServiceGetter,
-		downloader:            downloader,
-		logger:                logger,
+		authFunc:                  authFunc,
+		changeAllowedFunc:         changeAllowedFunc,
+		resourceServiceGetter:     resourceServiceGetter,
+		crossModelRelationService: crossModelRelationService,
+		downloader:                downloader,
+		logger:                    logger,
 	}
+}
+
+// checkNotSyntheticApplication checks if the application is a synthetic
+// application.
+// Synthetic applications are not allowed to have their resources listed, added,
+// or uploaded.
+// If the application is synthetic, it returns an error as if the application
+// was not found.
+func (h *ResourceHandler) checkNotSyntheticApplication(ctx context.Context, appName string) error {
+	isSynthetic, err := h.crossModelRelationService.IsApplicationSynthetic(ctx, appName)
+	if err != nil {
+		return jujuerrors.Trace(err)
+	}
+	if isSynthetic {
+		return jujuerrors.NotFoundf("application %s", appName)
+	}
+	return nil
 }
 
 // ServeHTTP implements http.Handler.
@@ -133,6 +153,10 @@ func (h *ResourceHandler) download(service ResourceService, req *http.Request) (
 	application := query.Get(":application")
 	name := query.Get(":resource")
 
+	if err := h.checkNotSyntheticApplication(req.Context(), application); err != nil {
+		return nil, 0, err
+	}
+
 	uuid, err := service.GetResourceUUIDByApplicationAndResourceName(req.Context(), application, name)
 	if errors.Is(err, resourceerrors.ResourceNotFound) {
 		return nil, 0, jujuerrors.NotFoundf("resource %s of application %s", name, application)
@@ -154,6 +178,14 @@ func (h *ResourceHandler) download(service ResourceService, req *http.Request) (
 }
 
 func (h *ResourceHandler) upload(service ResourceService, req *http.Request, username string) (*params.UploadResult, error) {
+	// Extract application name early to check if it's synthetic.
+	query := req.URL.Query()
+	application := query.Get(":application")
+
+	if err := h.checkNotSyntheticApplication(req.Context(), application); err != nil {
+		return nil, err
+	}
+
 	reader, uploaded, err := h.getUploadedResource(service, req)
 	if err != nil {
 		return nil, errors.Capture(err)

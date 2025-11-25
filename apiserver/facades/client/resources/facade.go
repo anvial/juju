@@ -33,8 +33,9 @@ import (
 
 // API is the public API facade for resources.
 type API struct {
-	applicationService ApplicationService
-	resourceService    ResourceService
+	applicationService        ApplicationService
+	resourceService           ResourceService
+	crossModelRelationService CrossModelRelationService
 
 	factory func(context.Context, *charm.URL) (NewCharmRepository, error)
 	logger  corelogger.Logger
@@ -84,7 +85,13 @@ func NewFacade(ctx facade.ModelContext) (*API, error) {
 		}
 	}
 
-	f, err := NewResourcesAPI(ctx.DomainServices().Application(), ctx.DomainServices().Resource(), factory, logger)
+	f, err := NewResourcesAPI(
+		ctx.DomainServices().Application(),
+		ctx.DomainServices().Resource(),
+		ctx.DomainServices().CrossModelRelation(),
+		factory,
+		logger,
+	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -95,6 +102,7 @@ func NewFacade(ctx facade.ModelContext) (*API, error) {
 func NewResourcesAPI(
 	applicationService ApplicationService,
 	resourceService ResourceService,
+	crossModelRelationService CrossModelRelationService,
 	factory func(context.Context, *charm.URL) (NewCharmRepository, error),
 	logger corelogger.Logger,
 ) (*API, error) {
@@ -103,6 +111,9 @@ func NewResourcesAPI(
 	}
 	if resourceService == nil {
 		return nil, errors.Errorf("missing resource service")
+	}
+	if crossModelRelationService == nil {
+		return nil, errors.Errorf("missing cross model relation service")
 	}
 	if factory == nil {
 		// Technically this only matters for one code path through
@@ -113,12 +124,30 @@ func NewResourcesAPI(
 	}
 
 	f := &API{
-		applicationService: applicationService,
-		resourceService:    resourceService,
-		factory:            factory,
-		logger:             logger,
+		applicationService:        applicationService,
+		resourceService:           resourceService,
+		crossModelRelationService: crossModelRelationService,
+		factory:                   factory,
+		logger:                    logger,
 	}
 	return f, nil
+}
+
+// checkNotSyntheticApplication checks if the application is a synthetic
+// application.
+// Synthetic applications are not allowed to have their resources listed, added,
+// or uploaded.
+// If the application is synthetic, it returns an error as if the application
+// was not found.
+func (a *API) checkNotSyntheticApplication(ctx context.Context, appName string) error {
+	isSynthetic, err := a.crossModelRelationService.IsApplicationSynthetic(ctx, appName)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if isSynthetic {
+		return errors.NotFoundf("application %s", appName)
+	}
+	return nil
 }
 
 // ListResources returns the list of resources for the given application.
@@ -135,6 +164,11 @@ func (a *API) ListResources(ctx context.Context, args params.ListResourcesArgs) 
 					Error: apierr,
 				},
 			}
+			continue
+		}
+
+		if err := a.checkNotSyntheticApplication(ctx, tag.Id()); err != nil {
+			r.Results[i] = errorResult(err)
 			continue
 		}
 
@@ -175,6 +209,11 @@ func (a *API) AddPendingResources(
 		return result, nil
 	}
 	appName := tag.Id()
+
+	if err := a.checkNotSyntheticApplication(ctx, appName); err != nil {
+		result.Error = apiservererrors.ServerError(err)
+		return result, nil
+	}
 
 	requestedOrigin, err := charms.ConvertParamsOrigin(args.CharmOrigin)
 	if err != nil {
