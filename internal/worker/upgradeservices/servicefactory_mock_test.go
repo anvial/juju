@@ -42,10 +42,10 @@ func (m *MockUpgradeServices) EXPECT() *MockUpgradeServicesMockRecorder {
 }
 
 // ControllerNode mocks base method.
-func (m *MockUpgradeServices) ControllerNode() *service.WatchableService {
+func (m *MockUpgradeServices) ControllerNode() *service.Service {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ControllerNode")
-	ret0, _ := ret[0].(*service.WatchableService)
+	ret0, _ := ret[0].(*service.Service)
 	return ret0
 }
 
@@ -62,19 +62,19 @@ type MockUpgradeServicesControllerNodeCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockUpgradeServicesControllerNodeCall) Return(arg0 *service.WatchableService) *MockUpgradeServicesControllerNodeCall {
+func (c *MockUpgradeServicesControllerNodeCall) Return(arg0 *service.Service) *MockUpgradeServicesControllerNodeCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockUpgradeServicesControllerNodeCall) Do(f func() *service.WatchableService) *MockUpgradeServicesControllerNodeCall {
+func (c *MockUpgradeServicesControllerNodeCall) Do(f func() *service.Service) *MockUpgradeServicesControllerNodeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockUpgradeServicesControllerNodeCall) DoAndReturn(f func() *service.WatchableService) *MockUpgradeServicesControllerNodeCall {
+func (c *MockUpgradeServicesControllerNodeCall) DoAndReturn(f func() *service.Service) *MockUpgradeServicesControllerNodeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
