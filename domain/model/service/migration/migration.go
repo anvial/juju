@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package service
+package migration
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/domain/model"
 	modelerrors "github.com/juju/juju/domain/model/errors"
+	"github.com/juju/juju/domain/model/service"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -19,6 +20,12 @@ type ModelDeleter interface {
 	// DeleteDB is responsible for removing a model from Juju and all of it's
 	// associated metadata.
 	DeleteDB(string) error
+}
+
+// State is the combined state required by the migration service.
+type State interface {
+	service.CreateModelState
+	service.DeleteModelState
 }
 
 // MigrationService defines a service for interacting with the underlying state based
@@ -71,7 +78,7 @@ func (s *MigrationService) ImportModel(
 		)
 	}
 
-	return createModel(ctx, s.st, args.UUID, args.GlobalModelCreationArgs)
+	return service.CreateModel(ctx, s.st, args.UUID, args.GlobalModelCreationArgs)
 }
 
 // DeleteModel is responsible for removing a model from Juju and all of it's

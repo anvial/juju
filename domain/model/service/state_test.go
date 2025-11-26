@@ -27,6 +27,8 @@ import (
 	jujutesting "github.com/juju/juju/internal/testing"
 )
 
+const deletedID = "7a53b695-4cb6-4c1d-86da-c2dca65ed957"
+
 type dummyStateCloud struct {
 	Credentials map[string]credential.Key
 	Regions     []string

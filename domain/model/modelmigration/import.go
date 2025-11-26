@@ -26,6 +26,7 @@ import (
 	domainmodel "github.com/juju/juju/domain/model"
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	modelservice "github.com/juju/juju/domain/model/service"
+	modelmigrationservice "github.com/juju/juju/domain/model/service/migration"
 	statecontroller "github.com/juju/juju/domain/model/state/controller"
 	statemodel "github.com/juju/juju/domain/model/state/model"
 	"github.com/juju/juju/environs/config"
@@ -135,7 +136,7 @@ func (i *importModelOperation) Name() string {
 // Setup is responsible for taking the model migration scope and creating the
 // needed services used during import.
 func (i *importModelOperation) Setup(scope modelmigration.Scope) error {
-	i.modelImportService = modelservice.NewMigrationService(
+	i.modelImportService = modelmigrationservice.NewMigrationService(
 		statecontroller.NewState(scope.ControllerDB()),
 		scope.ModelDeleter(),
 		i.logger,

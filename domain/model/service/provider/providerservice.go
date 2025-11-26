@@ -1,48 +1,67 @@
 // Copyright 2024 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package service
+package provider
 
 import (
 	"context"
 
 	"github.com/juju/juju/core/changestream"
-	corecloud "github.com/juju/juju/core/cloud"
-	"github.com/juju/juju/core/credential"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
+	"github.com/juju/juju/domain/model/service"
 )
 
-// ProviderModelState is the model state required by the provide service.
-type ProviderModelState interface {
+// WatcherFactory describes methods for creating watchers.
+type WatcherFactory interface {
+	// NewNotifyWatcher returns a new watcher that filters changes from the input
+	// base watcher's db/queue. A single filter option is required, though
+	// additional filter options can be provided.
+	NewNotifyWatcher(
+		ctx context.Context,
+		summary string,
+		filter eventsource.FilterOption,
+		filterOpts ...eventsource.FilterOption,
+	) (watcher.NotifyWatcher, error)
+
+	// NewNotifyMapperWatcher returns a new watcher that receives changes from the
+	// input base watcher's db/queue. A single filter option is required, though
+	// additional filter options can be provided. Filtering of values is done first
+	// by the filter, and then subsequently by the mapper. Based on the mapper's
+	// logic a subset of them (or none) may be emitted.
+	NewNotifyMapperWatcher(
+		ctx context.Context,
+		summary string,
+		mapper eventsource.Mapper,
+		filter eventsource.FilterOption,
+		filterOpts ...eventsource.FilterOption,
+	) (watcher.NotifyWatcher, error)
+}
+
+// ModelState is the model state required by the provide service.
+type ModelState interface {
 	// GetModel returns the model info.
 	GetModel(context.Context) (coremodel.ModelInfo, error)
 }
 
-// ProviderControllerState is the controller state required by the provider service.
-type ProviderControllerState interface {
-	// GetModelCloudAndCredential returns the cloud and credential UUID for the model.
-	// The following errors can be expected:
-	// - [modelerrors.NotFound] if the model is not found.
-	GetModelCloudAndCredential(
-		ctx context.Context,
-		modelUUID coremodel.UUID,
-	) (corecloud.UUID, credential.UUID, error)
+// ControllerState is the controller state required by the provide service.
+type ControllerState interface {
+	service.ProviderControllerState
 }
 
 // ProviderService defines a service for interacting with the underlying model
 // state, as opposed to the controller state.
 type ProviderService struct {
-	controllerSt   ProviderControllerState
-	modelSt        ProviderModelState
+	controllerSt   ControllerState
+	modelSt        ModelState
 	watcherFactory WatcherFactory
 }
 
 // NewProviderService returns a new Service for interacting with a model's state.
 func NewProviderService(
-	controllerSt ProviderControllerState, modelSt ProviderModelState, watcherFactory WatcherFactory,
+	controllerSt ControllerState, modelSt ModelState, watcherFactory WatcherFactory,
 ) *ProviderService {
 	return &ProviderService{
 		controllerSt:   controllerSt,
@@ -73,7 +92,7 @@ func (s *ProviderService) WatchModelCloudCredential(ctx context.Context, modelUU
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	return watchModelCloudCredential(ctx, s.controllerSt, s.watcherFactory, modelUUID)
+	return service.WatchModelCloudCredential(ctx, s.controllerSt, s.watcherFactory, modelUUID)
 }
 
 // WatchModel returns a watcher that emits an event if the model changes.

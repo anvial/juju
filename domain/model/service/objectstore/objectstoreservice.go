@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package service
+package model
 
 import (
 	"context"
@@ -17,6 +17,19 @@ import (
 type ObjectStoreModelState interface {
 	// GetModel returns the model info.
 	GetModel(context.Context) (coremodel.ModelInfo, error)
+}
+
+// WatcherFactory describes methods for creating watchers.
+type WatcherFactory interface {
+	// NewNotifyWatcher returns a new watcher that filters changes from the input
+	// base watcher's db/queue. A single filter option is required, though
+	// additional filter options can be provided.
+	NewNotifyWatcher(
+		ctx context.Context,
+		summary string,
+		filter eventsource.FilterOption,
+		filterOpts ...eventsource.FilterOption,
+	) (watcher.NotifyWatcher, error)
 }
 
 // ObjectStoreService defines a service for interacting with the underlying model
