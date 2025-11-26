@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/juju/errors"
+	"github.com/juju/loggo"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -220,13 +220,15 @@ func NewTunnel(
 		config:     c,
 		Kind:       kind,
 		Namespace:  namespace,
-		Out:        ioutil.Discard,
+		Out:        io.Discard,
 		readyChan:  make(chan struct{}, 1),
 		RemotePort: remotePort,
 		stopChan:   make(chan struct{}, 1),
 		Target:     target,
 	}
 }
+
+var logger = loggo.GetLogger("juju.caas.kubernetes.tunnel")
 
 // waitForPodReady waits for the provided pod name relative to this tunnels
 // namespace to become fully ready in the pod conditions. This func will block
@@ -240,51 +242,83 @@ func (t *Tunnel) waitForPodReady(ctx context.Context, podName string) error {
 	)
 	informer := factory.Core().V1().Pods().Informer()
 
-	stopChan := make(chan struct{})
 	eventChan := make(chan error)
-	defer close(stopChan)
-	defer close(eventChan)
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer func() {
+		cancel()
+		close(eventChan)
+	}()
 
-	_, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	reg, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			objPod, valid := obj.(*corev1.Pod)
 			if !valid {
-				eventChan <- errors.New("expected valid pod for informer")
+				select {
+				case <-waitCtx.Done():
+				case eventChan <- errors.New("expected valid pod for informer"):
+				}
 				return
 			}
 
 			if objPod.Name == podName && pod.IsPodRunning(objPod) {
-				eventChan <- nil
+				select {
+				case <-waitCtx.Done():
+				case eventChan <- nil:
+				}
 			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			objPod, valid := newObj.(*corev1.Pod)
 			if !valid {
-				eventChan <- errors.New("expected valid pod for informer")
+				select {
+				case <-waitCtx.Done():
+				case eventChan <- errors.New("expected valid pod for informer"):
+				}
 				return
 			}
 
 			if objPod.Name == podName && pod.IsPodRunning(objPod) {
-				eventChan <- nil
+				select {
+				case <-waitCtx.Done():
+				case eventChan <- nil:
+				}
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			pod, valid := obj.(*corev1.Pod)
 			if !valid {
-				eventChan <- errors.New("expected valid pod for informer")
+				select {
+				case <-waitCtx.Done():
+				case eventChan <- errors.New("expected valid pod for informer"):
+				}
 				return
 			}
 
 			if pod.Name == podName {
-				eventChan <- errors.Errorf("tunnel pod %s is being deleted", podName)
+				select {
+				case <-waitCtx.Done():
+				case eventChan <- errors.Errorf("tunnel pod %s is being deleted", podName):
+				}
 			}
 		},
 	})
 	if err != nil {
 		return errors.Trace(err)
 	}
+	defer func() {
+		_ = informer.RemoveEventHandler(reg)
+	}()
 
-	go informer.Run(stopChan)
+	err = informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
+		if !errors.Is(err, context.Canceled) {
+			logger.Errorf("error watching pod %s: %v", podName, err)
+		}
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	go informer.RunWithContext(waitCtx)
 
 	select {
 	case <-ctx.Done():
