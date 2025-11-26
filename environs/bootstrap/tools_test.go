@@ -11,7 +11,6 @@ import (
 	gc "gopkg.in/check.v1"
 
 	"github.com/juju/juju/core/os"
-	"github.com/juju/juju/core/series"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/bootstrap"
 	"github.com/juju/juju/environs/context"
@@ -228,7 +227,6 @@ func (s *toolsSuite) TestFindAvailableToolsSpecificVersion(c *gc.C) {
 
 func (s *toolsSuite) TestFindAvailableToolsCompleteNoValidate(c *gc.C) {
 	s.PatchValue(&arch.HostArch, func() string { return arch.AMD64 })
-	s.PatchValue(&series.UbuntuDistroInfo, "/path/notexists")
 
 	allTools := tools.List{
 		&tools.Tools{

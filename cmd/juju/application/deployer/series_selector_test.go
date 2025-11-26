@@ -7,8 +7,6 @@ import (
 	"github.com/juju/collections/set"
 	jc "github.com/juju/testing/checkers"
 	gc "gopkg.in/check.v1"
-
-	"github.com/juju/juju/core/series"
 )
 
 type SeriesSelectorSuite struct{}
@@ -279,10 +277,6 @@ func (s *SeriesSelectorSuite) TestCharmSeries(c *gc.C) {
 			err: "expected supported juju series to exist",
 		},
 	}
-
-	// Use bionic for LTS for all calls.
-	previous := series.SetLatestLtsForTesting("bionic")
-	defer series.SetLatestLtsForTesting(previous)
 
 	for i, test := range deploySeriesTests {
 		c.Logf("test %d [%s]", i, test.title)

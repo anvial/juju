@@ -28,7 +28,6 @@ import (
 	gc "gopkg.in/check.v1"
 
 	coreos "github.com/juju/juju/core/os"
-	coreseries "github.com/juju/juju/core/series"
 	"github.com/juju/juju/environs/filestorage"
 	"github.com/juju/juju/environs/simplestreams"
 	"github.com/juju/juju/environs/storage"
@@ -239,7 +238,6 @@ func (s *uploadSuite) SetUpTest(c *gc.C) {
 	}
 	s.FakeJujuXDGDataHomeSuite.SetUpTest(c)
 	s.ToolsFixture.SetUpTest(c)
-	s.PatchValue(&coreseries.UbuntuDistroInfo, "/path/notexists")
 
 	// Create a target storage.
 	stor, err := filestorage.NewFileStorageWriter(c.MkDir())

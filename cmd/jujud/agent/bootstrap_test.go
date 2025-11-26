@@ -42,7 +42,6 @@ import (
 	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/network"
 	coreos "github.com/juju/juju/core/os"
-	"github.com/juju/juju/core/series"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/config"
 	envcontext "github.com/juju/juju/environs/context"
@@ -113,7 +112,6 @@ func (s *BootstrapSuite) SetUpTest(c *gc.C) {
 	s.PatchValue(&sshGenerateKey, func(name string) (string, string, error) {
 		return "private-key", "public-key", nil
 	})
-	s.PatchValue(&series.UbuntuDistroInfo, "/path/notexists")
 
 	s.MgoSuite.SetUpTest(c)
 	s.dataDir = c.MkDir()

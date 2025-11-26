@@ -10,9 +10,6 @@ import (
 
 	"github.com/juju/collections/set"
 	"github.com/juju/errors"
-	"github.com/juju/loggo"
-	jujuos "github.com/juju/os/v2"
-	"github.com/juju/os/v2/series"
 
 	coreos "github.com/juju/juju/core/os"
 )
@@ -25,56 +22,49 @@ const (
 	Daily = "daily"
 )
 
-// UbuntuDistroInfo is the path for the Ubuntu distro info file.
-var UbuntuDistroInfo = series.UbuntuDistroInfo
-
-// SupportedSeriesFunc describes a function that has commonality between
-// controller and workload types.
-type SupportedSeriesFunc = func(time.Time, string, string) (set.Strings, error)
-
 // ControllerSeries returns all the controller series available to it at the
 // execution time.
 func ControllerSeries(now time.Time, requestedSeries, imageStream string) (set.Strings, error) {
-	supported, err := seriesForTypes(UbuntuDistroInfo, now, requestedSeries, imageStream)
+	supported, err := seriesForTypes(requestedSeries, imageStream)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	return set.NewStrings(supported.controllerSeries()...), nil
+	return set.NewStrings(controllerSeries(supported)...), nil
 }
 
 // WorkloadSeries returns the supported workload series available to it at the
 // execution time.
 func WorkloadSeries(now time.Time, requestedSeries, imageStream string) (set.Strings, error) {
-	supported, err := seriesForTypes(UbuntuDistroInfo, now, requestedSeries, imageStream)
+	supported, err := seriesForTypes(requestedSeries, imageStream)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	return set.NewStrings(supported.workloadSeries(false)...), nil
+	return set.NewStrings(workloadSeries(supported, false)...), nil
 }
 
 // AllWorkloadSeries returns all the workload series (supported or not).
 func AllWorkloadSeries(requestedSeries, imageStream string) (set.Strings, error) {
-	supported, err := seriesForTypes(UbuntuDistroInfo, time.Now(), requestedSeries, imageStream)
+	supported, err := seriesForTypes(requestedSeries, imageStream)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	return set.NewStrings(supported.workloadSeries(true)...), nil
+	return set.NewStrings(workloadSeries(supported, true)...), nil
 }
 
 // AllWorkloadOSTypes returns all the workload os types (supported or not).
 func AllWorkloadOSTypes(requestedSeries, imageStream string) (set.Strings, error) {
-	supported, err := seriesForTypes(UbuntuDistroInfo, time.Now(), requestedSeries, imageStream)
+	supported, err := seriesForTypes(requestedSeries, imageStream)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 	result := set.NewStrings()
-	for _, series := range supported.workloadSeries(true) {
+	for _, series := range workloadSeries(supported, true) {
 		result.Add(DefaultOSTypeNameFromSeries(series))
 	}
 	return result, nil
 }
 
-func seriesForTypes(path string, now time.Time, requestedSeries, imageStream string) (*supportedInfo, error) {
+func seriesForTypes(requestedSeries, imageStream string) (map[SeriesName]seriesVersion, error) {
 	// We support all of the juju series AND all the ESM supported series.
 	// Juju is congruent with the Ubuntu release cycle for it's own series (not
 	// including centos and windows), so that should be reflected here.
@@ -90,13 +80,7 @@ func seriesForTypes(path string, now time.Time, requestedSeries, imageStream str
 		setSupported(allSeriesVersions, requestedSeries)
 	}
 
-	source := series.NewDistroInfo(path)
-	supported := newSupportedInfo(source, allSeriesVersions)
-	if err := supported.compile(now); err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	return supported, nil
+	return allSeriesVersions, nil
 }
 
 // GetOSFromSeries will return the operating system based
@@ -110,12 +94,6 @@ func GetOSFromSeries(series string) (coreos.OSType, error) {
 	defer seriesVersionsMutex.Unlock()
 
 	seriesName := SeriesName(series)
-	osType, err := getOSFromSeries(seriesName)
-	if err == nil {
-		return osType, nil
-	}
-
-	updateSeriesVersionsOnce()
 	return getOSFromSeries(seriesName)
 }
 
@@ -133,33 +111,6 @@ const (
 	genericLinuxSeries  = "genericlinux"
 	genericLinuxVersion = "genericlinux"
 )
-
-// LocalSeriesVersionInfo is patched for tests.
-var LocalSeriesVersionInfo = series.LocalSeriesVersionInfo
-
-func updateSeriesVersions() error {
-	hostOS, sInfo, err := LocalSeriesVersionInfo()
-	if err != nil {
-		return errors.Trace(err)
-	}
-	switch hostOS {
-	case jujuos.Ubuntu:
-		for seriesName, s := range sInfo {
-			ubuntuSeries[SeriesName(seriesName)] = seriesVersion{
-				WorkloadType:             ControllerWorkloadType,
-				Version:                  s.Version,
-				LTS:                      s.LTS,
-				Supported:                s.Supported,
-				ESMSupported:             s.ESMSupported,
-				IgnoreDistroInfoUpdate:   false,
-				UpdatedByLocalDistroInfo: s.CreatedByLocalDistroInfo,
-			}
-		}
-	default:
-	}
-	composeSeriesVersions()
-	return nil
-}
 
 func composeSeriesVersions() {
 	allSeriesVersions = make(map[SeriesName]seriesVersion)
@@ -188,6 +139,11 @@ func composeSeriesVersions() {
 		WorkloadType: OtherWorkloadType,
 		Version:      genericLinuxVersion,
 		Supported:    true,
+	}
+
+	versionSeries = make(map[string]string, len(allSeriesVersions))
+	for k, v := range allSeriesVersions {
+		versionSeries[v.Version] = string(k)
 	}
 }
 
@@ -243,6 +199,8 @@ func CentOSVersionSeries(version string) (string, error) {
 
 }
 
+var seriesVersionOnce sync.Once
+
 // SeriesVersion returns the version for the specified series.
 func SeriesVersion(series string) (string, error) {
 	if series == "" {
@@ -250,16 +208,11 @@ func SeriesVersion(series string) (string, error) {
 	}
 	seriesVersionsMutex.Lock()
 	defer seriesVersionsMutex.Unlock()
-
+	seriesVersionOnce.Do(composeSeriesVersions)
 	seriesName := SeriesName(series)
 	if vers, ok := allSeriesVersions[seriesName]; ok {
 		return vers.Version, nil
 	}
-	updateSeriesVersionsOnce()
-	if vers, ok := allSeriesVersions[seriesName]; ok {
-		return vers.Version, nil
-	}
-
 	return "", errors.Trace(unknownSeriesVersionError(series))
 }
 
@@ -270,10 +223,7 @@ func VersionSeries(version string) (string, error) {
 	}
 	seriesVersionsMutex.Lock()
 	defer seriesVersionsMutex.Unlock()
-	if ser, ok := versionSeries[version]; ok {
-		return ser, nil
-	}
-	updateSeriesVersionsOnce()
+	seriesVersionOnce.Do(composeSeriesVersions)
 	if ser, ok := versionSeries[version]; ok {
 		return ser, nil
 	}
@@ -292,35 +242,19 @@ func UbuntuSeriesVersion(series string) (string, error) {
 	if vers, ok := ubuntuSeries[seriesName]; ok {
 		return vers.Version, nil
 	}
-	updateSeriesVersionsOnce()
-	if vers, ok := ubuntuSeries[seriesName]; ok {
-		return vers.Version, nil
-	}
-
 	return "", errors.Trace(unknownSeriesVersionError(series))
 }
 
-// UbuntuVersions returns the ubuntu versions as a map..
-func UbuntuVersions(supported, esmSupported *bool) map[string]string {
-	return ubuntuVersions(supported, esmSupported, ubuntuSeries)
-}
-
-func ubuntuVersions(
-	supported, esmSupported *bool, ubuntuSeries map[SeriesName]seriesVersion,
-) map[string]string {
+// UbuntuSeries returns the ubuntu series names.
+func UbuntuSeries() set.Strings {
 	seriesVersionsMutex.Lock()
 	defer seriesVersionsMutex.Unlock()
-	save := make(map[string]string)
-	for seriesName, val := range ubuntuSeries {
-		if supported != nil && val.Supported != *supported {
-			continue
-		}
-		if esmSupported != nil && val.ESMSupported != *esmSupported {
-			continue
-		}
-		save[seriesName.String()] = val.Version
+
+	result := set.NewStrings()
+	for seriesName := range ubuntuSeries {
+		result.Add(seriesName.String())
 	}
-	return save
+	return result
 }
 
 // WindowsVersions returns all windows versions as a map
@@ -381,77 +315,12 @@ func getOSFromSeries(series SeriesName) (coreos.OSType, error) {
 	return coreos.Unknown, errors.Trace(unknownOSForSeriesError(series))
 }
 
-var (
-	logger = loggo.GetLogger("juju.juju.series")
-
-	seriesVersionsMutex sync.Mutex
-)
-
-// latestLtsSeries is used to ensure we only do
-// the work to determine the latest lts series once.
-var latestLtsSeries string
-
-// LatestLts returns the Latest LTS Release found in distro-info
-func LatestLts() string {
-	if latestLtsSeries != "" {
-		return latestLtsSeries
-	}
-
-	seriesVersionsMutex.Lock()
-	defer seriesVersionsMutex.Unlock()
-	updateSeriesVersionsOnce()
-
-	var latest SeriesName
-	for k, version := range ubuntuSeries {
-		if !version.LTS || !version.Supported {
-			continue
-		}
-		if version.Version > ubuntuSeries[latest].Version {
-			latest = k
-		}
-	}
-
-	latestLtsSeries = string(latest)
-	return latestLtsSeries
-}
-
 // versionSeries provides a mapping between versions and series names.
 var (
-	versionSeries     map[string]string
-	allSeriesVersions map[SeriesName]seriesVersion
+	seriesVersionsMutex sync.Mutex
+	versionSeries       map[string]string
+	allSeriesVersions   map[SeriesName]seriesVersion
 )
-
-// UpdateSeriesVersions forces an update of the series versions by querying
-// distro-info if possible.
-func UpdateSeriesVersions() error {
-	seriesVersionsMutex.Lock()
-	defer seriesVersionsMutex.Unlock()
-
-	if err := updateSeriesVersions(); err != nil {
-		return err
-	}
-	updateVersionSeries()
-	return nil
-}
-
-var updatedSeriesVersions bool
-
-func updateSeriesVersionsOnce() {
-	if !updatedSeriesVersions {
-		if err := updateSeriesVersions(); err != nil {
-			logger.Warningf("failed to update distro info: %v", err)
-		}
-		updateVersionSeries()
-		updatedSeriesVersions = true
-	}
-}
-
-func updateVersionSeries() {
-	versionSeries = make(map[string]string, len(allSeriesVersions))
-	for k, v := range allSeriesVersions {
-		versionSeries[v.Version] = string(k)
-	}
-}
 
 type unknownOSForSeriesError string
 

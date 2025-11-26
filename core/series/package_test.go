@@ -12,8 +12,6 @@ import (
 	coretesting "github.com/juju/juju/testing"
 )
 
-//go:generate go run go.uber.org/mock/mockgen -package series -destination distrosource_mock_test.go github.com/juju/juju/core/series DistroSource
-
 func TestPackage(t *testing.T) {
 	gc.TestingT(t)
 }

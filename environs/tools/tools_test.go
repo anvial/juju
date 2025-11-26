@@ -16,7 +16,6 @@ import (
 	"github.com/juju/version/v2"
 	gc "gopkg.in/check.v1"
 
-	coreseries "github.com/juju/juju/core/series"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/bootstrap"
 	"github.com/juju/juju/environs/simplestreams"
@@ -51,7 +50,6 @@ func (s *SimpleStreamsToolsSuite) SetUpSuite(c *gc.C) {
 	s.customToolsDir = c.MkDir()
 	s.publicToolsDir = c.MkDir()
 	s.PatchValue(&keys.JujuPublicKey, sstesting.SignedMetadataPublicKey)
-	s.PatchValue(&coreseries.UbuntuDistroInfo, "/path/notexists")
 }
 
 func (s *SimpleStreamsToolsSuite) SetUpTest(c *gc.C) {
