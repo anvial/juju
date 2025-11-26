@@ -131,7 +131,7 @@ func (s *migrationServiceSuite) TestDeleteModel(c *tc.C) {
 	_, exists := s.state.models[id]
 	c.Assert(exists, tc.IsTrue)
 
-	err = svc.DeleteModel(c.Context(), id, model.WithDeleteDB())
+	err = svc.DeleteModel(c.Context(), id)
 	c.Assert(err, tc.ErrorIsNil)
 	_, exists = s.state.models[id]
 	c.Assert(exists, tc.IsFalse)
@@ -143,6 +143,6 @@ func (s *migrationServiceSuite) TestDeleteModel(c *tc.C) {
 func (s *migrationServiceSuite) TestDeleteModelNotFound(c *tc.C) {
 	svc := s.newService(c)
 
-	err := svc.DeleteModel(c.Context(), deletedID, model.WithDeleteDB())
+	err := svc.DeleteModel(c.Context(), deletedID)
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }

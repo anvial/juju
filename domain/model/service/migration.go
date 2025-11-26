@@ -81,15 +81,9 @@ func (s *MigrationService) ImportModel(
 func (s *MigrationService) DeleteModel(
 	ctx context.Context,
 	uuid coremodel.UUID,
-	opts ...model.DeleteModelOption,
 ) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
-
-	options := model.DefaultDeleteModelOptions()
-	for _, fn := range opts {
-		fn(options)
-	}
 
 	if err := uuid.Validate(); err != nil {
 		return errors.Errorf("delete model, uuid: %w", err)
@@ -99,12 +93,6 @@ func (s *MigrationService) DeleteModel(
 	// model is cleaned up correctly.
 	if err := s.st.Delete(ctx, uuid); err != nil && !errors.Is(err, modelerrors.NotFound) {
 		return errors.Errorf("delete model: %w", err)
-	}
-
-	// If the db should not be deleted then we can return early.
-	if !options.DeleteDB() {
-		s.logger.Infof(ctx, "skipping model deletion, model database will still be present")
-		return nil
 	}
 
 	// Delete the db completely from the system. Currently, this will remove
