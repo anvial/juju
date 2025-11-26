@@ -100,44 +100,6 @@ func (m *MockImportService) EXPECT() *MockImportServiceMockRecorder {
 	return m.recorder
 }
 
-// DeleteImportedRelations mocks base method.
-func (m *MockImportService) DeleteImportedRelations(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteImportedRelations", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteImportedRelations indicates an expected call of DeleteImportedRelations.
-func (mr *MockImportServiceMockRecorder) DeleteImportedRelations(arg0 any) *MockImportServiceDeleteImportedRelationsCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImportedRelations", reflect.TypeOf((*MockImportService)(nil).DeleteImportedRelations), arg0)
-	return &MockImportServiceDeleteImportedRelationsCall{Call: call}
-}
-
-// MockImportServiceDeleteImportedRelationsCall wrap *gomock.Call
-type MockImportServiceDeleteImportedRelationsCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockImportServiceDeleteImportedRelationsCall) Return(arg0 error) *MockImportServiceDeleteImportedRelationsCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockImportServiceDeleteImportedRelationsCall) Do(f func(context.Context) error) *MockImportServiceDeleteImportedRelationsCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockImportServiceDeleteImportedRelationsCall) DoAndReturn(f func(context.Context) error) *MockImportServiceDeleteImportedRelationsCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // ImportRelations mocks base method.
 func (m *MockImportService) ImportRelations(arg0 context.Context, arg1 relation.ImportRelationsArgs) error {
 	m.ctrl.T.Helper()

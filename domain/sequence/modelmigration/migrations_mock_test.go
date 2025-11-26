@@ -77,44 +77,6 @@ func (c *MockImportServiceImportSequencesCall) DoAndReturn(f func(context.Contex
 	return c
 }
 
-// RemoveAllSequences mocks base method.
-func (m *MockImportService) RemoveAllSequences(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveAllSequences", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveAllSequences indicates an expected call of RemoveAllSequences.
-func (mr *MockImportServiceMockRecorder) RemoveAllSequences(arg0 any) *MockImportServiceRemoveAllSequencesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveAllSequences", reflect.TypeOf((*MockImportService)(nil).RemoveAllSequences), arg0)
-	return &MockImportServiceRemoveAllSequencesCall{Call: call}
-}
-
-// MockImportServiceRemoveAllSequencesCall wrap *gomock.Call
-type MockImportServiceRemoveAllSequencesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockImportServiceRemoveAllSequencesCall) Return(arg0 error) *MockImportServiceRemoveAllSequencesCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockImportServiceRemoveAllSequencesCall) Do(f func(context.Context) error) *MockImportServiceRemoveAllSequencesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockImportServiceRemoveAllSequencesCall) DoAndReturn(f func(context.Context) error) *MockImportServiceRemoveAllSequencesCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // MockExportService is a mock of ExportService interface.
 type MockExportService struct {
 	ctrl     *gomock.Controller

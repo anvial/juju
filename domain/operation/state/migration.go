@@ -123,34 +123,6 @@ func (st *State) InsertMigratingOperations(ctx context.Context, args internal.Im
 	return nil
 }
 
-// DeleteImportedOperations deletes all imported operations in a model during rollback.
-// it returns all the storePaths of the deleted operations.
-func (st *State) DeleteImportedOperations(ctx context.Context) ([]string, error) {
-	db, err := st.DB(ctx)
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-
-	var storePaths []string
-	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		opUUIDs, err := st.getAllOperationUUIDs(ctx, tx)
-		if err != nil {
-			return errors.Errorf("getting all operation UUIDs: %w", err)
-		}
-		storePaths, err = st.deleteOperationByUUIDs(ctx, tx, opUUIDs)
-		if err != nil {
-			return errors.Errorf("deleting operations: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Errorf("deleting imported operations: %w", err)
-	}
-
-	return storePaths, nil
-}
-
 // nilZeroPtr returns a pointer to the given value if it is not zero, or nil if it is.
 func nilZeroPtr[T comparable](completed T) *T {
 	var zero T

@@ -5,7 +5,6 @@ package state
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/canonical/sqlair"
 
@@ -132,44 +131,6 @@ func (st *State) SetRelationApplicationSettings(
 	}
 
 	return nil
-}
-
-// DeleteImportedRelations deletes all imported relations in a model during
-// an import rollback.
-func (st *State) DeleteImportedRelations(
-	ctx context.Context,
-) error {
-	db, err := st.DB(ctx)
-	if err != nil {
-		return errors.Capture(err)
-	}
-
-	tables := []string{
-		"relation_unit_setting",
-		"relation_unit_settings_hash",
-		"relation_unit",
-		"relation_application_setting",
-		"relation_application_settings_hash",
-		"relation_endpoint",
-		"relation_status",
-		"relation",
-	}
-
-	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		for _, table := range tables {
-			stmt, err := st.Prepare(fmt.Sprintf(`DELETE FROM %s`, table))
-			if err != nil {
-				return errors.Capture(err)
-			}
-
-			if err = tx.Query(ctx, stmt).Run(); err != nil {
-				return errors.Errorf("deleting table %q: %w", table, err)
-			}
-		}
-
-		return nil
-	})
-	return errors.Capture(err)
 }
 
 // ExportRelations returns all relation information to be exported for the
