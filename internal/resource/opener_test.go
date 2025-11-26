@@ -58,6 +58,99 @@ func TestOpenerSuite(t *stdtesting.T) {
 	tc.Run(t, &OpenerSuite{})
 }
 
+// TestOpenUnitResource is a happy path test for opening a unit resource that
+// exists in the controllers object store. This is a regression test where we
+// were not correctly passing back the resource information including the
+// resource uuid.
+func (s *OpenerSuite) TestOpenUnitResource(c *tc.C) {
+	s.setupMocks(c, false)
+	resourceUUID := tc.Must(c, coreresource.NewUUID)
+	appName := "postgresql"
+	appUUID := tc.Must(c, coreapplication.NewUUID)
+	unitName := tc.Must1(c, coreunit.NewName, "postgresql/0")
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+
+	res := coreresource.Resource{
+		Resource: charmresource.Resource{
+			Meta: charmresource.Meta{
+				Name: "wal-e",
+				Type: 1,
+			},
+			Origin:      charmresource.OriginStore,
+			Revision:    s.resourceRevision,
+			Fingerprint: s.resourceFingerprint,
+			Size:        s.resourceSize,
+		},
+		ApplicationName: "postgresql",
+		RetrievedBy:     unitName.String(),
+		UUID:            resourceUUID,
+	}
+
+	charmOrigin := charm.Origin{
+		Source: charm.CharmHub,
+	}
+
+	appSvcExp := s.applicationService.EXPECT()
+	appSvcExp.GetApplicationUUIDByUnitName(c.Context(), unitName).Return(
+		appUUID, nil,
+	)
+	appSvcExp.GetUnitUUID(gomock.Any(), unitName).Return(unitUUID, nil)
+	appSvcExp.GetApplicationCharmOrigin(
+		gomock.Any(),
+		appName,
+	).Return(charmOrigin, nil)
+
+	resourceSvcExp := s.resourceService.EXPECT()
+	resourceSvcExp.GetApplicationResourceID(
+		gomock.Any(), domainresource.GetApplicationResourceIDArgs{
+			ApplicationUUID: appUUID,
+			Name:            "oci-image",
+		},
+	).Return(resourceUUID, nil).AnyTimes()
+
+	resourceSvcExp.OpenResource(
+		gomock.Any(),
+		resourceUUID,
+	).Return(res, io.NopCloser(bytes.NewBuffer([]byte("test"))), nil)
+
+	opener, err := NewResourceOpenerForUnit(
+		c.Context(),
+		ResourceOpenerArgs{
+			ResourceService:      s.resourceService,
+			ApplicationService:   s.applicationService,
+			CharmhubClientGetter: s.resourceClientGetter,
+		},
+		func() ResourceDownloadLock {
+			return noopDownloadResourceLocker{}
+		},
+		unitName,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+
+	opened, err := opener.OpenResource(c.Context(), "oci-image")
+	c.Assert(err, tc.ErrorIsNil)
+	mc := tc.NewMultiChecker()
+	mc.AddExpr("_.ReadCloser", tc.Ignore)
+
+	c.Check(opened, mc, coreresource.Opened{
+		Resource: coreresource.Resource{
+			ApplicationName: appName,
+			RetrievedBy:     unitName.String(),
+			Resource: charmresource.Resource{
+				Meta: charmresource.Meta{
+					Name: "wal-e",
+					Type: 1,
+				},
+				Origin:      charmresource.OriginStore,
+				Revision:    s.resourceRevision,
+				Fingerprint: s.resourceFingerprint,
+				Size:        s.resourceSize,
+			},
+			UUID: resourceUUID,
+		},
+	})
+}
+
 func (s *OpenerSuite) TestOpenResource(c *tc.C) {
 	defer s.setupMocks(c, true).Finish()
 	res := coreresource.Resource{
