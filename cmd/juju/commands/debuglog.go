@@ -24,7 +24,8 @@ import (
 	"github.com/juju/retry"
 	"github.com/mattn/go-isatty"
 
-	apiclient "github.com/juju/juju/api/client/client"
+	"github.com/juju/juju/api"
+	debuglog "github.com/juju/juju/api/client/client"
 	"github.com/juju/juju/api/client/highavailability"
 	"github.com/juju/juju/api/common"
 	"github.com/juju/juju/api/jujuclient"
@@ -390,15 +391,18 @@ var getDebugLogAPI = func(ctx context.Context, c *debugLogCommand) (DebugLogAPI,
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	return apiclient.NewClient(root, logger), nil
+	return debuglog.NewClient(root, logger), nil
 }
 
-var getDebugLogAPIForAddresses = func(ctx context.Context, c *debugLogCommand, addrs []string) (DebugLogAPI, error) {
-	root, err := c.NewAPIRootWithAddressOverride(ctx, addrs)
+var getDebugLogAPIForAddresses = func(ctx context.Context, c *debugLogCommand, addresses []string) (DebugLogAPI, error) {
+	root, err := c.NewAPIRootWithDialOpts(ctx, &api.DialOpts{
+		DialTimeout: 5 * time.Second,
+		Timeout:     30 * time.Second,
+	}, addresses...)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	return apiclient.NewClient(root, logger), nil
+	return debuglog.NewClient(root, logger), nil
 }
 
 // ControllerDetailsAPI provides access to the high availability facade.
@@ -436,17 +440,21 @@ func (f logFunc) Log(r []corelogger.LogRecord) error {
 	return f(r)
 }
 
-func (c *debugLogCommand) getDebugLogClients(ctx context.Context) ([]DebugLogAPI, error) {
-	api, err := getControllerDetailsClient(ctx, c)
+type warningLogger interface {
+	Warningf(format string, args ...interface{})
+}
+
+func (c *debugLogCommand) getDebugLogClients(ctx context.Context, warningLogger warningLogger) ([]DebugLogAPI, error) {
+	controllerClient, err := getControllerDetailsClient(ctx, c)
 	if err != nil {
 		return nil, errors.Annotatef(err, "getting controller addresses")
 	}
-	defer api.Close()
+	defer controllerClient.Close()
 
 	// If we're connected to a HA facade that is less that 3, that indicates
 	// that the controller details API is not supported, so we fall back to
 	// using the address of the connected controller only.
-	if api.BestAPIVersion() < 3 {
+	if controllerClient.BestAPIVersion() < 3 {
 		client, err := getDebugLogAPI(ctx, c)
 		if err != nil {
 			return nil, err
@@ -456,7 +464,7 @@ func (c *debugLogCommand) getDebugLogClients(ctx context.Context) ([]DebugLogAPI
 
 	// We're connected to a HA controller that supports the controller details
 	// API, so we can get the addresses of all controllers.
-	controllers, err := api.ControllerDetails(ctx)
+	controllers, err := controllerClient.ControllerDetails(ctx)
 	if err != nil {
 		return nil, errors.Annotatef(err, "getting controller details")
 	}
@@ -464,7 +472,10 @@ func (c *debugLogCommand) getDebugLogClients(ctx context.Context) ([]DebugLogAPI
 	var clients []DebugLogAPI
 	for _, details := range controllers {
 		client, err := getDebugLogAPIForAddresses(ctx, c, details.APIEndpoints)
-		if err != nil {
+		if errors.Is(err, api.ConnectionFailure) {
+			warningLogger.Warningf("cannot connect to debug log API for controller %q at addresses %v: %v", details.ControllerID, details.APIEndpoints, err)
+			continue
+		} else if err != nil {
 			return nil, errors.Annotatef(err, "getting debug log API for controller %q", details.ControllerID)
 		}
 		clients = append(clients, client)
@@ -485,7 +496,7 @@ func (c *debugLogCommand) Run(ctx *cmd.Context) error {
 	}
 
 	// Get the controller debug-log clients to connect to.
-	clients, err := c.getDebugLogClients(ctx)
+	clients, err := c.getDebugLogClients(ctx, ctx)
 	if err != nil {
 		return err
 	} else if len(clients) == 0 {

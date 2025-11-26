@@ -718,10 +718,10 @@ func (s *apiclientSuite) TestOpenWithNoCACert(c *tc.C) {
 		Timeout:    time.Hour,
 		RetryDelay: time.Nanosecond,
 	})
-	switch errType := errors.Cause(err).(type) {
-	case *tls.CertificateVerificationError:
-	default:
-		c.Fatalf("unexpected error type %v", errType)
+
+	var certErr *tls.CertificateVerificationError
+	if !errors.As(err, &certErr) {
+		c.Fatalf("unexpected certificate error: %v", certErr)
 	}
 }
 
