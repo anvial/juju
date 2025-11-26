@@ -34,6 +34,7 @@ import (
 	"github.com/juju/juju/core/facades"
 	"github.com/juju/juju/core/network"
 	jujuversion "github.com/juju/juju/core/version"
+	internalerrors "github.com/juju/juju/internal/errors"
 	jujuhttp "github.com/juju/juju/internal/http"
 	internallogger "github.com/juju/juju/internal/logger"
 	jujuproxy "github.com/juju/juju/internal/proxy"
@@ -51,6 +52,9 @@ const (
 	// ConnectionDialTimedOut is returned when the api connection failed to open
 	// within the specified time.
 	ConnectionDialTimedOut = errors.ConstError("api connection dial timed out")
+
+	// ConnectionFailure is returned when the api client is unable to connect.
+	ConnectionFailure = errors.ConstError("api connection failure")
 
 	// PingPeriod defines how often the internal connection health check
 	// will run.
@@ -1124,7 +1128,7 @@ func (d dialer) dial(done <-chan struct{}) (io.Closer, error) {
 		}
 	}
 	if lastErr != nil {
-		return nil, errors.Annotatef(lastErr, "unable to connect to API")
+		return nil, internalerrors.Errorf("unable to connect to API: %w", lastErr).Add(ConnectionFailure)
 	}
 	logger.Debugf(d.ctx, "no error, but not connected, probably cancelled before we started")
 	return nil, parallel.ErrStopped
