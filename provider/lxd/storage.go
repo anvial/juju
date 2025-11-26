@@ -342,7 +342,11 @@ func destroyFilesystems(env *environ, match func(api.StorageVolume) bool) error 
 			if !match(volume) {
 				continue
 			}
-			if err := server.DeleteStoragePoolVolume(pool.Name, storagePoolVolumeType, volume.Name); err != nil {
+			op, err := server.DeleteStoragePoolVolume(pool.Name, storagePoolVolumeType, volume.Name)
+			if err == nil {
+				err = op.Wait()
+			}
+			if err != nil {
 				return errors.Annotatef(err, "deleting volume %q in LXD storage pool %q", volume.Name, pool)
 			}
 		}
@@ -365,7 +369,10 @@ func (s *lxdFilesystemSource) destroyFilesystem(filesystemId string) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	err = s.env.server().DeleteStoragePoolVolume(poolName, storagePoolVolumeType, volumeName)
+	op, err := s.env.server().DeleteStoragePoolVolume(poolName, storagePoolVolumeType, volumeName)
+	if err == nil {
+		err = op.Wait()
+	}
 	if err != nil && !lxd.IsLXDNotFound(err) {
 		return errors.Trace(err)
 	}
@@ -395,8 +402,12 @@ func (s *lxdFilesystemSource) releaseFilesystem(filesystemId string) error {
 	if volume.Config != nil {
 		delete(volume.Config, "user."+tags.JujuModel)
 		delete(volume.Config, "user."+tags.JujuController)
-		if err := server.UpdateStoragePoolVolume(
-			poolName, storagePoolVolumeType, volumeName, volume.Writable(), eTag); err != nil {
+		op, err := server.UpdateStoragePoolVolume(
+			poolName, storagePoolVolumeType, volumeName, volume.Writable(), eTag)
+		if err == nil {
+			err = op.Wait()
+		}
+		if err != nil {
 			return errors.Annotatef(
 				err, "removing tags from volume %q in pool %q",
 				volumeName, poolName,
@@ -589,8 +600,12 @@ func (s *lxdFilesystemSource) ImportFilesystem(
 		for k, v := range tags {
 			volume.Config["user."+k] = v
 		}
-		if err := s.env.server().UpdateStoragePoolVolume(
-			lxdPool, storagePoolVolumeType, volumeName, volume.Writable(), eTag); err != nil {
+		op, err := s.env.server().UpdateStoragePoolVolume(
+			lxdPool, storagePoolVolumeType, volumeName, volume.Writable(), eTag)
+		if err == nil {
+			err = op.Wait()
+		}
+		if err != nil {
 			common.HandleCredentialError(IsAuthorisationFailure, err, callCtx)
 			return storage.FilesystemInfo{}, errors.Annotate(err, "tagging volume")
 		}
