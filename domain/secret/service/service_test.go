@@ -720,6 +720,174 @@ func (s *serviceSuite) TestUpdateCharmSecretForUnitOwned(c *tc.C) {
 	c.Assert(rollbackCalled, tc.IsFalse)
 }
 
+func (s *serviceSuite) TestUpdateCharmSecret_RotatePolicyTransitions(c *tc.C) {
+	uri := coresecrets.NewURI()
+
+	cases := []struct {
+		name            string
+		prev            coresecrets.RotatePolicy
+		newPol          *coresecrets.RotatePolicy
+		expectRecompute bool
+	}{
+		{
+			name:            "RecomputeNextRotateFromNever",
+			prev:            coresecrets.RotateNever,
+			newPol:          ptr(coresecrets.RotateMonthly),
+			expectRecompute: true,
+		},
+		{
+			name:            "RecomputeNextRotateToNever",
+			prev:            coresecrets.RotateMonthly,
+			newPol:          ptr(coresecrets.RotateNever),
+			expectRecompute: false, // This will be handled at the state level
+		},
+		{
+			name:            "RecomputeNextRotateFromNeverToNever",
+			prev:            coresecrets.RotateNever,
+			newPol:          ptr(coresecrets.RotateNever),
+			expectRecompute: false, // Edge case
+		},
+		{
+			name:            "RecomputeNextRotateTimeIfNotMoreFrequent",
+			prev:            coresecrets.RotateDaily,
+			newPol:          ptr(coresecrets.RotateMonthly),
+			expectRecompute: false,
+		},
+	}
+
+	for _, tcse := range cases {
+		c.Logf("case: %s", tcse.name)
+		s.runRotatePolicyUpdateCase(c, uri, tcse.prev, tcse.newPol, tcse.expectRecompute)
+	}
+}
+
+// runRotatePolicyUpdateCase encapsulates the common setup and assertions for
+// UpdateCharmSecret rotate policy transition tests.
+func (s *serviceSuite) runRotatePolicyUpdateCase(c *tc.C, uri *coresecrets.URI, prev coresecrets.RotatePolicy, newPol *coresecrets.RotatePolicy, expectRecompute bool) {
+	defer s.setupMocks(c).Finish()
+
+	unitUUID, err := coreunit.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Build expected Upsert params.
+	want := domainsecret.UpsertSecretParams{
+		Label:        ptr("my secret"),
+		Data:         coresecrets.SecretData{"foo": "bar"},
+		RotatePolicy: ptr(domainsecret.MarshallRotatePolicy(newPol)),
+		RevisionID:   ptr(s.fakeUUID.String()),
+	}
+	var expectedNext *time.Time
+	if expectRecompute && newPol != nil && newPol.WillRotate() {
+		// Compute from the suite's clock to match service usage.
+		expectedNext = newPol.NextRotateTime(s.clock.Now())
+		want.NextRotateTime = expectedNext
+	}
+
+	// Access check.
+	s.state.EXPECT().GetSecretAccess(gomock.Any(), uri, domainsecret.AccessParams{
+		SubjectTypeID: domainsecret.SubjectUnit,
+		SubjectID:     "mariadb/0",
+	}).Return("manage", nil)
+
+	// Only query previous policy when the new policy will rotate.
+	if newPol != nil && newPol.WillRotate() {
+		s.state.EXPECT().GetRotatePolicy(gomock.Any(), uri).Return(prev, nil)
+	}
+
+	s.state.EXPECT().GetModelUUID(gomock.Any()).Return(s.modelID, nil)
+	rollbackCalled := false
+	s.secretBackendState.EXPECT().AddSecretBackendReference(gomock.Any(), nil, s.modelID, s.fakeUUID.String()).Return(func() error {
+		rollbackCalled = true
+		return nil
+	}, nil)
+
+	// Label uniqueness checks for unit-owned secret.
+	s.state.EXPECT().GetSecretOwner(domaintesting.IsAtomicContextChecker, uri).Return(domainsecret.Owner{Kind: domainsecret.UnitOwner, UUID: unitUUID.String()}, nil)
+	s.state.EXPECT().CheckUnitSecretLabelExists(domaintesting.IsAtomicContextChecker, unitUUID, "my secret").Return(false, nil)
+
+	s.state.EXPECT().UpdateSecret(domaintesting.IsAtomicContextChecker, uri, gomock.Any()).DoAndReturn(func(_ domain.AtomicContext, _ *coresecrets.URI, got domainsecret.UpsertSecretParams) error {
+		if expectRecompute {
+			c.Assert(got.NextRotateTime, tc.NotNil)
+			c.Assert(*got.NextRotateTime, tc.Almost, *expectedNext)
+		} else {
+			c.Assert(got.NextRotateTime, tc.IsNil)
+		}
+		// For deep equals, normalise NextRotateTime to nil on both sides if we asserted above.
+		got.NextRotateTime = nil
+		wantCopy := want
+		wantCopy.NextRotateTime = nil
+		c.Assert(got, tc.DeepEquals, wantCopy)
+		return nil
+	})
+
+	err = s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
+		Accessor: SecretAccessor{
+			Kind: UnitAccessor,
+			ID:   "mariadb/0",
+		},
+		Label:        ptr("my secret"),
+		Data:         map[string]string{"foo": "bar"},
+		RotatePolicy: newPol,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(rollbackCalled, tc.IsFalse)
+}
+
+// When updating the rotate policy to a less frequent schedule (e.g. daily -> monthly),
+// we must NOT recompute nextRotateTime; it will be applied on the next rotation.
+func (s *serviceSuite) TestUpdateCharmSecret_DoNotRecomputeNextRotateTimeIfLessFrequent(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+
+	unitUUID, err := coreunit.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	// No nextRotateTime expected when policy becomes less frequent.
+	p := domainsecret.UpsertSecretParams{
+		RotatePolicy: ptr(domainsecret.RotateMonthly),
+		Description:  ptr("a secret"),
+		Label:        ptr("my secret"),
+		Data:         coresecrets.SecretData{"foo": "bar"},
+		Checksum:     "checksum-1234",
+		RevisionID:   ptr(s.fakeUUID.String()),
+	}
+
+	s.state.EXPECT().GetSecretAccess(gomock.Any(), uri, domainsecret.AccessParams{
+		SubjectTypeID: domainsecret.SubjectUnit,
+		SubjectID:     "mariadb/0",
+	}).Return("manage", nil)
+	// Previous policy was daily; new policy monthly is less frequent -> do not recompute nextRotateTime.
+	s.state.EXPECT().GetRotatePolicy(gomock.Any(), uri).Return(
+		coresecrets.RotateDaily,
+		nil)
+
+	s.state.EXPECT().GetModelUUID(gomock.Any()).Return(s.modelID, nil)
+	rollbackCalled := false
+	s.secretBackendState.EXPECT().AddSecretBackendReference(gomock.Any(), nil, s.modelID, s.fakeUUID.String()).Return(func() error {
+		rollbackCalled = true
+		return nil
+	}, nil)
+
+	s.state.EXPECT().GetSecretOwner(domaintesting.IsAtomicContextChecker, uri).Return(domainsecret.Owner{Kind: domainsecret.UnitOwner, UUID: unitUUID.String()}, nil)
+	s.state.EXPECT().CheckUnitSecretLabelExists(domaintesting.IsAtomicContextChecker, unitUUID, "my secret").Return(false, nil)
+	s.state.EXPECT().UpdateSecret(domaintesting.IsAtomicContextChecker, uri, p).Return(nil)
+
+	err = s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
+		Accessor: SecretAccessor{
+			Kind: UnitAccessor,
+			ID:   "mariadb/0",
+		},
+		Description:  ptr("a secret"),
+		Label:        ptr("my secret"),
+		Data:         map[string]string{"foo": "bar"},
+		Checksum:     "checksum-1234",
+		RotatePolicy: ptr(coresecrets.RotateMonthly),
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(rollbackCalled, tc.IsFalse)
+}
+
 func (s *serviceSuite) TestUpdateCharmSecretForUnitOwnedFailedLabelExists(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
