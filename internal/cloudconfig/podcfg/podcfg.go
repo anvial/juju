@@ -142,6 +142,13 @@ func (cfg *ControllerPodConfig) UnitAgentConfig() (agent.ConfigSetterWriter, err
 		Values:     cfg.AgentEnvironment,
 		Controller: cfg.ControllerTag,
 		Model:      cfg.APIInfo.ModelTag,
+
+		OpenTelemetryEnabled:               cfg.Controller.OpenTelemetryEnabled(),
+		OpenTelemetryEndpoint:              cfg.Controller.OpenTelemetryEndpoint(),
+		OpenTelemetryInsecure:              cfg.Controller.OpenTelemetryInsecure(),
+		OpenTelemetryStackTraces:           cfg.Controller.OpenTelemetryStackTraces(),
+		OpenTelemetrySampleRatio:           cfg.Controller.OpenTelemetrySampleRatio(),
+		OpenTelemetryTailSamplingThreshold: cfg.Controller.OpenTelemetryTailSamplingThreshold(),
 	}
 	conf, err := agent.NewAgentConfig(configParams)
 	if err != nil {
