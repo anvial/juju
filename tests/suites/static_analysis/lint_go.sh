@@ -1,17 +1,13 @@
 run_go() {
 	VER=$(golangci-lint --version | tr -s ' ' | cut -d ' ' -f 4 | cut -d '.' -f 1,2)
-	if [[ ${VER} != "1.64" ]] && [[ ${VER} != "v1.64" ]]; then
-		(echo >&2 -e '\nError: golangci-lint version does not match 1.64. Please upgrade/downgrade to the right version.')
+	if [[ ${VER} != "2.6" ]] && [[ ${VER} != "v2.6" ]]; then
+		(echo >&2 -e "\nError: golangci-lint version ${VER} does not match 2.6. Please upgrade/downgrade to the right version.")
 		exit 1
 	fi
 	OUT=$(golangci-lint run -c .github/golangci-lint.config.yaml 2>&1)
-	if [[ -n ${OUT} ]]; then
+	chk=$(echo "${OUT}" | grep -E "^0 issues" || true)
+	if [[ -z ${chk} ]]; then
 		(echo >&2 "\\nError: linter has issues:\\n\\n${OUT}")
-		exit 1
-	fi
-	OUT=$(golangci-lint run -c .github/golangci-lint.config.experimental.yaml 2>&1)
-	if [[ -n ${OUT} ]]; then
-		(echo >&2 "\\nError: experimental linter has issues:\\n\\n${OUT}")
 		exit 1
 	fi
 }

@@ -48,7 +48,7 @@ jobs:
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.4
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.1
           sudo curl -sSfL https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_$(go env GOARCH) -o /usr/bin/shfmt
           sudo chmod +x /usr/bin/shfmt
           sudo DEBIAN_FRONTEND=noninteractive apt install -y expect
@@ -119,3 +119,11 @@ jobs:
         run: |
           STATIC_ANALYSIS_JOB=test_schema make static-analysis
         shell: bash
+  conventional-commits:
+    name: Check conventional commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .github/commitlint.config.mjs
