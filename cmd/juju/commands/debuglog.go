@@ -472,7 +472,7 @@ func (c *debugLogCommand) getDebugLogClients(ctx context.Context, warningLogger 
 	var clients []DebugLogAPI
 	for _, details := range controllers {
 		client, err := getDebugLogAPIForAddresses(ctx, c, details.APIEndpoints)
-		if errors.Is(err, api.ConnectionFailure) {
+		if len(controllers) > 1 && errors.Is(err, api.ConnectionFailure) {
 			warningLogger.Warningf("cannot connect to debug log API for controller %q at addresses %v: %v", details.ControllerID, details.APIEndpoints, err)
 			continue
 		} else if err != nil {
