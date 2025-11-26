@@ -68,10 +68,11 @@ func TestWorkerSuite(t *testing.T) {
 // the done channel is signalled or the timeout elapses. This avoids a race
 // where the worker's timer might not yet be registered when the test advances
 // the clock by a large amount in one go.
-func advanceClockUntil(clock *testclock.Clock, done <-chan struct{}) bool {
+func advanceClockUntil(clock *testclock.Clock, period time.Duration, done <-chan struct{}) bool {
 	// Use a short step to cover jitter and registration timing.
 	const step = 200 * time.Millisecond
-	timeout := time.After(coretesting.ShortWait)
+	// Wait up to twice the period plus a short buffer, because of the jitter.
+	timeout := time.After(coretesting.ShortWait + period*2)
 	for {
 		select {
 		case <-done:
@@ -112,7 +113,90 @@ func (s *WorkerSuite) TestTriggerFetch(c *tc.C) {
 	s.ensureStartup(c)
 
 	// Advance the clock incrementally until the fetch is triggered or we time out.
-	if ok := advanceClockUntil(s.clock, done); !ok {
+	// 1 second is enough to ensure that the fetch is triggered.
+	if ok := advanceClockUntil(s.clock, time.Second, done); !ok {
+		c.Fatalf("timed out waiting for fetch")
+	}
+
+	workertest.CleanKill(c, w)
+}
+
+func (s *WorkerSuite) TestTriggerFetchLoop(c *tc.C) {
+	// Ensure that a clock tick triggers a fetch and that the timer is reset
+	// on the next tick.
+	ctrl := s.setupMocks(c)
+	defer ctrl.Finish()
+
+	watcher := watchertest.NewMockStringsWatcher(make(chan []string))
+	s.modelConfigService.EXPECT().Watch(gomock.Any()).Return(watcher, nil)
+
+	done := make(chan struct{})
+	times := 2
+	s.applicationService.EXPECT().GetApplicationsForRevisionUpdater(gomock.Any()).DoAndReturn(func(ctx context.Context) ([]application.RevisionUpdaterApplication, error) {
+		times--
+		if times == 0 {
+			close(done)
+		}
+		return nil, nil
+	}).AnyTimes()
+
+	s.modelConfigService.EXPECT().ModelConfig(gomock.Any()).Return(&config.Config{}, nil).AnyTimes()
+	s.modelService.EXPECT().GetModelMetrics(gomock.Any()).Return(coremodel.ModelMetrics{}, nil).AnyTimes()
+	s.charmhubClient.EXPECT().RefreshWithMetricsOnly(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	w := s.newWorker(c)
+	defer workertest.DirtyKill(c, w)
+
+	s.ensureStartup(c)
+
+	// Advance the clock incrementally until the fetch is triggered or we time out.
+	// 2 seconds are enough to ensure that the 2 fetches are triggered.
+	if ok := advanceClockUntil(s.clock, 2*time.Second, done); !ok {
+		c.Errorf("timed out waiting for fetch")
+	}
+
+	workertest.CleanKill(c, w)
+}
+
+func (s *WorkerSuite) TestTriggerFetchWhileConfigUpdate(c *tc.C) {
+	// Ensure that a clock tick triggers a fetch, even if the config changes continuously.
+	ctrl := s.setupMocks(c)
+	defer ctrl.Finish()
+
+	configChanges := make(chan []string)
+	watcher := watchertest.NewMockStringsWatcher(configChanges)
+	s.modelConfigService.EXPECT().Watch(gomock.Any()).Return(watcher, nil)
+
+	done := make(chan struct{})
+	s.applicationService.EXPECT().GetApplicationsForRevisionUpdater(gomock.Any()).DoAndReturn(func(ctx context.Context) ([]application.RevisionUpdaterApplication, error) {
+		close(done)
+		return nil, nil
+	})
+
+	s.expectModelConfig(c)
+	s.expectModelConfig(c)
+	s.expectSendEmptyModelMetrics(c)
+
+	w := s.newWorker(c)
+	defer workertest.DirtyKill(c, w)
+
+	// Send continuous config changes to ensure that the fetch is triggered after the config update
+	go func() {
+		for {
+			select {
+			case <-c.Context().Done():
+				return
+			case <-done:
+				return
+			case configChanges <- []string{"anything"}:
+			}
+		}
+	}()
+
+	s.ensureStartup(c)
+
+	// Advance the clock incrementally until the fetch is triggered or we time out.
+	if ok := advanceClockUntil(s.clock, time.Second, done); !ok {
 		c.Fatalf("timed out waiting for fetch")
 	}
 
