@@ -3120,16 +3120,22 @@ func (st State) InitialWatchStatementForObsoleteRevision(
 	queryFunc := func(ctx context.Context, runner coredatabase.TxnRunner) ([]string, error) {
 		var revisions []secretRevision
 		if err := st.getRevisionForObsolete(
-			ctx, runner, "sro.revision_uuid AS &secretRevision.uuid", secretRevision{}, &revisions,
+			ctx, runner, `
+sr.secret_id AS &secretRevision.secret_id,
+sr.revision AS &secretRevision.revision,
+sro.revision_uuid AS &secretRevision.uuid`, secretRevision{}, &revisions,
 			appOwnerUUIDs, unitOwnerUUIDs,
 		); err != nil {
 			return nil, errors.Capture(err)
 		}
-		revUUIDs := make([]string, len(revisions))
-		for i, rev := range revisions {
-			revUUIDs[i] = rev.ID
+		if len(revisions) == 0 {
+			return nil, nil
 		}
-		return revUUIDs, nil
+		result := make([]string, 0, len(revisions))
+		for _, rev := range revisions {
+			result = append(result, getRevisionID(rev.SecretID, rev.Revision))
+		}
+		return result, nil
 	}
 	return "secret_revision_obsolete", queryFunc
 }
@@ -3142,9 +3148,11 @@ func (st State) GetRevisionIDsForObsolete(
 	ctx context.Context,
 	appOwnerUUIDs domainsecret.ApplicationOwners,
 	unitOwnerUUIDs domainsecret.UnitOwners,
-	revisionUUIDs ...string,
-) (map[string]string, error) {
-	if len(revisionUUIDs) == 0 && len(appOwnerUUIDs) == 0 && len(unitOwnerUUIDs) == 0 {
+	revisionUUIDs []string,
+) ([]string, error) {
+	if len(revisionUUIDs) == 0 &&
+		len(appOwnerUUIDs) == 0 &&
+		len(unitOwnerUUIDs) == 0 {
 		return nil, nil
 	}
 	db, err := st.DB(ctx)
@@ -3162,9 +3170,9 @@ sro.revision_uuid AS &secretRevision.uuid`, secretRevision{}, &revisions,
 	); err != nil {
 		return nil, errors.Capture(err)
 	}
-	result := make(map[string]string, len(revisions))
+	result := make([]string, 0, len(revisions))
 	for _, rev := range revisions {
-		result[rev.ID] = getRevisionID(rev.SecretID, rev.Revision)
+		result = append(result, getRevisionID(rev.SecretID, rev.Revision))
 	}
 	return result, nil
 }

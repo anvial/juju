@@ -994,23 +994,18 @@ func (c *MockStateGetRelationEndpointsCall) DoAndReturn(f func(context.Context, 
 }
 
 // GetRevisionIDsForObsolete mocks base method.
-func (m *MockState) GetRevisionIDsForObsolete(arg0 context.Context, arg1 secret.ApplicationOwners, arg2 secret.UnitOwners, arg3 ...string) (map[string]string, error) {
+func (m *MockState) GetRevisionIDsForObsolete(arg0 context.Context, arg1 secret.ApplicationOwners, arg2 secret.UnitOwners, arg3 []string) ([]string, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetRevisionIDsForObsolete", varargs...)
-	ret0, _ := ret[0].(map[string]string)
+	ret := m.ctrl.Call(m, "GetRevisionIDsForObsolete", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRevisionIDsForObsolete indicates an expected call of GetRevisionIDsForObsolete.
-func (mr *MockStateMockRecorder) GetRevisionIDsForObsolete(arg0, arg1, arg2 any, arg3 ...any) *MockStateGetRevisionIDsForObsoleteCall {
+func (mr *MockStateMockRecorder) GetRevisionIDsForObsolete(arg0, arg1, arg2, arg3 any) *MockStateGetRevisionIDsForObsoleteCall {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1, arg2}, arg3...)
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRevisionIDsForObsolete", reflect.TypeOf((*MockState)(nil).GetRevisionIDsForObsolete), varargs...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRevisionIDsForObsolete", reflect.TypeOf((*MockState)(nil).GetRevisionIDsForObsolete), arg0, arg1, arg2, arg3)
 	return &MockStateGetRevisionIDsForObsoleteCall{Call: call}
 }
 
@@ -1020,19 +1015,19 @@ type MockStateGetRevisionIDsForObsoleteCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockStateGetRevisionIDsForObsoleteCall) Return(arg0 map[string]string, arg1 error) *MockStateGetRevisionIDsForObsoleteCall {
+func (c *MockStateGetRevisionIDsForObsoleteCall) Return(arg0 []string, arg1 error) *MockStateGetRevisionIDsForObsoleteCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateGetRevisionIDsForObsoleteCall) Do(f func(context.Context, secret.ApplicationOwners, secret.UnitOwners, ...string) (map[string]string, error)) *MockStateGetRevisionIDsForObsoleteCall {
+func (c *MockStateGetRevisionIDsForObsoleteCall) Do(f func(context.Context, secret.ApplicationOwners, secret.UnitOwners, []string) ([]string, error)) *MockStateGetRevisionIDsForObsoleteCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateGetRevisionIDsForObsoleteCall) DoAndReturn(f func(context.Context, secret.ApplicationOwners, secret.UnitOwners, ...string) (map[string]string, error)) *MockStateGetRevisionIDsForObsoleteCall {
+func (c *MockStateGetRevisionIDsForObsoleteCall) DoAndReturn(f func(context.Context, secret.ApplicationOwners, secret.UnitOwners, []string) ([]string, error)) *MockStateGetRevisionIDsForObsoleteCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

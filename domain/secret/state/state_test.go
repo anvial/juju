@@ -3291,10 +3291,10 @@ func (s *stateSuite) TestInitialWatchStatementForObsoleteRevision(c *tc.C) {
 	revisionUUIDs, err := f(ctx, s.TxnRunner())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(revisionUUIDs, tc.SameContents, []string{
-		getRevUUID(c, s.DB(), info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1),
+		revID(info.uri1, 1),
+		revID(info.uri2, 1),
+		revID(info.uri3, 1),
+		revID(info.uri4, 1),
 	})
 }
 
@@ -3326,29 +3326,30 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 	ctx := c.Context()
 
 	result, err := st.GetRevisionIDsForObsolete(ctx,
-		nil, nil,
+		nil, nil, nil,
 	)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(result, tc.HasLen, 0)
 
 	// no owners, revUUIDs.
 	result, err = st.GetRevisionIDsForObsolete(ctx,
-		nil, nil,
-		getRevUUID(c, s.DB(), info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1),
-		getRevUUID(c, s.DB(), info.uri1, 2),
-		getRevUUID(c, s.DB(), info.uri2, 2),
-		getRevUUID(c, s.DB(), info.uri3, 2),
-		getRevUUID(c, s.DB(), info.uri4, 2),
+		nil, nil, []string{
+			getRevUUID(c, s.DB(), info.uri1, 1),
+			getRevUUID(c, s.DB(), info.uri2, 1),
+			getRevUUID(c, s.DB(), info.uri3, 1),
+			getRevUUID(c, s.DB(), info.uri4, 1),
+			getRevUUID(c, s.DB(), info.uri1, 2),
+			getRevUUID(c, s.DB(), info.uri2, 2),
+			getRevUUID(c, s.DB(), info.uri3, 2),
+			getRevUUID(c, s.DB(), info.uri4, 2),
+		},
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.DeepEquals, map[string]string{
-		getRevUUID(c, s.DB(), info.uri1, 1): revID(info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1): revID(info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1): revID(info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1): revID(info.uri4, 1),
+	c.Check(result, tc.SameContents, []string{
+		revID(info.uri1, 1),
+		revID(info.uri2, 1),
+		revID(info.uri3, 1),
+		revID(info.uri4, 1),
 	})
 
 	// appOwners, unitOwners, revUUIDs.
@@ -3361,21 +3362,23 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 			info.unitUUID,
 			info.unit2UUID,
 		},
-		getRevUUID(c, s.DB(), info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1),
-		getRevUUID(c, s.DB(), info.uri1, 2),
-		getRevUUID(c, s.DB(), info.uri2, 2),
-		getRevUUID(c, s.DB(), info.uri3, 2),
-		getRevUUID(c, s.DB(), info.uri4, 2),
+		[]string{
+			getRevUUID(c, s.DB(), info.uri1, 1),
+			getRevUUID(c, s.DB(), info.uri2, 1),
+			getRevUUID(c, s.DB(), info.uri3, 1),
+			getRevUUID(c, s.DB(), info.uri4, 1),
+			getRevUUID(c, s.DB(), info.uri1, 2),
+			getRevUUID(c, s.DB(), info.uri2, 2),
+			getRevUUID(c, s.DB(), info.uri3, 2),
+			getRevUUID(c, s.DB(), info.uri4, 2),
+		},
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.DeepEquals, map[string]string{
-		getRevUUID(c, s.DB(), info.uri1, 1): revID(info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1): revID(info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1): revID(info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1): revID(info.uri4, 1),
+	c.Check(result, tc.SameContents, []string{
+		revID(info.uri1, 1),
+		revID(info.uri2, 1),
+		revID(info.uri3, 1),
+		revID(info.uri4, 1),
 	})
 
 	// appOwners, unitOwners, no revisions.
@@ -3388,13 +3391,14 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 			info.unitUUID,
 			info.unit2UUID,
 		},
+		nil,
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.DeepEquals, map[string]string{
-		getRevUUID(c, s.DB(), info.uri1, 1): revID(info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1): revID(info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1): revID(info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1): revID(info.uri4, 1),
+	c.Check(result, tc.SameContents, []string{
+		revID(info.uri1, 1),
+		revID(info.uri2, 1),
+		revID(info.uri3, 1),
+		revID(info.uri4, 1),
 	})
 
 	// appOwners, unitOwners, revUUIDs(with unknown app owned revisions).
@@ -3406,20 +3410,22 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 			info.unitUUID,
 			info.unit2UUID,
 		},
-		getRevUUID(c, s.DB(), info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1),
-		getRevUUID(c, s.DB(), info.uri1, 2),
-		getRevUUID(c, s.DB(), info.uri2, 2),
-		getRevUUID(c, s.DB(), info.uri3, 2),
-		getRevUUID(c, s.DB(), info.uri4, 2),
+		[]string{
+			getRevUUID(c, s.DB(), info.uri1, 1),
+			getRevUUID(c, s.DB(), info.uri2, 1),
+			getRevUUID(c, s.DB(), info.uri3, 1),
+			getRevUUID(c, s.DB(), info.uri4, 1),
+			getRevUUID(c, s.DB(), info.uri1, 2),
+			getRevUUID(c, s.DB(), info.uri2, 2),
+			getRevUUID(c, s.DB(), info.uri3, 2),
+			getRevUUID(c, s.DB(), info.uri4, 2),
+		},
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.DeepEquals, map[string]string{
-		getRevUUID(c, s.DB(), info.uri1, 1): revID(info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1): revID(info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1): revID(info.uri4, 1),
+	c.Check(result, tc.SameContents, []string{
+		revID(info.uri1, 1),
+		revID(info.uri2, 1),
+		revID(info.uri4, 1),
 	})
 
 	// appOwners, unitOwners, revUUIDs(with unknown unit owned revisions).
@@ -3431,20 +3437,22 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 		[]string{
 			info.unitUUID,
 		},
-		getRevUUID(c, s.DB(), info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1),
-		getRevUUID(c, s.DB(), info.uri4, 1),
-		getRevUUID(c, s.DB(), info.uri1, 2),
-		getRevUUID(c, s.DB(), info.uri2, 2),
-		getRevUUID(c, s.DB(), info.uri3, 2),
-		getRevUUID(c, s.DB(), info.uri4, 2),
+		[]string{
+			getRevUUID(c, s.DB(), info.uri1, 1),
+			getRevUUID(c, s.DB(), info.uri2, 1),
+			getRevUUID(c, s.DB(), info.uri3, 1),
+			getRevUUID(c, s.DB(), info.uri4, 1),
+			getRevUUID(c, s.DB(), info.uri1, 2),
+			getRevUUID(c, s.DB(), info.uri2, 2),
+			getRevUUID(c, s.DB(), info.uri3, 2),
+			getRevUUID(c, s.DB(), info.uri4, 2),
+		},
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.DeepEquals, map[string]string{
-		getRevUUID(c, s.DB(), info.uri1, 1): revID(info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri2, 1): revID(info.uri2, 1),
-		getRevUUID(c, s.DB(), info.uri3, 1): revID(info.uri3, 1),
+	c.Check(result, tc.SameContents, []string{
+		revID(info.uri1, 1),
+		revID(info.uri2, 1),
+		revID(info.uri3, 1),
 	})
 
 	// appOwners, unitOwners, revUUIDs(with part of the owned revisions).
@@ -3457,12 +3465,14 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 			info.unitUUID,
 			info.unit2UUID,
 		},
-		getRevUUID(c, s.DB(), info.uri1, 1),
-		getRevUUID(c, s.DB(), info.uri1, 2),
+		[]string{
+			getRevUUID(c, s.DB(), info.uri1, 1),
+			getRevUUID(c, s.DB(), info.uri1, 2),
+		},
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.DeepEquals, map[string]string{
-		getRevUUID(c, s.DB(), info.uri1, 1): revID(info.uri1, 1),
+	c.Check(result, tc.SameContents, []string{
+		revID(info.uri1, 1),
 	})
 }
 
