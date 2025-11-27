@@ -16,7 +16,7 @@ import (
 	"github.com/juju/juju/domain/application/charm"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/application/internal"
-	schematesting "github.com/juju/juju/domain/schema/testing"
+	"github.com/juju/juju/domain/life"
 	domainstorage "github.com/juju/juju/domain/storage"
 	storageerrors "github.com/juju/juju/domain/storage/errors"
 	storagetesting "github.com/juju/juju/domain/storage/testing"
@@ -28,7 +28,7 @@ import (
 // The primary means for testing state funcs not realted to applications
 // themselves.
 type storageSuite struct {
-	schematesting.ModelSuite
+	baseSuite
 	storageHelper
 }
 
@@ -628,7 +628,8 @@ func (s *storageSuite) TestGetStorageInstancesForProviderIDSomeStorageOwned(c *t
 	instUUID3, fsUUID3 := s.newStorageInstanceFilesysatemWithProviderID(c, "st1", "provider3")
 	instUUID4, vUUID1 := s.newStorageInstanceVolumeWithProviderID(c, "st3", "provider4")
 
-	unitUUID := s.newUnit(c)
+	_, unitUUIDs := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
+	unitUUID := unitUUIDs[0]
 	s.newStorageUnitOwner(c, instUUID1, unitUUID)
 
 	st := NewState(

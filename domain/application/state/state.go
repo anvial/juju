@@ -15,7 +15,6 @@ import (
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/objectstore"
-	"github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/application/architecture"
 	"github.com/juju/juju/domain/application/charm"
@@ -1249,22 +1248,22 @@ ORDER BY array_index ASC;
 
 // checkUnitExistsByName checks if the unit exists.
 // - If the unit is not found, [applicationerrors.UnitNotFound] is returned.
-func (st *State) checkUnitExistsByName(ctx context.Context, tx *sqlair.TX, ident unit.Name) error {
-	arg := unitName{Name: ident}
+func (st *State) checkUnitExistsByName(ctx context.Context, tx *sqlair.TX, uName string) error {
+	arg := unitName{Name: uName}
 	stmt, err := st.Prepare(`
 SELECT &unitName.*
 FROM  unit
 WHERE name = $unitName.name;
 `, arg)
 	if err != nil {
-		return errors.Errorf("preparing query for unit %q: %w", ident, err)
+		return errors.Errorf("preparing query for unit %q: %w", uName, err)
 	}
 
 	err = tx.Query(ctx, stmt, arg).Get(&arg)
 	if errors.Is(err, sql.ErrNoRows) {
 		return applicationerrors.UnitNotFound
 	} else if err != nil {
-		return errors.Errorf("checking unit %q exists: %w", ident, err)
+		return errors.Errorf("checking unit %q exists: %w", uName, err)
 	}
 
 	return nil
@@ -1274,7 +1273,7 @@ WHERE name = $unitName.name;
 // access alive and dying units, but not dead ones:
 // - If the unit is not found, [applicationerrors.UnitNotFound] is returned.
 // - If the unit is dead, [applicationerrors.UnitIsDead] is returned.
-func (st *State) checkUnitNotDead(ctx context.Context, tx *sqlair.TX, uuid unit.UUID) error {
+func (st *State) checkUnitNotDead(ctx context.Context, tx *sqlair.TX, uuid string) error {
 	query := `
 SELECT &lifeID.*
 FROM unit
@@ -1307,7 +1306,7 @@ WHERE uuid = $unitUUID.uuid;
 // possible to access alive and dying units, but not dead ones:
 // - If the unit is not found, [applicationerrors.UnitNotFound] is returned.
 // - If the unit is dead, [applicationerrors.UnitIsDead] is returned.
-func (st *State) checkUnitNotDeadByName(ctx context.Context, tx *sqlair.TX, name unit.Name) error {
+func (st *State) checkUnitNotDeadByName(ctx context.Context, tx *sqlair.TX, name string) error {
 	query := `
 SELECT &lifeID.*
 FROM unit
