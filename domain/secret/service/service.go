@@ -500,7 +500,8 @@ func (s *SecretService) UpdateCharmSecret(ctx context.Context, uri *secrets.URI,
 		if err != nil {
 			return errors.Capture(err)
 		}
-		if !policy.WillRotate() {
+		// If the policy is less than the new policy, update the next rotation time.
+		if params.RotatePolicy.LessThan(policy) {
 			p.NextRotateTime = params.RotatePolicy.NextRotateTime(s.clock.Now())
 		}
 	}
