@@ -4,10 +4,6 @@
 package state
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/juju/tc"
@@ -551,31 +547,4 @@ VALUES (?,?,?,?)
 `, relationEndpointUUID.String(), appUUID.String(), charmRelationUUID.String(), network.AlphaSpaceId)
 
 	return relationEndpointUUID
-}
-
-func (s *migrationSuite) checkTableEmpty(c *tc.C, colName, tableName string) {
-	query := fmt.Sprintf(`
-SELECT %s
-FROM   %s
-`, colName, tableName)
-
-	values := []string{}
-	_ = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		rows, err := tx.QueryContext(ctx, query)
-
-		if err != nil {
-			return errors.Capture(err)
-		}
-		defer func() { _ = rows.Close() }()
-
-		for rows.Next() {
-			var value string
-			if err := rows.Scan(&value); err != nil {
-				return errors.Capture(err)
-			}
-			values = append(values, value)
-		}
-		return nil
-	})
-	c.Check(values, tc.DeepEquals, []string{}, tc.Commentf("table %q first value: %q", tableName, strings.Join(values, ", ")))
 }
