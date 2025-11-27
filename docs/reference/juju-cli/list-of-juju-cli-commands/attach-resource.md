@@ -14,6 +14,15 @@ Update a resource for an application.
 | `-B`, `--no-browser-login` | false | Do not use web browser for authentication |
 | `-m`, `--model` |  | Model to operate in. Accepts [&lt;controller name&gt;:]&lt;model name&gt;&#x7c;&lt;model UUID&gt; |
 
+## Examples
+
+    juju attach-resource mysql resource-name=foo
+
+    juju attach-resource ubuntu-k8s ubuntu_image=ubuntu
+
+    juju attach-resource redis-k8s redis-image=redis
+
+
 ## Details
 
 This command updates a resource for an application.
@@ -22,25 +31,24 @@ The format is
 
     <resource name>=<resource>
 
-where the resource name is the name from the metadata.yaml file of the charm
-and where, depending on the type of the resource, the resource can be specified
+where `<resource name>` is the name from the `metadata.yaml` (`charmcraft.yaml`) file
+of the charm and where, depending on the type of the resource, `<resource>` can be specified
 as follows:
 
 - If the resource is type `file`, you can specify it by providing one of the following:
 
-    a. the resource revision number.
+    a. For a resource that has been uploaded to Charmhub: the resource revision number.
 
-    b. a path to a local file. Caveat: If you choose this, you will not be able
+    b. For a local resource: a path to a local file. Caveat: If you choose this, you will not be able
 	 to go back to using a resource from Charmhub.
 
 - If the resource is type `oci-image`, you can specify it by providing one of the following:
 
-    a. the resource revision number.
+    a. For a resource that has been uploaded to Charmhub: the resource revision number.
 
-	b. a path to the local file for your private OCI image as well as the
-	username and password required to access the private OCI image.
-	Caveat: If you choose this, you will not be able to go back to using a
-	resource from Charmhub.
+	b. For a local resource: the path to the local file for your private OCI image as well as the
+	username and password required to access the private OCI image. Caveat: If you choose this,
+	you will not be able to go back to using a resource from Charmhub.
 
-    c. a link to a public OCI image. Caveat: If you choose this, you will not be
-	 able to go back to using a resource from Charmhub.
+    c. For a resource that has been uploaded to a public OCI registry: a link to the public OCI image.
+	Caveat: If you choose this, you will not be able to go back to using a resource from Charmhub.
