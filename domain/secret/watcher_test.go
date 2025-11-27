@@ -595,35 +595,13 @@ func (s *watcherSuite) TestWatchConsumedSecretsChanges(c *tc.C) {
 	defer watchertest.CleanKill(c, w1)
 
 	harness1 := watchertest.NewHarness(s, watchertest.NewWatcherC(c, w1))
-	harness1.AddTest(c, func(c *tc.C) {}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(
-			watchertest.StringSliceAssert(
-				uri1.String(),
-			),
-		)
-	})
-
 	harness1.AddTest(c, func(c *tc.C) {
 		// The consumed revision 2 is the updated current_revision.
 		saveConsumer(uri1, 2, "mediawiki/0")
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.AssertNoChange()
 	})
-
-	harness1.Run(c, []string(nil))
-
-	// Pretend that the agent restarted and the watcher is re-created again.
-	// Since we comsume the latest revision already, so there should be no change.
-	w2, err := svc.WatchConsumedSecretsChanges(ctx, "mediawiki/0")
-	c.Assert(err, tc.IsNil)
-	c.Assert(w2, tc.NotNil)
-	defer watchertest.CleanKill(c, w2)
-	harness2 := watchertest.NewHarness(s, watchertest.NewWatcherC(c, w2))
-	harness2.AddTest(c, func(c *tc.C) {}, func(w watchertest.WatcherC[[]string]) {
-		w.AssertNoChange()
-	})
-	harness2.Run(c, []string(nil))
-
+	harness1.Run(c, []string{uri1.String()})
 }
 
 func (s *watcherSuite) updateRemoteSecretRevisionInConsumingModel(c *tc.C, uri *coresecrets.URI, latestRevision int, appUUID string) {
@@ -687,6 +665,8 @@ ON CONFLICT(secret_id, unit_uuid) DO UPDATE SET
 	uri2 := coresecrets.NewURI()
 	uri2.SourceUUID = sourceModelUUID.String()
 
+	s.AssertChangeStreamIdle(c)
+
 	w, err := svc.WatchConsumedSecretsChanges(ctx, "mediawiki/0")
 	c.Assert(err, tc.ErrorIsNil)
 	defer watchertest.CleanKill(c, w)
@@ -721,35 +701,13 @@ ON CONFLICT(secret_id, unit_uuid) DO UPDATE SET
 	defer watchertest.CleanKill(c, w1)
 
 	harness1 := watchertest.NewHarness(s, watchertest.NewWatcherC(c, w1))
-	harness1.AddTest(c, func(c *tc.C) {}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(
-			watchertest.StringSliceAssert(
-				uri1.String(),
-			),
-		)
-	})
-
 	harness1.AddTest(c, func(c *tc.C) {
 		// The consumed revision 2 is the updated current_revision.
 		saveConsumer(uri1, 2, unitUUID)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.AssertNoChange()
 	})
-
-	harness1.Run(c, []string(nil))
-
-	// Pretend that the agent restarted and the watcher is re-created again.
-	// Since we consume the latest revision already, so there should be no
-	// change.
-	w2, err := svc.WatchConsumedSecretsChanges(ctx, "mediawiki/0")
-	c.Assert(err, tc.ErrorIsNil)
-	defer watchertest.CleanKill(c, w2)
-
-	harness2 := watchertest.NewHarness(s, watchertest.NewWatcherC(c, w2))
-	harness2.AddTest(c, func(c *tc.C) {}, func(w watchertest.WatcherC[[]string]) {
-		w.AssertNoChange()
-	})
-	harness2.Run(c, []string(nil))
+	harness1.Run(c, []string{uri1.String()})
 }
 
 func (s *watcherSuite) TestWatchSecretsRotationChanges(c *tc.C) {

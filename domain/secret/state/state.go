@@ -3012,7 +3012,7 @@ type remoteSecrets []lastestSecretRevision
 func (st State) InitialWatchStatementForConsumedRemoteSecretsChange(unitName coreunit.Name) (string, eventsource.NamespaceQuery) {
 	queryFunc := func(ctx context.Context, runner coredatabase.TxnRunner) ([]string, error) {
 		q := `
-SELECT   DISTINCT sr.secret_id AS &lastestSecretRevision.secret_id
+SELECT   DISTINCT sr.secret_id AS &secretID.id
 FROM     secret_unit_consumer suc
 JOIN     unit u ON u.uuid = suc.unit_uuid
 JOIN     secret_reference sr ON sr.secret_id = suc.secret_id
@@ -3020,17 +3020,15 @@ WHERE    u.name = $unit.name
 GROUP BY sr.secret_id
 HAVING   suc.current_revision < sr.latest_revision`
 
-		queryParams := []any{
-			unit{Name: unitName},
-		}
+		input := unit{Name: unitName}
 
-		stmt, err := st.Prepare(q, append(queryParams, lastestSecretRevision{})...)
+		stmt, err := st.Prepare(q, input, secretID{})
 		if err != nil {
 			return nil, errors.Capture(err)
 		}
-		var referenceIDs remoteSecrets
+		var referenceIDs []secretID
 		err = runner.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-			err := tx.Query(ctx, stmt, queryParams...).GetAll(&referenceIDs)
+			err := tx.Query(ctx, stmt, input).GetAll(&referenceIDs)
 			if errors.Is(err, sqlair.ErrNoRows) {
 				// No consumed remote secrets found.
 				return nil
@@ -3043,7 +3041,7 @@ HAVING   suc.current_revision < sr.latest_revision`
 
 		result := make([]string, len(referenceIDs))
 		for i, rev := range referenceIDs {
-			result[i] = rev.SecretID
+			result[i] = rev.ID
 		}
 		return result, nil
 	}

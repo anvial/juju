@@ -14,6 +14,7 @@ import (
 	"github.com/juju/collections/transform"
 
 	"github.com/juju/juju/core/changestream"
+	"github.com/juju/juju/core/database"
 	coredatabase "github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/leadership"
 	"github.com/juju/juju/core/logger"
@@ -95,46 +96,79 @@ func (s *WatchableService) WatchConsumedSecretsChanges(ctx context.Context, unit
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	// TODO (stickupkid): This should just be one watcher. Attempting to
-	// stitch two watchers together at this level will not result in ordered
-	// changes.
-
+	// TODO(secrets): Reimplement this whole watcher using custom triggers.
 	tableLocal, queryLocal := s.secretState.InitialWatchStatementForConsumedSecretsChange(unitName)
-	wLocal, err := s.watcherFactory.NewNamespaceWatcher(
-		ctx,
-		queryLocal,
-		"consumed secrets watcher",
-		eventsource.NamespaceFilter(tableLocal, changestream.Changed),
-	)
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-	processLocalChanges := func(ctx context.Context, revisionUUIDs ...string) ([]string, error) {
-		return s.secretState.GetConsumedSecretURIsWithChanges(ctx, unitName, revisionUUIDs...)
-	}
-	sWLocal, err := secret.NewSecretStringWatcher(wLocal, s.logger, processLocalChanges)
-	if err != nil {
-		return nil, errors.Capture(err)
+	tableRemote, queryRemote := s.secretState.InitialWatchStatementForConsumedRemoteSecretsChange(unitName)
+
+	initialQuery := func(ctx context.Context, db database.TxnRunner) ([]string, error) {
+		revisionUUIDs, err := queryLocal(ctx, db)
+		if err != nil {
+			return nil, errors.Capture(err)
+		}
+		var localRevs []string
+		if len(revisionUUIDs) > 0 {
+			localRevs, err = s.secretState.GetConsumedSecretURIsWithChanges(
+				ctx, unitName, revisionUUIDs...)
+			if err != nil {
+				return nil, errors.Capture(err)
+			}
+		}
+		secretIDs, err := queryRemote(ctx, db)
+		if err != nil {
+			return nil, errors.Capture(err)
+		}
+		var remoteRevs []string
+		if len(secretIDs) > 0 {
+			remoteRevs, err = s.secretState.GetConsumedRemoteSecretURIsWithChanges(
+				ctx, unitName, secretIDs...)
+			if err != nil {
+				return nil, errors.Capture(err)
+			}
+		}
+		res := slices.Concat(localRevs, remoteRevs)
+		return res, nil
 	}
 
-	tableRemote, queryRemote := s.secretState.InitialWatchStatementForConsumedRemoteSecretsChange(unitName)
-	wRemote, err := s.watcherFactory.NewNamespaceWatcher(
-		ctx,
-		queryRemote,
-		"consumed remote secrets watcher",
+	mapper := func(ctx context.Context, changes []changestream.ChangeEvent) ([]string, error) {
+		var revisionUUIDs []string
+		var secretIDs []string
+		for _, change := range changes {
+			switch change.Namespace() {
+			case tableLocal:
+				revisionUUIDs = append(revisionUUIDs, change.Changed())
+			case tableRemote:
+				secretIDs = append(secretIDs, change.Changed())
+			}
+		}
+		var localRevs []string
+		if len(revisionUUIDs) > 0 {
+			var err error
+			localRevs, err = s.secretState.GetConsumedSecretURIsWithChanges(
+				ctx, unitName, revisionUUIDs...)
+			if err != nil {
+				return nil, errors.Capture(err)
+			}
+		}
+		var remoteRevs []string
+		if len(secretIDs) > 0 {
+			var err error
+			remoteRevs, err = s.secretState.GetConsumedRemoteSecretURIsWithChanges(
+				ctx, unitName, secretIDs...)
+			if err != nil {
+				return nil, errors.Capture(err)
+			}
+		}
+		res := slices.Concat(localRevs, remoteRevs)
+		return res, nil
+	}
+
+	return s.watcherFactory.NewNamespaceMapperWatcher(
+		ctx, initialQuery,
+		"consumed secrets watcher",
+		mapper,
+		eventsource.NamespaceFilter(tableLocal, changestream.Changed),
 		eventsource.NamespaceFilter(tableRemote, changestream.All),
 	)
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-	processRemoteChanges := func(ctx context.Context, secretIDs ...string) ([]string, error) {
-		return s.secretState.GetConsumedRemoteSecretURIsWithChanges(ctx, unitName, secretIDs...)
-	}
-	sWRemote, err := secret.NewSecretStringWatcher(wRemote, s.logger, processRemoteChanges)
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-	return eventsource.NewMultiStringsWatcher(ctx, sWLocal, sWRemote)
 }
 
 // WatchObsoleteSecrets returns a watcher for notifying when:
@@ -379,22 +413,6 @@ func splitSecretRevision(s string) (string, int) {
 	}
 	rev, _ := strconv.Atoi(parts[1])
 	return parts[0], rev
-}
-
-type maskedChangeIDEvent struct {
-	changestream.ChangeEvent
-	id string
-}
-
-func newMaskedChangeIDEvent(change changestream.ChangeEvent, id string) changestream.ChangeEvent {
-	return maskedChangeIDEvent{
-		ChangeEvent: change,
-		id:          id,
-	}
-}
-
-func (m maskedChangeIDEvent) Changed() string {
-	return m.id
 }
 
 // WatchSecretRevisionsExpiryChanges returns a watcher that notifies when the expiry time of a secret revision changes.

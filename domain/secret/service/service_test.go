@@ -2244,61 +2244,26 @@ func (s *serviceSuite) TestWatchConsumedSecretsChanges(c *tc.C) {
 	defer ctrl.Finish()
 
 	mockWatcherFactory := NewMockWatcherFactory(ctrl)
-
-	uri1 := coresecrets.NewURI()
-	uri2 := coresecrets.NewURI()
-
-	ch := make(chan []string)
-	mockStringWatcher := NewMockStringsWatcher(ctrl)
-	mockStringWatcher.EXPECT().Changes().Return(ch).AnyTimes()
-	mockStringWatcher.EXPECT().Wait().Return(nil).AnyTimes()
-	mockStringWatcher.EXPECT().Kill().AnyTimes()
-
-	chRemote := make(chan []string)
-	mockStringWatcherRemote := NewMockStringsWatcher(ctrl)
-	mockStringWatcherRemote.EXPECT().Changes().Return(chRemote).AnyTimes()
-	mockStringWatcherRemote.EXPECT().Wait().Return(nil).AnyTimes()
-	mockStringWatcherRemote.EXPECT().Kill().AnyTimes()
+	expectedWatcher := NewMockStringsWatcher(ctrl)
 
 	var namespaceQuery eventsource.NamespaceQuery = func(context.Context, database.TxnRunner) ([]string, error) {
 		return nil, nil
 	}
 	s.state.EXPECT().InitialWatchStatementForConsumedSecretsChange(unittesting.GenNewName(c, "mysql/0")).Return("secret_revision", namespaceQuery)
 	s.state.EXPECT().InitialWatchStatementForConsumedRemoteSecretsChange(unittesting.GenNewName(c, "mysql/0")).Return("secret_reference", namespaceQuery)
-	mockWatcherFactory.EXPECT().NewNamespaceWatcher(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mockStringWatcher, nil)
-	mockWatcherFactory.EXPECT().NewNamespaceWatcher(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mockStringWatcherRemote, nil)
-
-	s.state.EXPECT().GetConsumedSecretURIsWithChanges(gomock.Any(),
-		unittesting.GenNewName(c, "mysql/0"), "revision-uuid-1",
-	).Return([]string{uri1.String()}, nil)
-	s.state.EXPECT().GetConsumedRemoteSecretURIsWithChanges(gomock.Any(),
-		unittesting.GenNewName(c, "mysql/0"), "revision-uuid-2",
-	).Return([]string{uri2.String()}, nil)
+	mockWatcherFactory.EXPECT().NewNamespaceMapperWatcher(
+		gomock.Any(), gomock.Any(),
+		"consumed secrets watcher",
+		gomock.Any(),
+		tc.Bind(tc.DeepEquals, eventsource.NamespaceFilter("secret_revision", changestream.Changed)),
+		tc.Bind(tc.DeepEquals, eventsource.NamespaceFilter("secret_reference", changestream.All)),
+	).Return(expectedWatcher, nil)
 
 	svc := NewWatchableService(
 		s.state, s.secretBackendState, s.ensurer, mockWatcherFactory, loggertesting.WrapCheckLog(c))
 	w, err := svc.WatchConsumedSecretsChanges(c.Context(), "mysql/0")
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(w, tc.NotNil)
-	defer workertest.CleanKill(c, w)
-	wc := watchertest.NewStringsWatcherC(c, w)
-
-	select {
-	case ch <- []string{"revision-uuid-1"}:
-	case <-time.After(coretesting.ShortWait):
-		c.Fatalf("timed out waiting for the initial changes")
-	}
-	select {
-	case chRemote <- []string{"revision-uuid-2"}:
-	case <-time.After(coretesting.ShortWait):
-		c.Fatalf("timed out waiting for the initial changes")
-	}
-
-	wc.AssertChange(
-		uri1.String(),
-		uri2.String(),
-	)
-	wc.AssertNoChange()
+	c.Assert(w, tc.Equals, expectedWatcher)
 }
 
 func (s *serviceSuite) TestWatchSecretsRotationChanges(c *tc.C) {
