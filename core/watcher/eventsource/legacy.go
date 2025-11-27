@@ -107,18 +107,6 @@ func NewMultiNotifyWatcher(ctx context.Context, watchers ...Watcher[struct{}]) (
 	return NewMultiWatcher[struct{}](ctx, applier, watchers...)
 }
 
-// NewMultiStringsWatcher creates a strings watcher (Watcher[[]string]) that
-// combines each of the (strings) watchers passed in. Each watcher's initial
-// event is consumed, and a single initial event is sent.
-//
-// Deprecated: this should not be used. Use NewMultiValueWatcher instead.
-func NewMultiStringsWatcher(ctx context.Context, watchers ...Watcher[[]string]) (*MultiWatcher[[]string], error) {
-	applier := func(staging, in []string) []string {
-		return append(staging, in...)
-	}
-	return NewMultiWatcher[[]string](ctx, applier, watchers...)
-}
-
 // NewMultiWatcher creates a NotifyWatcher that combines
 // each of the NotifyWatchers passed in. Each watcher's initial
 // event is consumed, and a single initial event is sent.
@@ -130,6 +118,9 @@ func NewMultiWatcher[T any](ctx context.Context, applier Applier[T], watchers ..
 	for i, w := range watchers {
 		_, err := ConsumeInitialEvent[T](ctx, w)
 		if err != nil {
+			for _, w := range watchers {
+				worker.Stop(w)
+			}
 			return nil, errors.Capture(err)
 		}
 
