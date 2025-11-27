@@ -496,12 +496,14 @@ func (s *streamSuite) TestSecondTermDoesNotStartUntilFirstTermDone(c *tc.C) {
 	s.insertNamespace(c, 1000, "foo")
 
 	statesChan := make(chan []string, 1)
+	noTermDeadline := time.Time{}
 	stream := NewInternalStates(uuid.MustNewUUID().String(),
 		s.TxnRunner(),
 		s.FileNotifier,
 		s.clock,
 		s.metrics,
 		loggertesting.WrapCheckLog(c),
+		noTermDeadline,
 		statesChan)
 	defer workertest.DirtyKill(c, stream)
 
