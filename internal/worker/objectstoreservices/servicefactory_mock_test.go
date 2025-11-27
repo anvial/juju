@@ -16,7 +16,7 @@ import (
 	service "github.com/juju/juju/domain/controller/service"
 	service0 "github.com/juju/juju/domain/controllerconfig/service"
 	service1 "github.com/juju/juju/domain/controllernode/service"
-	model0 "github.com/juju/juju/domain/model/service/objectstore"
+	objectstore "github.com/juju/juju/domain/model/service/objectstore"
 	service2 "github.com/juju/juju/domain/objectstore/service"
 	services "github.com/juju/juju/internal/services"
 	gomock "go.uber.org/mock/gomock"
@@ -198,10 +198,10 @@ func (c *MockObjectStoreServicesControllerNodeCall) DoAndReturn(f func() *servic
 }
 
 // Model mocks base method.
-func (m *MockObjectStoreServices) Model() *model0.ObjectStoreService {
+func (m *MockObjectStoreServices) Model() *objectstore.ObjectStoreService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Model")
-	ret0, _ := ret[0].(*model0.ObjectStoreService)
+	ret0, _ := ret[0].(*objectstore.ObjectStoreService)
 	return ret0
 }
 
@@ -218,19 +218,19 @@ type MockObjectStoreServicesModelCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockObjectStoreServicesModelCall) Return(arg0 *model0.ObjectStoreService) *MockObjectStoreServicesModelCall {
+func (c *MockObjectStoreServicesModelCall) Return(arg0 *objectstore.ObjectStoreService) *MockObjectStoreServicesModelCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockObjectStoreServicesModelCall) Do(f func() *model0.ObjectStoreService) *MockObjectStoreServicesModelCall {
+func (c *MockObjectStoreServicesModelCall) Do(f func() *objectstore.ObjectStoreService) *MockObjectStoreServicesModelCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockObjectStoreServicesModelCall) DoAndReturn(f func() *model0.ObjectStoreService) *MockObjectStoreServicesModelCall {
+func (c *MockObjectStoreServicesModelCall) DoAndReturn(f func() *objectstore.ObjectStoreService) *MockObjectStoreServicesModelCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
