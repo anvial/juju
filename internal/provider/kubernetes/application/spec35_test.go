@@ -280,7 +280,7 @@ func getPodSpec35() corev1.PodSpec {
 				},
 				{
 					Name:      "gitlab-database-uniqid",
-					MountPath: "path/to/here",
+					MountPath: "path/in/workload-container",
 				},
 			},
 			SecurityContext: &corev1.SecurityContext{},
