@@ -155,7 +155,7 @@ func (i *importModelOperation) Setup(scope modelmigration.Scope) error {
 // If the user specified for the model cannot be found an error satisfying
 // [accesserrors.NotFound] will be returned.
 func (i *importModelOperation) Execute(ctx context.Context, model description.Model) error {
-	modelName, modelID, err := i.getModelNameAndID(model)
+	modelName, modelID, err := i.getModelNameAndUUID(model)
 	if err != nil {
 		return errors.Errorf("importing model during migration %w", coreerrors.NotValid)
 	}
@@ -264,7 +264,7 @@ func (i *importModelOperation) Execute(ctx context.Context, model description.Mo
 // unsuccessful.
 func (i *importModelOperation) Rollback(ctx context.Context, model description.Model) error {
 	// Attempt to roll back the model database if it was created.
-	modelName, modelID, err := i.getModelNameAndID(model)
+	modelName, modelID, err := i.getModelNameAndUUID(model)
 	if err != nil {
 		return errors.Errorf("rollback of model during migration %w", coreerrors.NotValid)
 	}
@@ -282,33 +282,23 @@ func (i *importModelOperation) Rollback(ctx context.Context, model description.M
 	return nil
 }
 
-func (i *importModelOperation) getModelNameAndID(model description.Model) (string, coremodel.UUID, error) {
+func (i *importModelOperation) getModelNameAndUUID(model description.Model) (string, coremodel.UUID, error) {
 	modelConfig := model.Config()
 	if modelConfig == nil {
 		return "", "", errors.New("model config is empty")
 	}
 
-	modelNameI, exists := modelConfig[config.NameKey]
-	if !exists {
+	modelName, ok := modelConfig[config.NameKey].(string)
+	if !ok {
 		return "", "", errors.Errorf("no model name found in model config")
 	}
 
-	modelNameS, ok := modelNameI.(string)
+	uuid, ok := modelConfig[config.UUIDKey].(string)
 	if !ok {
-		return "", "", errors.Errorf("establishing model name type as string. Got unknown type")
-	}
-
-	uuidI, exists := modelConfig[config.UUIDKey]
-	if !exists {
 		return "", "", errors.Errorf("no model uuid found in model config")
 	}
 
-	uuidS, ok := uuidI.(string)
-	if !ok {
-		return "", "", errors.Errorf("establishing model uuid type as string. Got unknown type")
-	}
-
-	return modelNameS, coremodel.UUID(uuidS), nil
+	return modelName, coremodel.UUID(uuid), nil
 }
 
 // importModelConstraintsOperation implements the steps to import a model's
