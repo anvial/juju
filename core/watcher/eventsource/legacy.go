@@ -119,7 +119,7 @@ func NewMultiWatcher[T any](ctx context.Context, applier Applier[T], watchers ..
 		_, err := ConsumeInitialEvent[T](ctx, w)
 		if err != nil {
 			for _, w := range watchers {
-				worker.Stop(w)
+				w.Kill()
 			}
 			return nil, errors.Capture(err)
 		}

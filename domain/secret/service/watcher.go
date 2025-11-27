@@ -14,7 +14,6 @@ import (
 	"github.com/juju/collections/transform"
 
 	"github.com/juju/juju/core/changestream"
-	"github.com/juju/juju/core/database"
 	coredatabase "github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/leadership"
 	"github.com/juju/juju/core/logger"
@@ -100,7 +99,7 @@ func (s *WatchableService) WatchConsumedSecretsChanges(ctx context.Context, unit
 	tableLocal, queryLocal := s.secretState.InitialWatchStatementForConsumedSecretsChange(unitName)
 	tableRemote, queryRemote := s.secretState.InitialWatchStatementForConsumedRemoteSecretsChange(unitName)
 
-	initialQuery := func(ctx context.Context, db database.TxnRunner) ([]string, error) {
+	initialQuery := func(ctx context.Context, db coredatabase.TxnRunner) ([]string, error) {
 		revisionUUIDs, err := queryLocal(ctx, db)
 		if err != nil {
 			return nil, errors.Capture(err)

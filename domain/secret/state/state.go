@@ -3004,8 +3004,6 @@ HAVING suc.current_revision < MAX(sr.revision)`
 	return secretURIs, nil
 }
 
-type remoteSecrets []lastestSecretRevision
-
 // InitialWatchStatementForConsumedRemoteSecretsChange returns the initial
 // watch statement and the table name for watching consumed secrets hosted
 // in a different model.
