@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/juju/errors"
@@ -44,7 +44,7 @@ func (s *backupsSuite) SetUpTest(c *gc.C) {
 }
 
 func (s *backupsSuite) assertErrorResponse(c *gc.C, resp *http.Response, statusCode int, msg string) *params.Error {
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	c.Assert(err, jc.ErrorIsNil)
 
 	c.Assert(resp.StatusCode, gc.Equals, statusCode, gc.Commentf("body: %s", body))
@@ -62,13 +62,14 @@ func (s *backupsSuite) TestRequiresAuth(c *gc.C) {
 	defer resp.Body.Close()
 
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusUnauthorized)
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(string(body), gc.Equals, "authentication failed: no credentials provided\n")
 }
 
 func (s *backupsSuite) checkInvalidMethod(c *gc.C, method, url string) {
 	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{Method: method, URL: url})
+	defer resp.Body.Close()
 	s.assertErrorResponse(c, resp, http.StatusMethodNotAllowed, `unsupported method: "`+method+`"`)
 }
 
@@ -99,13 +100,15 @@ func (s *backupsSuite) TestAuthRequiresClientNotMachine(c *gc.C) {
 		Nonce:    "fake_nonce",
 	})
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusForbidden)
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	c.Assert(err, jc.ErrorIsNil)
+	resp.Body.Close()
 	c.Assert(string(body), gc.Equals, "authorization failed: machine 0 is not a user\n")
 
 	// Now try a user login.
 	resp = s.sendHTTPRequest(c, apitesting.HTTPRequestParams{Method: "POST", URL: s.backupURL})
-	s.assertErrorResponse(c, resp, http.StatusMethodNotAllowed, `unsupported method: "POST"`)
+	_ = s.assertErrorResponse(c, resp, http.StatusMethodNotAllowed, `unsupported method: "POST"`)
+	resp.Body.Close()
 }
 
 // sendValid sends a valid GET request to the backups endpoint
@@ -117,7 +120,7 @@ func (s *backupsSuite) sendValidGet(c *gc.C) (resp *http.Response, archiveBytes 
 	c.Assert(err, jc.ErrorIsNil)
 	archiveBytes = archive.Bytes()
 	s.fake.Meta = meta
-	s.fake.Archive = ioutil.NopCloser(archive)
+	s.fake.Archive = io.NopCloser(archive)
 
 	return s.sendHTTPRequest(c, apitesting.HTTPRequestParams{
 		Method:      "GET",
@@ -152,7 +155,7 @@ func (s *backupsSuite) TestBody(c *gc.C) {
 	resp, archiveBytes := s.sendValidGet(c)
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	c.Assert(err, jc.ErrorIsNil)
 	c.Check(body, jc.DeepEquals, archiveBytes)
 }

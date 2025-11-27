@@ -136,10 +136,6 @@ func (s *SupportedSeriesSuite) TestSeriesVersionEmpty(c *gc.C) {
 	c.Assert(err, gc.ErrorMatches, `.*unknown version for series: "".*`)
 }
 
-func boolPtr(b bool) *bool {
-	return &b
-}
-
 func (s *SupportedSeriesSuite) TestGetOSVersionFromSeries(c *gc.C) {
 	vers, err := GetBaseFromSeries("jammy")
 	c.Assert(err, jc.ErrorIsNil)

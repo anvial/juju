@@ -395,7 +395,7 @@ func (s *legacyGUISuite) TestGUIHandler(c *gc.C) {
 		}
 
 		// Send a request to the test path.
-		return apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		return apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: s.guiURL(hash, pathAndQuery),
 		})
 	}
@@ -408,7 +408,7 @@ func (s *legacyGUISuite) TestGUIHandler(c *gc.C) {
 		s.SetUpTest(c)
 
 		// Perform the request.
-		resp := sendRequest(test.setup, test.currentVersion, test.pathAndQuery)
+		resp := sendRequest(test.setup, test.currentVersion, test.pathAndQuery) //nolint:bodyclose // body closed AssertResponse
 
 		// Check the response.
 		if test.expectedStatus == 0 {
@@ -610,7 +610,7 @@ func (s *dashboardSuite) TestDashboardHandler(c *gc.C) {
 		s.SetUpTest(c)
 
 		// Perform the request.
-		resp := sendRequest(test.setup, test.currentVersion, test.pathAndQuery)
+		resp := sendRequest(test.setup, test.currentVersion, test.pathAndQuery) //nolint:bodyclose // body closed AssertResponse
 
 		// Check the response.
 		if test.expectedStatus == 0 {
@@ -725,14 +725,14 @@ func (s *legacyGUISuite) TestGUIIndex(c *gc.C) {
 </html>`, hash, test.expectedConfigQuery)
 
 		// Make a request for the Juju GUI index.
-		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: test.getURL("", test.path),
 		})
 		body := apitesting.AssertResponse(c, resp, http.StatusOK, "text/html; charset=utf-8")
 		c.Assert(string(body), gc.Equals, expectedIndexContent)
 
 		// Non-handled paths are served by the index handler.
-		resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: test.getURL("", test.path+"no-such-path/"),
 		})
 		body = apitesting.AssertResponse(c, resp, http.StatusOK, "text/html; charset=utf-8")
@@ -788,14 +788,14 @@ func (s *dashboardSuite) TestDashboardIndex(c *gc.C) {
 		c.Assert(err, jc.ErrorIsNil)
 
 		// Make a request for the Juju GUI index.
-		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: s.dashboardURL(test.path),
 		})
 		body := apitesting.AssertResponse(c, resp, http.StatusOK, "text/html; charset=utf-8")
 		c.Assert(string(body), gc.Equals, indexContent)
 
 		// Non-handled paths are served by the index handler.
-		resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: s.dashboardURL(test.path + "no-such-path/"),
 		})
 		body = apitesting.AssertResponse(c, resp, http.StatusOK, "text/html; charset=utf-8")
@@ -827,7 +827,7 @@ func (s *legacyGUISuite) TestGUIIndexVersions(c *gc.C) {
 	// Check that the correct index version is served.
 	err = s.State.GUISetVersion(vers2)
 	c.Assert(err, jc.ErrorIsNil)
-	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		URL: s.guiURL("", ""),
 	})
 	body := apitesting.AssertResponse(c, resp, http.StatusOK, "text/plain; charset=utf-8")
@@ -835,7 +835,7 @@ func (s *legacyGUISuite) TestGUIIndexVersions(c *gc.C) {
 
 	err = s.State.GUISetVersion(vers3)
 	c.Assert(err, jc.ErrorIsNil)
-	resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		URL: s.guiURL("", ""),
 	})
 	body = apitesting.AssertResponse(c, resp, http.StatusOK, "text/plain; charset=utf-8")
@@ -863,7 +863,7 @@ func (s *dashboardSuite) TestDashboardIndexVersions(c *gc.C) {
 	// Check that the correct index version is served.
 	err = s.State.GUISetVersion(vers2)
 	c.Assert(err, jc.ErrorIsNil)
-	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		URL: s.dashboardURL(""),
 	})
 	body := apitesting.AssertResponse(c, resp, http.StatusOK, "text/plain; charset=utf-8")
@@ -871,7 +871,7 @@ func (s *dashboardSuite) TestDashboardIndexVersions(c *gc.C) {
 
 	err = s.State.GUISetVersion(vers3)
 	c.Assert(err, jc.ErrorIsNil)
-	resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp = apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		URL: s.dashboardURL(""),
 	})
 	body = apitesting.AssertResponse(c, resp, http.StatusOK, "text/plain; charset=utf-8")
@@ -947,7 +947,7 @@ var config = {
 };`, test.expectedUUID, serverHost, hash, jujuversion.Current, test.expectedBaseURL, csclient.ServerURL)
 
 		// Make a request for the Juju GUI config.
-		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: s.guiURL(hash, test.configPathAndQuery),
 		})
 		body := apitesting.AssertResponse(c, resp, http.StatusOK, apiserver.JSMimeType)
@@ -997,7 +997,7 @@ var config = {
 };`, test.expectedBaseURL)
 
 		// Make a request for the Juju GUI config.
-		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: s.dashboardURL(test.configPathAndQuery),
 		})
 		body := apitesting.AssertResponse(c, resp, http.StatusOK, apiserver.JSMimeType)
@@ -1025,7 +1025,7 @@ func (s *legacyGUISuite) TestGUIDirectory(c *gc.C) {
 	c.Assert(baseDir, jc.DoesNotExist)
 
 	// Make a request for the Juju GUI.
-	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		URL: s.guiURL("", ""),
 	})
 	body := apitesting.AssertResponse(c, resp, http.StatusOK, "text/html; charset=utf-8")
@@ -1059,7 +1059,7 @@ func (s *dashboardSuite) TestDashboardDirectory(c *gc.C) {
 	c.Assert(baseDir, jc.DoesNotExist)
 
 	// Make a request for the Juju GUI.
-	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		URL: s.dashboardURL(""),
 	})
 	body := apitesting.AssertResponse(c, resp, http.StatusOK, "text/html; charset=utf-8")
@@ -1111,7 +1111,7 @@ var config = {
     identityProviderAvailable: true,
 };`
 	// Make a request for the Juju GUI config.
-	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		URL: s.URL("/config.js", nil).String(),
 	})
 	body := apitesting.AssertResponse(c, resp, http.StatusOK, apiserver.JSMimeType)
@@ -1132,7 +1132,7 @@ func (s *guiArchiveSuite) SetUpTest(c *gc.C) {
 }
 
 func (s *guiArchiveSuite) TestGUIArchiveMethodNotAllowed(c *gc.C) {
-	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		Method: "PUT",
 		URL:    s.guiURL,
 	})
@@ -1199,7 +1199,7 @@ func (s *guiArchiveSuite) TestGUIArchiveGet(c *gc.C) {
 
 		// Send the request to retrieve GUI version information.
 		expectedResponse := uploadVersions(test.versions, test.current)
-		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			URL: s.guiURL,
 		})
 
@@ -1276,7 +1276,7 @@ func (s *guiArchiveSuite) TestGUIArchivePostErrors(c *gc.C) {
 		}
 
 		// Send the request and retrieve the error response.
-		resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			Method:      "POST",
 			URL:         s.guiURL + test.query,
 			ContentType: test.contentType,
@@ -1291,7 +1291,7 @@ func (s *guiArchiveSuite) TestGUIArchivePostErrors(c *gc.C) {
 }
 
 func (s *guiArchiveSuite) TestGUIArchivePostErrorUnauthorized(c *gc.C) {
-	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		Method:      "POST",
 		URL:         s.guiURL + "?version=2.0.0&hash=sha",
 		ContentType: apiserver.BZMimeType,
@@ -1310,7 +1310,7 @@ func (s *guiArchiveSuite) TestGUIArchivePostSuccess(c *gc.C) {
 	v := url.Values{}
 	v.Set("version", vers)
 	v.Set("hash", hash)
-	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		Method:      "POST",
 		URL:         s.guiURL + "?" + v.Encode(),
 		ContentType: apiserver.BZMimeType,
@@ -1356,7 +1356,7 @@ func (s *guiArchiveSuite) TestGUIArchivePostCurrent(c *gc.C) {
 	v := url.Values{}
 	v.Set("version", vers.String())
 	v.Set("hash", hash)
-	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		Method:      "POST",
 		URL:         s.guiURL + "?" + v.Encode(),
 		ContentType: apiserver.BZMimeType,
@@ -1389,7 +1389,7 @@ func (s *guiVersionSuite) SetUpTest(c *gc.C) {
 }
 
 func (s *guiVersionSuite) TestGUIVersionMethodNotAllowed(c *gc.C) {
-	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		Method: "GET",
 		URL:    s.guiURL,
 	})
@@ -1466,7 +1466,7 @@ func (s *guiVersionSuite) TestGUIVersionPut(c *gc.C) {
 		c.Assert(err, jc.ErrorIsNil)
 
 		// Send the request and retrieve the response.
-		resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{
+		resp := s.sendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 			Method:      "PUT",
 			URL:         s.guiURL,
 			ContentType: test.contentType,
@@ -1493,7 +1493,7 @@ func (s *guiVersionSuite) TestGUIVersionPut(c *gc.C) {
 }
 
 func (s *guiVersionSuite) TestGUIVersionPutErrorUnauthorized(c *gc.C) {
-	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{
+	resp := apitesting.SendHTTPRequest(c, apitesting.HTTPRequestParams{ //nolint:bodyclose // body closed AssertResponse
 		Method:      "PUT",
 		URL:         s.guiURL,
 		ContentType: params.ContentTypeJSON,

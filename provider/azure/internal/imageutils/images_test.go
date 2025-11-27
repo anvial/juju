@@ -45,7 +45,7 @@ func (s *imageutilsSuite) SetUpTest(c *gc.C) {
 }
 
 func (s *imageutilsSuite) TestSeriesImageLegacy(c *gc.C) {
-	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent(
+	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent( //nolint:bodyclose
 		`[{"name": "14.04.3"}, {"name": "14.04.1-LTS"}, {"name": "12.04.5"}]`,
 	))
 	image, err := imageutils.SeriesImage(s.callCtx, "trusty", "released", "westus", s.client)
@@ -59,7 +59,7 @@ func (s *imageutilsSuite) TestSeriesImageLegacy(c *gc.C) {
 }
 
 func (s *imageutilsSuite) TestSeriesImage(c *gc.C) {
-	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent(
+	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent( //nolint:bodyclose
 		`[{"name": "20_04"}, {"name": "20_04-LTS"}, {"name": "19_04"}]`,
 	))
 	image, err := imageutils.SeriesImage(s.callCtx, "focal", "released", "westus", s.client)
@@ -73,7 +73,7 @@ func (s *imageutilsSuite) TestSeriesImage(c *gc.C) {
 }
 
 func (s *imageutilsSuite) TestSeriesImageInvalidSKU(c *gc.C) {
-	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent(
+	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent( //nolint:bodyclose
 		`[{"name": "14.04.invalid"}, {"name": "14.04.5-LTS"}]`,
 	))
 	image, err := imageutils.SeriesImage(s.callCtx, "trusty", "released", "westus", s.client)
@@ -105,27 +105,28 @@ func (s *imageutilsSuite) TestSeriesImageGenericLinux(c *gc.C) {
 }
 
 func (s *imageutilsSuite) TestSeriesImageStream(c *gc.C) {
-	s.mockSender.AppendAndRepeatResponse(azuretesting.NewResponseWithContent(
+	s.mockSender.AppendAndRepeatResponse(azuretesting.NewResponseWithContent( //nolint:bodyclose
 		`[{"name": "14.04.2"}, {"name": "14.04.3-DAILY"}, {"name": "14.04.1-LTS"}]`), 2)
 	s.assertImageId(c, "trusty", "daily", "Canonical:UbuntuServer:14.04.3-DAILY:latest")
 	s.assertImageId(c, "trusty", "released", "Canonical:UbuntuServer:14.04.2:latest")
 }
 
 func (s *imageutilsSuite) TestSeriesImageNotFound(c *gc.C) {
-	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent(`[]`))
+	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent(`[]`)) //nolint:bodyclose
 	image, err := imageutils.SeriesImage(s.callCtx, "trusty", "released", "westus", s.client)
 	c.Assert(err, gc.ErrorMatches, "selecting SKU for trusty: Ubuntu SKUs for released stream not found")
 	c.Assert(image, gc.IsNil)
 }
 
 func (s *imageutilsSuite) TestSeriesImageStreamNotFound(c *gc.C) {
-	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent(`[{"name": "14.04-beta1"}]`))
+	s.mockSender.AppendResponse(azuretesting.NewResponseWithContent(`[{"name": "14.04-beta1"}]`)) //nolint:bodyclose
 	_, err := imageutils.SeriesImage(s.callCtx, "trusty", "whatever", "westus", s.client)
 	c.Assert(err, gc.ErrorMatches, "selecting SKU for trusty: Ubuntu SKUs for whatever stream not found")
 }
 
 func (s *imageutilsSuite) TestSeriesImageStreamThrewCredentialError(c *gc.C) {
-	s.mockSender.AppendResponse(azuretesting.NewResponseWithStatus("401 Unauthorized", http.StatusUnauthorized))
+	s.mockSender.AppendResponse(
+		azuretesting.NewResponseWithStatus("401 Unauthorized", http.StatusUnauthorized)) //nolint:bodyclose
 	called := false
 	s.callCtx.InvalidateCredentialFunc = func(string) error {
 		called = true
@@ -138,7 +139,8 @@ func (s *imageutilsSuite) TestSeriesImageStreamThrewCredentialError(c *gc.C) {
 }
 
 func (s *imageutilsSuite) TestSeriesImageStreamThrewNonCredentialError(c *gc.C) {
-	s.mockSender.AppendResponse(azuretesting.NewResponseWithStatus("308 Permanent Redirect", http.StatusPermanentRedirect))
+	s.mockSender.AppendResponse(
+		azuretesting.NewResponseWithStatus("308 Permanent Redirect", http.StatusPermanentRedirect)) //nolint:bodyclose
 	called := false
 	s.callCtx.InvalidateCredentialFunc = func(string) error {
 		called = true

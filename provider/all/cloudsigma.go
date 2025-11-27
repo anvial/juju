@@ -2,7 +2,6 @@
 // Licensed under the AGPLv3, see LICENCE file for details.
 
 //go:build !minimal || provider_cloudsigma
-// +build !minimal provider_cloudsigma
 
 package all
 

@@ -274,7 +274,10 @@ func (s *WorkerSuite) TestHeldListener(c *gc.C) {
 			Timeout: testing.LongWait,
 		}
 		defer client.CloseIdleConnections()
-		_, err := client.Get(url + "/quick")
+		resp, err := client.Get(url + "/quick")
+		if err == nil {
+			resp.Body.Close()
+		}
 		quickErr <- err
 	}
 
@@ -366,7 +369,10 @@ func (s *WorkerControllerPortSuite) TestDualPortListenerWithDelay(c *gc.C) {
 			Timeout: testing.LongWait,
 		}
 		defer client.CloseIdleConnections()
-		_, err := client.Get(url + "/quick")
+		resp, err := client.Get(url + "/quick")
+		if err == nil {
+			resp.Body.Close()
+		}
 		return err
 	}
 
@@ -469,7 +475,10 @@ func (s *WorkerControllerPortSuite) TestDualPortListenerWithDelayShutdown(c *gc.
 			Timeout: testing.LongWait,
 		}
 		defer client.CloseIdleConnections()
-		_, err := client.Get(url + "/quick")
+		resp, err := client.Get(url + "/quick")
+		if err == nil {
+			resp.Body.Close()
+		}
 		return err
 	}
 	// Make a worker with a controller API port.

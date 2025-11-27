@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 // Copyright 2020 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
@@ -8,6 +7,7 @@ package charmhub
 
 import (
 	"context"
+
 	"github.com/kr/pretty"
 
 	"github.com/juju/testing"

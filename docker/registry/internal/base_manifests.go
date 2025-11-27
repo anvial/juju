@@ -45,7 +45,7 @@ type ArchitectureGetter interface {
 	GetBlobs(imageName, digest string) (*BlobsResponse, error)
 }
 
-// GetArchitecture returns the archtecture of the image for the specified tag.
+// GetArchitecture returns the architecture of the image for the specified tag.
 func (c baseClient) GetArchitecture(imageName, tag string) (string, error) {
 	return getArchitecture(imageName, tag, c)
 }
@@ -119,7 +119,7 @@ func processManifestsResponse(resp *http.Response) (*ManifestsResult, error) {
 	}
 }
 
-// GetBlobs gets the archtecture of the image for the specified tag via blobs API.
+// GetBlobs gets the architecture of the image for the specified tag via blobs API.
 func (c baseClient) GetBlobs(imageName, digest string) (*BlobsResponse, error) {
 	repo := getRepositoryOnly(c.ImageRepoDetails().Repository)
 	url := c.url("/%s/%s/blobs/%s", repo, imageName, digest)
