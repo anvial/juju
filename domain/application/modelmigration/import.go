@@ -68,11 +68,6 @@ type ImportService interface {
 	// ImportIAASApplication registers the existence of an IAAS application in the model.
 	ImportIAASApplication(context.Context, string, service.ImportApplicationArgs) error
 
-	// RemoveImportedApplication removes an application that was imported. The
-	// application might be in an incomplete state, so it's important to remove
-	// as much of the application as possible, even on failure.
-	RemoveImportedApplication(context.Context, string) error
-
 	// GetSpaceUUIDByName returns the UUID of the space with the given name.
 	//
 	// It returns an error satisfying [networkerrors.SpaceNotFound] if the provided
@@ -229,23 +224,6 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 	}
 
 	return nil
-}
-
-// Rollback the import operation. This is required to remove any applications
-// that were added during the import operation.
-// For instance, if multiple applications are add, each with their own
-// transaction, then if one fails, the others should be rolled back.
-func (i *importOperation) Rollback(ctx context.Context, model description.Model) error {
-	var errs []error
-	for _, app := range model.Applications() {
-		if err := i.service.RemoveImportedApplication(ctx, app.Name()); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) == 0 {
-		return nil
-	}
-	return errors.Errorf("rollback failed: %w", errors.Join(errs...))
 }
 
 func (i *importOperation) importApplicationConfig(app description.Application) (internalcharm.Config, error) {

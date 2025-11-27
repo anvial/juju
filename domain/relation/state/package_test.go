@@ -48,6 +48,11 @@ func (s *baseRelationSuite) SetUpTest(c *tc.C) {
 	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
 }
 
+func (s *baseRelationSuite) TearDownTest(c *tc.C) {
+	s.relationCount = 0
+	s.ModelSuite.TearDownTest(c)
+}
+
 // Txn executes a transactional function within a database context,
 // ensuring proper error handling and assertion.
 func (s *baseRelationSuite) Txn(c *tc.C, fn func(ctx context.Context, tx *sqlair.TX) error) error {
@@ -59,7 +64,6 @@ func (s *baseRelationSuite) Txn(c *tc.C, fn func(ctx context.Context, tx *sqlair
 // query executes a given SQL query with optional arguments within a
 // transactional context using the test database.
 func (s *baseRelationSuite) query(c *tc.C, query string, args ...any) {
-
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, query, args...)
 		if err != nil {
@@ -86,7 +90,8 @@ VALUES (?, ?, ?, ?, ?)
 // with the specified UUIDs. Returns the endpoint uuid.
 func (s *baseRelationSuite) addApplicationEndpoint(c *tc.C, applicationUUID coreapplication.UUID,
 	charmRelationUUID string) string {
-	// TODO(gfouillet): introduce proper UUID for this one, from corerelation & corerelationtesting
+	// TODO(gfouillet): introduce proper UUID for this one, from corerelation &
+	// corerelationtesting
 	applicationEndpointUUID := uuid.MustNewUUID().String()
 	s.query(c, `
 INSERT INTO application_endpoint (uuid, application_uuid, charm_relation_uuid,space_uuid)

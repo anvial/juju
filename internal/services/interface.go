@@ -32,6 +32,8 @@ import (
 	macaroonservice "github.com/juju/juju/domain/macaroon/service"
 	machineservice "github.com/juju/juju/domain/machine/service"
 	modelservice "github.com/juju/juju/domain/model/service"
+	modelserviceobjectstore "github.com/juju/juju/domain/model/service/objectstore"
+	modelserviceprovider "github.com/juju/juju/domain/model/service/provider"
 	modelagentservice "github.com/juju/juju/domain/modelagent/service"
 	modelconfigservice "github.com/juju/juju/domain/modelconfig/service"
 	modeldefaultsservice "github.com/juju/juju/domain/modeldefaults/service"
@@ -195,7 +197,7 @@ type DomainServicesGetter interface {
 // provider.
 type ProviderServices interface {
 	// Model returns the provider model service.
-	Model() *modelservice.ProviderService
+	Model() *modelserviceprovider.ProviderService
 	// Cloud returns the provider cloud service.
 	Cloud() *cloudservice.WatchableProviderService
 	// Config returns the provider config service.
@@ -239,7 +241,7 @@ type ControllerObjectStoreServices interface {
 type ObjectStoreServices interface {
 	ControllerObjectStoreServices
 	// Model returns the provider model service.
-	Model() *modelservice.ObjectStoreService
+	Model() *modelserviceobjectstore.ObjectStoreService
 	// ObjectStore returns the object store service.
 	ObjectStore() *objectstoreservice.WatchableService
 }

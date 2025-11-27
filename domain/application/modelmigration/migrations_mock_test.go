@@ -162,44 +162,6 @@ func (c *MockImportServiceImportIAASApplicationCall) DoAndReturn(f func(context.
 	return c
 }
 
-// RemoveImportedApplication mocks base method.
-func (m *MockImportService) RemoveImportedApplication(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveImportedApplication", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveImportedApplication indicates an expected call of RemoveImportedApplication.
-func (mr *MockImportServiceMockRecorder) RemoveImportedApplication(arg0, arg1 any) *MockImportServiceRemoveImportedApplicationCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveImportedApplication", reflect.TypeOf((*MockImportService)(nil).RemoveImportedApplication), arg0, arg1)
-	return &MockImportServiceRemoveImportedApplicationCall{Call: call}
-}
-
-// MockImportServiceRemoveImportedApplicationCall wrap *gomock.Call
-type MockImportServiceRemoveImportedApplicationCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockImportServiceRemoveImportedApplicationCall) Return(arg0 error) *MockImportServiceRemoveImportedApplicationCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockImportServiceRemoveImportedApplicationCall) Do(f func(context.Context, string) error) *MockImportServiceRemoveImportedApplicationCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockImportServiceRemoveImportedApplicationCall) DoAndReturn(f func(context.Context, string) error) *MockImportServiceRemoveImportedApplicationCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // MockExportService is a mock of ExportService interface.
 type MockExportService struct {
 	ctrl     *gomock.Controller

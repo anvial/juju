@@ -581,13 +581,6 @@ func (s *migrationServiceSuite) assertImportApplication(c *tc.C, modelType corem
 	c.Check(receivedUnitArgs, tc.DeepEquals, expectedUnitArgs)
 }
 
-func (s *migrationServiceSuite) TestRemoveImportedApplication(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	err := s.service.RemoveImportedApplication(c.Context(), "foo")
-	c.Assert(err, tc.ErrorIsNil)
-}
-
 func (s *migrationServiceSuite) TestGetUnitUUIDByName(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 

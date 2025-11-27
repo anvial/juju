@@ -353,29 +353,3 @@ func (s *importSuite) TestRollbackNoOperations(c *tc.C) {
 	err := i.Rollback(c.Context(), m)
 	c.Assert(err, tc.ErrorIsNil)
 }
-
-// TestRollbackCallsService verifies DeleteImportedOperations is called when operations exist.
-func (s *importSuite) TestRollbackCallsService(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-	m := description.NewModel(description.ModelArgs{})
-	m.AddOperation(description.OperationArgs{Id: "op-1"})
-
-	s.importService.EXPECT().DeleteImportedOperations(gomock.Any()).Return(nil)
-
-	i := s.newImportOperation(c)
-	err := i.Rollback(c.Context(), m)
-	c.Assert(err, tc.ErrorIsNil)
-}
-
-// TestRollbackServiceError ensures rollback errors are wrapped correctly.
-func (s *importSuite) TestRollbackServiceError(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-	m := description.NewModel(description.ModelArgs{})
-	m.AddOperation(description.OperationArgs{Id: "op-1"})
-
-	s.importService.EXPECT().DeleteImportedOperations(gomock.Any()).Return(errors.New("boom"))
-
-	i := s.newImportOperation(c)
-	err := i.Rollback(c.Context(), m)
-	c.Assert(err, tc.ErrorMatches, "operation import rollback failed: .*boom.*")
-}

@@ -1,7 +1,7 @@
 // Copyright 2024 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package service
+package provider
 
 import (
 	"context"
@@ -47,7 +47,7 @@ type providerServiceSuite struct {
 
 	state *dummyProviderState
 
-	mockControllerState *MockState
+	mockControllerState *MockControllerState
 	mockWatcherFactory  *MockWatcherFactory
 }
 
@@ -57,7 +57,7 @@ func TestProviderServiceSuite(t *testing.T) {
 
 func (s *providerServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
-	s.mockControllerState = NewMockState(ctrl)
+	s.mockControllerState = NewMockControllerState(ctrl)
 	s.mockWatcherFactory = NewMockWatcherFactory(ctrl)
 
 	return ctrl

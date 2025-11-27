@@ -122,9 +122,6 @@ type ModelState interface {
 	// Create creates a new model with all of its associated metadata.
 	Create(context.Context, model.ModelDetailArgs) error
 
-	// Delete deletes a model.
-	Delete(context.Context, coremodel.UUID) error
-
 	// GetControllerUUID returns the controller uuid for the model.
 	// It is expected that CreateModel has been called before reading this value
 	// from the database.
@@ -709,18 +706,6 @@ func transformStoragePoolAttributes(attr map[string]any) map[string]string {
 		rval[k] = fmt.Sprint(v)
 	}
 	return rval
-}
-
-// DeleteModel is responsible for removing a model from the system.
-//
-// The following error types can be expected to be returned:
-// - [modelerrors.NotFound]: When the model does not exist.
-func (s *ModelService) DeleteModel(
-	ctx context.Context,
-) error {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-	return s.modelSt.Delete(ctx, s.modelUUID)
 }
 
 // statusFromModelState is responsible for converting the a [model.ModelState]

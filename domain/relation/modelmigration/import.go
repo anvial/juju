@@ -42,12 +42,6 @@ func RegisterImport(
 type ImportService interface {
 	// ImportRelations sets relations imported in migration.
 	ImportRelations(ctx context.Context, args relation.ImportRelationsArgs) error
-
-	// DeleteImportedRelations deletes all imported relations in a model during
-	// an import rollback.
-	DeleteImportedRelations(
-		ctx context.Context,
-	) error
 }
 
 type importOperation struct {
@@ -124,17 +118,4 @@ func (i *importOperation) createImportArg(rel description.Relation) (relation.Im
 		arg.Endpoints = append(arg.Endpoints, endpoint)
 	}
 	return arg, nil
-}
-
-// Rollback the resource import operation by deleting all imported resources
-// associated with the imported applications.
-func (i *importOperation) Rollback(ctx context.Context, model description.Model) error {
-	if len(model.Relations()) == 0 {
-		return nil
-	}
-	err := i.service.DeleteImportedRelations(ctx)
-	if err != nil {
-		return errors.Errorf("resource import rollback failed: %w", err)
-	}
-	return nil
 }

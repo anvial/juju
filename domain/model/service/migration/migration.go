@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package service
+package migration
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/domain/model"
 	modelerrors "github.com/juju/juju/domain/model/errors"
+	"github.com/juju/juju/domain/model/service"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -19,6 +20,12 @@ type ModelDeleter interface {
 	// DeleteDB is responsible for removing a model from Juju and all of it's
 	// associated metadata.
 	DeleteDB(string) error
+}
+
+// State is the combined state required by the migration service.
+type State interface {
+	service.CreateModelState
+	service.DeleteModelState
 }
 
 // MigrationService defines a service for interacting with the underlying state based
@@ -71,7 +78,7 @@ func (s *MigrationService) ImportModel(
 		)
 	}
 
-	return createModel(ctx, s.st, args.UUID, args.GlobalModelCreationArgs)
+	return service.CreateModel(ctx, s.st, args.UUID, args.GlobalModelCreationArgs)
 }
 
 // DeleteModel is responsible for removing a model from Juju and all of it's
@@ -81,15 +88,9 @@ func (s *MigrationService) ImportModel(
 func (s *MigrationService) DeleteModel(
 	ctx context.Context,
 	uuid coremodel.UUID,
-	opts ...model.DeleteModelOption,
 ) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
-
-	options := model.DefaultDeleteModelOptions()
-	for _, fn := range opts {
-		fn(options)
-	}
 
 	if err := uuid.Validate(); err != nil {
 		return errors.Errorf("delete model, uuid: %w", err)
@@ -99,12 +100,6 @@ func (s *MigrationService) DeleteModel(
 	// model is cleaned up correctly.
 	if err := s.st.Delete(ctx, uuid); err != nil && !errors.Is(err, modelerrors.NotFound) {
 		return errors.Errorf("delete model: %w", err)
-	}
-
-	// If the db should not be deleted then we can return early.
-	if !options.DeleteDB() {
-		s.logger.Infof(ctx, "skipping model deletion, model database will still be present")
-		return nil
 	}
 
 	// Delete the db completely from the system. Currently, this will remove

@@ -12,7 +12,7 @@ import (
 	controllerconfigstate "github.com/juju/juju/domain/controllerconfig/state"
 	controllernodeservice "github.com/juju/juju/domain/controllernode/service"
 	controllernodestate "github.com/juju/juju/domain/controllernode/state"
-	modelservice "github.com/juju/juju/domain/model/service"
+	modelobjectstoreservice "github.com/juju/juju/domain/model/service/objectstore"
 	statemodel "github.com/juju/juju/domain/model/state/model"
 	objectstoreservice "github.com/juju/juju/domain/objectstore/service"
 	objectstorestate "github.com/juju/juju/domain/objectstore/state"
@@ -83,8 +83,8 @@ func (s *ObjectStoreServices) ObjectStore() *objectstoreservice.WatchableService
 }
 
 // Model returns the provider model service.
-func (s *ObjectStoreServices) Model() *modelservice.ObjectStoreService {
-	return modelservice.NewObjectStoreService(
+func (s *ObjectStoreServices) Model() *modelobjectstoreservice.ObjectStoreService {
+	return modelobjectstoreservice.NewObjectStoreService(
 		statemodel.NewState(
 			changestream.NewTxnRunnerFactory(s.modelDB),
 			s.logger.Child("modelinfo"),
