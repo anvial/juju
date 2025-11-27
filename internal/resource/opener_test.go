@@ -25,7 +25,6 @@ import (
 	coretesting "github.com/juju/juju/core/testing"
 	coreunit "github.com/juju/juju/core/unit"
 	coreunittesting "github.com/juju/juju/core/unit/testing"
-	"github.com/juju/juju/domain/resource"
 	domainresource "github.com/juju/juju/domain/resource"
 	resourceerrors "github.com/juju/juju/domain/resource/errors"
 	internalcharm "github.com/juju/juju/internal/charm"
@@ -199,7 +198,7 @@ func (s *OpenerSuite) TestOpenUnitResourceCacheMiss(c *tc.C) {
 		Resource:   res.Resource,
 	}
 
-	storeResourceArgs := resource.StoreResourceArgs{
+	storeResourceArgs := domainresource.StoreResourceArgs{
 		Fingerprint:     s.resourceFingerprint,
 		ResourceUUID:    resourceUUID,
 		RetrievedBy:     unitName.String(),
