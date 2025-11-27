@@ -141,20 +141,20 @@ func (st *State) ExportRelations(ctx context.Context) ([]domainrelation.ExportRe
 		return nil, errors.Capture(err)
 	}
 
-	var exportRelations []domainrelation.ExportRelation
-	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		type getRelation struct {
-			UUID corerelation.UUID `db:"uuid"`
-			ID   int               `db:"relation_id"`
-		}
-		stmt, err := st.Prepare(`
+	type getRelation struct {
+		UUID corerelation.UUID `db:"uuid"`
+		ID   int               `db:"relation_id"`
+	}
+	stmt, err := st.Prepare(`
 SELECT (r.uuid, r.relation_id) AS (&getRelation.*)
 FROM   relation r
 `, getRelation{})
-		if err != nil {
-			return errors.Capture(err)
-		}
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
 
+	var exportRelations []domainrelation.ExportRelation
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var rels []getRelation
 		err = tx.Query(ctx, stmt).GetAll(&rels)
 		if errors.Is(err, sqlair.ErrNoRows) {

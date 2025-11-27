@@ -476,7 +476,7 @@ func (s *migrationSuite) TestExportRelations(c *tc.C) {
 	// Assert:
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(exported, tc.SameContents, []domainrelation.ExportRelation{{
-		ID: 1,
+		ID: 0,
 		Endpoints: []domainrelation.ExportEndpoint{{
 			ApplicationName: s.fakeApplicationName1,
 			Name:            endpoint1.Name,
@@ -508,7 +508,7 @@ func (s *migrationSuite) TestExportRelations(c *tc.C) {
 			AllUnitSettings: make(map[string]map[string]any),
 		}},
 	}, {
-		ID: 2,
+		ID: 1,
 		Endpoints: []domainrelation.ExportEndpoint{{
 			ApplicationName:     s.fakeApplicationName1,
 			Name:                peerEndpoint.Name,
