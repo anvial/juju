@@ -48,16 +48,16 @@ func (s *importSubnetsSuite) TestImportSubnetWithoutSpaces(c *tc.C) {
 	model := description.NewModel(description.ModelArgs{})
 	model.AddSubnet(description.SubnetArgs{
 		ID:                "previousID",
-		CIDR:              "10.0.0.0/24",
+		CIDR:              "192.0.2.0/24",
 		ProviderId:        "subnet-provider-id",
 		ProviderNetworkId: "subnet-provider-network-id",
 		VLANTag:           42,
 		AvailabilityZones: []string{"az1", "az2"},
-		FanLocalUnderlay:  "192.168.0.0/12",
-		FanOverlay:        "10.0.0.0/8",
+		FanLocalUnderlay:  "198.51.100.0/24",
+		FanOverlay:        "203.0.113.0/24",
 	})
 	s.importService.EXPECT().AddSubnet(gomock.Any(), network.SubnetInfo{
-		CIDR:              "10.0.0.0/24",
+		CIDR:              "192.0.2.0/24",
 		ProviderId:        "subnet-provider-id",
 		ProviderNetworkId: "subnet-provider-network-id",
 		VLANTag:           42,
@@ -75,14 +75,14 @@ func (s *importSubnetsSuite) TestImportSubnetAndSpaceNotLinked(c *tc.C) {
 	model := description.NewModel(description.ModelArgs{})
 	model.AddSubnet(description.SubnetArgs{
 		ID:                "previous-subnet-id",
-		CIDR:              "10.0.0.0/24",
+		CIDR:              "192.0.2.0/24",
 		ProviderId:        "subnet-provider-id",
 		ProviderNetworkId: "subnet-provider-network-id",
 		VLANTag:           42,
 		AvailabilityZones: []string{"az1", "az2"},
 	})
 	s.importService.EXPECT().AddSubnet(gomock.Any(), network.SubnetInfo{
-		CIDR:              "10.0.0.0/24",
+		CIDR:              "192.0.2.0/24",
 		ProviderId:        "subnet-provider-id",
 		ProviderNetworkId: "subnet-provider-network-id",
 		VLANTag:           42,
@@ -129,7 +129,7 @@ func (s *importSubnetsSuite) TestImportSpaceWithSubnet(c *tc.C) {
 		}, nil)
 	model.AddSubnet(description.SubnetArgs{
 		ID:                "previous-subnet-id",
-		CIDR:              "10.0.0.0/24",
+		CIDR:              "192.0.2.0/24",
 		ProviderId:        "subnet-provider-id",
 		ProviderNetworkId: "subnet-provider-network-id",
 		VLANTag:           42,
@@ -139,7 +139,7 @@ func (s *importSubnetsSuite) TestImportSpaceWithSubnet(c *tc.C) {
 		ProviderSpaceId:   "space-provider-id",
 	})
 	s.importService.EXPECT().AddSubnet(gomock.Any(), network.SubnetInfo{
-		CIDR:              "10.0.0.0/24",
+		CIDR:              "192.0.2.0/24",
 		ProviderId:        "subnet-provider-id",
 		ProviderNetworkId: "subnet-provider-network-id",
 		VLANTag:           42,
