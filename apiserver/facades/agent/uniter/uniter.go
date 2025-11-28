@@ -209,7 +209,7 @@ func (u *UniterAPI) getOneMachineOpenedPortRanges(ctx context.Context, canAccess
 	if err != nil {
 		return nil, internalerrors.Errorf("getting machine UUID for %q: %w", tag, err)
 	}
-	machineOpenedPortRanges, err := u.portService.GetMachineOpenedPorts(ctx, machineUUID.String())
+	machineOpenedPortRanges, err := u.portService.GetMachineOpenedPorts(ctx, machineUUID)
 	if err != nil {
 		return nil, internalerrors.Errorf("getting opened ports for machine %q: %w", tag, err)
 	}

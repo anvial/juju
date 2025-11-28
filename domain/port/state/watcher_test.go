@@ -13,7 +13,6 @@ import (
 	"github.com/juju/tc"
 
 	coreapplication "github.com/juju/juju/core/application"
-	"github.com/juju/juju/core/machine"
 	modeltesting "github.com/juju/juju/core/model/testing"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/deployment"
@@ -90,19 +89,6 @@ func (s *watcherSuite) SetUpTest(c *tc.C) {
 *   - unit 0 is deployed to app 0
 *   - units 1 & 2 are deployed to app 1
  */
-
-func (s *watcherSuite) TestGetMachinesForUnitEndpoints(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory())
-	ctx := c.Context()
-
-	machineUUIDsForEndpoint, err := st.GetMachineNamesForUnits(ctx, s.unitUUIDs[:])
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(machineUUIDsForEndpoint, tc.SameContents, []machine.Name{"0", "1"})
-
-	machineUUIDsForEndpoint, err = st.GetMachineNamesForUnits(ctx, []coreunit.UUID{s.unitUUIDs[0]})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(machineUUIDsForEndpoint, tc.DeepEquals, []machine.Name{"0"})
-}
 
 func (s *watcherSuite) TestFilterEndpointForApplication(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory())

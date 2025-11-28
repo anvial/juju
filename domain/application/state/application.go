@@ -781,7 +781,7 @@ WHERE life_id != 0
 		if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
 			return errors.Capture(err)
 		} else if err == nil {
-			names := transform.Slice(deadUnits, func(unit unitName) string { return unit.Name.String() })
+			names := transform.Slice(deadUnits, func(unit unitName) string { return unit.Name })
 			return errors.Errorf("unit(s) %q are not alive", strings.Join(names, ", ")).Add(applicationerrors.UnitNotAlive)
 		}
 		return nil
@@ -1364,7 +1364,7 @@ func (st *State) GetNetNodeUUIDByUnitName(ctx context.Context, name coreunit.Nam
 		return "", errors.Capture(err)
 	}
 
-	unitName := unitName{Name: name}
+	unitName := unitName{Name: name.String()}
 	k8sServiceNetNodeStmt, err := st.Prepare(`
 SELECT k.net_node_uuid AS &netNodeUUID.uuid
 FROM   k8s_service k
@@ -1778,7 +1778,7 @@ func (st *State) GetApplicationUUIDByUnitName(
 		return "", errors.Capture(err)
 	}
 
-	unit := unitName{Name: name}
+	unit := unitName{Name: name.String()}
 	queryUnit := `
 SELECT application_uuid AS &entityUUID.uuid
 FROM unit
@@ -1817,7 +1817,7 @@ func (st *State) GetApplicationUUIDAndNameByUnitName(
 		return "", "", errors.Capture(err)
 	}
 
-	unit := unitName{Name: name}
+	unit := unitName{Name: name.String()}
 	queryUnit := `
 SELECT a.uuid AS &applicationUUIDAndName.uuid,
 a.name AS &applicationUUIDAndName.name

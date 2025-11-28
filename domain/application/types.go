@@ -266,7 +266,7 @@ type SubordinateUnitArg struct {
 
 	// PrincipalUnitUUID describes the unique id of the principal unit for this
 	// subordinate.
-	PrincipalUnitUUID coreunit.UUID
+	PrincipalUnitUUID string
 }
 
 type SubordinateIAASUnitArg struct {

@@ -106,7 +106,7 @@ type unitAgentVersion struct {
 }
 
 type unitUUID struct {
-	UnitUUID coreunit.UUID `db:"uuid"`
+	UnitUUID string `db:"uuid"`
 }
 
 type unitUUIDLife struct {
@@ -115,7 +115,7 @@ type unitUUIDLife struct {
 }
 
 type unitName struct {
-	Name coreunit.Name `db:"name"`
+	Name string `db:"name"`
 }
 
 type unitNameLife struct {
@@ -1209,8 +1209,8 @@ type refreshBinding struct {
 }
 
 type unitWorkloadVersion struct {
-	UnitUUID coreunit.UUID `db:"unit_uuid"`
-	Version  string        `db:"version"`
+	UnitUUID string `db:"unit_uuid"`
+	Version  string `db:"version"`
 }
 
 type applicationWorkloadVersion struct {
@@ -1224,13 +1224,13 @@ type getPrincipal struct {
 }
 
 type getUnitMachineName struct {
-	UnitName    coreunit.Name    `db:"unit_name"`
-	MachineName coremachine.Name `db:"name"`
+	UnitUUID    string `db:"unit_uuid"`
+	MachineName string `db:"name"`
 }
 
 type getUnitMachineUUID struct {
-	UnitName    coreunit.Name    `db:"unit_name"`
-	MachineUUID coremachine.UUID `db:"uuid"`
+	UnitUUID    string `db:"unit_uuid"`
+	MachineUUID string `db:"uuid"`
 }
 
 type lifeID struct {

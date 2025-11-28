@@ -365,7 +365,7 @@ FROM (
 	var dbVals []storageInstanceComposition
 	var dbAttachmentVals []storageAttachmentComposition
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		exists, err := st.checkUnitExists(ctx, tx, unitUUID)
+		exists, err := st.checkUnitExists(ctx, tx, unitUUID.String())
 		if err != nil {
 			return errors.Errorf(
 				"checking unit %q exists: %w", unitUUID, err,
@@ -517,7 +517,7 @@ SELECT &storageDirective.* FROM (
 
 	dbVals := []storageDirective{}
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		exists, err := st.checkUnitExists(ctx, tx, unitUUID)
+		exists, err := st.checkUnitExists(ctx, tx, unitUUID.String())
 		if err != nil {
 			return errors.Errorf(
 				"checking unit %q exists: %w", unitUUID, err,
@@ -1482,7 +1482,7 @@ AND si.uuid != $storageCount.uuid
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		// First to the basic life checks for the unit and storage.
-		unitLifeID, netNodeUUID, err := st.getUnitLifeAndNetNode(ctx, tx, unitUUID)
+		unitLifeID, netNodeUUID, err := st.getUnitLifeAndNetNode(ctx, tx, unitUUID.String())
 		if err != nil {
 			return err
 		}

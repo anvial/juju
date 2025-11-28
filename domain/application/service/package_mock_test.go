@@ -3225,10 +3225,10 @@ func (c *MockStateGetUnitLifeCall) DoAndReturn(f func(context.Context, unit.Name
 }
 
 // GetUnitMachineName mocks base method.
-func (m *MockState) GetUnitMachineName(arg0 context.Context, arg1 unit.Name) (machine.Name, error) {
+func (m *MockState) GetUnitMachineName(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUnitMachineName", arg0, arg1)
-	ret0, _ := ret[0].(machine.Name)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -3246,28 +3246,28 @@ type MockStateGetUnitMachineNameCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockStateGetUnitMachineNameCall) Return(arg0 machine.Name, arg1 error) *MockStateGetUnitMachineNameCall {
+func (c *MockStateGetUnitMachineNameCall) Return(arg0 string, arg1 error) *MockStateGetUnitMachineNameCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateGetUnitMachineNameCall) Do(f func(context.Context, unit.Name) (machine.Name, error)) *MockStateGetUnitMachineNameCall {
+func (c *MockStateGetUnitMachineNameCall) Do(f func(context.Context, string) (string, error)) *MockStateGetUnitMachineNameCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateGetUnitMachineNameCall) DoAndReturn(f func(context.Context, unit.Name) (machine.Name, error)) *MockStateGetUnitMachineNameCall {
+func (c *MockStateGetUnitMachineNameCall) DoAndReturn(f func(context.Context, string) (string, error)) *MockStateGetUnitMachineNameCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // GetUnitMachineUUID mocks base method.
-func (m *MockState) GetUnitMachineUUID(arg0 context.Context, arg1 unit.Name) (machine.UUID, error) {
+func (m *MockState) GetUnitMachineUUID(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUnitMachineUUID", arg0, arg1)
-	ret0, _ := ret[0].(machine.UUID)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -3285,19 +3285,19 @@ type MockStateGetUnitMachineUUIDCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockStateGetUnitMachineUUIDCall) Return(arg0 machine.UUID, arg1 error) *MockStateGetUnitMachineUUIDCall {
+func (c *MockStateGetUnitMachineUUIDCall) Return(arg0 string, arg1 error) *MockStateGetUnitMachineUUIDCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateGetUnitMachineUUIDCall) Do(f func(context.Context, unit.Name) (machine.UUID, error)) *MockStateGetUnitMachineUUIDCall {
+func (c *MockStateGetUnitMachineUUIDCall) Do(f func(context.Context, string) (string, error)) *MockStateGetUnitMachineUUIDCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateGetUnitMachineUUIDCall) DoAndReturn(f func(context.Context, unit.Name) (machine.UUID, error)) *MockStateGetUnitMachineUUIDCall {
+func (c *MockStateGetUnitMachineUUIDCall) DoAndReturn(f func(context.Context, string) (string, error)) *MockStateGetUnitMachineUUIDCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

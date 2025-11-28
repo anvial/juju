@@ -48,9 +48,9 @@ import (
 func (st *State) checkUnitExists(
 	ctx context.Context,
 	tx *sqlair.TX,
-	unitUUID coreunit.UUID,
+	unitUUID string,
 ) (bool, error) {
-	uuidInput := entityUUID{UUID: unitUUID.String()}
+	uuidInput := entityUUID{UUID: unitUUID}
 
 	checkStmt, err := st.Prepare(`
 SELECT &entityUUID.*
@@ -72,7 +72,7 @@ WHERE  uuid = $entityUUID.uuid
 	return true, nil
 }
 
-func (st *State) getUnitLifeAndNetNode(ctx context.Context, tx *sqlair.TX, uuid coreunit.UUID) (life.Life, string, error) {
+func (st *State) getUnitLifeAndNetNode(ctx context.Context, tx *sqlair.TX, uuid string) (life.Life, string, error) {
 	unitUUID := unitUUID{UnitUUID: uuid}
 	queryUnit := `
 SELECT &unitLifeAndNetNode.*
@@ -108,7 +108,7 @@ func (st *State) GetCAASUnitRegistered(
 	}
 
 	var (
-		unitNameInput = unitName{Name: uName}
+		unitNameInput = unitName{Name: uName.String()}
 		dbVal         unitUUIDAndNetNode
 	)
 
@@ -271,7 +271,7 @@ func (st *State) InitialWatchStatementUnitAddressesHash(appUUID coreapplication.
 // the watcher namespace to watch.
 func (st *State) InitialWatchStatementUnitInsertDeleteOnNetNode(netNodeUUID string) (string, eventsource.NamespaceQuery) {
 	return "custom_unit_name_lifecycle", func(ctx context.Context, runner database.TxnRunner) ([]string, error) {
-		var unitNames []coreunit.Name
+		var unitNames []string
 		err := runner.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 			var err error
 			unitNames, err = st.getUnitNamesForNetNode(ctx, tx, netNodeUUID)
@@ -280,9 +280,7 @@ func (st *State) InitialWatchStatementUnitInsertDeleteOnNetNode(netNodeUUID stri
 		if err != nil {
 			return nil, errors.Errorf("querying unit names for net node %q: %w", netNodeUUID, err)
 		}
-		return transform.Slice(unitNames, func(unitName coreunit.Name) string {
-			return unitName.String()
-		}), nil
+		return unitNames, nil
 	}
 }
 
@@ -313,7 +311,7 @@ WHERE a.name = $applicationName.name
 		}
 		uuids := make([]string, len(result))
 		for i, r := range result {
-			uuids[i] = r.UnitUUID.String()
+			uuids[i] = r.UnitUUID
 		}
 		return uuids, nil
 	}
@@ -360,51 +358,6 @@ AND a.name = $applicationName.name
 		result[u.UnitUUID] = u.LifeID
 	}
 	return result, nil
-}
-
-// getApplicationUnits returns all the unit uuids for a given application. No
-// check is performed to make sure the application for the supplied uuid exists.
-func (st *State) getApplicationUnits(
-	ctx context.Context,
-	appUUID coreapplication.UUID,
-) ([]coreunit.UUID, error) {
-	db, err := st.DB(ctx)
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-
-	appUUIDInput := applicationUUID{
-		ApplicationUUID: appUUID.String(),
-	}
-
-	unitsStmt, err := st.Prepare(`
-SELECT &unitUUID.*
-FROM unit u
-WHERE application_uuid = $applicationUUID.application_uuid
-`,
-		appUUIDInput, unitUUID{},
-	)
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-
-	var dbVals []unitUUID
-	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		err := tx.Query(ctx, unitsStmt, appUUIDInput).GetAll(&dbVals)
-		if errors.Is(err, sqlair.ErrNoRows) {
-			return nil
-		}
-		return err
-	})
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-
-	rval := make([]coreunit.UUID, 0, len(dbVals))
-	for _, val := range dbVals {
-		rval = append(rval, val.UnitUUID)
-	}
-	return rval, nil
 }
 
 // GetAllUnitLifeForApplication returns a map of the unit names and their lives
@@ -471,26 +424,26 @@ WHERE u.application_uuid = $entityUUID.uuid
 //     machine assigned.
 //   - [applicationerrors.UnitNotFound] if the unit cannot be found.
 //   - [applicationerrors.UnitIsDead] if the unit is dead.
-func (st *State) GetUnitMachineName(ctx context.Context, unitName coreunit.Name) (coremachine.Name, error) {
+func (st *State) GetUnitMachineName(ctx context.Context, unitUUID string) (string, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
 	arg := getUnitMachineName{
-		UnitName: unitName,
+		UnitUUID: unitUUID,
 	}
 	stmt, err := st.Prepare(`
 SELECT (m.name) AS (&getUnitMachineName.*)
 FROM   unit AS u
 JOIN   machine AS m ON u.net_node_uuid = m.net_node_uuid
-WHERE  u.name = $getUnitMachineName.unit_name
+WHERE  u.uuid = $getUnitMachineName.unit_uuid
 `, arg)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := st.checkUnitNotDeadByName(ctx, tx, unitName); err != nil {
+		if err := st.checkUnitNotDead(ctx, tx, unitUUID); err != nil {
 			return errors.Capture(err)
 		}
 
@@ -514,26 +467,26 @@ WHERE  u.name = $getUnitMachineName.unit_name
 //     machine assigned.
 //   - [applicationerrors.UnitNotFound] if the unit cannot be found.
 //   - [applicationerrors.UnitIsDead] if the unit is dead.
-func (st *State) GetUnitMachineUUID(ctx context.Context, unitName coreunit.Name) (coremachine.UUID, error) {
+func (st *State) GetUnitMachineUUID(ctx context.Context, unitUUID string) (string, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
 	arg := getUnitMachineUUID{
-		UnitName: unitName,
+		UnitUUID: unitUUID,
 	}
 	stmt, err := st.Prepare(`
 SELECT (m.uuid) AS (&getUnitMachineUUID.*)
 FROM   unit AS u
 JOIN   machine AS m ON u.net_node_uuid = m.net_node_uuid
-WHERE  u.name = $getUnitMachineUUID.unit_name
+WHERE  u.uuid = $getUnitMachineUUID.unit_uuid
 `, arg)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := st.checkUnitNotDeadByName(ctx, tx, unitName); err != nil {
+		if err := st.checkUnitNotDead(ctx, tx, unitUUID); err != nil {
 			return errors.Capture(err)
 		}
 
@@ -559,10 +512,10 @@ WHERE  u.name = $getUnitMachineUUID.unit_name
 // - [applicationerrors.UnitMachineNotAssigned] when the unit is not assigned to
 // a machine.
 func (st *State) getUnitMachineIdentifiers(
-	ctx context.Context, tx *sqlair.TX, unitUUID coreunit.UUID,
+	ctx context.Context, tx *sqlair.TX, unitUUID string,
 ) (internalapplication.MachineIdentifiers, error) {
 	var (
-		input = entityUUID{UUID: unitUUID.String()}
+		input = entityUUID{UUID: unitUUID}
 		dbVal machineIdentifiers
 	)
 
@@ -776,7 +729,7 @@ func (st *State) AddIAASSubordinateUnit(
 		}
 
 		// Record the principal/subordinate relationship.
-		if err := st.recordUnitPrincipal(ctx, tx, arg.PrincipalUnitUUID, unitUUID); err != nil {
+		if err := st.recordUnitPrincipal(ctx, tx, arg.PrincipalUnitUUID, unitUUID.String()); err != nil {
 			return errors.Errorf("recording principal-subordinate relationship: %w", err)
 		}
 
@@ -835,11 +788,11 @@ func (st *State) checkNoSubordinateExists(
 	ctx context.Context,
 	tx *sqlair.TX,
 	subordinateAppUUID coreapplication.UUID,
-	principalUnitUUID coreunit.UUID,
+	principalUnitUUID string,
 ) error {
 	var (
 		sAppUUID  = applicationUUID{ApplicationUUID: subordinateAppUUID.String()}
-		pUnitUUID = entityUUID{UUID: principalUnitUUID.String()}
+		pUnitUUID = entityUUID{UUID: principalUnitUUID}
 	)
 
 	stmt, err := st.Prepare(`
@@ -943,7 +896,7 @@ WHERE  principal.name = $principalName.name
 
 	var subNames []subName
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := st.checkUnitExistsByName(ctx, tx, unitName); err != nil {
+		if err := st.checkUnitExistsByName(ctx, tx, unitName.String()); err != nil {
 			return errors.Errorf("checking unit exists: %w", err)
 		}
 
@@ -1005,7 +958,7 @@ UPDATE SET version = excluded.version,
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 
 		// Check if unit exists and is not dead.
-		err := st.checkUnitNotDead(ctx, tx, uuid)
+		err := st.checkUnitNotDead(ctx, tx, uuid.String())
 		if err != nil {
 			return errors.Errorf(
 				"checking unit %q exists: %w", uuid, err,
@@ -1052,7 +1005,7 @@ func (st *State) GetUnitNameForUUID(
 	}
 
 	var (
-		unitUUIDInput = unitUUID{UnitUUID: uuid}
+		unitUUIDInput = unitUUID{UnitUUID: uuid.String()}
 		dbVal         unitName
 	)
 
@@ -1078,7 +1031,7 @@ func (st *State) GetUnitNameForUUID(
 		return "", errors.Capture(err)
 	}
 
-	return dbVal.Name, nil
+	return coreunit.Name(dbVal.Name), nil
 }
 
 // GetUnitUUIDByName returns the UUID for the named unit, returning an error
@@ -1089,7 +1042,7 @@ func (st *State) GetUnitUUIDByName(ctx context.Context, name coreunit.Name) (cor
 		return "", errors.Capture(err)
 	}
 
-	var uuid coreunit.UUID
+	var uuid string
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		uuid, err = st.getUnitUUIDByName(ctx, tx, name)
 		if err != nil {
@@ -1101,15 +1054,15 @@ func (st *State) GetUnitUUIDByName(ctx context.Context, name coreunit.Name) (cor
 		return "", errors.Capture(err)
 	}
 
-	return uuid, nil
+	return coreunit.UUID(uuid), nil
 }
 
 func (st *State) getUnitUUIDByName(
 	ctx context.Context,
 	tx *sqlair.TX,
 	name coreunit.Name,
-) (coreunit.UUID, error) {
-	unitName := unitName{Name: name}
+) (string, error) {
+	unitName := unitName{Name: name.String()}
 
 	query, err := st.Prepare(`
 SELECT &unitUUID.*
@@ -1149,7 +1102,7 @@ func (st *State) getUnitDetails(ctx context.Context, tx *sqlair.TX, unitName cor
 	return &unit, nil
 }
 
-func (st *State) getUnitApplicationUUID(ctx context.Context, tx *sqlair.TX, uuid coreunit.UUID) (string, error) {
+func (st *State) getUnitApplicationUUID(ctx context.Context, tx *sqlair.TX, uuid string) (string, error) {
 	unitUUID := unitUUID{UnitUUID: uuid}
 
 	query, err := st.Prepare(`
@@ -1646,7 +1599,7 @@ func (st *State) insertUnit(
 	if err := st.setUnitWorkloadStatus(ctx, tx, unitUUID, args.WorkloadStatus); err != nil {
 		return errors.Errorf("setting workload status for unit %q: %w", args.UnitName, err)
 	}
-	if err := st.setUnitWorkloadVersion(ctx, tx, unitUUID, ""); err != nil {
+	if err := st.setUnitWorkloadVersion(ctx, tx, unitUUID.String(), ""); err != nil {
 		return errors.Errorf("setting workload version for unit %q: %w", args.UnitName, err)
 	}
 	return nil
@@ -1720,7 +1673,7 @@ func (st *State) UpdateUnitCharm(ctx context.Context, name coreunit.Name, uuid c
 		return errors.Capture(err)
 	}
 	charmUUID := charmUUID{UUID: uuid}
-	unitName := unitName{Name: name}
+	unitName := unitName{Name: name.String()}
 
 	query, err := st.Prepare(`
 UPDATE unit SET charm_uuid = $charmUUID.charm_uuid
@@ -1731,7 +1684,7 @@ WHERE name = $unitName.name
 	}
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := st.checkUnitNotDeadByName(ctx, tx, name); err != nil {
+		if err := st.checkUnitNotDeadByName(ctx, tx, name.String()); err != nil {
 			return errors.Capture(err)
 		}
 		err := tx.Query(ctx, query, charmUUID, unitName).Run()
@@ -1940,7 +1893,7 @@ func (st *State) GetAllUnitNames(ctx context.Context) ([]coreunit.Name, error) {
 		return nil, errors.Capture(err)
 	}
 	return transform.Slice(result, func(r unitName) coreunit.Name {
-		return r.Name
+		return coreunit.Name(r.Name)
 	}), nil
 }
 
@@ -1981,7 +1934,7 @@ WHERE application_uuid = $entityUUID.uuid AND c.source_id < 2`
 		return nil, errors.Capture(err)
 	}
 	return transform.Slice(result, func(r unitName) coreunit.Name {
-		return r.Name
+		return coreunit.Name(r.Name)
 	}), nil
 }
 
@@ -2000,7 +1953,7 @@ func (st *State) GetUnitUUIDAndNetNodeForName(
 	}
 
 	var (
-		input = unitName{Name: name}
+		input = unitName{Name: name.String()}
 		dbVal unitUUIDAndNetNode
 	)
 
@@ -2041,7 +1994,7 @@ func (st *State) GetUnitNamesForNetNode(ctx context.Context, uuid string) ([]cor
 		return nil, errors.Capture(err)
 	}
 
-	var unitNames []coreunit.Name
+	var unitNames []string
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
 		unitNames, err = st.getUnitNamesForNetNode(ctx, tx, uuid)
@@ -2050,10 +2003,12 @@ func (st *State) GetUnitNamesForNetNode(ctx context.Context, uuid string) ([]cor
 	if err != nil {
 		return nil, errors.Errorf("querying unit names for net node %q: %w", uuid, err)
 	}
-	return unitNames, nil
+	return transform.Slice(unitNames, func(n string) coreunit.Name {
+		return coreunit.Name(n)
+	}), nil
 }
 
-func (st *State) getUnitNamesForNetNode(ctx context.Context, tx *sqlair.TX, uuid string) ([]coreunit.Name, error) {
+func (st *State) getUnitNamesForNetNode(ctx context.Context, tx *sqlair.TX, uuid string) ([]string, error) {
 	netNodeUUID := netNodeUUID{NetNodeUUID: uuid}
 	verifyExistsQuery := `SELECT COUNT(*) AS &countResult.count FROM net_node WHERE uuid = $netNodeUUID.uuid`
 	verifyExistsStmt, err := st.Prepare(verifyExistsQuery, countResult{}, netNodeUUID)
@@ -2078,12 +2033,12 @@ func (st *State) getUnitNamesForNetNode(ctx context.Context, tx *sqlair.TX, uuid
 	var result []unitName
 	err = tx.Query(ctx, stmt, netNodeUUID).GetAll(&result)
 	if errors.Is(err, sqlair.ErrNoRows) {
-		return nil, nil
+		return []string{}, nil
 	} else if err != nil {
 		return nil, errors.Capture(err)
 	}
 
-	return transform.Slice(result, func(r unitName) coreunit.Name {
+	return transform.Slice(result, func(r unitName) string {
 		return r.Name
 	}), nil
 }
@@ -2116,7 +2071,7 @@ func (st *State) SetUnitWorkloadVersion(ctx context.Context, unitName coreunit.N
 func (st *State) setUnitWorkloadVersion(
 	ctx context.Context,
 	tx *sqlair.TX,
-	unitUUID coreunit.UUID,
+	unitUUID string,
 	version string,
 ) error {
 	unitQuery, err := st.Prepare(`
@@ -2278,15 +2233,15 @@ func (st *State) newUnitName(
 func (st *State) recordUnitPrincipal(
 	ctx context.Context,
 	tx *sqlair.TX,
-	principalUnitUUID, subordinateUnitUUID coreunit.UUID,
+	principalUnitUUID, subordinateUnitUUID string,
 ) error {
 	type unitPrincipal struct {
 		PrincipalUUID   string `db:"principal_uuid"`
 		SubordinateUUID string `db:"unit_uuid"`
 	}
 	arg := unitPrincipal{
-		PrincipalUUID:   principalUnitUUID.String(),
-		SubordinateUUID: subordinateUnitUUID.String(),
+		PrincipalUUID:   principalUnitUUID,
+		SubordinateUUID: subordinateUnitUUID,
 	}
 	stmt, err := st.Prepare(`
 INSERT INTO unit_principal (*)
@@ -2383,7 +2338,7 @@ func (st *State) GetUnitK8sPodInfo(ctx context.Context, name coreunit.Name) (app
 		return application.K8sPodInfo{}, errors.Capture(err)
 	}
 
-	unitName := unitName{Name: name}
+	unitName := unitName{Name: name.String()}
 	infoQuery := `
 SELECT    k.provider_id AS &unitK8sPodInfo.provider_id,
           ip.address_value AS &unitK8sPodInfo.address
@@ -2410,7 +2365,7 @@ WHERE  u.name = $unitName.name`
 	var info unitK8sPodInfo
 	var ports []k8sPodPort
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := st.checkUnitNotDeadByName(ctx, tx, name); err != nil {
+		if err := st.checkUnitNotDeadByName(ctx, tx, name.String()); err != nil {
 			return errors.Capture(err)
 		}
 
@@ -2445,7 +2400,7 @@ func (st *State) GetUnitNetNodesByName(ctx context.Context, name coreunit.Name) 
 		return nil, errors.Capture(err)
 	}
 
-	ident := unitName{Name: name}
+	ident := unitName{Name: name.String()}
 	stmt, err := st.Prepare(`
 SELECT &unitNetNodeUUID.*
 FROM (

@@ -343,7 +343,7 @@ type PortService interface {
 	// GetMachineOpenedPorts returns the opened ports for all the units on the
 	// machine. Opened ports are grouped first by unit name and then by
 	// endpoint.
-	GetMachineOpenedPorts(ctx context.Context, machineUUID string) (map[coreunit.Name]network.GroupedPortRanges, error)
+	GetMachineOpenedPorts(ctx context.Context, machineUUID coremachine.UUID) (map[coreunit.Name]network.GroupedPortRanges, error)
 
 	// GetUnitOpenedPorts returns the opened ports for a given unit uuid,
 	// grouped by endpoint.
