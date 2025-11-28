@@ -203,11 +203,12 @@ func (mr *MockServerMockRecorder) DeleteProfile(arg0 any) *gomock.Call {
 }
 
 // DeleteStoragePoolVolume mocks base method.
-func (m *MockServer) DeleteStoragePoolVolume(arg0, arg1, arg2 string) error {
+func (m *MockServer) DeleteStoragePoolVolume(arg0, arg1, arg2 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStoragePoolVolume", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // DeleteStoragePoolVolume indicates an expected call of DeleteStoragePoolVolume.
@@ -752,11 +753,12 @@ func (mr *MockServerMockRecorder) UpdateServerConfig(arg0 any) *gomock.Call {
 }
 
 // UpdateStoragePoolVolume mocks base method.
-func (m *MockServer) UpdateStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePut, arg4 string) error {
+func (m *MockServer) UpdateStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePut, arg4 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStoragePoolVolume", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateStoragePoolVolume indicates an expected call of UpdateStoragePoolVolume.

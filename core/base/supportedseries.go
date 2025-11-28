@@ -4,6 +4,7 @@
 package base
 
 import (
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -146,24 +147,39 @@ func SeriesVersion(series string) (string, error) {
 }
 
 // UbuntuVersions returns the ubuntu versions as a map.
-func UbuntuVersions(supported, esmSupported *bool) map[string]string {
-	return ubuntuVersions(supported, esmSupported, ubuntuSeries)
+// The result includes bases no later than maxChannel.
+// This is used to get deprecated versions during
+// migration validation.
+func UbuntuVersions(maxVersion string) map[string]string {
+	return ubuntuVersions(maxVersion, ubuntuSeries)
+}
+
+func ubuntuVersionLessOrEqual(lhs, rhs string) bool {
+	lhsParts := strings.Split(lhs, ".")
+	rhsParts := strings.Split(rhs, ".")
+	if len(lhsParts) != 2 || len(rhsParts) != 2 {
+		return false
+	}
+	lhsMajor, _ := strconv.Atoi(lhsParts[0])
+	rhsMajor, _ := strconv.Atoi(rhsParts[0])
+	lhsMinor, _ := strconv.Atoi(lhsParts[1])
+	rhsMinor, _ := strconv.Atoi(rhsParts[1])
+	if lhsMajor == rhsMajor {
+		return lhsMinor <= rhsMinor
+	}
+	return lhsMajor <= rhsMajor
 }
 
 func ubuntuVersions(
-	supported, esmSupported *bool, ubuntuSeries map[SeriesName]seriesVersion,
+	maxVersion string, ubuntuSeries map[SeriesName]seriesVersion,
 ) map[string]string {
 	seriesVersionsMutex.Lock()
 	defer seriesVersionsMutex.Unlock()
 	save := make(map[string]string)
 	for seriesName, val := range ubuntuSeries {
-		if supported != nil && val.Supported != *supported {
-			continue
+		if ubuntuVersionLessOrEqual(val.Version, maxVersion) {
+			save[seriesName.String()] = val.Version
 		}
-		if esmSupported != nil && val.ESMSupported != *esmSupported {
-			continue
-		}
-		save[seriesName.String()] = val.Version
 	}
 	return save
 }
