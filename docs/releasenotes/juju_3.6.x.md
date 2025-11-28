@@ -1,12 +1,81 @@
 (juju36x)=
 # Juju 3.6 (LTS)
-> April 2036: expected end of security fix support
+> April 2039: expected end of security fix support
 >
 > 1 May 2026: expected end of bug fix support
 
 ```{note}
 Juju 3.6 series is LTS
 ```
+
+### 🔸 **Juju 3.6.12**
+🗓️ 26 Nov 2025
+
+⚙️ Features:
+
+#### Support for importing and attaching storage to Kubernetes units
+A common use case for Kubernetes is to restore a volume from a backup and attach it to a unit.
+This feature allows that use case to be supported by providing support for:
+- importing a k8s persistent volume into the Juju model as a storage instance
+- attaching the imported storage instance to an existing unit
+- attaching the imported storage instance to a new unit
+
+The Juju commands for importing and attaching storage work as for vm (non-k8s) models.
+To import a persistent volume:
+`juju import-filesystem kubernetes <pv-name> <storage-name>`
+The imported storage instance can be attached to a unit using the `--attach-storage` option for `deploy` or `add-unit`:
+`juju deploy postgresql-k8s --trust --attach-storage <storage-name>/<N>`
+`juju add-unit postgresql-k8s --attach-storage <storage-name>/<N>`
+
+where `<storage-name>` is the name of the storage defined by the charm
+and `<N>` is the ordinal of the storage instance created by the `juju import-filesystem` command.
+
+* feat: remove k8s attach storage feature flag by @jneo8 in https://github.com/juju/juju/pull/20634
+
+#### Vault secrets backend mount path
+Vault secret backends now support a mount path. If specified, the final path to
+access secrets for a model will be `<mount-path>/<mode-name>-<model-shortuuid>`.
+The mount path is specified using the `mount-path` secret backend config option.
+
+* feat(secrets): add support for vault mount path by @wallyworld in https://github.com/juju/juju/pull/21229
+
+#### JAAS - service account login
+For JAAS, a service account login method is added using env vars.
+If the env vars JUJU_CLIENT_ID and JUJU_CLIENT_SECRET are present,
+they will take precedence over all other login providers.
+
+* feat(auth): enable service account login via env vars by @ale8k in https://github.com/juju/juju/pull/20716
+
+🛠️ Fixes:
+
+#### File handle leaks
+The default behaviour of the Go HTTP client is to keep all idle connections forever. For Juju controllers
+involved with cross-model relations where there's a degree of network instability (resulting in
+worker restarts), this can lead to a large number of idle connections which are never closed. The end result
+is that the controller accumulates an ever-increasing number of open file handles, eventually causing the
+controller jujud agent to crash. The fixes below address this issue.
+
+* fix: timeout idle fds by @jameinel in https://github.com/juju/juju/pull/21081
+* fix: log all API requests not just RPC ones by @jameinel in https://github.com/juju/juju/pull/21102
+
+#### Secrets
+A few secrets issues are fixed:
+- updating a secret rotation policy would fail.
+- if a k8s secret resource was deleted manually, attempting to delete the secret revision
+from Juju would fail.
+- reading the content of a secret by label from within the same hook where an update was made
+would return inconsistent results in `--refresh` were used.
+
+* fix: handle case where external secret not found on delete by @wallyworld in https://github.com/juju/juju/pull/21058
+* fix: ensure secret-get with label and refresh returns the right value by @wallyworld in https://github.com/juju/juju/pull/21228
+* fix: ensure secret rotate policy can be updated by @wallyworld in https://github.com/juju/juju/pull/21220
+
+#### Openstack
+When removing units, the relevant network interfaces on all running instances were removed, instead
+of interfaces on just the instance on which the unit was running.
+
+* fix: filter ports by server by @nicolasbock in https://github.com/juju/juju/pull/20791
+
 
 ### 🔸 **Juju 3.6.11**
 🗓️ 21 Oct 2025
