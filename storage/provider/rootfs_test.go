@@ -222,8 +222,11 @@ func (s *rootfsSuite) createFsTab(c *gc.C, entries ...string) {
 func (s *rootfsSuite) TestAttachFilesystemsBind(c *gc.C) {
 	source := s.rootfsFilesystemSource(c)
 
-	existingFsTabEntry := "/src /dest none defaults,bind,nofail 0 0"
-	s.createFsTab(c, existingFsTabEntry)
+	existingFsTabEntries := `
+/src  /dest none defaults,bind,nofail 0 0
+/src2 /dest2 none defaults,bind,nofail 0 0
+`[1:]
+	s.createFsTab(c, existingFsTabEntries)
 
 	cmd := s.commands.expect("mount", "--bind", filepath.Join(s.storageDir, "6"), "/srv")
 	cmd.respond("", nil)
@@ -247,7 +250,43 @@ func (s *rootfsSuite) TestAttachFilesystemsBind(c *gc.C) {
 `[1:], s.storageDir)
 	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
 	c.Assert(err, jc.ErrorIsNil)
-	c.Assert(string(data), gc.Equals, strings.Join(append([]string{existingFsTabEntry}, expect), "\n"))
+	c.Assert(string(data), gc.Equals, existingFsTabEntries+expect)
+}
+
+func (s *rootfsSuite) TestAttachFilesystemsBindExistingFsTabExtry(c *gc.C) {
+	source := s.rootfsFilesystemSource(c)
+
+	expect := fmt.Sprintf(`
+%s/6 /srv none defaults,bind,nofail
+`[1:], s.storageDir)
+	existingFsTabEntries := fmt.Sprintf(`
+/src  /dest none defaults,bind,nofail 0 0
+%s
+/src2 /dest2 none defaults,bind,nofail 0 0
+`[1:], expect)
+	s.createFsTab(c, existingFsTabEntries)
+
+	cmd := s.commands.expect("mount", "--bind", filepath.Join(s.storageDir, "6"), "/srv")
+	cmd.respond("", nil)
+
+	results, err := source.AttachFilesystems(s.callCtx, []storage.FilesystemAttachmentParams{{
+		Filesystem:   names.NewFilesystemTag("6"),
+		FilesystemId: "6",
+		Path:         "/srv",
+	}})
+	c.Assert(err, jc.ErrorIsNil)
+	c.Assert(results, jc.DeepEquals, []storage.AttachFilesystemsResult{{
+		FilesystemAttachment: &storage.FilesystemAttachment{
+			Filesystem: names.NewFilesystemTag("6"),
+			FilesystemAttachmentInfo: storage.FilesystemAttachmentInfo{
+				Path: "/srv",
+			},
+		},
+	}})
+
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, jc.ErrorIsNil)
+	c.Assert(string(data), gc.Equals, existingFsTabEntries)
 }
 
 func (s *rootfsSuite) TestAttachFilesystemsBound(c *gc.C) {

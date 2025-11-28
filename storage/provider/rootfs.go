@@ -349,7 +349,6 @@ func ensureFstabEntry(etcDir, sourcePath, mountPoint, fsType, options string) er
 			fields[0] == sourcePath &&
 			fields[1] == mountPoint {
 			addNewEntry = false
-			break
 		}
 		_, err := newFsTab.WriteString(line + "\n")
 		if err != nil {
