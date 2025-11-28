@@ -31,24 +31,22 @@ The format is
 
     <resource name>=<resource>
 
-where `<resource name>` is the name from the `metadata.yaml` (`charmcraft.yaml`) file
-of the charm and where, depending on the type of the resource, `<resource>` can be specified
-as follows:
+where `<resource name>` is the name from the `metadata.yaml` (`charmcraft.yaml`) file of the charm and `<resource>` is the resource itself, which can be supplied as follows:
 
-- If the resource is type `file`, you can specify it by providing one of the following:
+- For a resource type `file`:
 
-    a. For a resource that has been uploaded to Charmhub: the resource revision number.
+    a. that has been uploaded to Charmhub: the resource revision number.
 
-    b. For a local resource: a path to a local file. Caveat: If you choose this, you will not be able
-	 to go back to using a resource from Charmhub.
+    b. that is local to your machine: a path to the local file. Caveat: If you choose this, you will
+	not be able to go back to using a resource from Charmhub.
 
-- If the resource is type `oci-image`, you can specify it by providing one of the following:
+- For a resource type `oci-image`:
 
-    a. For a resource that has been uploaded to Charmhub: the resource revision number.
+    a. that has been uploaded to Charmhub: the resource revision number.
 
-	b. For a local resource: the path to the local `json` or `yaml` file that contains the details
-	for your private OCI image (OCI image path, username, password, etc.). Caveat: If you choose this,
-	you will not be able to go back to using a resource from Charmhub.
+	b. that is local to your machine: a path to the local `json` or `yaml` file
+	that contains the details for your private OCI image (local image path, username, password, etc.).
+	Caveat: If you choose this, you will not be able to go back to using a resource from Charmhub.
 
     c. For a resource that has been uploaded to a public OCI registry: a link to the public OCI image.
 	Caveat: If you choose this, you will not be able to go back to using a resource from Charmhub.
