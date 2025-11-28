@@ -68,8 +68,8 @@ type Server interface {
 	GetStoragePoolVolume(pool string, volType string, name string) (*lxdapi.StorageVolume, string, error)
 	GetStoragePoolVolumes(pool string) (volumes []lxdapi.StorageVolume, err error)
 	CreateVolume(pool, name string, config map[string]string) error
-	UpdateStoragePoolVolume(pool string, volType string, name string, volume lxdapi.StorageVolumePut, ETag string) error
-	DeleteStoragePoolVolume(pool string, volType string, name string) (err error)
+	UpdateStoragePoolVolume(pool string, volType string, name string, volume lxdapi.StorageVolumePut, ETag string) (lxdclient.Operation, error)
+	DeleteStoragePoolVolume(pool string, volType string, name string) (lxdclient.Operation, error)
 	ServerCertificate() string
 	HostArch() string
 	SupportedArches() []string

@@ -191,7 +191,7 @@ func (c elasticContainerRegistry) Tags(imageName string) (versions tools.Version
 	return c.fetchTags(url, &response)
 }
 
-// GetArchitecture returns the archtecture of the image for the specified tag.
+// GetArchitecture returns the architecture of the image for the specified tag.
 func (c elasticContainerRegistry) GetArchitecture(imageName, tag string) (string, error) {
 	return getArchitecture(imageName, tag, c)
 }
@@ -202,7 +202,7 @@ func (c elasticContainerRegistry) GetManifests(imageName, tag string) (*Manifest
 	return c.GetManifestsCommon(url)
 }
 
-// GetBlobs gets the archtecture of the image for the specified tag via blobs API.
+// GetBlobs gets the architecture of the image for the specified tag via blobs API.
 func (c elasticContainerRegistry) GetBlobs(imageName, digest string) (*BlobsResponse, error) {
 	url := c.url("/%s/blobs/%s", imageName, digest)
 	return c.GetBlobsCommon(url)

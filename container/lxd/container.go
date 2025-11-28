@@ -268,11 +268,10 @@ func (s *Server) CreateContainerFromSpec(spec ContainerSpec) (*Container, error)
 		},
 	}
 	op, err := s.CreateInstanceFromImage(spec.Image.LXDServer, *spec.Image.Image, req)
-	if err != nil {
-		return s.handleAlreadyExistsError(err, spec, ephemeral)
+	if err == nil {
+		err = op.Wait()
 	}
-
-	if err := op.Wait(); err != nil {
+	if err != nil {
 		return s.handleAlreadyExistsError(err, spec, ephemeral)
 	}
 	opInfo, err := op.GetTarget()
@@ -412,10 +411,10 @@ func (s *Server) RemoveContainer(name string) error {
 			Stateful: false,
 		}
 		op, err := s.UpdateInstanceState(name, req, eTag)
-		if err != nil {
-			return errors.Trace(err)
+		if err == nil {
+			err = op.Wait()
 		}
-		if err := op.Wait(); err != nil {
+		if err != nil {
 			return errors.Trace(err)
 		}
 	}

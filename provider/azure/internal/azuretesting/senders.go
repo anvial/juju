@@ -92,7 +92,7 @@ func NewRequestWithContent(c string) *http.Request {
 
 // NewResponse instantiates a new response.
 func NewResponse() *http.Response {
-	return NewResponseWithContent("")
+	return NewResponseWithContent("") //nolint:bodyclose
 }
 
 // NewResponseWithContent instantiates a new response with the passed string as the body content.
@@ -259,7 +259,7 @@ func NewSenderWithValue(v interface{}) *MockSender {
 		panic(err)
 	}
 	sender := &MockSender{}
-	resp := NewResponseWithContent(string(content))
+	resp := NewResponseWithContent(string(content)) //nolint:bodyclose
 	SetResponseHeaderValues(resp, "WWW-Authenticate", []string{
 		fmt.Sprintf(
 			`authorization="https://testing.invalid/%s" scope="scope" resource="resource"`,

@@ -7,7 +7,6 @@ import (
 	jc "github.com/juju/testing/checkers"
 	gc "gopkg.in/check.v1"
 
-	"github.com/juju/juju/core/series"
 	"github.com/juju/juju/environs/filestorage"
 	"github.com/juju/juju/environs/imagemetadata"
 	"github.com/juju/juju/environs/imagemetadata/testing"
@@ -21,10 +20,6 @@ var _ = gc.Suite(&generateSuite{})
 
 type generateSuite struct {
 	coretesting.BaseSuite
-}
-
-func (s *generateSuite) SetUpTest(c *gc.C) {
-	s.PatchValue(&series.UbuntuDistroInfo, "/path/notexists")
 }
 
 func assertFetch(c *gc.C, ss *simplestreams.Simplestreams, stor storage.Storage, series, arch, region, endpoint string, ids ...string) {

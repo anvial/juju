@@ -341,7 +341,7 @@ func discoverAuthSender() *azuretesting.MockSender {
 	sender := &azuretesting.MockSender{
 		PathPattern: ".*/subscriptions/(" + fakeSubscriptionId + "|" + fakeManagedSubscriptionId + ")",
 	}
-	resp := azuretesting.NewResponseWithStatus("", http.StatusUnauthorized)
+	resp := azuretesting.NewResponseWithStatus("", http.StatusUnauthorized) //nolint:bodyclose
 	azuretesting.SetResponseHeaderValues(resp, "WWW-Authenticate", []string{
 		fmt.Sprintf(
 			`authorization_uri="https://testing.invalid/%s"`,
@@ -399,7 +399,7 @@ func (s *environSuite) startInstanceSenders(args startInstanceSenderParams) azur
 			vaultName := args.vaultName + "-deadbeef"
 			deletedVaultSender := azuretesting.MockSender{}
 			deletedVaultSender.PathPattern = ".*/locations/westus/deletedVaults/" + vaultName
-			deletedVaultSender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus(
+			deletedVaultSender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus( //nolint:bodyclose
 				"vault not found", http.StatusNotFound,
 			), 1)
 			senders = append(senders, &deletedVaultSender)
@@ -477,7 +477,7 @@ func (s *environSuite) resourceSKUsSender() *azuretesting.MockSender {
 func makeResourceGroupNotFoundSender(pattern string) *azuretesting.MockSender {
 	sender := azuretesting.MockSender{}
 	sender.PathPattern = pattern
-	sender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus(
+	sender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus( //nolint:bodyclose
 		"resource group not found", http.StatusNotFound,
 	), 1)
 	return &sender
@@ -492,7 +492,7 @@ func makeSender(pattern string, v interface{}) *azuretesting.MockSender {
 func makeSenderWithStatus(pattern string, statusCode int) *azuretesting.MockSender {
 	sender := azuretesting.MockSender{}
 	sender.PathPattern = pattern
-	sender.AppendResponse(azuretesting.NewResponseWithStatus("", statusCode))
+	sender.AppendResponse(azuretesting.NewResponseWithStatus("", statusCode)) //nolint:bodyclose
 	return &sender
 }
 
@@ -756,7 +756,8 @@ func (s *environSuite) TestStartInstanceNoAuthorizedKeys(c *gc.C) {
 
 func (s *environSuite) createSenderWithUnauthorisedStatusCode(c *gc.C) {
 	unauthSender := &azuretesting.MockSender{}
-	unauthSender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus("401 Unauthorized", http.StatusUnauthorized), 3)
+	unauthSender.AppendAndRepeatResponse(
+		azuretesting.NewResponseWithStatus("401 Unauthorized", http.StatusUnauthorized), 3) //nolint:bodyclose
 	s.sender = azuretesting.Senders{unauthSender, unauthSender, unauthSender}
 }
 
@@ -1801,7 +1802,7 @@ func (s *environSuite) TestBootstrapWithAutocert(c *gc.C) {
 func (s *environSuite) TestAllRunningInstancesResourceGroupNotFound(c *gc.C) {
 	env := s.openEnviron(c)
 	sender := &azuretesting.MockSender{}
-	sender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus(
+	sender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus( //nolint:bodyclose
 		"resource group not found", http.StatusNotFound,
 	), 2)
 	s.sender = azuretesting.Senders{sender, sender}
@@ -1836,11 +1837,11 @@ func (s *environSuite) TestAllRunningInstancesIgnoresCommonDeployment(c *gc.C) {
 func (s *environSuite) TestStopInstancesNotFound(c *gc.C) {
 	env := s.openEnviron(c)
 	sender0 := &azuretesting.MockSender{}
-	sender0.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus(
+	sender0.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus( //nolint:bodyclose
 		"vm not found", http.StatusNotFound,
 	), 2)
 	sender1 := &azuretesting.MockSender{}
-	sender1.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus(
+	sender1.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus( //nolint:bodyclose
 		"vm not found", http.StatusNotFound,
 	), 2)
 	s.sender = azuretesting.Senders{sender0, sender1}
@@ -1950,7 +1951,7 @@ func (s *environSuite) TestStopInstancesDeploymentNotFound(c *gc.C) {
 	env := s.openEnviron(c)
 
 	cancelSender := &azuretesting.MockSender{}
-	cancelSender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus(
+	cancelSender.AppendAndRepeatResponse(azuretesting.NewResponseWithStatus( //nolint:bodyclose
 		"deployment not found", http.StatusNotFound,
 	), 2)
 	s.sender = azuretesting.Senders{cancelSender}

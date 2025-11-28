@@ -345,7 +345,7 @@ func newWebsocketServer(c *gc.C, h func(*websocket.Conn)) *gorillaws.Conn {
 
 func newWebsocketClient(c *gc.C, port int) *gorillaws.Conn {
 	address := fmt.Sprintf("ws://localhost:%d/", port)
-	client, _, err := gorillaws.DefaultDialer.Dial(address, nil)
+	client, _, err := gorillaws.DefaultDialer.Dial(address, nil) //nolint:bodyclose // WebSocket library handles response body closure
 	if err == nil {
 		return client
 	}
@@ -358,7 +358,7 @@ func newWebsocketClient(c *gc.C, port int) *gorillaws.Conn {
 		case <-time.After(coretesting.ShortWait):
 		}
 
-		client, _, err = gorillaws.DefaultDialer.Dial(address, nil)
+		client, _, err = gorillaws.DefaultDialer.Dial(address, nil) //nolint:bodyclose // WebSocket library handles response body closure
 		if err != nil {
 			c.Logf("failed attempt to connect to %s", address)
 			continue

@@ -187,14 +187,22 @@ func stringifyMachineCounts(result map[string]int) string {
 	return strings.Join(output, " ")
 }
 
+var supportedSeriesForMigration = set.NewStrings(
+	series.Focal.String(),
+	series.Groovy.String(),
+	series.Hirsute.String(),
+	series.Impish.String(),
+	series.Jammy.String(),
+	series.Kinetic.String(),
+	series.Lunar.String(),
+	series.Mantic.String(),
+	series.Noble.String(),
+)
+
 func checkForDeprecatedUbuntuSeriesForModel(
 	modelUUID string, pool StatePool, st State, model Model,
 ) (*Blocker, error) {
-	supported := false
-	deprecatedSeries := set.NewStrings()
-	for s := range series.UbuntuVersions(&supported, nil) {
-		deprecatedSeries.Add(s)
-	}
+	deprecatedSeries := series.UbuntuSeries().Difference(supportedSeriesForMigration)
 	result, err := st.MachineCountForSeries(
 		deprecatedSeries.SortedValues()..., // sort for tests.
 	)

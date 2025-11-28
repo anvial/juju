@@ -239,7 +239,7 @@ func (k *kubernetesClient) maybeGetVolumeClaimSpec(params storage.VolumeParams) 
 	}
 	return &core.PersistentVolumeClaimSpec{
 		StorageClassName: &storageClassName,
-		Resources: core.ResourceRequirements{
+		Resources: core.VolumeResourceRequirements{
 			Requests: core.ResourceList{
 				core.ResourceStorage: params.Size,
 			},

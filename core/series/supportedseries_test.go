@@ -4,8 +4,6 @@
 package series
 
 import (
-	"io/ioutil"
-	"os"
 	"time"
 
 	"github.com/juju/testing"
@@ -15,12 +13,6 @@ import (
 	coreos "github.com/juju/juju/core/os"
 )
 
-const distroInfoContents = `version,codename,series,created,release,eol,eol-server
-10.04,Firefox,firefox,2009-10-13,2010-04-26,2016-04-26
-12.04 LTS,Precise Pangolin,precise,2011-10-13,2012-04-26,2017-04-26
-99.04,Focal,focal,2020-04-25,2020-10-17,2365-07-17
-`
-
 type SupportedSeriesSuite struct {
 	testing.IsolationSuite
 }
@@ -28,67 +20,47 @@ type SupportedSeriesSuite struct {
 var _ = gc.Suite(&SupportedSeriesSuite{})
 
 func (s *SupportedSeriesSuite) TestSeriesForTypes(c *gc.C) {
-	tmpFile, close := makeTempFile(c, distroInfoContents)
-	defer close()
-
-	now := time.Date(2020, 3, 16, 0, 0, 0, 0, time.UTC)
-
-	info, err := seriesForTypes(tmpFile.Name(), now, "", "")
+	info, err := seriesForTypes("", "")
 	c.Assert(err, jc.ErrorIsNil)
 
-	ctrlSeries := info.controllerSeries()
-	c.Assert(ctrlSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty"})
+	ctrlSeries := controllerSeries(info)
+	c.Assert(ctrlSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty"})
 
-	wrkSeries := info.workloadSeries(false)
-	c.Assert(wrkSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
+	wrkSeries := workloadSeries(info, false)
+	c.Assert(wrkSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
 }
 
 func (s *SupportedSeriesSuite) TestSeriesForTypesUsingImageStream(c *gc.C) {
-	tmpFile, close := makeTempFile(c, distroInfoContents)
-	defer close()
-
-	now := time.Date(2020, 3, 16, 0, 0, 0, 0, time.UTC)
-
-	info, err := seriesForTypes(tmpFile.Name(), now, "focal", "daily")
+	info, err := seriesForTypes("focal", "daily")
 	c.Assert(err, jc.ErrorIsNil)
 
-	ctrlSeries := info.controllerSeries()
-	c.Assert(ctrlSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty"})
+	ctrlSeries := controllerSeries(info)
+	c.Assert(ctrlSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty"})
 
-	wrkSeries := info.workloadSeries(false)
-	c.Assert(wrkSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
+	wrkSeries := workloadSeries(info, false)
+	c.Assert(wrkSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
 }
 
 func (s *SupportedSeriesSuite) TestSeriesForTypesUsingInvalidImageStream(c *gc.C) {
-	tmpFile, close := makeTempFile(c, distroInfoContents)
-	defer close()
-
-	now := time.Date(2020, 3, 16, 0, 0, 0, 0, time.UTC)
-
-	info, err := seriesForTypes(tmpFile.Name(), now, "focal", "turtle")
+	info, err := seriesForTypes("focal", "turtle")
 	c.Assert(err, jc.ErrorIsNil)
 
-	ctrlSeries := info.controllerSeries()
-	c.Assert(ctrlSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty"})
+	ctrlSeries := controllerSeries(info)
+	c.Assert(ctrlSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty"})
 
-	wrkSeries := info.workloadSeries(false)
-	c.Assert(wrkSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
+	wrkSeries := workloadSeries(info, false)
+	c.Assert(wrkSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
 }
 
 func (s *SupportedSeriesSuite) TestSeriesForTypesUsingInvalidSeries(c *gc.C) {
-	tmpFile, close := makeTempFile(c, distroInfoContents)
-	defer close()
-
-	now := time.Date(2020, 3, 16, 0, 0, 0, 0, time.UTC)
-
-	info, err := seriesForTypes(tmpFile.Name(), now, "firewolf", "daily")
+	info, err := seriesForTypes("firewolf", "daily")
 	c.Assert(err, jc.ErrorIsNil)
 
-	ctrlSeries := info.controllerSeries()
-	c.Assert(ctrlSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty"})
+	ctrlSeries := controllerSeries(info)
+	c.Assert(ctrlSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty"})
 
-	wrkSeries := info.workloadSeries(false)
-	c.Assert(wrkSeries, jc.DeepEquals, []string{"jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
+	wrkSeries := workloadSeries(info, false)
+	c.Assert(wrkSeries, jc.DeepEquals, []string{"noble", "jammy", "focal", "bionic", "xenial", "trusty", "centos7", "centos8", "centos9", "genericlinux", "kubernetes", "opensuseleap", "win10", "win2008r2", "win2012", "win2012hv", "win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019", "win7", "win8", "win81"})
 }
 
 var getOSFromSeriesTests = []struct {
@@ -164,10 +136,6 @@ func (s *SupportedSeriesSuite) TestSeriesVersionEmpty(c *gc.C) {
 	c.Assert(err, gc.ErrorMatches, `.*unknown version for series: "".*`)
 }
 
-func boolPtr(b bool) *bool {
-	return &b
-}
-
 func (s *SupportedSeriesSuite) TestGetOSVersionFromSeries(c *gc.C) {
 	vers, err := GetBaseFromSeries("jammy")
 	c.Assert(err, jc.ErrorIsNil)
@@ -190,153 +158,41 @@ func (s *SupportedSeriesSuite) TestGetSeriesFromOSVersion(c *gc.C) {
 	c.Assert(series, gc.Equals, "centos7")
 }
 
-func (s *SupportedSeriesSuite) TestUbuntuVersions(c *gc.C) {
-	ubuntuSeries := map[SeriesName]seriesVersion{
-		Precise: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "12.04",
-		},
-		Quantal: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "12.10",
-		},
-		Raring: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "13.04",
-		},
-		Saucy: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "13.10",
-		},
-		Trusty: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "14.04",
-			LTS:          true,
-			ESMSupported: true,
-		},
-		Utopic: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "14.10",
-		},
-		Vivid: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "15.04",
-		},
-		Wily: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "15.10",
-		},
-		Xenial: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "16.04",
-			LTS:          true,
-			ESMSupported: true,
-		},
-		Yakkety: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "16.10",
-		},
-		Zesty: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "17.04",
-		},
-		Artful: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "17.10",
-		},
-		Bionic: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "18.04",
-			LTS:          true,
-			ESMSupported: true,
-		},
-		Cosmic: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "18.10",
-		},
-		Disco: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "19.04",
-		},
-		Eoan: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "19.10",
-		},
-		Focal: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "20.04",
-			LTS:          true,
-			Supported:    true,
-			ESMSupported: true,
-		},
-		Groovy: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "20.10",
-		},
-		Hirsute: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "21.04",
-		},
-		Impish: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "21.10",
-		},
-		Jammy: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "22.04",
-			LTS:          true,
-			Supported:    true,
-			ESMSupported: true,
-		},
-		Kinetic: {
-			WorkloadType: ControllerWorkloadType,
-			Version:      "22.10",
-		},
-	}
-
-	result := ubuntuVersions(nil, nil, ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"artful": "17.10", "bionic": "18.04", "cosmic": "18.10", "disco": "19.04", "eoan": "19.10", "focal": "20.04", "groovy": "20.10", "hirsute": "21.04", "impish": "21.10", "jammy": "22.04", "kinetic": "22.10", "precise": "12.04", "quantal": "12.10", "raring": "13.04", "saucy": "13.10", "trusty": "14.04", "utopic": "14.10", "vivid": "15.04", "wily": "15.10", "xenial": "16.04", "yakkety": "16.10", "zesty": "17.04"})
-
-	result = ubuntuVersions(boolPtr(true), boolPtr(true), ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"focal": "20.04", "jammy": "22.04"})
-
-	result = ubuntuVersions(boolPtr(false), boolPtr(false), ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"artful": "17.10", "cosmic": "18.10", "disco": "19.04", "eoan": "19.10", "groovy": "20.10", "hirsute": "21.04", "impish": "21.10", "kinetic": "22.10", "precise": "12.04", "quantal": "12.10", "raring": "13.04", "saucy": "13.10", "utopic": "14.10", "vivid": "15.04", "wily": "15.10", "yakkety": "16.10", "zesty": "17.04"})
-
-	result = ubuntuVersions(boolPtr(true), boolPtr(false), ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{})
-
-	result = ubuntuVersions(boolPtr(false), boolPtr(true), ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"bionic": "18.04", "trusty": "14.04", "xenial": "16.04"})
-
-	result = ubuntuVersions(boolPtr(true), nil, ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"focal": "20.04", "jammy": "22.04"})
-
-	result = ubuntuVersions(boolPtr(false), nil, ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"artful": "17.10", "bionic": "18.04", "cosmic": "18.10", "disco": "19.04", "eoan": "19.10", "groovy": "20.10", "hirsute": "21.04", "impish": "21.10", "kinetic": "22.10", "precise": "12.04", "quantal": "12.10", "raring": "13.04", "saucy": "13.10", "trusty": "14.04", "utopic": "14.10", "vivid": "15.04", "wily": "15.10", "xenial": "16.04", "yakkety": "16.10", "zesty": "17.04"})
-
-	result = ubuntuVersions(nil, boolPtr(true), ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"bionic": "18.04", "focal": "20.04", "jammy": "22.04", "trusty": "14.04", "xenial": "16.04"})
-
-	result = ubuntuVersions(nil, boolPtr(false), ubuntuSeries)
-	c.Check(result, gc.DeepEquals, map[string]string{"artful": "17.10", "cosmic": "18.10", "disco": "19.04", "eoan": "19.10", "groovy": "20.10", "hirsute": "21.04", "impish": "21.10", "kinetic": "22.10", "precise": "12.04", "quantal": "12.10", "raring": "13.04", "saucy": "13.10", "utopic": "14.10", "vivid": "15.04", "wily": "15.10", "yakkety": "16.10", "zesty": "17.04"})
+func (s *SupportedSeriesSuite) TestUbuntuSeriesVersionEmpty(c *gc.C) {
+	_, err := UbuntuSeriesVersion("")
+	c.Assert(err, gc.ErrorMatches, `.*unknown version for series: "".*`)
 }
 
-func makeTempFile(c *gc.C, content string) (*os.File, func()) {
-	tmpfile, err := ioutil.TempFile("", "distroinfo")
-	if err != nil {
-		c.Assert(err, jc.ErrorIsNil)
+func (s *SupportedSeriesSuite) TestUbuntuSeriesVersion(c *gc.C) {
+	isUbuntuTests := []struct {
+		series   string
+		expected string
+	}{
+		{"precise", "12.04"},
+		{"raring", "13.04"},
+		{"bionic", "18.04"},
+		{"eoan", "19.10"},
+		{"focal", "20.04"},
+		{"jammy", "22.04"},
 	}
-
-	_, err = tmpfile.Write([]byte(content))
-	c.Assert(err, jc.ErrorIsNil)
-
-	// Reset the file for reading.
-	_, err = tmpfile.Seek(0, 0)
-	c.Assert(err, jc.ErrorIsNil)
-
-	return tmpfile, func() {
-		err := os.Remove(tmpfile.Name())
-		c.Assert(err, jc.ErrorIsNil)
+	for _, v := range isUbuntuTests {
+		ver, err := UbuntuSeriesVersion(v.series)
+		c.Assert(err, gc.IsNil)
+		c.Assert(ver, gc.Equals, v.expected)
 	}
+}
+
+func (s *SupportedSeriesSuite) TestUbuntuInvalidSeriesVersion(c *gc.C) {
+	_, err := UbuntuSeriesVersion("firewolf")
+	c.Assert(err, gc.ErrorMatches, `.*unknown version for series: "firewolf".*`)
+}
+
+func (s *SupportedSeriesSuite) TestWorkloadSeries(c *gc.C) {
+	series, err := WorkloadSeries(time.Time{}, "", "")
+	c.Assert(err, jc.ErrorIsNil)
+	c.Assert(series.SortedValues(), gc.DeepEquals, []string{
+		"bionic", "centos7", "centos8", "centos9", "focal", "genericlinux", "jammy", "kubernetes",
+		"noble", "opensuseleap", "trusty", "win10", "win2008r2", "win2012", "win2012hv",
+		"win2012hvr2", "win2012r2", "win2016", "win2016hv", "win2016nano", "win2019",
+		"win7", "win8", "win81", "xenial"})
 }

@@ -6,87 +6,7 @@ package series
 import (
 	"sort"
 	"strconv"
-	"sync"
-	"time"
-
-	"github.com/juju/errors"
-	"github.com/juju/os/v2/series"
 )
-
-// DistroSource is the source of the underlying distro source for supported
-// series.
-type DistroSource interface {
-	// Refresh will attempt to update the information it has about each distro
-	// and if the distro is supported or not.
-	Refresh() error
-
-	// SeriesInfo returns the DistroInfoSerie for the series name.
-	SeriesInfo(seriesName string) (series.DistroInfoSerie, bool)
-}
-
-// supportedInfo represents all the supported info available.
-type supportedInfo struct {
-	mutex sync.RWMutex
-
-	source DistroSource
-	values map[SeriesName]seriesVersion
-}
-
-// newSupportedInfo creates a supported info type for knowing if a series is
-// supported or not.
-func newSupportedInfo(source DistroSource, preset map[SeriesName]seriesVersion) *supportedInfo {
-	return &supportedInfo{
-		source: source,
-		values: preset,
-	}
-}
-
-// compile compiles a list of supported info.
-func (s *supportedInfo) compile(now time.Time) error {
-	if err := s.source.Refresh(); err != nil {
-		return errors.Trace(err)
-	}
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	// First thing here, is walk over the controller, workload maps to work out
-	// if something was previously supported and is no longer or the reverse.
-	for seriesName, version := range s.values {
-		distroInfo, ok := s.source.SeriesInfo(seriesName.String())
-		if !ok {
-			// The series isn't found in the distro info, we should continue
-			// onward as we don't know what to do here.
-			continue
-		}
-
-		current := version.Supported
-		supported := current
-
-		// To prevent the distro info from overriding the supported flag and to
-		// ensure that we keep the same Supported version as we have set as the
-		// default (see below). Using the IgnoreDistroInfoUpdate flag states that
-		// we want to keep the current value.
-		// Example: adding a new LTS and setting it to be supported will become
-		// false when reading in the distro information. Setting OverrideSupport
-		// to true, will force it to be the same value as the default.
-		if !version.IgnoreDistroInfoUpdate {
-			supported = distroInfo.Supported(now)
-		}
-
-		s.values[seriesName] = seriesVersion{
-			WorkloadType:             version.WorkloadType,
-			Version:                  version.Version,
-			LTS:                      version.LTS,
-			Supported:                supported,
-			ESMSupported:             version.ESMSupported,
-			IgnoreDistroInfoUpdate:   version.IgnoreDistroInfoUpdate,
-			UpdatedByLocalDistroInfo: current != supported,
-		}
-	}
-
-	return nil
-}
 
 type namedSeriesVersion struct {
 	Name          SeriesName
@@ -94,12 +14,9 @@ type namedSeriesVersion struct {
 	Version       float64
 }
 
-func (s *supportedInfo) namedSeries() []namedSeriesVersion {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	res := make([]namedSeriesVersion, 0, len(s.values))
-	for name, series := range s.values {
+func makeNamedSeries(values map[SeriesName]seriesVersion) []namedSeriesVersion {
+	res := make([]namedSeriesVersion, 0, len(values))
+	for name, series := range values {
 		ver, err := strconv.ParseFloat(series.Version, 10)
 		if err != nil {
 			ver = -1
@@ -125,11 +42,11 @@ func (s *supportedInfo) namedSeries() []namedSeriesVersion {
 	return res
 }
 
-// controllerSeries returns a slice of series that are supported to run on a
 // controller.
-func (s *supportedInfo) controllerSeries() []string {
+func controllerSeries(series map[SeriesName]seriesVersion) []string {
+	namedSeries := makeNamedSeries(series)
 	var result []string
-	for _, namedSeries := range s.namedSeries() {
+	for _, namedSeries := range namedSeries {
 		version := namedSeries.SeriesVersion
 		if version.WorkloadType != ControllerWorkloadType {
 			continue
@@ -146,9 +63,10 @@ func (s *supportedInfo) controllerSeries() []string {
 // target workload (charm).
 // Note: workload series will also include controller workload types, as they
 // can also be used for workloads.
-func (s *supportedInfo) workloadSeries(includeUnsupported bool) []string {
+func workloadSeries(series map[SeriesName]seriesVersion, includeUnsupported bool) []string {
+	namedSeries := makeNamedSeries(series)
 	var result []string
-	for _, namedSeries := range s.namedSeries() {
+	for _, namedSeries := range namedSeries {
 		version := namedSeries.SeriesVersion
 		if version.WorkloadType == UnsupportedWorkloadType {
 			continue
@@ -199,22 +117,12 @@ type seriesVersion struct {
 	// Extended security maintenance for customers, extends the supported bool
 	// for how Juju classifies the series.
 	ESMSupported bool
-
-	// IgnoreDistroInfoUpdate overrides the supported value to ensure that we
-	// can force supported series, by ignoring the distro info update.
-	IgnoreDistroInfoUpdate bool
-
-	// UpdatedByLocalDistroInfo indicates that the series version was created
-	// by the local distro-info information on the system.
-	// This is useful to understand why a version appears yet is not supported.
-	UpdatedByLocalDistroInfo bool
 }
 
 // setSupported updates a series map based on the series name.
 func setSupported(series map[SeriesName]seriesVersion, name string) bool {
 	if version, ok := series[SeriesName(name)]; ok {
 		version.Supported = true
-		version.IgnoreDistroInfoUpdate = true
 		series[SeriesName(name)] = version
 		return true
 	}
@@ -253,6 +161,7 @@ const (
 	Kinetic SeriesName = "kinetic"
 	Lunar   SeriesName = "lunar"
 	Mantic  SeriesName = "mantic"
+	Noble   SeriesName = "noble"
 )
 
 var ubuntuSeries = map[SeriesName]seriesVersion{
@@ -363,6 +272,13 @@ var ubuntuSeries = map[SeriesName]seriesVersion{
 	Mantic: {
 		WorkloadType: ControllerWorkloadType,
 		Version:      "23.10",
+	},
+	Noble: {
+		WorkloadType: ControllerWorkloadType,
+		Version:      "24.04",
+		LTS:          true,
+		Supported:    true,
+		ESMSupported: true,
 	},
 }
 

@@ -2059,7 +2059,7 @@ func unitStatefulSetArg(numUnits int32, scName string, podSpec core.PodSpec) *ap
 				Spec: core.PersistentVolumeClaimSpec{
 					StorageClassName: &scName,
 					AccessModes:      []core.PersistentVolumeAccessMode{core.ReadWriteOnce},
-					Resources: core.ResourceRequirements{
+					Resources: core.VolumeResourceRequirements{
 						Requests: core.ResourceList{
 							core.ResourceStorage: resource.MustParse("100Mi"),
 						},
@@ -5674,7 +5674,7 @@ func (s *K8sBrokerSuite) TestEnsureServiceForDeploymentWithStorageCreate(c *gc.C
 		},
 		Spec: core.PersistentVolumeClaimSpec{
 			StorageClassName: pointer.StringPtr("workload-storage"),
-			Resources: core.ResourceRequirements{
+			Resources: core.VolumeResourceRequirements{
 				Requests: core.ResourceList{
 					core.ResourceStorage: resource.MustParse("100Mi"),
 				},
@@ -5824,7 +5824,7 @@ func (s *K8sBrokerSuite) TestEnsureServiceForDeploymentWithStorageUpdate(c *gc.C
 		},
 		Spec: core.PersistentVolumeClaimSpec{
 			StorageClassName: pointer.StringPtr("workload-storage"),
-			Resources: core.ResourceRequirements{
+			Resources: core.VolumeResourceRequirements{
 				Requests: core.ResourceList{
 					core.ResourceStorage: resource.MustParse("100Mi"),
 				},
@@ -6036,7 +6036,7 @@ func (s *K8sBrokerSuite) TestEnsureServiceForDaemonSetWithStorageCreate(c *gc.C)
 		},
 		Spec: core.PersistentVolumeClaimSpec{
 			StorageClassName: pointer.StringPtr("workload-storage"),
-			Resources: core.ResourceRequirements{
+			Resources: core.VolumeResourceRequirements{
 				Requests: core.ResourceList{
 					core.ResourceStorage: resource.MustParse("100Mi"),
 				},
@@ -6216,7 +6216,7 @@ func (s *K8sBrokerSuite) TestEnsureServiceForDaemonSetWithUpdateStrategy(c *gc.C
 		},
 		Spec: core.PersistentVolumeClaimSpec{
 			StorageClassName: pointer.StringPtr("workload-storage"),
-			Resources: core.ResourceRequirements{
+			Resources: core.VolumeResourceRequirements{
 				Requests: core.ResourceList{
 					core.ResourceStorage: resource.MustParse("100Mi"),
 				},
@@ -6391,7 +6391,7 @@ func (s *K8sBrokerSuite) TestEnsureServiceForDaemonSetWithStorageUpdate(c *gc.C)
 		},
 		Spec: core.PersistentVolumeClaimSpec{
 			StorageClassName: pointer.StringPtr("workload-storage"),
-			Resources: core.ResourceRequirements{
+			Resources: core.VolumeResourceRequirements{
 				Requests: core.ResourceList{
 					core.ResourceStorage: resource.MustParse("100Mi"),
 				},

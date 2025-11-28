@@ -241,6 +241,9 @@ func (s *networkSuite) TestVerifyNetworkDeviceNotPresentCreated(c *gc.C) {
 	defer ctrl.Finish()
 	cSvr := s.NewMockServerWithExtensions(ctrl, "network")
 
+	op := lxdtesting.NewMockOperation(ctrl)
+	op.EXPECT().Wait().Return(nil)
+
 	netConf := map[string]string{
 		"ipv4.address": "auto",
 		"ipv4.nat":     "true",
@@ -262,7 +265,7 @@ func (s *networkSuite) TestVerifyNetworkDeviceNotPresentCreated(c *gc.C) {
 		cSvr.EXPECT().GetNetwork(network.DefaultLXDBridge).Return(nil, "", errors.New("network not found")),
 		cSvr.EXPECT().CreateNetwork(netCreateReq).Return(nil),
 		cSvr.EXPECT().GetNetwork(network.DefaultLXDBridge).Return(newNet, "", nil),
-		cSvr.EXPECT().UpdateProfile("default", defaultLegacyProfileWithNIC().Writable(), lxdtesting.ETag).Return(nil),
+		cSvr.EXPECT().UpdateProfile("default", defaultLegacyProfileWithNIC().Writable(), lxdtesting.ETag).Return(op, nil),
 	)
 
 	profile := defaultLegacyProfileWithNIC()
@@ -281,6 +284,9 @@ func (s *networkSuite) TestVerifyNetworkDeviceNotPresentCreatedWithUnusedName(c 
 	ctrl := gomock.NewController(c)
 	defer ctrl.Finish()
 	cSvr := s.NewMockServerWithExtensions(ctrl, "network")
+
+	op := lxdtesting.NewMockOperation(ctrl)
+	op.EXPECT().Wait().Return(nil)
 
 	defaultBridge := &lxdapi.Network{
 		Name:    network.DefaultLXDBridge,
@@ -307,7 +313,7 @@ func (s *networkSuite) TestVerifyNetworkDeviceNotPresentCreatedWithUnusedName(c 
 	}
 	gomock.InOrder(
 		cSvr.EXPECT().GetNetwork(network.DefaultLXDBridge).Return(defaultBridge, "", nil),
-		cSvr.EXPECT().UpdateProfile("default", devReq, lxdtesting.ETag).Return(nil),
+		cSvr.EXPECT().UpdateProfile("default", devReq, lxdtesting.ETag).Return(op, nil),
 	)
 
 	profile := defaultLegacyProfileWithNIC()

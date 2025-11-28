@@ -15,11 +15,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/juju/juju/caas"
-	constants "github.com/juju/juju/caas/kubernetes/provider/constants"
-	resources "github.com/juju/juju/caas/kubernetes/provider/resources"
+	"github.com/juju/juju/caas/kubernetes/provider/constants"
+	"github.com/juju/juju/caas/kubernetes/provider/resources"
 	"github.com/juju/juju/caas/kubernetes/provider/utils"
 	"github.com/juju/juju/core/status"
-	storage "github.com/juju/juju/storage"
+	"github.com/juju/juju/storage"
 	storageprovider "github.com/juju/juju/storage/provider"
 )
 
@@ -230,7 +230,7 @@ func FilesystemInfo(ctx context.Context, client kubernetes.Interface,
 func PersistentVolumeClaimSpec(params VolumeParams) *corev1.PersistentVolumeClaimSpec {
 	return &corev1.PersistentVolumeClaimSpec{
 		StorageClassName: &params.StorageConfig.StorageClass,
-		Resources: corev1.ResourceRequirements{
+		Resources: corev1.VolumeResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceStorage: params.Size,
 			},

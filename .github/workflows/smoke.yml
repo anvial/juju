@@ -17,7 +17,7 @@ on:
 jobs:
   smoke:
     name: Smoke
-    runs-on: [self-hosted, linux, arm64, aws, xlarge]
+    runs-on: [self-hosted, linux, x64, aws, quad-xlarge]
     if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
@@ -37,6 +37,14 @@ jobs:
       - name: Setup LXD
         if: matrix.cloud == 'localhost'
         uses: canonical/setup-lxd@2fa6235ef2dfd3288e0de09edac03f2ebf922968
+
+      - name: Wait for LXD
+        if: matrix.cloud == 'localhost'
+        run: |
+          while ! ip link show lxdbr0; do
+            echo "Waiting for lxdbr0..."
+            sleep 10
+          done
 
       - name: Setup Docker Mirror
         shell: bash
@@ -73,7 +81,7 @@ jobs:
       - name: Update microk8s operator image
         if: matrix.cloud == 'microk8s'
         run: |
-          # TODO: use temporary Docker account (set DOCKER_USERNAME env var)
+          # TODO: use temporary Docker account (set OCI_REGISTRY_USERNAME env var)
           sg microk8s 'make microk8s-operator-update'
 
       - name: Smoke test (LXD)
@@ -90,4 +98,5 @@ jobs:
         run: |
           cd tests
           export MODEL_ARCH=$(go env GOARCH)
+          export OPERATOR_IMAGE_ACCOUNT=ghcr.io/juju
           sg microk8s './main.sh -c microk8s -s test_build -v smoke'

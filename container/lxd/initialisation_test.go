@@ -2,7 +2,6 @@
 // Licensed under the AGPLv3, see LICENCE file for details.
 
 //go:build linux
-// +build linux
 
 package lxd
 
@@ -642,6 +641,9 @@ func (s *ConfigureInitialiserSuite) TestConfigureLXDBridgeWithoutNicsCreatesANew
 	defer ctrl.Finish()
 	cSvr := lxdtesting.NewMockInstanceServer(ctrl)
 
+	op := lxdtesting.NewMockOperation(ctrl)
+	op.EXPECT().Wait().Return(nil)
+
 	mgr := mocks.NewMockSnapManager(ctrl)
 	mgr.EXPECT().InstalledChannel("lxd").Return("latest/stable")
 	PatchGetSnapManager(s, mgr)
@@ -676,7 +678,7 @@ func (s *ConfigureInitialiserSuite) TestConfigureLXDBridgeWithoutNicsCreatesANew
 		cSvr.EXPECT().GetNetwork("lxdbr0").Return(network, "", nil),
 		// Because no nic was found, we create the nic info and then update the
 		// update profile with that nic information.
-		cSvr.EXPECT().UpdateProfile(lxdDefaultProfileName, updatedProfile, gomock.Any()).Return(nil),
+		cSvr.EXPECT().UpdateProfile(lxdDefaultProfileName, updatedProfile, gomock.Any()).Return(op, nil),
 	)
 
 	ci := s.containerInitialiser(cSvr, true)

@@ -38,7 +38,6 @@ import (
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/model"
 	jujuos "github.com/juju/juju/core/os"
-	jujuseries "github.com/juju/juju/core/series"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/bootstrap"
 	"github.com/juju/juju/environs/config"
@@ -110,7 +109,6 @@ func (s *BootstrapSuite) SetUpTest(c *gc.C) {
 	s.PatchValue(&arch.HostArch, func() string { return v100w64.Arch })
 	s.PatchValue(&series.HostSeries, func() (string, error) { return "bionic", nil })
 	s.PatchValue(&jujuos.HostOS, func() jujuos.OSType { return jujuos.Ubuntu })
-	s.PatchValue(&jujuseries.UbuntuDistroInfo, "/path/notexists")
 
 	// Set up a local source with tools.
 	sourceDir := createToolsSource(c, vAll)

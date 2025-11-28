@@ -31,11 +31,12 @@ func (s *APIRequesterSuite) TestDo(c *gc.C) {
 	req := MustNewRequest(c, "http://api.foo.bar")
 
 	mockTransport := NewMockTransport(ctrl)
-	mockTransport.EXPECT().Do(req).Return(emptyResponse(), nil)
+	mockTransport.EXPECT().Do(req).Return(emptyResponse(), nil) //nolint:bodyclose
 
 	requester := NewAPIRequester(mockTransport, &FakeLogger{})
 	resp, err := requester.Do(req)
 	c.Assert(err, jc.ErrorIsNil)
+	defer resp.Body.Close()
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusOK)
 }
 
@@ -46,10 +47,10 @@ func (s *APIRequesterSuite) TestDoWithFailure(c *gc.C) {
 	req := MustNewRequest(c, "http://api.foo.bar")
 
 	mockTransport := NewMockTransport(ctrl)
-	mockTransport.EXPECT().Do(req).Return(emptyResponse(), errors.Errorf("boom"))
+	mockTransport.EXPECT().Do(req).Return(emptyResponse(), errors.Errorf("boom")) //nolint:bodyclose
 
 	requester := NewAPIRequester(mockTransport, &FakeLogger{})
-	_, err := requester.Do(req)
+	_, err := requester.Do(req) //nolint:bodyclose
 	c.Assert(err, gc.Not(jc.ErrorIsNil))
 }
 
@@ -60,10 +61,10 @@ func (s *APIRequesterSuite) TestDoWithInvalidContentType(c *gc.C) {
 	req := MustNewRequest(c, "http://api.foo.bar")
 
 	mockTransport := NewMockTransport(ctrl)
-	mockTransport.EXPECT().Do(req).Return(invalidContentTypeResponse(), nil)
+	mockTransport.EXPECT().Do(req).Return(invalidContentTypeResponse(), nil) //nolint:bodyclose
 
 	requester := NewAPIRequester(mockTransport, &FakeLogger{})
-	_, err := requester.Do(req)
+	_, err := requester.Do(req) //nolint:bodyclose
 	c.Assert(err, gc.Not(jc.ErrorIsNil))
 }
 
@@ -74,11 +75,12 @@ func (s *APIRequesterSuite) TestDoWithNotFoundResponse(c *gc.C) {
 	req := MustNewRequest(c, "http://api.foo.bar")
 
 	mockTransport := NewMockTransport(ctrl)
-	mockTransport.EXPECT().Do(req).Return(notFoundResponse(), nil)
+	mockTransport.EXPECT().Do(req).Return(notFoundResponse(), nil) //nolint:bodyclose
 
 	requester := NewAPIRequester(mockTransport, &FakeLogger{})
 	resp, err := requester.Do(req)
 	c.Assert(err, jc.ErrorIsNil)
+	defer resp.Body.Close()
 	c.Assert(resp.StatusCode, gc.Equals, http.StatusNotFound)
 }
 
@@ -97,7 +99,7 @@ func (s *RESTSuite) TestGet(c *gc.C) {
 	mockTransport := NewMockTransport(ctrl)
 	mockTransport.EXPECT().Do(gomock.Any()).Do(func(req *http.Request) {
 		recievedURL = req.URL.String()
-	}).Return(emptyResponse(), nil)
+	}).Return(emptyResponse(), nil) //nolint:bodyclose
 
 	base := MustMakePath(c, "http://api.foo.bar")
 
@@ -128,7 +130,7 @@ func (s *RESTSuite) TestGetWithFailure(c *gc.C) {
 	defer ctrl.Finish()
 
 	mockTransport := NewMockTransport(ctrl)
-	mockTransport.EXPECT().Do(gomock.Any()).Return(emptyResponse(), errors.Errorf("boom"))
+	mockTransport.EXPECT().Do(gomock.Any()).Return(emptyResponse(), errors.Errorf("boom")) //nolint:bodyclose
 
 	client := NewHTTPRESTClient(mockTransport, nil)
 
@@ -215,7 +217,7 @@ func (s *RESTSuite) TestGetWithUnmarshalFailure(c *gc.C) {
 	defer ctrl.Finish()
 
 	mockTransport := NewMockTransport(ctrl)
-	mockTransport.EXPECT().Do(gomock.Any()).Return(invalidResponse(), nil)
+	mockTransport.EXPECT().Do(gomock.Any()).Return(invalidResponse(), nil) //nolint:bodyclose
 
 	client := NewHTTPRESTClient(mockTransport, nil)
 
