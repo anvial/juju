@@ -77,8 +77,8 @@ as follows:
 
     a. For a resource that has been uploaded to Charmhub: the resource revision number.
 
-	b. For a local resource: the path to the local file for your private OCI image as well as the
-	username and password required to access the private OCI image. Caveat: If you choose this,
+	b. For a local resource: the path to the local ` + "`json`" + ` or ` + "`yaml`" + ` file that contains the details
+	for your private OCI image (OCI image path, username, password, etc.). Caveat: If you choose this,
 	you will not be able to go back to using a resource from Charmhub.
 
     c. For a resource that has been uploaded to a public OCI registry: a link to the public OCI image.
