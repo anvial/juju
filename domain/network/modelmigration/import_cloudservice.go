@@ -28,10 +28,17 @@ func RegisterImportCloudService(coordinator Coordinator, logger logger.Logger) {
 	})
 }
 
+// CloudServiceMigrationService defines methods needed to import
+// cloud services as part of model migration.
+type CloudServiceMigrationService interface {
+	// ImportCloudServices imports cloud service metadata into the model using the provided context and service data.
+	ImportCloudServices(ctx context.Context, services []internal.ImportCloudService) error
+}
+
 type importCloudServiceOperation struct {
 	modelmigration.BaseOperation
 
-	migrationService MigrationService
+	migrationService CloudServiceMigrationService
 	logger           logger.Logger
 }
 
