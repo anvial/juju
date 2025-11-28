@@ -311,6 +311,127 @@ func (s *migrationSuite) TestImportLinkLayerDevicesMachines(c *tc.C) {
 	c.Assert(err, tc.ErrorMatches, "boom")
 }
 
+func (s *migrationSuite) TestImportLinkLayerDevicesLoopbackAddressesNoSubnet(c *tc.C) {
+	// Arrange
+	defer s.setupMocks(c).Finish()
+	netNodeUUID := uuid.MustNewUUID().String()
+	nameMap := map[string]string{
+		"88": netNodeUUID,
+	}
+
+	subnetUUID := uuid.MustNewUUID().String()
+	subnets := corenetwork.SubnetInfos{{
+		ID:   corenetwork.Id(subnetUUID),
+		CIDR: "192.0.2.0/24",
+	}}
+
+	args := []internal.ImportLinkLayerDevice{
+		{
+			MachineID: "88",
+			Name:      "eth0",
+			Addresses: []internal.ImportIPAddress{
+				{
+					AddressValue: "127.0.0.1",
+					SubnetCIDR:   "127.0.0.0/8",
+					ConfigType:   corenetwork.ConfigLoopback,
+				},
+				{
+					AddressValue: "192.0.2.10",
+					SubnetCIDR:   "192.0.2.0/24",
+					ConfigType:   corenetwork.ConfigStatic,
+				},
+			},
+		},
+	}
+
+	expectedArgs := make([]internal.ImportLinkLayerDevice, len(args))
+	copy(expectedArgs, args)
+	expectedArgs[0].NetNodeUUID = netNodeUUID
+	// Loopback address is included but not transformed (no SubnetUUID set)
+	// Non-loopback address is transformed with SubnetUUID.
+	expectedArgs[0].Addresses = []internal.ImportIPAddress{
+		{
+			AddressValue: "127.0.0.1",
+			SubnetCIDR:   "127.0.0.0/8",
+			ConfigType:   corenetwork.ConfigLoopback,
+			// SubnetUUID is empty for loopback.
+		},
+		{
+			AddressValue: "192.0.2.10",
+			SubnetCIDR:   "192.0.2.0/24",
+			ConfigType:   corenetwork.ConfigStatic,
+			SubnetUUID:   subnetUUID,
+		},
+	}
+
+	s.st.EXPECT().AllMachinesAndNetNodes(gomock.Any()).Return(nameMap, nil)
+	s.st.EXPECT().GetAllSubnets(gomock.Any()).Return(subnets, nil)
+	s.st.EXPECT().ImportLinkLayerDevices(gomock.Any(), expectedArgs).Return(nil)
+
+	// Act
+	err := s.migrationService(c).ImportLinkLayerDevices(c.Context(), args)
+
+	// Assert: loopback addresses are included but have no subnet UUID.
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *migrationSuite) TestImportLinkLayerDevicesOnlyLoopbackAddresses(c *tc.C) {
+	// Arrange
+	defer s.setupMocks(c).Finish()
+	netNodeUUID := uuid.MustNewUUID().String()
+	nameMap := map[string]string{
+		"88": netNodeUUID,
+	}
+
+	args := []internal.ImportLinkLayerDevice{
+		{
+			MachineID: "88",
+			Name:      "lo",
+			Addresses: []internal.ImportIPAddress{
+				{
+					AddressValue: "127.0.0.1",
+					SubnetCIDR:   "127.0.0.0/8",
+					ConfigType:   corenetwork.ConfigLoopback,
+				},
+				{
+					AddressValue: "::1",
+					SubnetCIDR:   "::1/128",
+					ConfigType:   corenetwork.ConfigLoopback,
+				},
+			},
+		},
+	}
+
+	expectedArgs := make([]internal.ImportLinkLayerDevice, len(args))
+	copy(expectedArgs, args)
+	expectedArgs[0].NetNodeUUID = netNodeUUID
+	// All addresses are loopback, they're included but not transformed.
+	expectedArgs[0].Addresses = []internal.ImportIPAddress{
+		{
+			AddressValue: "127.0.0.1",
+			SubnetCIDR:   "127.0.0.0/8",
+			ConfigType:   corenetwork.ConfigLoopback,
+			// SubnetUUID is empty for loopback.
+		},
+		{
+			AddressValue: "::1",
+			SubnetCIDR:   "::1/128",
+			ConfigType:   corenetwork.ConfigLoopback,
+			// SubnetUUID is empty for loopback.
+		},
+	}
+
+	s.st.EXPECT().AllMachinesAndNetNodes(gomock.Any()).Return(nameMap, nil)
+	s.st.EXPECT().GetAllSubnets(gomock.Any()).Return(nil, nil)
+	s.st.EXPECT().ImportLinkLayerDevices(gomock.Any(), expectedArgs).Return(nil)
+
+	// Act
+	err := s.migrationService(c).ImportLinkLayerDevices(c.Context(), args)
+
+	// Assert: device is imported with loopback addresses but no subnet UUIDs.
+	c.Assert(err, tc.ErrorIsNil)
+}
+
 func (s *migrationSuite) TestImportLinkLayerDevicesNoContent(c *tc.C) {
 	// Arrange
 	defer s.setupMocks(c).Finish()
