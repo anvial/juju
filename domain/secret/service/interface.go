@@ -56,9 +56,11 @@ type State interface {
 	GetLatestRevision(ctx context.Context, uri *secrets.URI) (int, error)
 	GetLatestRevisions(ctx context.Context, uris []*secrets.URI) (map[string]int, error)
 	GetSecretValue(ctx context.Context, uri *secrets.URI, revision int) (secrets.SecretData, *secrets.ValueRef, error)
-	ListSecrets(ctx context.Context, uri *secrets.URI,
-		revision *int, labels domainsecret.Labels,
-	) ([]*secrets.SecretMetadata, [][]*secrets.SecretRevisionMetadata, error)
+	GetSecretByURI(ctx context.Context, uri secrets.URI, revision *int) (*secrets.SecretMetadata,
+		[]*secrets.SecretRevisionMetadata, error)
+	ListSecretsByLabels(ctx context.Context, labels domainsecret.Labels, revision *int) ([]*secrets.SecretMetadata,
+		[][]*secrets.SecretRevisionMetadata, error)
+	ListAllSecrets(ctx context.Context) ([]*secrets.SecretMetadata, [][]*secrets.SecretRevisionMetadata, error)
 	ListCharmSecrets(ctx context.Context,
 		appOwners domainsecret.ApplicationOwners, unitOwners domainsecret.UnitOwners,
 	) ([]*secrets.SecretMetadata, [][]*secrets.SecretRevisionMetadata, error)

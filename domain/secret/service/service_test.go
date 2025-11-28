@@ -1197,6 +1197,137 @@ func (s *serviceSuite) TestListCharmSecrets(c *tc.C) {
 	c.Assert(gotRevisions, tc.DeepEquals, revs)
 }
 
+func (s *serviceSuite) TestListSecretsErrWhenURIAndLabelsProvided(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+	labels := domainsecret.Labels{"env"}
+
+	_, _, err := s.service.ListSecrets(c.Context(), uri, nil, labels)
+	c.Assert(err, tc.ErrorMatches, "cannot specify both URI and labels")
+}
+
+func (s *serviceSuite) TestListSecretsByURI(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+	md := &coresecrets.SecretMetadata{Label: "by-uri"}
+	revs := []*coresecrets.SecretRevisionMetadata{{Revision: 7}}
+
+	s.state.EXPECT().GetSecretByURI(gomock.Any(), *uri, (*int)(nil)).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), uri, nil, nil)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.HasLen, 1)
+	c.Assert(gotRevs, tc.HasLen, 1)
+	c.Assert(gotMDs[0], tc.DeepEquals, md)
+	c.Assert(gotRevs[0], tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsByURIError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+
+	s.state.EXPECT().GetSecretByURI(gomock.Any(), *uri, (*int)(nil)).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), uri, nil, nil)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, fmt.Sprintf("getting secret by URI %q: boom", uri.ID))
+}
+
+func (s *serviceSuite) TestListSecretsByLabels(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"tier"}
+	md := []*coresecrets.SecretMetadata{{Label: "one"}, {Label: "two"}}
+	revs := [][]*coresecrets.SecretRevisionMetadata{{{Revision: 1}}, {{Revision: 2}}}
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, (*int)(nil)).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), nil, nil, labels)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.DeepEquals, md)
+	c.Assert(gotRevs, tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsByLabelsError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"tier"}
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, (*int)(nil)).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), nil, nil, labels)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, "getting secrets by labels: boom")
+}
+
+func (s *serviceSuite) TestListSecretsByLabelsWithRevision(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"owner"}
+	rev := 3
+	md := []*coresecrets.SecretMetadata{{Label: "rev-3"}}
+	revs := [][]*coresecrets.SecretRevisionMetadata{{{Revision: 3}}}
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, &rev).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), nil, &rev, labels)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.DeepEquals, md)
+	c.Assert(gotRevs, tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsByLabelsWithRevisionError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"owner"}
+	rev := 3
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, &rev).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), nil, &rev, labels)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, "getting secrets by labels: boom")
+}
+
+func (s *serviceSuite) TestListSecretsErrOnRevisionOnly(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	rev := 2
+	_, _, err := s.service.ListSecrets(c.Context(), nil, &rev, nil)
+	c.Assert(err, tc.ErrorMatches, "cannot specify revision without URI or labels")
+}
+
+func (s *serviceSuite) TestListSecretsAll(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	md := []*coresecrets.SecretMetadata{{Label: "a"}}
+	revs := [][]*coresecrets.SecretRevisionMetadata{{{Revision: 1}}}
+
+	s.state.EXPECT().ListAllSecrets(gomock.Any()).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), nil, nil, nil)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.DeepEquals, md)
+	c.Assert(gotRevs, tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsAllError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.state.EXPECT().ListAllSecrets(gomock.Any()).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), nil, nil, nil)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, "listing all secrets: boom")
+}
+
 func (s *serviceSuite) TestListCharmJustApplication(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
