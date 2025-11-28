@@ -3325,35 +3325,8 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 	info := s.prepareSecretObsoleteRevisions(c, st)
 	ctx := c.Context()
 
-	result, err := st.GetRevisionIDsForObsolete(ctx,
-		nil, nil, nil,
-	)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.HasLen, 0)
-
-	// no owners, revUUIDs.
-	result, err = st.GetRevisionIDsForObsolete(ctx,
-		nil, nil, []string{
-			getRevUUID(c, s.DB(), info.uri1, 1),
-			getRevUUID(c, s.DB(), info.uri2, 1),
-			getRevUUID(c, s.DB(), info.uri3, 1),
-			getRevUUID(c, s.DB(), info.uri4, 1),
-			getRevUUID(c, s.DB(), info.uri1, 2),
-			getRevUUID(c, s.DB(), info.uri2, 2),
-			getRevUUID(c, s.DB(), info.uri3, 2),
-			getRevUUID(c, s.DB(), info.uri4, 2),
-		},
-	)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.SameContents, []string{
-		revID(info.uri1, 1),
-		revID(info.uri2, 1),
-		revID(info.uri3, 1),
-		revID(info.uri4, 1),
-	})
-
 	// appOwners, unitOwners, revUUIDs.
-	result, err = st.GetRevisionIDsForObsolete(ctx,
+	result, err := st.GetRevisionIDsForObsolete(ctx,
 		[]string{
 			info.appUUID,
 			info.app2UUID,
@@ -3372,26 +3345,6 @@ func (s *stateSuite) TestGetRevisionIDsForObsolete(c *tc.C) {
 			getRevUUID(c, s.DB(), info.uri3, 2),
 			getRevUUID(c, s.DB(), info.uri4, 2),
 		},
-	)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.SameContents, []string{
-		revID(info.uri1, 1),
-		revID(info.uri2, 1),
-		revID(info.uri3, 1),
-		revID(info.uri4, 1),
-	})
-
-	// appOwners, unitOwners, no revisions.
-	result, err = st.GetRevisionIDsForObsolete(ctx,
-		[]string{
-			info.appUUID,
-			info.app2UUID,
-		},
-		[]string{
-			info.unitUUID,
-			info.unit2UUID,
-		},
-		nil,
 	)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(result, tc.SameContents, []string{
