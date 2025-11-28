@@ -1,6 +1,6 @@
 (juju36x)=
 # Juju 3.6 (LTS)
-> April 2036: expected end of security fix support
+> April 2039: expected end of security fix support
 >
 > 1 May 2026: expected end of bug fix support
 

@@ -2,7 +2,7 @@
 # Juju 2.9 (LTS)
 > Currently in Security Fix Only support
 >
->  April 2032: expected end of security fix support
+>  April 2035: expected end of security fix support
 
 ```{note}
 Juju 2.9 series is LTS
