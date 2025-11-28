@@ -86,7 +86,7 @@ where ` + "`<resource name>`" + ` is the name from the ` + "`metadata.yaml`" +
 
 `
 	attachExample = `
-    juju attach-resource mysql resource-name=foo
+    juju attach-resource easyrsa easyrsa=./EasyRSA-3.0.7.tgz
 
     juju attach-resource ubuntu-k8s ubuntu_image=ubuntu
 

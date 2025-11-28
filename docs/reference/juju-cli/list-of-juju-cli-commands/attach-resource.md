@@ -16,7 +16,7 @@ Update a resource for an application.
 
 ## Examples
 
-    juju attach-resource mysql resource-name=foo
+    juju attach-resource easyrsa easyrsa=./EasyRSA-3.0.7.tgz
 
     juju attach-resource ubuntu-k8s ubuntu_image=ubuntu
 
