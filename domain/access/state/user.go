@@ -330,10 +330,14 @@ func (st *UserState) GetUserUUIDByName(
 	})
 }
 
-// GetUserByAuth will retrieve the user with checking authentication
-// information specified by UUID and password from the database.
-// If the user does not exist an error that satisfies accesserrors.UserNotFound
-// will be returned, otherwise unauthorized will be returned.
+// GetUserByAuth will find and return the user identified by the supplied user
+// name confirming that the users password also matches. Only users that are
+// active within the current controller will be considered.
+//
+// The following errors may be returned:
+// - [accesserrors.UserUnauthorized] when the the users password does not
+// match the one in the controller.
+// - [accesserrors.UserNotFound] when the user does not exist in the controller.
 func (st *UserState) GetUserByAuth(ctx context.Context, name user.Name, password auth.Password) (user.User, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
@@ -373,7 +377,7 @@ AND    user.removed = false
 		return nil
 	})
 	if err != nil {
-		return user.User{}, errors.Errorf("getting user with name %q: %w", name, err)
+		return user.User{}, errors.Capture(err)
 	}
 
 	passwordHash, err := auth.HashPassword(password, result.PasswordSalt)
