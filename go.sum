@@ -168,8 +168,8 @@ github.com/canonical/go-dqlite v1.21.0 h1:4gLDdV2GF+vg0yv9Ff+mfZZNQ1JGhnQ3GnS2Ge
 github.com/canonical/go-dqlite v1.21.0/go.mod h1:Uvy943N8R4CFUAs59A1NVaziWY9nJ686lScY7ywurfg=
 github.com/canonical/go-flags v0.0.0-20230403090104-105d09a091b8 h1:zGaJEJI9qPVyM+QKFJagiyrM91Ke5S9htoL1D470g6E=
 github.com/canonical/go-flags v0.0.0-20230403090104-105d09a091b8/go.mod h1:ZZFeR9K9iGgpwOaLYF9PdT44/+lfSJ9sQz3B+SsGsYU=
-github.com/canonical/lxd v0.0.0-20251112203541-660577aa1183 h1:RIcZMvVRrpT4RHiKr8byTa1rHYCQZF0q5rgVlbiovMM=
-github.com/canonical/lxd v0.0.0-20251112203541-660577aa1183/go.mod h1:MYdE1ID6Km0wWecLfqErbD0v6rqOgLQk91H/zSCWj0I=
+github.com/canonical/lxd v0.0.0-20251125210512-b190d213bd11 h1:QOyXTFkf5zh/UezMurmpjobnOxefsrHxyYZpl8mfWbs=
+github.com/canonical/lxd v0.0.0-20251125210512-b190d213bd11/go.mod h1:vE1tA6TE1rvEzMcFKUfqh7BMhGH0vlkhYDy4YzeLHbM=
 github.com/canonical/pebble v1.26.0 h1:jsPJmHe/E5PU6epAoq8QC/U2itPsMX947/oP4zcsWCA=
 github.com/canonical/pebble v1.26.0/go.mod h1:HtGFWX2hq+/jxXHvN3ibXUAqFGCRXmT2e4jYkpZi/O0=
 github.com/canonical/x-go v0.0.0-20230522092633-7947a7587f5b h1:Da2fardddn+JDlVEYtrzBLTtyzoyU3nIS0Cf0GvjmwU=

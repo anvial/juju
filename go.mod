@@ -25,7 +25,7 @@ require (
 	github.com/aws/smithy-go v1.22.3
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f
 	github.com/canonical/go-dqlite v1.21.0
-	github.com/canonical/lxd v0.0.0-20251112203541-660577aa1183
+	github.com/canonical/lxd v0.0.0-20251125210512-b190d213bd11
 	github.com/canonical/pebble v1.26.0
 	github.com/chzyer/readline v1.5.1
 	github.com/coreos/go-systemd/v22 v22.5.0
