@@ -1,2 +1,5 @@
 # <old URL> <new URL>
 # e.g., user/reference/charm/channel/ user/reference/charm/
+
+# redirect roadmap to new release notes
+reference/juju/juju-roadmap-and-releases releasenotes
