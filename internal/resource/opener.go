@@ -180,9 +180,7 @@ func (ro ResourceOpener) getResource(
 	} else if err == nil {
 		// If the resource was stored on the controller, return immediately.
 		return coreresource.Opened{
-			Resource: coreresource.Resource{
-				Resource: res.Resource,
-			},
+			Resource: res,
 			ReadCloser: &resourceAccess{
 				ReadCloser: reader,
 				done:       done,
@@ -234,9 +232,7 @@ func (ro ResourceOpener) getResource(
 	}
 
 	return coreresource.Opened{
-		Resource: coreresource.Resource{
-			Resource: res.Resource,
-		},
+		Resource: res,
 		ReadCloser: &resourceAccess{
 			ReadCloser: reader,
 			done:       done,
