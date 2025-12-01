@@ -1,7 +1,5 @@
 # <old URL> <new URL>
-
-
-
+reference/juju/juju-roadmap-and-releases releasenotes
 reference/plugin/ reference
 reference/plugin/list-of-known-juju-plugins/#list-of-known-juju-plugins reference
 reference/plugin/list-of-known-juju-plugins/plugin-juju-stash/ reference
