@@ -16,13 +16,15 @@ applications:
     to:
     - "1"
     constraints: arch=amd64
-  ntp:
-    charm: ntp
-    channel: stable
-  ntp-focal:
-    charm: ntp
-    channel: stable
+  dummy-subordinate:
+    charm: juju-qa-dummy-subordinate
+    options:
+      token: token
+  dummy-subordinate-focal:
+    charm: juju-qa-dummy-subordinate
     series: focal
+    options:
+      token: token
 machines:
   "0":
     constraints: arch=amd64
@@ -31,7 +33,7 @@ machines:
     constraints: arch=amd64
     series: focal
 relations:
-- - ntp:juju-info
+- - dummy-subordinate:juju-info
   - juju-qa-test:juju-info
-- - ntp-focal:juju-info
+- - dummy-subordinate-focal:juju-info
   - juju-qa-test-focal:juju-info

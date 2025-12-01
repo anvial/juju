@@ -7,6 +7,8 @@ run_model_migration() {
 	bootstrap_alt_controller "alt-model-migration"
 	juju switch "alt-model-migration"
 	juju add-model "model-migration"
+	juju model-config -m controller "logging-config=#migration=DEBUG"
+	juju model-config -m model-migration "logging-config=#migration=DEBUG"
 
 	juju deploy ubuntu
 
@@ -15,6 +17,7 @@ run_model_migration() {
 	# Capture logs to ensure they are migrated
 	old_logs="$(juju debug-log --no-tail -l DEBUG)"
 
+	juju model-config -m "${BOOTSTRAPPED_JUJU_CTRL_NAME}:controller" "logging-config=#migration=DEBUG"
 	juju migrate "model-migration" "${BOOTSTRAPPED_JUJU_CTRL_NAME}"
 	juju switch "${BOOTSTRAPPED_JUJU_CTRL_NAME}"
 
@@ -63,6 +66,9 @@ run_model_migration_version() {
 	export JUJU_VERSION=$juju_version_without_build_number
 	major_minor=$(echo "$JUJU_VERSION" | cut -d'-' -f1 | cut -d'.' -f1,2)
 
+	# This test is slow sometimes to operate with the charmhub. So, we need to enlarge the timeout for wait_for.
+	wait_for_timeout=1800
+
 	# test against beta channel for devel
 	# TODO: change back to stable once 3.0 released.
 	# channel="$major_minor/beta"  # 3.0
@@ -72,7 +78,7 @@ run_model_migration_version() {
 	echo "stable_version ==> $stable_version"
 	if [[ $stable_version == "--" || $stable_version == null ]]; then
 		echo "==> SKIP: run_model_migration_version because $channel is not published yet!"
-		exit 0
+		return
 	fi
 	export JUJU_VERSION=$stable_version
 
@@ -86,16 +92,16 @@ run_model_migration_version() {
 	juju --show-log add-relation etcd easyrsa
 	juju --show-log add-unit -n 2 etcd
 
-	wait_for "active" '.applications["easyrsa"] | ."application-status".current'
-	wait_for "easyrsa" "$(idle_condition "easyrsa" 0)"
-	wait_for "active" '.applications["etcd"] | ."application-status".current' 900
-	wait_for "etcd" "$(idle_condition "etcd" 1 0)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 1)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 2)"
+	wait_for "active" '.applications["easyrsa"] | ."application-status".current' $wait_for_timeout
+	wait_for "easyrsa" "$(idle_condition "easyrsa" 0)" $wait_for_timeout
+	wait_for "active" '.applications["etcd"] | ."application-status".current' $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 0)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 1)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 2)" $wait_for_timeout
 
-	wait_for "active" "$(workload_status "etcd" 0).current"
-	wait_for "active" "$(workload_status "etcd" 1).current"
-	wait_for "active" "$(workload_status "etcd" 2).current"
+	wait_for "active" "$(workload_status "etcd" 0).current" $wait_for_timeout
+	wait_for "active" "$(workload_status "etcd" 1).current" $wait_for_timeout
+	wait_for "active" "$(workload_status "etcd" 2).current" $wait_for_timeout
 
 	# juju --show-log run etcd/0 etcd/1 etcd/2 --wait=5m health  # 3.0
 	juju --show-log run-action etcd/0 etcd/1 etcd/2 --wait=5m health # 2.9
@@ -109,24 +115,24 @@ run_model_migration_version() {
 	# Once the model has appeared, switch to it.
 	juju --show-log switch "${BOOTSTRAPPED_JUJU_CTRL_NAME}:model-migration-version-stable"
 
-	wait_for "easyrsa" "$(idle_condition "easyrsa" 0)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 0)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 1)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 2)"
+	wait_for "easyrsa" "$(idle_condition "easyrsa" 0)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 0)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 1)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 2)" $wait_for_timeout
 
 	# Add a unit to etcd to ensure the model is functional
 	juju add-unit -n 2 etcd
-	wait_for "etcd" "$(idle_condition "etcd" 1 0)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 1)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 2)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 3)"
-	wait_for "etcd" "$(idle_condition "etcd" 1 4)"
+	wait_for "etcd" "$(idle_condition "etcd" 1 0)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 1)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 2)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 3)" $wait_for_timeout
+	wait_for "etcd" "$(idle_condition "etcd" 1 4)" $wait_for_timeout
 
-	wait_for "active" "$(workload_status "etcd" 0).current"
-	wait_for "active" "$(workload_status "etcd" 1).current"
-	wait_for "active" "$(workload_status "etcd" 2).current"
-	wait_for "active" "$(workload_status "etcd" 3).current"
-	wait_for "active" "$(workload_status "etcd" 4).current"
+	wait_for "active" "$(workload_status "etcd" 0).current" $wait_for_timeout
+	wait_for "active" "$(workload_status "etcd" 1).current" $wait_for_timeout
+	wait_for "active" "$(workload_status "etcd" 2).current" $wait_for_timeout
+	wait_for "active" "$(workload_status "etcd" 3).current" $wait_for_timeout
+	wait_for "active" "$(workload_status "etcd" 4).current" $wait_for_timeout
 
 	# juju --show-log run etcd/0 etcd/1 etcd/2 etcd/3 etcd/4 --wait=10m health  # 3.0
 	juju --show-log run-action etcd/0 etcd/1 etcd/2 etcd/3 etcd/4 --wait=10m health # 2.9
