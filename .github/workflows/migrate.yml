@@ -16,7 +16,9 @@ jobs:
       matrix:
         # TODO: add microk8s tests
         cloud: ["lxd"]
-        channel: ["2.9/stable"] 
+        # TODO: migration from 2.9 is broken due to a bug in the series pre-checks
+        # needs a 2.9 fix 
+        channel: ["3.6/stable"] 
         client: ['source', 'target']
 
     steps:

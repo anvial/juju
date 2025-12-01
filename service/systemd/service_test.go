@@ -31,8 +31,13 @@ var renderer = &shell.BashRenderer{}
 const confStr = `
 [Unit]
 Description=juju agent for %s
+Requires=network.target
+Requires=local-fs.target
+Wants=lxd-agent.target
 After=syslog.target
 After=network.target
+After=local-fs.target
+After=lxd-agent.target
 After=systemd-user-sessions.service
 
 [Service]
@@ -749,8 +754,13 @@ func (s *initSystemSuite) TestInstallCommandsShutdown(c *gc.C) {
 		Expected: `
 [Unit]
 Description=juju shutdown job
+Requires=network.target
+Requires=local-fs.target
+Wants=lxd-agent.target
 After=syslog.target
 After=network.target
+After=local-fs.target
+After=lxd-agent.target
 After=systemd-user-sessions.service
 After=cloud-final
 
@@ -797,8 +807,13 @@ func (s *initSystemSuite) TestInstallLimits(c *gc.C) {
 	c.Check(string(data), gc.Equals, `
 [Unit]
 Description=juju agent for juju-job
+Requires=network.target
+Requires=local-fs.target
+Wants=lxd-agent.target
 After=syslog.target
 After=network.target
+After=local-fs.target
+After=lxd-agent.target
 After=systemd-user-sessions.service
 
 [Service]

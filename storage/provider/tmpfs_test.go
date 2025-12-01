@@ -6,6 +6,8 @@ package provider_test
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/juju/names/v5"
 	jc "github.com/juju/testing/checkers"
@@ -200,6 +202,9 @@ func (s *tmpfsSuite) TestAttachFilesystemsAlreadyMounted(c *gc.C) {
 			},
 		},
 	}})
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, jc.ErrorIsNil)
+	c.Assert(string(data), gc.Equals, "filesystem-123 /in/the/place tmpfs size=1m,nofail\n")
 }
 
 func (s *tmpfsSuite) TestAttachFilesystemsMountReadOnly(c *gc.C) {
@@ -231,6 +236,9 @@ func (s *tmpfsSuite) TestAttachFilesystemsMountReadOnly(c *gc.C) {
 			},
 		},
 	}})
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, jc.ErrorIsNil)
+	c.Assert(string(data), gc.Equals, "filesystem-1 /var/lib/juju/storage/fs/foo tmpfs size=1024m,ro,nofail\n")
 }
 
 func (s *tmpfsSuite) TestAttachFilesystemsMountFails(c *gc.C) {

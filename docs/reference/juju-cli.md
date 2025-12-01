@@ -59,11 +59,6 @@ LXD itself can operate over the network and Juju does support this (`v.2.5.0`).
 
 You can also configure the Juju client using various environment variables. For more, see {ref}`juju-environment-variables`.
 
-
-## Plugins
-
-The Juju client can be extended with plugins. For more, see {ref}`plugin`, {ref}`list-of-known-juju-plugins`.
-
 ## Roadmap and releases
 
 Each Juju release is accompanied by a set of release notes that highlight the changes and bug fixes for each release. For more, see  {ref}`juju-roadmap-and-releases`.
