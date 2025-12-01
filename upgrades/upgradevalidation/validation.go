@@ -193,9 +193,8 @@ func stringifyMachineCounts(result map[string]int) string {
 func checkForDeprecatedUbuntuSeriesForModel(
 	_ string, _ StatePool, st State, _ Model,
 ) (*Blocker, error) {
-	supported := false
 	var deprecatedBases []state.Base
-	for _, vers := range corebase.UbuntuVersions(&supported, nil) {
+	for _, vers := range corebase.UbuntuVersions("19.10") {
 		deprecatedBases = append(deprecatedBases, state.Base{OS: corebase.UbuntuOS, Channel: vers})
 	}
 

@@ -63,12 +63,6 @@ var unsupportedUbuntuVersions = []string{
 	"18.10",
 	"19.04",
 	"19.10",
-	"20.10",
-	"21.04",
-	"21.10",
-	"22.10",
-	"23.04",
-	"23.10",
 }
 
 var controllerCfg = controller.Config{

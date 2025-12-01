@@ -1349,11 +1349,12 @@ func (mr *MockInstanceServerMockRecorder) CreateStoragePoolBucketKey(arg0, arg1,
 }
 
 // CreateStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) CreateStoragePoolVolume(arg0 string, arg1 api.StorageVolumesPost) error {
+func (m *MockInstanceServer) CreateStoragePoolVolume(arg0 string, arg1 api.StorageVolumesPost) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateStoragePoolVolume", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CreateStoragePoolVolume indicates an expected call of CreateStoragePoolVolume.
@@ -1963,11 +1964,12 @@ func (mr *MockInstanceServerMockRecorder) DeleteStoragePoolBucketKey(arg0, arg1,
 }
 
 // DeleteStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) DeleteStoragePoolVolume(arg0, arg1, arg2 string) error {
+func (m *MockInstanceServer) DeleteStoragePoolVolume(arg0, arg1, arg2 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStoragePoolVolume", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // DeleteStoragePoolVolume indicates an expected call of DeleteStoragePoolVolume.
@@ -5312,11 +5314,12 @@ func (mr *MockInstanceServerMockRecorder) RenameProject(arg0, arg1 any) *gomock.
 }
 
 // RenameStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) RenameStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePost) error {
+func (m *MockInstanceServer) RenameStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePost) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RenameStoragePoolVolume", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // RenameStoragePoolVolume indicates an expected call of RenameStoragePoolVolume.
@@ -5825,11 +5828,12 @@ func (mr *MockInstanceServerMockRecorder) UpdatePlacementGroup(arg0, arg1, arg2 
 }
 
 // UpdateProfile mocks base method.
-func (m *MockInstanceServer) UpdateProfile(arg0 string, arg1 api.ProfilePut, arg2 string) error {
+func (m *MockInstanceServer) UpdateProfile(arg0 string, arg1 api.ProfilePut, arg2 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateProfile", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateProfile indicates an expected call of UpdateProfile.
@@ -5909,11 +5913,12 @@ func (mr *MockInstanceServerMockRecorder) UpdateStoragePoolBucketKey(arg0, arg1,
 }
 
 // UpdateStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) UpdateStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePut, arg4 string) error {
+func (m *MockInstanceServer) UpdateStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePut, arg4 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStoragePoolVolume", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateStoragePoolVolume indicates an expected call of UpdateStoragePoolVolume.
@@ -5923,11 +5928,12 @@ func (mr *MockInstanceServerMockRecorder) UpdateStoragePoolVolume(arg0, arg1, ar
 }
 
 // UpdateStoragePoolVolumeSnapshot mocks base method.
-func (m *MockInstanceServer) UpdateStoragePoolVolumeSnapshot(arg0, arg1, arg2, arg3 string, arg4 api.StorageVolumeSnapshotPut, arg5 string) error {
+func (m *MockInstanceServer) UpdateStoragePoolVolumeSnapshot(arg0, arg1, arg2, arg3 string, arg4 api.StorageVolumeSnapshotPut, arg5 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStoragePoolVolumeSnapshot", arg0, arg1, arg2, arg3, arg4, arg5)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateStoragePoolVolumeSnapshot indicates an expected call of UpdateStoragePoolVolumeSnapshot.
