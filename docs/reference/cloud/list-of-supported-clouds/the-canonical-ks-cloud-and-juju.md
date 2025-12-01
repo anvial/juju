@@ -29,9 +29,9 @@ As the differences related to (1) are already documented generically in the rest
 
 Before you bootstrap:
 
-- You need to create a custom `containerd` path, e.g., `export containerdBaseDir="/run/containerd-k8s"`.
+- Create a custom `containerd` path, e.g., `export containerdBaseDir="/run/containerd-k8s"`.
 
-- For most purposes, you should also resize `/run`, e.g., `sudo mount -o remount,size=10G /run`.
+- Resize `/run`, e.g., `sudo mount -o remount,size=10G /run`.
 
 ```{ibnote}
 See more: https://github.com/canonical/k8s-snap/issues/1612

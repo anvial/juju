@@ -377,7 +377,7 @@ func (st *State) importCAASUnit(
 	appUUID coreapplication.UUID,
 	args application.ImportUnitArg,
 ) error {
-	err := st.checkUnitExistsByName(ctx, tx, args.UnitName)
+	err := st.checkUnitExistsByName(ctx, tx, args.UnitName.String())
 	if err == nil {
 		return errors.Errorf("unit %q already exists", args.UnitName).Add(applicationerrors.UnitAlreadyExists)
 	} else if !errors.Is(err, applicationerrors.UnitNotFound) {
@@ -421,7 +421,7 @@ func (st *State) importCAASUnit(
 				"getting unit uuid for principal unit: %w", err,
 			)
 		}
-		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID, unitUUID); err != nil {
+		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID.String()); err != nil {
 			return errors.Errorf("importing subordinate info for unit %q: %w", args.UnitName, err)
 		}
 	}
@@ -450,7 +450,7 @@ func (st *State) importIAASUnit(
 	appUUID coreapplication.UUID,
 	args application.ImportUnitArg,
 ) error {
-	err := st.checkUnitExistsByName(ctx, tx, args.UnitName)
+	err := st.checkUnitExistsByName(ctx, tx, args.UnitName.String())
 	if err == nil {
 		return errors.Errorf("unit %q already exists", args.UnitName).Add(applicationerrors.UnitAlreadyExists)
 	} else if !errors.Is(err, applicationerrors.UnitNotFound) {
@@ -490,7 +490,7 @@ func (st *State) importIAASUnit(
 				"getting unit uuid for principal unit: %w", err,
 			)
 		}
-		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID, unitUUID); err != nil {
+		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID.String()); err != nil {
 			return errors.Errorf("importing subordinate info for unit %q: %w", args.UnitName, err)
 		}
 	}

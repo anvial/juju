@@ -8,6 +8,7 @@ import (
 
 	coreapplication "github.com/juju/juju/core/application"
 	"github.com/juju/juju/core/logger"
+	"github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/trace"
 	coreunit "github.com/juju/juju/core/unit"
@@ -82,13 +83,11 @@ func (s *Service) GetAllOpenedPorts(ctx context.Context) (port.UnitGroupedPortRa
 // GetMachineOpenedPorts returns the opened ports for all endpoints, for all the
 // units on the machine. Opened ports are grouped first by unit name and then by
 // endpoint.
-//
-// TODO: Once we have a core static machine uuid type, use it here.
-func (s *Service) GetMachineOpenedPorts(ctx context.Context, machineUUID string) (map[coreunit.Name]network.GroupedPortRanges, error) {
+func (s *Service) GetMachineOpenedPorts(ctx context.Context, machineUUID machine.UUID) (map[coreunit.Name]network.GroupedPortRanges, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	return s.st.GetMachineOpenedPorts(ctx, machineUUID)
+	return s.st.GetMachineOpenedPorts(ctx, machineUUID.String())
 }
 
 // GetApplicationOpenedPorts returns the opened ports for all the units of the

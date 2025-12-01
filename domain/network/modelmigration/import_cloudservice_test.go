@@ -19,8 +19,7 @@ import (
 )
 
 type importCloudServiceSuite struct {
-	importService    *MockImportService
-	migrationService *MockMigrationService
+	migrationService *MockCloudServiceMigrationService
 }
 
 func TestImportCloudServiceSuite(t *testing.T) {
@@ -30,11 +29,9 @@ func TestImportCloudServiceSuite(t *testing.T) {
 func (s *importCloudServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 
-	s.importService = NewMockImportService(ctrl)
-	s.migrationService = NewMockMigrationService(ctrl)
+	s.migrationService = NewMockCloudServiceMigrationService(ctrl)
 
 	c.Cleanup(func() {
-		s.importService = nil
 		s.migrationService = nil
 	})
 

@@ -324,10 +324,10 @@ func (s *unitServiceSuite) TestAddIAASSubordinateUnit(c *tc.C) {
 		principalUnitUUID, principalNetNodeUUID, nil,
 	)
 	s.state.EXPECT().IsSubordinateApplication(gomock.Any(), appID).Return(true, nil)
-	var recievedSubordinateArg application.SubordinateUnitArg
+	var receivedSubordinateArg application.SubordinateUnitArg
 	s.state.EXPECT().AddIAASSubordinateUnit(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(ctx context.Context, arg application.SubordinateUnitArg) (coreunit.Name, []coremachine.Name, error) {
-			recievedSubordinateArg = arg
+			receivedSubordinateArg = arg
 			return "subordinate/0", nil, nil
 		},
 	)
@@ -337,11 +337,11 @@ func (s *unitServiceSuite) TestAddIAASSubordinateUnit(c *tc.C) {
 
 	// Assert:
 	c.Check(err, tc.ErrorIsNil)
-	c.Check(recievedSubordinateArg.SubordinateAppID, tc.Equals, appID)
-	c.Check(recievedSubordinateArg.PrincipalUnitUUID, tc.Equals, principalUnitUUID)
+	c.Check(receivedSubordinateArg.SubordinateAppID, tc.Equals, appID)
+	c.Check(receivedSubordinateArg.PrincipalUnitUUID, tc.Equals, principalUnitUUID.String())
 	// This is important as the subordinate unit must use the same net node uuid
 	// of the principal.
-	c.Check(recievedSubordinateArg.NetNodeUUID, tc.Equals, principalNetNodeUUID)
+	c.Check(receivedSubordinateArg.NetNodeUUID, tc.Equals, principalNetNodeUUID)
 }
 
 func (s *unitServiceSuite) TestAddIAASSubordinateUnitUnitAlreadyHasSubordinate(c *tc.C) {
@@ -514,7 +514,9 @@ func (s *unitServiceSuite) TestGetUnitMachineName(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	unitName := coreunit.Name("foo/666")
-	s.state.EXPECT().GetUnitMachineName(gomock.Any(), unitName).Return("0", nil)
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+	s.state.EXPECT().GetUnitUUIDByName(gomock.Any(), unitName).Return(unitUUID, nil)
+	s.state.EXPECT().GetUnitMachineName(gomock.Any(), unitUUID.String()).Return("0", nil)
 
 	name, err := s.service.GetUnitMachineName(c.Context(), unitName)
 	c.Assert(err, tc.ErrorIsNil)
@@ -526,7 +528,7 @@ func (s *unitServiceSuite) TestGetUnitMachineNameError(c *tc.C) {
 
 	unitName := coreunit.Name("foo/666")
 	boom := errors.New("boom")
-	s.state.EXPECT().GetUnitMachineName(gomock.Any(), unitName).Return("", boom)
+	s.state.EXPECT().GetUnitUUIDByName(gomock.Any(), unitName).Return("", boom)
 
 	_, err := s.service.GetUnitMachineName(c.Context(), unitName)
 	c.Assert(err, tc.ErrorIs, boom)
@@ -536,7 +538,9 @@ func (s *unitServiceSuite) TestGetUnitMachineUUID(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	unitName := coreunit.Name("foo/666")
-	s.state.EXPECT().GetUnitMachineUUID(gomock.Any(), unitName).Return("fake-uuid", nil)
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+	s.state.EXPECT().GetUnitUUIDByName(gomock.Any(), unitName).Return(unitUUID, nil)
+	s.state.EXPECT().GetUnitMachineUUID(gomock.Any(), unitUUID.String()).Return("fake-uuid", nil)
 
 	uuid, err := s.service.GetUnitMachineUUID(c.Context(), unitName)
 	c.Assert(err, tc.ErrorIsNil)
@@ -548,9 +552,46 @@ func (s *unitServiceSuite) TestGetUnitMachineUUIDError(c *tc.C) {
 
 	unitName := coreunit.Name("foo/666")
 	boom := errors.New("boom")
-	s.state.EXPECT().GetUnitMachineUUID(gomock.Any(), unitName).Return("", boom)
+	s.state.EXPECT().GetUnitUUIDByName(gomock.Any(), unitName).Return("", boom)
 
 	_, err := s.service.GetUnitMachineUUID(c.Context(), unitName)
+	c.Assert(err, tc.ErrorIs, boom)
+}
+
+func (s *unitServiceSuite) TestGetUnitMachineNameAndUUID(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+	s.state.EXPECT().GetUnitMachineUUID(gomock.Any(), unitUUID.String()).Return("fake-uuid", nil)
+	s.state.EXPECT().GetUnitMachineName(gomock.Any(), unitUUID.String()).Return("0", nil)
+
+	name, uuid, err := s.service.GetUnitMachineNameAndUUID(c.Context(), unitUUID)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(name, tc.Equals, coremachine.Name("0"))
+	c.Check(uuid, tc.Equals, coremachine.UUID("fake-uuid"))
+}
+
+func (s *unitServiceSuite) TestGetUnitMachineNameAndUUIDErrorGettingUUID(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+	boom := errors.New("boom")
+	s.state.EXPECT().GetUnitMachineUUID(gomock.Any(), unitUUID.String()).Return("", boom)
+	s.state.EXPECT().GetUnitMachineName(gomock.Any(), unitUUID.String()).MaxTimes(1)
+
+	_, _, err := s.service.GetUnitMachineNameAndUUID(c.Context(), unitUUID)
+	c.Assert(err, tc.ErrorIs, boom)
+}
+
+func (s *unitServiceSuite) TestGetUnitMachineNameAndUUIDErrorGettingName(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+	boom := errors.New("boom")
+	s.state.EXPECT().GetUnitMachineUUID(gomock.Any(), unitUUID.String()).Return("fake-uuid", nil).MaxTimes(1)
+	s.state.EXPECT().GetUnitMachineName(gomock.Any(), unitUUID.String()).Return("", boom)
+
+	_, _, err := s.service.GetUnitMachineNameAndUUID(c.Context(), unitUUID)
 	c.Assert(err, tc.ErrorIs, boom)
 }
 

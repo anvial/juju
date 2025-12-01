@@ -6,9 +6,11 @@ package port_test
 import (
 	"context"
 	"database/sql"
+	"sort"
 	"testing"
 
 	"github.com/juju/clock"
+	"github.com/juju/collections/transform"
 	"github.com/juju/tc"
 
 	coreapplication "github.com/juju/juju/core/application"
@@ -205,7 +207,7 @@ func (s *watcherSuite) createUnit(c *tc.C, netNodeUUID, appName string) coreunit
 // - on 2 applications (with names stored in appNames; uuids s.appUUIDs)
 //   - unit 0 is deployed to app 0
 //   - units 1 & 2 are deployed to app 1
-func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
+func (s *watcherSuite) TestWatchOpenedPorts(c *tc.C) {
 	s.appUUIDs[0] = s.createApplicationWithRelations(c, appNames[0], "ep0", "ep1", "ep2", "ep3")
 	s.appUUIDs[1] = s.createApplicationWithRelations(c, appNames[1], "ep0", "ep1", "ep2", "ep3")
 
@@ -213,7 +215,7 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 	s.unitUUIDs[1] = s.createUnit(c, netNodeUUIDs[0], appNames[1])
 	s.unitUUIDs[2] = s.createUnit(c, netNodeUUIDs[1], appNames[1])
 
-	watcher, err := s.srv.WatchMachineOpenedPorts(c.Context())
+	watcher, err := s.srv.WatchOpenedPorts(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 
 	harness := watchertest.NewHarness(s, watchertest.NewWatcherC(c, watcher))
@@ -225,7 +227,7 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 		}, network.GroupedPortRanges{})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(watchertest.StringSliceAssert("0"))
+		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
 	})
 
 	// open a port on an endpoint with opened ports on a unit on machine 0
@@ -235,7 +237,7 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 		}, network.GroupedPortRanges{})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(watchertest.StringSliceAssert("0"))
+		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
 	})
 
 	// open a port on a new endpoint on another unit on machine 0
@@ -245,7 +247,7 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 		}, network.GroupedPortRanges{})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(watchertest.StringSliceAssert("0"))
+		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[1].String()))
 	})
 
 	// open a port on a endpoint on a unit on machine 1
@@ -255,7 +257,7 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 		}, network.GroupedPortRanges{})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(watchertest.StringSliceAssert("1"))
+		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[2].String()))
 	})
 
 	// open a port that's already open
@@ -275,7 +277,7 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(watchertest.StringSliceAssert("0"))
+		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
 	})
 
 	// close the final open port of an endpoint for a unit on machine 0
@@ -285,7 +287,7 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(watchertest.StringSliceAssert("0"))
+		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
 	})
 
 	// close a port range which isn't open
@@ -309,10 +311,12 @@ func (s *watcherSuite) TestWatchMachinePortRanges(c *tc.C) {
 		}, network.GroupedPortRanges{})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(watchertest.StringSliceAssert("0", "1"))
+		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[1].String(), s.unitUUIDs[2].String()))
 	})
 
-	harness.Run(c, []string{"0", "1"})
+	unitUUIDs := transform.Slice(s.unitUUIDs[:], func(u coreunit.UUID) string { return u.String() })
+	sort.Strings(unitUUIDs)
+	harness.Run(c, unitUUIDs)
 }
 
 func (s *watcherSuite) TestWatchOpenedPortsForApplication(c *tc.C) {
