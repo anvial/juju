@@ -70,9 +70,10 @@ Attributes:
 <br>(Added in Juju 3.6.4)
 - `trust-password`: the LXD server trust password (optional, required if trust-token is not set)
 
-<!--
+
 ## Notes on `juju bootstrap`
--->
+
+If `juju bootstrap` hangs, it could be due to a firewall issue. See more: [LXD | UFW: Add rules for the bridge](https://documentation.ubuntu.com/lxd/latest/howto/network_bridge_firewalld/#ufw-add-rules-for-the-bridge).
 
 ## Cloud-specific model configuration keys
 

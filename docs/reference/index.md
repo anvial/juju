@@ -49,7 +49,6 @@
 - {ref}`model`
 - {ref}`offer`
 - {ref}`placement-directive`
-- {ref}`plugin`
 - {ref}`relation`
 - {ref}`script`
 - {ref}`secret`
