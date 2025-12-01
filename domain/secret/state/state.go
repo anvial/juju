@@ -409,13 +409,23 @@ func (st State) createCharmUnitSecret(
 // It also returns an error satisfying [secreterrors.SecretLabelAlreadyExists]
 // if the secret owner already has a secret with the same label.
 func (st State) UpdateSecret(
-	ctx domain.AtomicContext, uri *coresecrets.URI, secret domainsecret.UpsertSecretParams,
+	ctx context.Context, uri *coresecrets.URI, secret domainsecret.UpsertSecretParams,
 ) error {
 	if !secret.HasUpdate() {
 		return errors.New("must specify a new value or metadata to update a secret")
 	}
 
-	err := domain.Run(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+	db, err := st.DB(ctx)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		if secret.Label != nil && *secret.Label != "" {
+			if err := st.checkSecretLabelConflict(ctx, tx, uri, *secret.Label); err != nil {
+				return errors.Capture(err)
+			}
+		}
 		err := st.updateSecret(ctx, tx, uri, secret)
 		if err != nil {
 			return errors.Errorf("updating secret records for secret %q: %w", uri, err)
@@ -423,6 +433,34 @@ func (st State) UpdateSecret(
 		return nil
 	})
 	return errors.Capture(err)
+}
+
+func (st State) checkSecretLabelConflict(ctx context.Context, tx *sqlair.TX, uri *coresecrets.URI, label string) error {
+	// Check to be sure a duplicate label won't be used.
+	owner, err := st.getSecretOwner(ctx, tx, uri)
+	if err != nil {
+		return errors.Capture(err)
+	}
+	var labelExists bool
+	switch kind := owner.Kind; kind {
+	case domainsecret.ApplicationOwner:
+		labelExists, err = st.checkApplicationSecretLabelExists(ctx, tx, coreapplication.UUID(owner.UUID), label)
+	case domainsecret.UnitOwner:
+		labelExists, err = st.checkUnitSecretLabelExists(ctx, tx, coreunit.UUID(owner.UUID), label)
+	case domainsecret.ModelOwner:
+		labelExists, err = st.checkUserSecretLabelExists(ctx, tx, label)
+	default:
+		// Should never happen.
+		return errors.Errorf("unexpected secret owner kind %q for secret %q", kind, uri.ID)
+	}
+	if err != nil {
+		return errors.Capture(err)
+	}
+	if labelExists {
+		return errors.Errorf("secret with label %q is already being used: %w", label,
+			secreterrors.SecretLabelAlreadyExists)
+	}
+	return nil
 }
 
 // createSecret creates the records needed to store secret data,

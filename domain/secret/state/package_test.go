@@ -98,10 +98,3 @@ func createCharmUnitSecret(ctx context.Context, st *State, version int, uri *cor
 		return st.CreateCharmUnitSecret(ctx, version, uri, unitUUID, secret)
 	})
 }
-
-func updateSecret(ctx context.Context, st *State, uri *coresecrets.URI, secret domainsecret.UpsertSecretParams,
-) error {
-	return st.RunAtomic(ctx, func(ctx domain.AtomicContext) error {
-		return st.UpdateSecret(ctx, uri, secret)
-	})
-}

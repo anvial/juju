@@ -42,7 +42,6 @@ type AtomicState interface {
 	CreateCharmUnitSecret(
 		ctx domain.AtomicContext, version int, uri *secrets.URI, unitUUID coreunit.UUID, secret domainsecret.UpsertSecretParams,
 	) error
-	UpdateSecret(ctx domain.AtomicContext, uri *secrets.URI, secret domainsecret.UpsertSecretParams) error
 }
 
 // State describes retrieval and persistence methods needed for
@@ -93,6 +92,7 @@ type State interface {
 	) ([]string, error)
 	GetApplicationUUIDsForNames(ctx context.Context, names domainsecret.ApplicationOwners) ([]string, error)
 	GetUnitUUIDsForNames(ctx context.Context, names domainsecret.UnitOwners) ([]string, error)
+	UpdateSecret(ctx context.Context, uri *secrets.URI, secret domainsecret.UpsertSecretParams) error
 
 	// For watching obsolete secret revision changes.
 	InitialWatchStatementForObsoleteRevision(
