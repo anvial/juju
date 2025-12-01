@@ -198,7 +198,7 @@ func (s *DebugLogSuite) TestParamsPassed(c *tc.C) {
 		}, nil
 	})
 	fake := &fakeDebugLogAPI{}
-	s.PatchValue(&getDebugLogAPI, func(ctx context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
+	s.PatchValue(&getDebugLogClient, func(ctx context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
 		return fake, nil
 	})
 
@@ -241,7 +241,7 @@ func (s *DebugLogSuite) TestLogOutput(c *tc.C) {
 			apiVersion: 2,
 		}, nil
 	})
-	s.PatchValue(&getDebugLogAPI, func(_ context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
+	s.PatchValue(&getDebugLogClient, func(_ context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
 		api, ok := debugStreams["address-666"]
 		c.Assert(ok, tc.IsTrue)
 		return api, nil
@@ -309,7 +309,7 @@ func (s *DebugLogSuite) TestAllControllersAgainstFacadeVersion2(c *tc.C) {
 			apiVersion: 2,
 		}, nil
 	})
-	s.PatchValue(&getDebugLogAPI, func(_ context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
+	s.PatchValue(&getDebugLogClient, func(_ context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
 		api, ok := debugStreams["address-666"]
 		c.Assert(ok, tc.IsTrue)
 		return api, nil
@@ -376,7 +376,7 @@ func (s *DebugLogSuite) TestAllControllersAgainstFacadeVersion3(c *tc.C) {
 			apiVersion: 3,
 		}, nil
 	})
-	s.PatchValue(&getDebugLogAPIForAddresses, func(_ context.Context, _ *debugLogCommand, addrs []string) (DebugLogAPI, error) {
+	s.PatchValue(&getDebugLogClientForAddresses, func(_ context.Context, _ *debugLogCommand, addrs []string) (DebugLogAPI, error) {
 		c.Assert(addrs, tc.HasLen, 1)
 		api, ok := debugStreams[addrs[0]]
 		c.Assert(ok, tc.IsTrue)
@@ -425,7 +425,7 @@ func (s *DebugLogSuite) TestLogOutputWithLogs(c *tc.C) {
 			apiVersion: 2,
 		}, nil
 	})
-	s.PatchValue(&getDebugLogAPI, func(_ context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
+	s.PatchValue(&getDebugLogClient, func(_ context.Context, _ *debugLogCommand) (DebugLogAPI, error) {
 		api, ok := debugStreams["address-666"]
 		c.Assert(ok, tc.IsTrue)
 		return api, nil
