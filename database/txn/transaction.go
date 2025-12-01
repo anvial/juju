@@ -6,6 +6,7 @@ package txn
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/juju/clock"
@@ -28,6 +29,11 @@ type Logger interface {
 
 const (
 	DefaultTimeout = time.Second * 30
+	txnInTxn       = "cannot start a transaction within a transaction"
+
+	// ErrTxnInTxn is an error indicating that an attempt was made
+	// to start a transaction when we already had one in flight.
+	ErrTxnInTxn = errors.ConstError(txnInTxn)
 )
 
 // RetryStrategy defines a function for retrying a transaction.
@@ -110,21 +116,39 @@ func (t *TransactionRunner) Txn(ctx context.Context, db *sql.DB, fn func(context
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.Trace(err)
-	}
-
-	if err := fn(ctx, tx); err != nil {
-		if rErr := t.retryStrategy(ctx, tx.Rollback); rErr != nil {
-			t.logger.Warningf("failed to rollback transaction: %v", rErr)
+		// This was lifted from the LXD code.
+		// It has been observed that we can get into a strange state when
+		// Dqlite is busy performing a checkpoint operation.
+		// This is an attempt to save an otherwise poisoned database.
+		if strings.Contains(err.Error(), txnInTxn) {
+			_, _ = db.Exec("ROLLBACK")
+			return ErrTxnInTxn
 		}
 		return errors.Trace(err)
 	}
 
-	if err := tx.Commit(); err != nil && err != sql.ErrTxDone {
+	if err := fn(ctx, tx); err != nil {
+		if rErr := tx.Rollback(); rErr != nil {
+			// The transaction may already have been rolled back by context
+			// cancellation. Only log a warning if it was otherwise.
+			if !errors.Is(err, sql.ErrTxDone) || ctx.Err() == nil {
+				t.logger.Warningf("failed to rollback transaction: %v", rErr)
+			}
+		}
 		return errors.Trace(err)
 	}
 
-	return nil
+	if err = tx.Commit(); err != nil {
+		if errors.Is(err, sql.ErrTxDone) && ctx.Err() != nil {
+			// If the transaction is already marked done due to context
+			// cancellation, we indicate success so that no subsequent retries
+			// occur. This relies on upstream callers appropriately handling
+			// said context.
+			err = nil
+		}
+	}
+
+	return errors.Trace(err)
 }
 
 // Retry defines a generic retry function for applying a function that
