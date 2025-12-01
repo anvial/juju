@@ -39,6 +39,10 @@ func WorkloadSeries(now time.Time, requestedSeries, imageStream string) (set.Str
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+	// Noble is opt in for 2.9 so remove it
+	// from the default choices. The user can
+	// still use --force if they want noble.
+	delete(supported, Noble)
 	return set.NewStrings(workloadSeries(supported, false)...), nil
 }
 
