@@ -54,7 +54,7 @@ type DqliteSuite struct {
 
 	dqlite    *app.App
 	db        *sql.DB
-	trackedDB coredatabase.TxnRunner
+	trackedDB *txnRunner
 }
 
 // SetUpTest creates a new sql.DB reference and ensures that the
@@ -129,7 +129,10 @@ func (s *DqliteSuite) SetUpTest(c *tc.C) {
 	err = s.dqlite.Ready(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 
-	s.trackedDB, s.db = s.OpenDB(c)
+	// Increment the id and use it as the database name, this prevents
+	// tests from interfering with each other.
+	uniqueID := atomic.AddInt64(&s.uniqueID, 1)
+	s.trackedDB, s.db = s.openDBForNamespace(c, strconv.FormatInt(uniqueID, 10), true)
 }
 
 // DB returns a sql.DB reference.
@@ -179,6 +182,10 @@ func (s *DqliteSuite) OpenDB(c *tc.C) (coredatabase.TxnRunner, *sql.DB) {
 
 // OpenDBForNamespace returns a new sql.DB reference for the domain.
 func (s *DqliteSuite) OpenDBForNamespace(c *tc.C, domain string, foreignKey bool) (coredatabase.TxnRunner, *sql.DB) {
+	return s.openDBForNamespace(c, domain, foreignKey)
+}
+
+func (s *DqliteSuite) openDBForNamespace(c *tc.C, domain string, foreignKey bool) (*txnRunner, *sql.DB) {
 	// There are places in the Juju code where an empty model uuid is valid and
 	// takes on a double meaning to signify something else. It's possible that
 	// in test scenarios as we move to DQlite that these empty model uuid's can
@@ -209,6 +216,15 @@ func (s *DqliteSuite) TxnRunnerFactory() func(context.Context) (coredatabase.Txn
 	return func(context.Context) (coredatabase.TxnRunner, error) {
 		return s.trackedDB, nil
 	}
+}
+
+// InjectPostTxnHook injects a hook into the transaction runner that is called
+// after each transaction function is executed, but before the transaction is
+// committed / rolled back. This is useful for debugging tests since it allows us
+// to inspect the specific state of the database, which is usually lost after
+// the transaction is closed.
+func (s *DqliteSuite) InjectPostTxnHook(hook func(context.Context, *sqlair.TX)) {
+	s.trackedDB.postHook = hook
 }
 
 // NoopTxnRunner returns a no-op transaction runner.
