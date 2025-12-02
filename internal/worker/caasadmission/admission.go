@@ -67,8 +67,10 @@ func NewAdmissionCreator(
 	// TODO change to fail
 	failurePolicy := admission.Ignore
 	matchPolicy := admission.Equivalent
-	ruleScope := admission.AllScopes
+	namespaceRuleScope := admission.NamespacedScope
+	clusterRuleScope := admission.ClusterScope
 	sideEffects := admission.SideEffectClassNone
+	five := int32(5)
 
 	// MutatingWebhook Obj
 	obj := admission.MutatingWebhookConfiguration{
@@ -79,7 +81,8 @@ func NewAdmissionCreator(
 		},
 		Webhooks: []admission.MutatingWebhook{
 			{
-				SideEffects: &sideEffects,
+				TimeoutSeconds: &five,
+				SideEffects:    &sideEffects,
 				ClientConfig: admission.WebhookClientConfig{
 					CABundle: caPemBuffer.Bytes(),
 					Service:  service,
@@ -108,8 +111,37 @@ func NewAdmissionCreator(
 						Rule: admission.Rule{
 							APIGroups:   anyMatch,
 							APIVersions: anyMatch,
-							Resources:   anyMatch,
-							Scope:       &ruleScope,
+							Resources: []string{
+								"configmaps/*",
+								"pods/*",
+								"statefulsets/*",
+								"deployments/*",
+								"daemonsets/*",
+								"roles/*",
+								"rolebindings/*",
+								"services/*",
+								"secrets/*",
+								"serviceaccounts/*",
+								"ingresses/*",
+							},
+							Scope: &namespaceRuleScope,
+						},
+					}, {
+						Operations: []admission.OperationType{
+							admission.Create,
+							admission.Update,
+						},
+						Rule: admission.Rule{
+							APIGroups:   anyMatch,
+							APIVersions: anyMatch,
+							Resources: []string{
+								"clusterroles/*",
+								"clusterrolebindings/*",
+								"customresourcedefinitions/*",
+								"mutatingwebhookconfigurations/*",
+								"validatingwebhookconfigurations/*",
+							},
+							Scope: &clusterRuleScope,
 						},
 					},
 				},

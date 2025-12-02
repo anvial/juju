@@ -1143,9 +1143,7 @@ func (a *app) Delete() error {
 	// List CRs for each CRD to be deleted.
 	var crs []resources.CustomResource
 	for _, crd := range crds {
-		res, err := resources.ListCRsForCRD(ctx, a.dynamicClient, a.namespace, &crd.CustomResourceDefinition, metav1.ListOptions{
-			LabelSelector: resourceLabels.String(),
-		})
+		res, err := resources.ListCRsForCRD(ctx, a.dynamicClient, a.namespace, &crd.CustomResourceDefinition, metav1.ListOptions{})
 		if err != nil {
 			return errors.Annotatef(err, "failed to list CRs for CRD %q", crd.Name)
 		}
