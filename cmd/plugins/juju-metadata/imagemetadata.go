@@ -55,10 +55,14 @@ func prepare(ctx *cmd.Context, controllerName string, store jujuclient.ClientSto
 	// identify region and endpoint info that we need. Not sure what
 	// we'll do about simplestreams.MetadataValidator yet. Probably
 	// move it to the EnvironProvider interface.
+	ctrl, err := store.ControllerByName(controllerName)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 	return environs.New(context.TODO(), environs.OpenParams{
 		Cloud:          params.Cloud,
 		Config:         cfg,
-		ControllerUUID: bootstrapConfig.ControllerConfig.ControllerUUID(),
+		ControllerUUID: ctrl.ControllerUUID,
 	})
 }
 
