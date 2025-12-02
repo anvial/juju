@@ -4,10 +4,6 @@
 package state
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/juju/tc"
@@ -17,7 +13,6 @@ import (
 	"github.com/juju/juju/core/network"
 	corerelation "github.com/juju/juju/core/relation"
 	corerelationtesting "github.com/juju/juju/core/relation/testing"
-	coreunittesting "github.com/juju/juju/core/unit/testing"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	domainrelation "github.com/juju/juju/domain/relation"
 	relationerrors "github.com/juju/juju/domain/relation/errors"
@@ -407,60 +402,6 @@ func (s *migrationSuite) TestSetRelationApplicationSettingsRelationNotFound(c *t
 	c.Assert(err, tc.ErrorIs, relationerrors.RelationNotFound)
 }
 
-func (s *migrationSuite) TestDeleteImportedRelations(c *tc.C) {
-	// Arrange: Add a peer relation with one endpoint.
-	endpoint1 := domainrelation.Endpoint{
-		ApplicationName: s.fakeApplicationName1,
-		Relation: charm.Relation{
-			Name:      "fake-endpoint-name-1",
-			Role:      charm.RoleProvider,
-			Interface: "database",
-			Scope:     charm.ScopeContainer,
-		},
-	}
-	charmRelationUUID1 := s.addCharmRelation(c, s.fakeCharmUUID1, endpoint1.Relation)
-	applicationEndpointUUID1 := s.addApplicationEndpoint(c, s.fakeApplicationUUID1, charmRelationUUID1)
-	relationUUID := s.addRelation(c)
-	relationEndpointUUID1 := s.addRelationEndpoint(c, relationUUID, applicationEndpointUUID1)
-
-	// Arrange: Declare settings and add initial settings.
-	appInitialSettings := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-	}
-	for k, v := range appInitialSettings {
-		s.addRelationApplicationSetting(c, relationEndpointUUID1, k, v)
-	}
-
-	// Arrange: Add a unit to the relation.
-	unitName := coreunittesting.GenNewName(c, "app/0")
-	unitUUID := s.addUnit(c, unitName, s.fakeApplicationUUID1, s.fakeCharmUUID1)
-	relationUnitUUID := s.addRelationUnit(c, unitUUID, relationEndpointUUID1)
-
-	unitInitialSettings := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-	}
-	for k, v := range unitInitialSettings {
-		s.addRelationUnitSetting(c, relationUnitUUID, k, v)
-	}
-
-	// Act
-	err := s.state.DeleteImportedRelations(c.Context())
-
-	// Assert
-	c.Assert(err, tc.ErrorIsNil)
-	s.checkTableEmpty(c, "relation_unit_uuid", "relation_unit_settings")
-	s.checkTableEmpty(c, "relation_unit_uuid", "relation_unit_settings_hash")
-	s.checkTableEmpty(c, "uuid", "relation_unit")
-	s.checkTableEmpty(c, "relation_endpoint_uuid", "relation_application_settings")
-	s.checkTableEmpty(c, "relation_endpoint_uuid", "relation_application_settings_hash")
-	s.checkTableEmpty(c, "uuid", "relation_endpoint")
-	s.checkTableEmpty(c, "uuid", "relation")
-}
-
 func (s *migrationSuite) TestExportRelations(c *tc.C) {
 	// Arrange: Add two endpoints and a relation on them.
 	endpoint1 := domainrelation.Endpoint{
@@ -531,7 +472,7 @@ func (s *migrationSuite) TestExportRelations(c *tc.C) {
 	// Assert:
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(exported, tc.SameContents, []domainrelation.ExportRelation{{
-		ID: 1,
+		ID: 0,
 		Endpoints: []domainrelation.ExportEndpoint{{
 			ApplicationName: s.fakeApplicationName1,
 			Name:            endpoint1.Name,
@@ -563,7 +504,7 @@ func (s *migrationSuite) TestExportRelations(c *tc.C) {
 			AllUnitSettings: make(map[string]map[string]any),
 		}},
 	}, {
-		ID: 2,
+		ID: 1,
 		Endpoints: []domainrelation.ExportEndpoint{{
 			ApplicationName:     s.fakeApplicationName1,
 			Name:                peerEndpoint.Name,
@@ -606,31 +547,4 @@ VALUES (?,?,?,?)
 `, relationEndpointUUID.String(), appUUID.String(), charmRelationUUID.String(), network.AlphaSpaceId)
 
 	return relationEndpointUUID
-}
-
-func (s *migrationSuite) checkTableEmpty(c *tc.C, colName, tableName string) {
-	query := fmt.Sprintf(`
-SELECT %s
-FROM   %s
-`, colName, tableName)
-
-	values := []string{}
-	_ = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		rows, err := tx.QueryContext(ctx, query)
-
-		if err != nil {
-			return errors.Capture(err)
-		}
-		defer func() { _ = rows.Close() }()
-
-		for rows.Next() {
-			var value string
-			if err := rows.Scan(&value); err != nil {
-				return errors.Capture(err)
-			}
-			values = append(values, value)
-		}
-		return nil
-	})
-	c.Check(values, tc.DeepEquals, []string{}, tc.Commentf("table %q first value: %q", tableName, strings.Join(values, ", ")))
 }

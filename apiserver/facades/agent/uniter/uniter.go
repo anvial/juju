@@ -23,7 +23,6 @@ import (
 	"github.com/juju/juju/caas"
 	"github.com/juju/juju/core/application"
 	coreerrors "github.com/juju/juju/core/errors"
-	"github.com/juju/juju/core/leadership"
 	corelease "github.com/juju/juju/core/lease"
 	"github.com/juju/juju/core/life"
 	corelogger "github.com/juju/juju/core/logger"
@@ -68,8 +67,6 @@ type UniterAPI struct {
 	lxdProfileAPI           *LXDProfileAPI
 	clock                   clock.Clock
 	auth                    facade.Authorizer
-	leadershipChecker       leadership.Checker
-	leadershipRevoker       leadership.Revoker
 	accessUnit              common.GetAuthFunc
 	accessApplication       common.GetAuthFunc
 	accessUnitOrApplication common.GetAuthFunc
@@ -212,7 +209,7 @@ func (u *UniterAPI) getOneMachineOpenedPortRanges(ctx context.Context, canAccess
 	if err != nil {
 		return nil, internalerrors.Errorf("getting machine UUID for %q: %w", tag, err)
 	}
-	machineOpenedPortRanges, err := u.portService.GetMachineOpenedPorts(ctx, machineUUID.String())
+	machineOpenedPortRanges, err := u.portService.GetMachineOpenedPorts(ctx, machineUUID)
 	if err != nil {
 		return nil, internalerrors.Errorf("getting opened ports for machine %q: %w", tag, err)
 	}

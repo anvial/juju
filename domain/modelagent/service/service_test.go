@@ -4,6 +4,8 @@
 package service
 
 import (
+	"errors"
+	"maps"
 	"testing"
 
 	"github.com/juju/tc"
@@ -11,12 +13,13 @@ import (
 
 	coreagentbinary "github.com/juju/juju/core/agentbinary"
 	corearch "github.com/juju/juju/core/arch"
+	corebase "github.com/juju/juju/core/base"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/semversion"
 	coreunit "github.com/juju/juju/core/unit"
 	unittesting "github.com/juju/juju/core/unit/testing"
-	jujuversion "github.com/juju/juju/core/version"
+	"github.com/juju/juju/core/version"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
@@ -755,7 +758,7 @@ func (s *serviceSuite) TestSetAgentStream(c *tc.C) {
 // support upgrade tests by contriving a version that needs to be upgraded
 // relative to the current version of Juju.
 func (s *modelUpgradeSuite) getVersionMinorLess() semversion.Number {
-	rval := jujuversion.Current
+	rval := semversion.MustParse("4.0.1")
 	// We don't want to drag the Minor version into negative numbers
 	if rval.Minor > 0 {
 		rval.Minor--
@@ -798,7 +801,7 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersion(c *tc.C) {
 	version2 := semversion.MustParse("4.0-beta2")
 	version3 := semversion.MustParse("4.0-beta3")
 	version4 := semversion.MustParse("4.0-beta4")
-	desiredVersion := jujuversion.Current
+	desiredVersion := semversion.MustParse("4.0.1")
 	// Our service has logic to narrow down to pick the highest version
 	// which is `desiredVersion`.
 	s.controllerState.EXPECT().GetControllerAgentVersions(
@@ -813,6 +816,57 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersion(c *tc.C) {
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(map[string]corebase.Base{
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "stable",
+			},
+		},
+	}, nil)
+	s.modelState.EXPECT().SetModelTargetAgentVersion(
+		gomock.Any(),
+		currentTargetVersion,
+		desiredVersion,
+	).Return(nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	newVer, err := svc.UpgradeModelTargetAgentVersion(c.Context())
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(newVer, tc.Equals, desiredVersion)
+}
+
+// TestUpgradeModelTargetAgentVersionSameVersions is a happy path test of
+// [Service.UpgradeMoelTargetAgentVersion]. In this test we want to see that the
+// model is upgraded to that highest available version available when multiple
+// versions of the same value is returned by state.
+func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionSameVersions(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentTargetVersion := s.getVersionMinorLess()
+	desiredVersion := semversion.MustParse("4.0.1")
+	// Our service has logic to narrow down to pick the highest version
+	// which is `desiredVersion`.
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{
+		desiredVersion,
+		desiredVersion,
+		desiredVersion,
+	}, nil).AnyTimes()
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(map[string]corebase.Base{
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "stable",
+			},
+		},
+	}, nil)
 	s.modelState.EXPECT().SetModelTargetAgentVersion(
 		gomock.Any(),
 		currentTargetVersion,
@@ -834,7 +888,10 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionWithStreamControll
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil).AnyTimes()
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(gomock.Any()).Return(true, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
@@ -854,6 +911,10 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionWithStreamNotValid
 	defer s.setupMocks(c).Finish()
 
 	domainAgentStream := domainagentbinary.Stream(-1)
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
 	_, err := svc.UpgradeModelTargetAgentVersionWithStream(c.Context(), domainAgentStream)
@@ -867,13 +928,22 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionWithStream(c *tc.C
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
+	desiredVersion := semversion.MustParse("4.0.1")
 	s.controllerState.EXPECT().GetControllerAgentVersions(
 		gomock.Any(),
 	).Return([]semversion.Number{desiredVersion}, nil).AnyTimes()
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(map[string]corebase.Base{
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "20.04",
+				Risk:  "edge",
+			},
+		},
+	}, nil)
 	s.modelState.EXPECT().SetModelTargetAgentVersionAndStream(
 		gomock.Any(),
 		currentTargetVersion,
@@ -896,7 +966,8 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionWithStream(c *tc.C
 func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionToDowngrade(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(jujuversion.Current, nil)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).
+		Return(semversion.MustParse("4.0.1"), nil)
 
 	upgradeTo := semversion.MustParse("3.6.1")
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
@@ -912,7 +983,9 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionToOverMax(c *tc.C)
 	defer s.setupMocks(c).Finish()
 	version := semversion.MustParse("4.0.0")
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(version, nil)
-
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{version}, nil)
 	// This is a version that is greater than the max supported version of the
 	// controller.
 	upgradeTo := version
@@ -930,8 +1003,10 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionToMissingAgentBina
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
-
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(false, nil)
 
@@ -947,8 +1022,10 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionToControllerModel(
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
-
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
@@ -964,10 +1041,22 @@ func (s *modelUpgradeSuite) TestUpgradeModelAgentToTargetVersion(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(map[string]corebase.Base{
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+				Risk:  "edge",
+			},
+		},
+	}, nil)
 	s.modelState.EXPECT().SetModelTargetAgentVersion(
 		gomock.Any(),
 		currentTargetVersion,
@@ -985,11 +1074,23 @@ func (s *modelUpgradeSuite) TestUpgradeModelAgentToTargetVersion(c *tc.C) {
 func (s *modelUpgradeSuite) TestUpgradeModelAgentToTargetVersionSameVersion(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	currentTargetVersion := jujuversion.Current
-	desiredVersion := jujuversion.Current
+	currentTargetVersion := semversion.MustParse("4.0.1")
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(map[string]corebase.Base{
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+				Risk:  "stable",
+			},
+		},
+	}, nil)
 
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
 	err := svc.UpgradeModelAgentToTargetVersion(c.Context(), desiredVersion)
@@ -1022,6 +1123,9 @@ func (s *modelUpgradeSuite) TestUpgradeModelAgentToTargetVersionOverMax(c *tc.C)
 	defer s.setupMocks(c).Finish()
 
 	version := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{version}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(version, nil)
 
 	// This is a version that is greater than the max supported version of the
@@ -1043,8 +1147,10 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionStreamToMissingAge
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
-
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(false, nil)
 
@@ -1062,7 +1168,10 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionStreamToController
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
@@ -1097,10 +1206,22 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionStreamTo(c *tc.C) 
 	defer s.setupMocks(c).Finish()
 
 	currentTargetVersion := s.getVersionMinorLess()
-	desiredVersion := jujuversion.Current
+	desiredVersion := semversion.MustParse("4.0.1")
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentTargetVersion, nil)
 	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
 	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(map[string]corebase.Base{
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+				Risk:  "stable",
+			},
+		},
+	}, nil)
 	s.modelState.EXPECT().SetModelTargetAgentVersionAndStream(
 		gomock.Any(),
 		currentTargetVersion,
@@ -1113,4 +1234,371 @@ func (s *modelUpgradeSuite) TestUpgradeModelTargetAgentVersionStreamTo(c *tc.C) 
 		c.Context(), desiredVersion, domainagentbinary.AgentStreamProposed,
 	)
 	c.Check(err, tc.ErrorIsNil)
+}
+
+func (s *modelUpgradeSuite) TestMachinesUsingSupportedBase(c *tc.C) {
+	// Supported bases: ubuntu 22.04 and ubuntu 24.04
+	supported := []corebase.Base{
+		tc.Must2(c, corebase.ParseBase, "ubuntu", "22.04"),
+		tc.Must2(c, corebase.ParseBase, "ubuntu", "24.04"),
+	}
+
+	machines := map[string]corebase.Base{
+		// Should be deleted: same OS + Track, no risk
+		"m0": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+			},
+		},
+		// Should be deleted: same OS + Track, same risk
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+				Risk:  "stable",
+			},
+		},
+		// Should be deleted: same OS + Track, different risk
+		"m2": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "edge",
+			},
+		},
+		// Should stay: unsupported track
+		"m3": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "20.04",
+				Risk:  "stable",
+			},
+		},
+		// Should stay: different OS
+		"m4": {
+			OS: "centos",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "stable",
+			},
+		},
+		// Should stay: empty track
+		"m5": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "",
+			},
+		},
+		// Should stay: empty OS
+		"m6": {
+			OS: "",
+			Channel: corebase.Channel{
+				Track: "24.04",
+			},
+		},
+	}
+
+	maps.DeleteFunc(machines, machineUsesSupportedBase(supported))
+
+	c.Assert(machines, tc.DeepEquals, map[string]corebase.Base{
+		"m3": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "20.04",
+				Risk:  "stable",
+			},
+		},
+		"m4": {
+			OS: "centos",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "stable",
+			},
+		},
+		"m5": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "",
+			},
+		},
+		"m6": {
+			OS: "",
+			Channel: corebase.Channel{
+				Track: "24.04",
+			},
+		},
+	})
+}
+
+func (s *modelUpgradeSuite) TestMachinesUsingSupportedBaseNilSupportedBases(c *tc.C) {
+	// Supported bases: nil
+	var supported []corebase.Base
+
+	// All should stay: no supported bases
+	machines := map[string]corebase.Base{
+		"m0": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+			},
+		},
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+				Risk:  "stable",
+			},
+		},
+		"m2": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "edge",
+			},
+		},
+		"m3": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "20.04",
+				Risk:  "stable",
+			},
+		},
+		"m4": {
+			OS: "centos",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "stable",
+			},
+		},
+		"m5": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "",
+			},
+		},
+		"m6": {
+			OS: "",
+			Channel: corebase.Channel{
+				Track: "24.04",
+			},
+		},
+	}
+
+	maps.DeleteFunc(machines, machineUsesSupportedBase(supported))
+
+	c.Assert(machines, tc.DeepEquals, map[string]corebase.Base{
+		"m0": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+			},
+		},
+		"m1": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "22.04",
+				Risk:  "stable",
+			},
+		},
+		"m2": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "edge",
+			},
+		},
+		"m3": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "20.04",
+				Risk:  "stable",
+			},
+		},
+		"m4": {
+			OS: "centos",
+			Channel: corebase.Channel{
+				Track: "24.04",
+				Risk:  "stable",
+			},
+		},
+		"m5": {
+			OS: "ubuntu",
+			Channel: corebase.Channel{
+				Track: "",
+			},
+		},
+		"m6": {
+			OS: "",
+			Channel: corebase.Channel{
+				Track: "24.04",
+			},
+		},
+	})
+}
+
+// TestRunPreUpgradeChecksToVersion tests the happy path for running pre-upgrade
+// checks with a target version. It verifies that when the model is not a
+// controller model, machine bases are valid, and binaries exist for the desired
+// version, the check completes successfully and returns the current target
+// agent version.
+func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersion(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentVersion := s.getVersionMinorLess()
+	desiredVersion := version.Current
+
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(
+		map[string]corebase.Base{
+			"m1": tc.Must2(c, corebase.ParseBase, "ubuntu", "22.04"),
+			"m2": tc.Must2(c, corebase.ParseBase, "ubuntu", "24.04"),
+		},
+		nil,
+	)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentVersion, nil)
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	version, err := svc.RunPreUpgradeChecksToVersion(c.Context(), desiredVersion)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(version, tc.Equals, currentVersion)
+}
+
+// TestRunPreUpgradeChecksToVersionWithStream tests the happy path for running
+// pre-upgrade checks when a specific agent stream is provided. It verifies that
+// when the model is not a controller model, machine bases are valid, and
+// binaries exist for the desired version under the given stream, the check
+// completes successfully and returns the current target agent version.
+func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionWithStream(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentVersion := s.getVersionMinorLess()
+	desiredVersion := version.Current
+	stream := domainagentbinary.AgentStreamReleased
+
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(
+		map[string]corebase.Base{
+			"m1": tc.Must2(c, corebase.ParseBase, "ubuntu", "22.04"),
+			"m2": tc.Must2(c, corebase.ParseBase, "ubuntu", "24.04"),
+		},
+		nil,
+	)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentVersion, nil)
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	version, err := svc.RunPreUpgradeChecksToVersionWithStream(c.Context(), desiredVersion, stream)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(version, tc.Equals, currentVersion)
+}
+
+// TestRunPreUpgradeChecksToVersionGetAllMachinesWithBaseError tests that an
+// unexpected state error from GetAllMachinesWithBase is properly propagated.
+func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionGetAllMachinesWithBaseError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentVersion := s.getVersionMinorLess()
+	desiredVersion := version.Current
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentVersion, nil)
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(
+		nil,
+		errors.New("parsing machine with UUID m123 with OS and channel : not valid"),
+	)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	_, err := svc.RunPreUpgradeChecksToVersion(c.Context(), desiredVersion)
+	c.Assert(err, tc.NotNil)
+	c.Check(err.Error(), tc.Matches, ".*getting machine bases from state.*")
+}
+
+// TestRunPreUpgradeChecksToVersionWithStreamGetAllMachinesWithBaseError tests
+// that an unexpected state error from GetAllMachinesWithBase is properly propagated when using
+// a stream.
+func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionWithStreamGetAllMachinesWithBaseError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentVersion := s.getVersionMinorLess()
+	desiredVersion := version.Current
+	stream := domainagentbinary.AgentStreamReleased
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentVersion, nil)
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(
+		nil,
+		errors.New("parsing machine with UUID m123 with OS and channel : not valid"),
+	)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	_, err := svc.RunPreUpgradeChecksToVersionWithStream(c.Context(), desiredVersion, stream)
+	c.Assert(err, tc.NotNil)
+	c.Check(err.Error(), tc.Matches, ".*getting machine bases from state.*")
+}
+
+// TestRunPreUpgradeChecksToVersionEmptyMachines tests that when no machines
+// exist in the model, the pre-upgrade checks pass successfully.
+func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionEmptyMachines(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentVersion := s.getVersionMinorLess()
+	desiredVersion := version.Current
+
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(
+		map[string]corebase.Base{},
+		nil,
+	)
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentVersion, nil)
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	version, err := svc.RunPreUpgradeChecksToVersion(c.Context(), desiredVersion)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(version, tc.Equals, currentVersion)
+}
+
+// TestRunPreUpgradeChecksToVersionWithStreamEmptyMachines tests that when no
+// machines exist in the model, the pre-upgrade checks with stream pass successfully.
+func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionWithStreamEmptyMachines(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	currentVersion := s.getVersionMinorLess()
+	desiredVersion := version.Current
+	stream := domainagentbinary.AgentStreamReleased
+
+	s.modelState.EXPECT().IsControllerModel(gomock.Any()).Return(false, nil)
+	s.modelState.EXPECT().GetAllMachinesWithBase(gomock.Any()).Return(
+		map[string]corebase.Base{},
+		nil,
+	)
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(currentVersion, nil)
+	s.controllerState.EXPECT().GetControllerAgentVersions(
+		gomock.Any(),
+	).Return([]semversion.Number{desiredVersion}, nil)
+	s.agentBinaryFinder.EXPECT().HasBinariesForVersion(desiredVersion).Return(true, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	version, err := svc.RunPreUpgradeChecksToVersionWithStream(c.Context(), desiredVersion, stream)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(version, tc.Equals, currentVersion)
 }

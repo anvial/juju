@@ -518,8 +518,8 @@ func (s *Service) GetMachinePrincipalApplications(ctx context.Context, mName mac
 	return s.st.GetMachinePrincipalApplications(ctx, mName)
 }
 
-// GetMachinePlacement returns the placement structure as it was recorded for
-// the given machine.
+// GetMachinePlacementDirective returns the placement structure as it was
+// recorded for the given machine.
 //
 // The following errors may be returned:
 // - [machineerrors.MachineNotFound] if the machine does not exist.

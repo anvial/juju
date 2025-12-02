@@ -99,8 +99,8 @@ type State interface {
 		appOwnerUUIDs domainsecret.ApplicationOwners, unitOwnerUUIDs domainsecret.UnitOwners,
 	) (tableName string, statement eventsource.NamespaceQuery)
 	GetRevisionIDsForObsolete(
-		ctx context.Context, appUUIDs domainsecret.ApplicationOwners, unitUUIDS domainsecret.UnitOwners, revisionUUIDs ...string,
-	) (map[string]string, error)
+		ctx context.Context, appUUIDs domainsecret.ApplicationOwners, unitUUIDs domainsecret.UnitOwners, revisionUUIDs []string,
+	) ([]string, error)
 
 	// For watching obsolete user secret revisions to prune.
 	GetObsoleteUserSecretRevisionsReadyToPrune(ctx context.Context) ([]string, error)

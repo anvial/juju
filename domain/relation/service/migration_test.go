@@ -99,18 +99,6 @@ func (s *migrationServiceSuite) TestImportRelations(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 }
 
-func (s *migrationServiceSuite) TestDeleteImportedRelationsError(c *tc.C) {
-	// Arrange
-	defer s.setupMocks(c).Finish()
-	s.state.EXPECT().DeleteImportedRelations(gomock.Any()).Return(errors.New("boom"))
-
-	// Act
-	err := s.service.DeleteImportedRelations(c.Context())
-
-	// Assert
-	c.Assert(err, tc.ErrorMatches, "boom")
-}
-
 func (s *migrationServiceSuite) TestExportRelations(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 

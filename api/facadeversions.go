@@ -21,15 +21,20 @@ func SupportedFacadeVersions() facades.FacadeVersions {
 // New facades should start at 1.
 // We no longer support facade versions at 0.
 var facadeVersions = facades.FacadeVersions{
-	"Action":                       {7},
-	"Agent":                        {3},
-	"AgentLifeFlag":                {1},
-	"Annotations":                  {2},
-	"Application":                  {19, 20, 21, 22},
-	"ApplicationOffers":            {5, 6},
-	"Backups":                      {3},
-	"Block":                        {2},
-	"Bundle":                       {8},
+	"Action":            {7},
+	"Agent":             {3},
+	"AgentLifeFlag":     {1},
+	"Annotations":       {2},
+	"Application":       {19, 20, 21, 22},
+	"ApplicationOffers": {5, 6},
+	"Backups":           {3},
+	"Block":             {2},
+	// Note that this version of Juju does not implement version 6 of the
+	// facade, but 3.6 does. Care must be taken not to break client
+	// compatibility with the prior version.
+	// Version 8 here just reports the inability of Juju 4+ to export bundles.
+	// We should probably just remove the facade altogether.
+	"Bundle":                       {6, 8},
 	"CAASAgent":                    {2},
 	"CAASAdmission":                {1},
 	"CAASApplication":              {1},
@@ -52,6 +57,7 @@ var facadeVersions = facades.FacadeVersions{
 	"ExternalControllerUpdater":    {1},
 	"FilesystemAttachmentsWatcher": {2},
 	"Firewaller":                   {7},
+	"HighAvailability":             {2, 3},
 	"HostKeyReporter":              {1},
 	"ImageMetadata":                {3},
 	"ImageMetadataManager":         {1},
@@ -61,7 +67,10 @@ var facadeVersions = facades.FacadeVersions{
 	"LeadershipService":            {2},
 	"Logger":                       {1},
 	"MachineActions":               {1},
-	"MachineManager":               {11},
+	// Note that this version of Juju does not implement version 10
+	// of the facade, but 3.6 does. Care must be taken not to break
+	// client compatibility with the prior version.
+	"MachineManager":               {10, 11},
 	"Machiner":                     {5, 6},
 	"MigrationFlag":                {1},
 	"MigrationMaster":              {4, 5},

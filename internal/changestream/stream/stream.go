@@ -37,8 +37,9 @@ const (
 
 const (
 	// States which report the state of the worker.
-	stateIdle  = "idle"
-	stateBegin = "begin"
+	stateIdle     = "idle"
+	stateBegin    = "begin"
+	stateDispatch = "dispatch"
 )
 
 var (
@@ -118,7 +119,8 @@ type Stream struct {
 	logger       logger.Logger
 	metrics      MetricsCollector
 
-	terms chan changestream.Term
+	terms        chan changestream.Term
+	termDeadline time.Time
 
 	watermarksMutex       sync.Mutex
 	watermarks            []*termView
@@ -134,7 +136,8 @@ func New(
 	metrics MetricsCollector,
 	logger logger.Logger,
 ) *Stream {
-	return NewInternalStates(id, db, fileNotifier, clock, metrics, logger, nil)
+	noTermDeadline := time.Time{}
+	return NewInternalStates(id, db, fileNotifier, clock, metrics, logger, noTermDeadline, nil)
 }
 
 // NewInternalStates creates a new Stream with an internal state channel.
@@ -145,6 +148,7 @@ func NewInternalStates(
 	clock clock.Clock,
 	metrics MetricsCollector,
 	logger logger.Logger,
+	termDeadline time.Time,
 	internalStates chan []string,
 ) *Stream {
 	stream := &Stream{
@@ -156,6 +160,7 @@ func NewInternalStates(
 		metrics:        metrics,
 		terms:          make(chan changestream.Term),
 		watermarks:     make([]*termView, changestream.DefaultNumTermWatermarks),
+		termDeadline:   termDeadline,
 		internalStates: internalStates,
 	}
 
@@ -392,13 +397,14 @@ func (s *Stream) loop() error {
 			case <-s.tomb.Dying():
 				return tomb.ErrDying
 			case s.terms <- term:
+				s.reportState(stateDispatch)
 			}
 
 			select {
 			case <-s.tomb.Dying():
 				return tomb.ErrDying
 
-			case <-s.clock.After(defaultWaitTermTimeout):
+			case <-s.afterWaitTermTimeout():
 				// This is a critical error, we should never get here if juju
 				// is humming along. This is a sign that something is wrong
 				// with the dependencies of the worker. We have no choice but
@@ -757,6 +763,18 @@ func (s *Stream) latestChangeLogID() (int64, error) {
 		return nil
 	})
 	return id, errors.Trace(err)
+}
+
+// afterWaitTermTimeout returns a timer channel that fires when a term should
+// timeout. If a [termDeadline] is set, that will be used instead of a timeout
+// of [defaultWaitTermTimeout].
+func (s *Stream) afterWaitTermTimeout() <-chan time.Time {
+	if s.termDeadline.IsZero() {
+		return s.clock.After(defaultWaitTermTimeout)
+	}
+	// Use a singular term deadline if one was provided, this is used in unit
+	// testing to avoid failing tests on heavily loaded systems.
+	return s.clock.At(s.termDeadline)
 }
 
 // jitter returns a duration that is the input interval with a random factor

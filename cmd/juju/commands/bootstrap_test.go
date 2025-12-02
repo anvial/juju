@@ -190,7 +190,7 @@ func (s *BootstrapSuite) TestRunTests(c *tc.C) {
 	for i, test := range bootstrapTests {
 		c.Logf("\ntest %d: %s", i, test.info)
 		c.Run(fmt.Sprintf("Test%d", i), func(t *testing.T) {
-			c := &tc.TBC{t}
+			c := &tc.TBC{TB: t}
 			s.run(c, test)
 		})
 	}

@@ -8,6 +8,7 @@ import (
 	"database/sql"
 
 	"github.com/juju/clock"
+	"github.com/juju/collections/transform"
 	"github.com/juju/tc"
 
 	coreapplication "github.com/juju/juju/core/application"
@@ -303,10 +304,8 @@ func (s *baseSuite) createIAASApplicationWithNUnits(
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
-	unitUUIDS, err := state.getApplicationUnits(ctx, appUUID)
-	c.Assert(err, tc.ErrorIsNil)
-
-	return appUUID, unitUUIDS
+	unitUUIDs := s.getApplicationUnits(c, appUUID)
+	return appUUID, unitUUIDs
 }
 
 // createIAASApplicationWithReferenceName creates an IAAS application with the given
@@ -526,10 +525,8 @@ func (s *baseSuite) createCAASApplicationWithNUnits(
 	appUUID := s.createCAASApplication(
 		c, name, l, units...,
 	)
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
-	uuids, err := state.getApplicationUnits(c.Context(), appUUID)
-	c.Assert(err, tc.ErrorIsNil)
-	return appUUID, uuids
+	unitUUIDs := s.getApplicationUnits(c, appUUID)
+	return appUUID, unitUUIDs
 }
 
 func (s *baseSuite) createCAASApplication(c *tc.C, name string, l life.Life, units ...application.AddCAASUnitArg) coreapplication.UUID {
@@ -680,6 +677,27 @@ func (s *baseSuite) createCAASScalingApplication(c *tc.C, name string, l life.Li
 	c.Assert(err, tc.ErrorIsNil)
 
 	return appID
+}
+
+func (s *baseSuite) getApplicationUnits(c *tc.C, appUUID coreapplication.UUID) []coreunit.UUID {
+	var dbVals []string
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, "SELECT uuid FROM unit WHERE application_uuid = ?", appUUID.String())
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var uuid string
+			if err := rows.Scan(&uuid); err != nil {
+				return err
+			}
+			dbVals = append(dbVals, uuid)
+		}
+		return rows.Err()
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	return transform.Slice(dbVals, func(u string) coreunit.UUID { return coreunit.UUID(u) })
 }
 
 func (s *baseSuite) assertApplication(

@@ -38,7 +38,7 @@ import (
 	removalstatemodel "github.com/juju/juju/domain/removal/state/model"
 	"github.com/juju/juju/domain/resource"
 	"github.com/juju/juju/domain/status"
-	statusstate "github.com/juju/juju/domain/status/state"
+	statusstate "github.com/juju/juju/domain/status/state/model"
 	charmresource "github.com/juju/juju/internal/charm/resource"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -1038,6 +1038,21 @@ func (s *applicationStateSuite) TestGetApplicationDetails(c *tc.C) {
 
 func (s *applicationStateSuite) TestGetApplicationDetailsNotFound(c *tc.C) {
 	_, err := s.state.GetApplicationDetails(c.Context(), "blah")
+	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotFound)
+}
+
+func (s *applicationStateSuite) TestGetApplicationDetailsByName(c *tc.C) {
+	appUUID := s.createIAASApplication(c, "foo", life.Dying)
+	details, err := s.state.GetApplicationDetailsByName(c.Context(), "foo")
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(details.UUID, tc.Equals, appUUID)
+	c.Check(details.Name, tc.Equals, "foo")
+	c.Check(details.Life, tc.Equals, life.Dying)
+	c.Check(details.IsApplicationSynthetic, tc.Equals, false)
+}
+
+func (s *applicationStateSuite) TestGetApplicationDetailsByNameNotFound(c *tc.C) {
+	_, err := s.state.GetApplicationDetailsByName(c.Context(), "notfound")
 	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotFound)
 }
 

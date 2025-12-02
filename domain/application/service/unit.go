@@ -101,12 +101,12 @@ type UnitState interface {
 	// GetUnitMachineUUID gets the unit's machine uuid. If the unit does not
 	// have a machine assigned, [applicationerrors.UnitMachineNotAssigned] is
 	// returned.
-	GetUnitMachineUUID(ctx context.Context, unitName coreunit.Name) (coremachine.UUID, error)
+	GetUnitMachineUUID(ctx context.Context, unitUUID string) (string, error)
 
 	// GetUnitMachineName gets the unit's machine uuid. If the unit does not
 	// have a machine assigned, [applicationerrors.UnitMachineNotAssigned] is
 	// returned.
-	GetUnitMachineName(ctx context.Context, unitName coreunit.Name) (coremachine.Name, error)
+	GetUnitMachineName(ctx context.Context, unitUUID string) (string, error)
 
 	// GetAllUnitLifeForApplication returns a map of the unit names and their lives
 	// for the given application.
@@ -417,7 +417,7 @@ func (s *Service) AddIAASSubordinateUnit(
 			// TODO(storage): create storage args for subordinate unit.
 			SubordinateAppID:  subordinateAppID,
 			NetNodeUUID:       principalNetNodeUUID,
-			PrincipalUnitUUID: princiaplUnitUUID,
+			PrincipalUnitUUID: princiaplUnitUUID.String(),
 			UnitStatusArg:     statusArg,
 		},
 	)
@@ -569,12 +569,17 @@ func (s *Service) GetUnitMachineName(ctx context.Context, unitName coreunit.Name
 		return "", errors.Capture(err)
 	}
 
-	unitMachine, err := s.st.GetUnitMachineName(ctx, unitName)
+	unitUUID, err := s.st.GetUnitUUIDByName(ctx, unitName)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
 
-	return unitMachine, nil
+	unitMachine, err := s.st.GetUnitMachineName(ctx, unitUUID.String())
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+
+	return coremachine.Name(unitMachine), nil
 }
 
 // GetUnitMachineUUID gets the unit's machine UUID.
@@ -592,12 +597,45 @@ func (s *Service) GetUnitMachineUUID(ctx context.Context, unitName coreunit.Name
 		return "", errors.Capture(err)
 	}
 
-	unitMachine, err := s.st.GetUnitMachineUUID(ctx, unitName)
+	unitUUID, err := s.st.GetUnitUUIDByName(ctx, unitName)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
 
-	return unitMachine, nil
+	unitMachine, err := s.st.GetUnitMachineUUID(ctx, unitUUID.String())
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+
+	return coremachine.UUID(unitMachine), nil
+}
+
+// GetUnitMachineNameAndUUID gets the name and UUID of the unit's machine.
+//
+// The following errors may be returned:
+//   - [applicationerrors.UnitMachineNotAssigned] if the unit does not have a
+//     machine assigned.
+//   - [applicationerrors.UnitNotFound] if the unit cannot be found.
+//   - [applicationerrors.UnitIsDead] if the unit is dead.
+func (s *Service) GetUnitMachineNameAndUUID(ctx context.Context, unitUUID coreunit.UUID) (coremachine.Name, coremachine.UUID, error) {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	if err := unitUUID.Validate(); err != nil {
+		return "", "", errors.Capture(err)
+	}
+
+	unitMachineName, err := s.st.GetUnitMachineName(ctx, unitUUID.String())
+	if err != nil {
+		return "", "", errors.Capture(err)
+	}
+
+	unitMachineUUID, err := s.st.GetUnitMachineUUID(ctx, unitUUID.String())
+	if err != nil {
+		return "", "", errors.Capture(err)
+	}
+
+	return coremachine.Name(unitMachineName), coremachine.UUID(unitMachineUUID), nil
 }
 
 // GetUnitRefreshAttributes returns the unit refresh attributes for the

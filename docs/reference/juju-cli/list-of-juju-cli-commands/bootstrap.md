@@ -24,8 +24,6 @@ Initializes a cloud environment.
 | `--controller-charm-channel` | 4.0/stable | The Charmhub channel to download the controller charm from (if not using a local charm) |
 | `--controller-charm-path` |  | Path to a locally built controller charm |
 | `--credential` |  | Credentials to use when bootstrapping |
-| `--db-snap` |  | Path to a locally built `.snap` to use as the internal `juju-db` service. |
-| `--db-snap-asserts` |  | Path to a local `.assert` file. Requires `--db-snap` |
 | `--force` | false | Allow the bypassing of checks such as supported base |
 | `--keep-broken` | false | Do not destroy the provisioned controller instance if bootstrap fails |
 | `--metadata-source` |  | Local path to use as agent and/or image metadata source |
@@ -283,6 +281,13 @@ Controller configuration keys:
       type: int
       description: The maximum number of concurrent resources downloads across all the
         applications on the controller
+    dqlite-busy-timeout:
+      type: string
+      description: |-
+        The timeout for how long a database operation will wait for a lock
+        to be released before returning an error, that is the amount of
+        time a writer will wait for others to finish writing on the
+        same database.
     features:
       type: string
       description: A comma-delimited list of runtime changeable features to be updated
@@ -292,6 +297,12 @@ Controller configuration keys:
     identity-url:
       type: string
       description: The url of the identity manager
+    idle-connection-timeout:
+      type: string
+      description: |
+        The time the controller will wait between
+        resets of all idle connections. By default, every 10 minutes
+        the controller will close all idle connections.
     juju-mgmt-space:
       type: string
       description: The network space that agents should use to communicate with controllers
@@ -382,8 +393,8 @@ Controller configuration keys:
       type: string
       description: |-
         The minimum duration of a query for it to be traced. The lower the
-        threshold, the more queries will be output. A value of 0 means all queries
-        will be output if tracing is enabled.
+        threshold, the more queries will be output. A value of 0 means all
+        queries will be output if tracing is enabled.
     set-numa-control-policy:
       type: bool
       description: Determines if the NUMA control policy is set

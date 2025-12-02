@@ -266,7 +266,7 @@ type SubordinateUnitArg struct {
 
 	// PrincipalUnitUUID describes the unique id of the principal unit for this
 	// subordinate.
-	PrincipalUnitUUID coreunit.UUID
+	PrincipalUnitUUID string
 }
 
 type SubordinateIAASUnitArg struct {
@@ -509,6 +509,7 @@ type SetCharmStateParams struct {
 
 // ApplicationDetails contains details about an application.
 type ApplicationDetails struct {
+	UUID                   application.UUID
 	Life                   life.Life
 	Name                   string
 	IsApplicationSynthetic bool

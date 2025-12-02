@@ -17,6 +17,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/juju/juju/core/semversion"
+	controllernodeservice "github.com/juju/juju/domain/controllernode/service"
 	upgradeservice "github.com/juju/juju/domain/upgrade/service"
 )
 
@@ -44,6 +45,9 @@ func (s *manifoldSuite) setupMocks(c *tc.C) *gomock.Controller {
 	s.agentConfig.EXPECT().UpgradedToVersion().Return(semversion.MustParse("1.0.0")).AnyTimes()
 	s.upgradeServices.EXPECT().Upgrade().Return(
 		&upgradeservice.WatchableService{},
+	).AnyTimes()
+	s.upgradeServices.EXPECT().ControllerNode().Return(
+		&controllernodeservice.Service{},
 	).AnyTimes()
 	s.upgradeServicesGetter.EXPECT().ServicesForController().Return(
 		s.upgradeServices,

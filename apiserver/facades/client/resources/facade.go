@@ -33,8 +33,9 @@ import (
 
 // API is the public API facade for resources.
 type API struct {
-	applicationService ApplicationService
-	resourceService    ResourceService
+	applicationService        ApplicationService
+	resourceService           ResourceService
+	crossModelRelationService CrossModelRelationService
 
 	factory func(context.Context, *charm.URL) (NewCharmRepository, error)
 	logger  corelogger.Logger
@@ -84,7 +85,13 @@ func NewFacade(ctx facade.ModelContext) (*API, error) {
 		}
 	}
 
-	f, err := NewResourcesAPI(ctx.DomainServices().Application(), ctx.DomainServices().Resource(), factory, logger)
+	f, err := NewResourcesAPI(
+		ctx.DomainServices().Application(),
+		ctx.DomainServices().Resource(),
+		ctx.DomainServices().CrossModelRelation(),
+		factory,
+		logger,
+	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -95,6 +102,7 @@ func NewFacade(ctx facade.ModelContext) (*API, error) {
 func NewResourcesAPI(
 	applicationService ApplicationService,
 	resourceService ResourceService,
+	crossModelRelationService CrossModelRelationService,
 	factory func(context.Context, *charm.URL) (NewCharmRepository, error),
 	logger corelogger.Logger,
 ) (*API, error) {
@@ -103,6 +111,9 @@ func NewResourcesAPI(
 	}
 	if resourceService == nil {
 		return nil, errors.Errorf("missing resource service")
+	}
+	if crossModelRelationService == nil {
+		return nil, errors.Errorf("missing cross model relation service")
 	}
 	if factory == nil {
 		// Technically this only matters for one code path through
@@ -113,10 +124,11 @@ func NewResourcesAPI(
 	}
 
 	f := &API{
-		applicationService: applicationService,
-		resourceService:    resourceService,
-		factory:            factory,
-		logger:             logger,
+		applicationService:        applicationService,
+		resourceService:           resourceService,
+		crossModelRelationService: crossModelRelationService,
+		factory:                   factory,
+		logger:                    logger,
 	}
 	return f, nil
 }
@@ -138,13 +150,19 @@ func (a *API) ListResources(ctx context.Context, args params.ListResourcesArgs) 
 			continue
 		}
 
-		appID, err := a.applicationService.GetApplicationUUIDByName(ctx, tag.Id())
+		appDetails, err := a.applicationService.GetApplicationDetailsByName(ctx, tag.Id())
 		if err != nil {
 			r.Results[i] = errorResult(err)
 			continue
 		}
 
-		svcRes, err := a.resourceService.ListResources(ctx, appID)
+		// Reject synthetic (SAAS) applications - they don't support resource operations
+		if appDetails.IsApplicationSynthetic {
+			r.Results[i] = errorResult(errors.NotFoundf("application %s", tag.Id()))
+			continue
+		}
+
+		svcRes, err := a.resourceService.ListResources(ctx, appDetails.UUID)
 		if err != nil {
 			r.Results[i] = errorResult(err)
 			continue
@@ -175,6 +193,18 @@ func (a *API) AddPendingResources(
 		return result, nil
 	}
 	appName := tag.Id()
+
+	appDetails, err := a.applicationService.GetApplicationDetailsByName(ctx, appName)
+	if err != nil {
+		result.Error = apiservererrors.ServerError(err)
+		return result, nil
+	}
+
+	// Reject synthetic (SAAS) applications - they don't support resource operations
+	if appDetails.IsApplicationSynthetic {
+		result.Error = apiservererrors.ServerError(errors.NotFoundf("application %s", appName))
+		return result, nil
+	}
 
 	requestedOrigin, err := charms.ConvertParamsOrigin(args.CharmOrigin)
 	if err != nil {

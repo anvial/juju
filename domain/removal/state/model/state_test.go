@@ -1193,6 +1193,42 @@ func (s *baseSuite) selectDistinctValues(c *tc.C, field, table string) []string 
 	return obtained
 }
 
+func (s *baseSuite) addModelProvisionedFilesystem(c *tc.C) string {
+	ctx := c.Context()
+
+	fsUUID := "some-fs-uuid"
+	_, err := s.DB().ExecContext(ctx,
+		"INSERT INTO storage_filesystem (uuid, filesystem_id, life_id, provision_scope_id) VALUES (?, ?, ?, ?)",
+		fsUUID, "some-fs", 0, 0,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	_, err = s.DB().ExecContext(ctx,
+		"INSERT INTO storage_filesystem_status (filesystem_uuid, status_id) VALUES (?, ?)",
+		fsUUID, 0,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+
+	return fsUUID
+}
+
+func (s *baseSuite) addModelProvisionedVolume(c *tc.C) string {
+	ctx := c.Context()
+
+	volUUID := "some-vol-uuid"
+	_, err := s.DB().ExecContext(ctx,
+		"INSERT INTO storage_volume (uuid, volume_id, life_id, provision_scope_id) VALUES (?, ?, ?, ?)",
+		volUUID, "some-vol", 0, 0,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	_, err = s.DB().ExecContext(ctx,
+		"INSERT INTO storage_volume_status (volume_uuid, status_id) VALUES (?, ?)",
+		volUUID, 0,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+
+	return volUUID
+}
+
 type stubCharm struct {
 	name        string
 	subordinate bool

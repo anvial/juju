@@ -57,12 +57,6 @@ type MigrationState interface {
 		settings map[string]string,
 	) error
 
-	// DeleteImportedRelations deletes all imported relations in a model during
-	// an import rollback.
-	DeleteImportedRelations(
-		ctx context.Context,
-	) error
-
 	// ExportRelations returns all relation information to be exported for the
 	// model.
 	ExportRelations(ctx context.Context) ([]relation.ExportRelation, error)
@@ -149,17 +143,6 @@ func (s *MigrationService) importRelationEndpoint(ctx context.Context, relUUID c
 		}
 	}
 	return nil
-}
-
-// DeleteImportedRelations deletes all imported relations in a model during
-// an import rollback.
-func (s *MigrationService) DeleteImportedRelations(
-	ctx context.Context,
-) error {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	return s.st.DeleteImportedRelations(ctx)
 }
 
 // ExportRelations returns all relation information to be exported for the

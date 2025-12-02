@@ -134,13 +134,28 @@ join() {
 run_govulncheck() {
 	ignore=(
 		# The vulnerability below is for a method not used since Juju 1.x.
+		#
 		# https://pkg.go.dev/vuln/GO-2025-3798
 		"GO-2025-3798"
-		# false positive vulnerabilities in github.com/canonical/lxd. These are resolved in lxd-5.21.4.
+		# false positive vulnerabilities in github.com/canonical/lxd. These are
+		# resolved in lxd-5.21.4.
+		#
 		# https://pkg.go.dev/vuln/GO-2025-3999
 		# https://pkg.go.dev/vuln/GO-2025-4003
 		"GO-2025-3999"
 		"GO-2025-4003"
+		# The vulnerability is in github.com/canonical/lxd. This is resolved in
+		# the yet to be released lxd-5.21.5.
+		#
+		# https://pkg.go.dev/vuln/GO-2025-4121
+		"GO-2025-4121"
+		# The vulnerabilities below are fixed in the version of
+		# golang.org/x/crypto we now use but the govuln db
+		# seems out of date at the time of writing.
+		# https://pkg.go.dev/vuln/GO-2025-4134
+		# https://pkg.go.dev/vuln/GO-2025-4135
+		"GO-2025-4134"
+		"GO-2025-4135"
 	)
 	ignoreMatcher=$(join "|" "${ignore[@]}")
 

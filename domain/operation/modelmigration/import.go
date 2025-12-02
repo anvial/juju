@@ -45,10 +45,6 @@ func RegisterImport(
 type ImportService interface {
 	// ImportOperations sets operations and tasks imported in migration.
 	InsertMigratingOperations(ctx context.Context, args internal.ImportOperationsArgs) error
-
-	// DeleteImportedOperations deletes all imported operations in a model during
-	// an import rollback.
-	DeleteImportedOperations(ctx context.Context) error
 }
 
 type importOperation struct {
@@ -250,15 +246,4 @@ func (o opTaskArgs) check(task description.Action, unit coreunit.Name) error {
 			o.action, task.Name()))
 	}
 	return errors.Join(errs...)
-}
-
-// Rollback deletes all imported operations in case of failure.
-func (i *importOperation) Rollback(ctx context.Context, model description.Model) error {
-	if len(model.Operations()) == 0 {
-		return nil
-	}
-	if err := i.service.DeleteImportedOperations(ctx); err != nil {
-		return errors.Errorf("operation import rollback failed: %w", err)
-	}
-	return nil
 }

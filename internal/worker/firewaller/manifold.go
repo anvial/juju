@@ -144,7 +144,6 @@ func (cfg ManifoldConfig) start(ctx context.Context, getter dependency.Getter) (
 		CrossModelRelationService: domainServices.CrossModelRelation(),
 		FirewallerAPI:             firewallerAPI,
 		PortsService:              domainServices.Port(),
-		MachineService:            domainServices.Machine(),
 		ApplicationService:        domainServices.Application(),
 		RelationService:           domainServices.Relation(),
 		EnvironFirewaller:         fwEnv,

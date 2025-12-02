@@ -5,7 +5,10 @@ package provider_test
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	stdtesting "testing"
 
 	"github.com/juju/names/v6"
@@ -180,7 +183,7 @@ func (s *rootfsSuite) TestAttachFilesystemsNoPathSpecified(c *tc.C) {
 	c.Assert(results[0].Error, tc.ErrorMatches, "filesystem mount point not specified")
 }
 
-func (s *rootfsSuite) TestAttachFilesystemsBind(c *tc.C) {
+func (s *rootfsSuite) TestAttachFilesystemsBindNoExistingFsTab(c *tc.C) {
 	source := s.rootfsFilesystemSource(c)
 
 	cmd := s.commands.expect("mount", "--bind", filepath.Join(s.storageDir, "6"), "/srv")
@@ -200,6 +203,88 @@ func (s *rootfsSuite) TestAttachFilesystemsBind(c *tc.C) {
 			},
 		},
 	}})
+	expect := fmt.Sprintf(`
+%s/6 /srv none defaults,bind,nofail
+`[1:], s.storageDir)
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(string(data), tc.Equals, expect)
+}
+
+func (s *rootfsSuite) createFsTab(c *tc.C, entries ...string) {
+	data := []byte(strings.Join(entries, "\n"))
+	err := os.WriteFile(filepath.Join(s.fakeEtcDir, "fstab"), data, 0644)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *rootfsSuite) TestAttachFilesystemsBind(c *tc.C) {
+	source := s.rootfsFilesystemSource(c)
+
+	existingFsTabEntries := `
+/src  /dest none defaults,bind,nofail 0 0
+/src2 /dest2 none defaults,bind,nofail 0 0
+`[1:]
+	s.createFsTab(c, existingFsTabEntries)
+
+	cmd := s.commands.expect("mount", "--bind", filepath.Join(s.storageDir, "6"), "/srv")
+	cmd.respond("", nil)
+
+	results, err := source.AttachFilesystems(c.Context(), []storage.FilesystemAttachmentParams{{
+		Filesystem:           names.NewFilesystemTag("6"),
+		FilesystemProviderId: "6",
+		Path:                 "/srv",
+	}})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(results, tc.DeepEquals, []storage.AttachFilesystemsResult{{
+		FilesystemAttachment: &storage.FilesystemAttachment{
+			Filesystem: names.NewFilesystemTag("6"),
+			FilesystemAttachmentInfo: storage.FilesystemAttachmentInfo{
+				Path: "/srv",
+			},
+		},
+	}})
+	expect := fmt.Sprintf(`
+%s/6 /srv none defaults,bind,nofail
+`[1:], s.storageDir)
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(string(data), tc.Equals, existingFsTabEntries+expect)
+}
+
+func (s *rootfsSuite) TestAttachFilesystemsBindExistingFsTabExtry(c *tc.C) {
+	source := s.rootfsFilesystemSource(c)
+
+	expect := fmt.Sprintf(`
+%s/6 /srv none defaults,bind,nofail
+`[1:], s.storageDir)
+	existingFsTabEntries := fmt.Sprintf(`
+/src  /dest none defaults,bind,nofail 0 0
+%s
+/src2 /dest2 none defaults,bind,nofail 0 0
+`[1:], expect)
+	s.createFsTab(c, existingFsTabEntries)
+
+	cmd := s.commands.expect("mount", "--bind", filepath.Join(s.storageDir, "6"), "/srv")
+	cmd.respond("", nil)
+
+	results, err := source.AttachFilesystems(c.Context(), []storage.FilesystemAttachmentParams{{
+		Filesystem:           names.NewFilesystemTag("6"),
+		FilesystemProviderId: "6",
+		Path:                 "/srv",
+	}})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(results, tc.DeepEquals, []storage.AttachFilesystemsResult{{
+		FilesystemAttachment: &storage.FilesystemAttachment{
+			Filesystem: names.NewFilesystemTag("6"),
+			FilesystemAttachmentInfo: storage.FilesystemAttachmentInfo{
+				Path: "/srv",
+			},
+		},
+	}})
+
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(string(data), tc.Equals, existingFsTabEntries)
 }
 
 func (s *rootfsSuite) TestAttachFilesystemsBound(c *tc.C) {
@@ -221,6 +306,12 @@ func (s *rootfsSuite) TestAttachFilesystemsBound(c *tc.C) {
 			},
 		},
 	}})
+	expect := fmt.Sprintf(`
+%s/6 /srv none defaults,bind,nofail
+`[1:], s.storageDir)
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(string(data), tc.Equals, expect)
 }
 
 func (s *rootfsSuite) TestAttachFilesystemsBoundViaParent(c *tc.C) {
@@ -242,6 +333,12 @@ func (s *rootfsSuite) TestAttachFilesystemsBoundViaParent(c *tc.C) {
 			},
 		},
 	}})
+	expect := fmt.Sprintf(`
+%s/6 /srv none defaults,bind,nofail
+`[1:], s.storageDir)
+	data, err := os.ReadFile(filepath.Join(s.fakeEtcDir, "fstab"))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(string(data), tc.Equals, expect)
 }
 
 func (s *rootfsSuite) TestAttachFilesystemsBoundViaMultipleParents(c *tc.C) {

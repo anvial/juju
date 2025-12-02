@@ -103,44 +103,6 @@ func (m *MockImportService) EXPECT() *MockImportServiceMockRecorder {
 	return m.recorder
 }
 
-// DeleteImportedOperations mocks base method.
-func (m *MockImportService) DeleteImportedOperations(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteImportedOperations", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteImportedOperations indicates an expected call of DeleteImportedOperations.
-func (mr *MockImportServiceMockRecorder) DeleteImportedOperations(arg0 any) *MockImportServiceDeleteImportedOperationsCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImportedOperations", reflect.TypeOf((*MockImportService)(nil).DeleteImportedOperations), arg0)
-	return &MockImportServiceDeleteImportedOperationsCall{Call: call}
-}
-
-// MockImportServiceDeleteImportedOperationsCall wrap *gomock.Call
-type MockImportServiceDeleteImportedOperationsCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockImportServiceDeleteImportedOperationsCall) Return(arg0 error) *MockImportServiceDeleteImportedOperationsCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockImportServiceDeleteImportedOperationsCall) Do(f func(context.Context) error) *MockImportServiceDeleteImportedOperationsCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockImportServiceDeleteImportedOperationsCall) DoAndReturn(f func(context.Context) error) *MockImportServiceDeleteImportedOperationsCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // InsertMigratingOperations mocks base method.
 func (m *MockImportService) InsertMigratingOperations(arg0 context.Context, arg1 internal.ImportOperationsArgs) error {
 	m.ctrl.T.Helper()

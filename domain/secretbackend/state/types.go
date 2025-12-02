@@ -86,7 +86,7 @@ type upsertSecretBackendParams struct {
 	BackendType         string
 	TokenRotateInterval *time.Duration
 	NextRotateTime      *time.Time
-	Config              map[string]string
+	Config              map[string]any
 }
 
 // Validate checks that the parameters are valid.
@@ -126,6 +126,8 @@ type SecretBackend struct {
 	BackendTypeID secretbackend.BackendType `db:"backend_type_id"`
 	// TokenRotateInterval is the interval at which the token for the secret backend should be rotated.
 	TokenRotateInterval database.NullDuration `db:"token_rotate_interval"`
+	// OriginID is the id of the secret backend origin.
+	OriginID int `db:"origin_id"`
 }
 
 // SecretBackendRotation represents a single row from the state database's
@@ -172,7 +174,7 @@ type SecretBackendRow struct {
 // secretBackendRows represents a slice of SecretBackendRow.
 type secretBackendRows []SecretBackendRow
 
-func (rows secretBackendRows) toSecretBackends() []*secretbackend.SecretBackend {
+func (rows secretBackendRows) toSecretBackends(ctx context.Context, logger logger.Logger) []*secretbackend.SecretBackend {
 	// Sort the rows by backend name to ensure that we group the config.
 	sort.Slice(rows, func(i, j int) bool {
 		return rows[i].Name < rows[j].Name
@@ -196,15 +198,21 @@ func (rows secretBackendRows) toSecretBackends() []*secretbackend.SecretBackend 
 			currentBackend = &backend
 			result = append(result, currentBackend)
 		}
-		if row.ConfigName == "" || row.ConfigContent == "" {
+		if row.ConfigName == "" {
 			// No config for this row.
 			continue
 		}
-
+		decodedContent, err := decodeConfigValue(row.ConfigContent)
+		if err != nil {
+			// This is unexpected and shouldn't happen unless encoding changes
+			// look at `domain/secretbackend/state/encode.go`.
+			logger.Warningf(ctx, "failed to decode config value %q: %v", row.ConfigName, err)
+			continue
+		}
 		if currentBackend.Config == nil {
 			currentBackend.Config = make(map[string]any)
 		}
-		currentBackend.Config[row.ConfigName] = row.ConfigContent
+		currentBackend.Config[row.ConfigName] = decodedContent
 	}
 	return result
 }
@@ -400,4 +408,9 @@ type SecretBackendReference struct {
 type Count struct {
 	// Num is the number of rows.
 	Num int `db:"num"`
+}
+
+// entityUUID is a helper struct to store a UUID.
+type entityUUID struct {
+	UUID string `db:"uuid"`
 }

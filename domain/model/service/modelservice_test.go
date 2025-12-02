@@ -389,44 +389,6 @@ func (s *modelServiceSuite) TestCreateModelForVersionInvalidStream(c *tc.C) {
 	c.Check(err, tc.ErrorIs, modelerrors.AgentStreamNotValid)
 }
 
-func (s *modelServiceSuite) TestDeleteModel(c *tc.C) {
-	ctrl := s.setupMocks(c)
-	defer ctrl.Finish()
-
-	modelUUID := modeltesting.GenModelUUID(c)
-	svc := NewModelService(
-		modelUUID,
-		s.mockControllerState,
-		s.mockModelState,
-		s.environVersionProviderGetter(),
-		DefaultAgentBinaryFinder(),
-	)
-
-	s.mockModelState.EXPECT().Delete(gomock.Any(), modelUUID).Return(nil)
-
-	err := svc.DeleteModel(c.Context())
-	c.Assert(err, tc.ErrorIsNil)
-}
-
-func (s *modelServiceSuite) TestDeleteModelFailedNotFound(c *tc.C) {
-	ctrl := s.setupMocks(c)
-	defer ctrl.Finish()
-
-	modelUUID := modeltesting.GenModelUUID(c)
-	svc := NewModelService(
-		modelUUID,
-		s.mockControllerState,
-		s.mockModelState,
-		s.environVersionProviderGetter(),
-		DefaultAgentBinaryFinder(),
-	)
-
-	s.mockModelState.EXPECT().Delete(gomock.Any(), modelUUID).Return(modelerrors.NotFound)
-
-	err := svc.DeleteModel(c.Context())
-	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
-}
-
 func (s *modelServiceSuite) TestGetEnvironVersion(c *tc.C) {
 	ctrl := s.setupMocks(c)
 	defer ctrl.Finish()

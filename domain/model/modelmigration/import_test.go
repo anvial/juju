@@ -325,15 +325,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
-	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID, gomock.Any()).DoAndReturn(func(_ context.Context, _ coremodel.UUID, options ...model.DeleteModelOption) error {
-		opts := model.DefaultDeleteModelOptions()
-		for _, fn := range options {
-			fn(opts)
-		}
-		c.Assert(opts.DeleteDB(), tc.IsTrue)
-		return nil
-	})
-	i.modelDetailService.EXPECT().DeleteModel(gomock.Any()).Return(nil)
+	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)
 
 	model := description.NewModel(description.ModelArgs{
 		Config: map[string]any{
@@ -411,8 +403,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
-	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID, gomock.Any()).Return(modelerrors.NotFound)
-	i.modelDetailService.EXPECT().DeleteModel(gomock.Any()).Return(nil)
+	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(modelerrors.NotFound)
 
 	model := description.NewModel(description.ModelArgs{
 		Config: map[string]any{
@@ -489,8 +480,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
-	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID, gomock.Any()).Return(nil)
-	i.modelDetailService.EXPECT().DeleteModel(gomock.Any()).Return(nil)
+	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)
 
 	model := description.NewModel(description.ModelArgs{
 		Config: map[string]any{

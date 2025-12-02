@@ -5,6 +5,9 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/juju/juju/core/agentbinary"
 	corebase "github.com/juju/juju/core/base"
@@ -14,7 +17,6 @@ import (
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/core/trace"
 	coreunit "github.com/juju/juju/core/unit"
-	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
@@ -38,12 +40,6 @@ type AgentBinaryFinder interface {
 type agentBinaryFinderFunc func(semversion.Number) (bool, error)
 
 type ModelState interface {
-	// GetMachineCountNotUsingBase returns the number of machines that are not
-	// using one of the supplied bases. If no machines exist in the model or if
-	// no machines exist that are using a base not in the set provided, zero is
-	// returned with no error.
-	GetMachineCountNotUsingBase(context.Context, []corebase.Base) (int, error)
-
 	// GetMachineAgentBinaryMetadata reports the agent binary metadata that is
 	// currently running a given machine.
 	//
@@ -192,6 +188,19 @@ type ModelState interface {
 	// - [github.com/juju/juju/core/errors.NotSupported] if the architecture is
 	// not known to the database.
 	SetUnitRunningAgentBinaryVersion(context.Context, coreunit.UUID, agentbinary.Version) error
+
+	// GetAllMachinesWithBase returns a map of
+	// machine UUIDs to their resolved platform base.
+	//
+	// Machines for which the channel field is NULL are skipped and do not appear in the
+	// returned map.
+	//
+	// Machines for which the OS and channel field are both empty
+	// will result in a corresponding zero value base returned.
+	//
+	// This method may return the following errors:
+	//   - [coreerrors.NotValid] if, for any machine, either the OS or channel field but not both is non-empty.
+	GetAllMachinesWithBase(ctx context.Context) (map[string]corebase.Base, error)
 }
 
 // ControllerState defines the interface for interacting with the
@@ -882,26 +891,33 @@ func (s *Service) validateModelCanBeUpgraded(
 		).Add(modelagenterrors.CannotUpgradeControllerModel)
 	}
 
-	// TODO(@adisazhar123): discussed with @tlm we can comment out for now.
-	// Will require a future effort to fix this.
-	//failedMachineCount, err := s.modelSt.GetMachineCountNotUsingBase(ctx, corebase.WorkloadBases())
-	//if err != nil {
-	//	return errors.Errorf(
-	//		"getting count of machines in model not running a supported workload base: %w",
-	//		err,
-	//	)
-	//}
-	//
-	//if failedMachineCount > 0 {
-	//	return modelagenterrors.ModelUpgradeBlocker{
-	//		Reason: fmt.Sprintf(
-	//			"model has %d machines using unsupported bases: %v",
-	//			failedMachineCount, corebase.WorkloadBases(),
-	//		),
-	//	}
-	//}
+	machineBases, err := s.modelSt.GetAllMachinesWithBase(ctx)
+	if err != nil {
+		return errors.Errorf("getting machine bases from state: %w", err)
+	}
 
+	maps.DeleteFunc(machineBases, machineUsesSupportedBase(corebase.WorkloadBases()))
+	if len(machineBases) > 0 {
+		return modelagenterrors.ModelUpgradeBlocker{
+			Reason: fmt.Sprintf(
+				"model has %d machines using unsupported bases, the supported bases are: %v",
+				len(machineBases), corebase.WorkloadBases(),
+			),
+		}
+	}
 	return nil
+}
+
+// machineUsesSupportedBase returns a predicate for maps.DeleteFunc that
+// removes machines whose base matches one of the supported bases.
+// Bases are considered equal if their OS and track match while risk and branch are ignored.
+func machineUsesSupportedBase(supported []corebase.Base) func(uuid string, b corebase.Base) bool {
+	return func(_ string, b corebase.Base) bool {
+		// We only compare OS and Track.
+		return slices.ContainsFunc(supported, func(s corebase.Base) bool {
+			return b.OS == s.OS && b.Channel.Track == s.Channel.Track
+		})
+	}
 }
 
 // validateModelCanBeUpgradedTo checks to see if the model can be upgraded to
@@ -983,27 +999,21 @@ func (s *Service) validateModelCanBeUpgradedTo(
 func (s *Service) getRecommendedVersion(
 	ctx context.Context,
 ) (semversion.Number, error) {
-	// TODO(adisazhar123): Discussed with @tlm that it can be commented out.
-	// Right now we get the model to upgrade to the version the controller
-	// agent is running.
+	versions, err := s.controllerSt.GetControllerAgentVersions(ctx)
+	if err != nil {
+		return semversion.Zero, errors.Capture(err)
+	}
 
-	//versions, err := s.controllerSt.
-	//	GetControllerAgentVersions(ctx)
-	//if err != nil {
-	//	return semversion.Zero, errors.Capture(err)
-	//}
-	//
-	//if len(versions) == 0 {
-	//	return semversion.Zero, errors.New("no recommended versions found")
-	//}
-	//
-	//// Sort it descendingly so the highest version is the first element.
-	//slices.SortFunc(versions, func(a, b semversion.Number) int {
-	//	return a.Compare(b) * -1
-	//})
-	//
-	//return versions[0], nil
-	return jujuversion.Current, nil
+	if len(versions) == 0 {
+		return semversion.Zero, errors.New("no recommended versions found")
+	}
+
+	// Sort it descendingly so the highest version is the first element.
+	slices.SortFunc(versions, func(a, b semversion.Number) int {
+		return a.Compare(b) * -1
+	})
+
+	return versions[0], nil
 }
 
 // RunPreUpgradeChecks performs a series of pre-upgrade validation checks

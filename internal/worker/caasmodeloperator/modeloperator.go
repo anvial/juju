@@ -230,6 +230,13 @@ func (m *ModelOperatorManager) updateAgentConf(
 			// UpgradedToVersion is mandatory but not used by
 			// caas operator agents as they are not upgraded insitu.
 			UpgradedToVersion: ver,
+
+			OpenTelemetryEnabled:               m.agentConfig.OpenTelemetryEnabled(),
+			OpenTelemetryEndpoint:              m.agentConfig.OpenTelemetryEndpoint(),
+			OpenTelemetryInsecure:              m.agentConfig.OpenTelemetryInsecure(),
+			OpenTelemetryStackTraces:           m.agentConfig.OpenTelemetryStackTraces(),
+			OpenTelemetrySampleRatio:           m.agentConfig.OpenTelemetrySampleRatio(),
+			OpenTelemetryTailSamplingThreshold: m.agentConfig.OpenTelemetryTailSamplingThreshold(),
 		},
 	)
 	if err != nil {

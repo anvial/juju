@@ -22,8 +22,11 @@ import (
 
 	api "github.com/juju/juju/api/client/resources"
 	apiservererrors "github.com/juju/juju/apiserver/errors"
+	coreapplication "github.com/juju/juju/core/application"
 	coreresource "github.com/juju/juju/core/resource"
 	coreresourcetesting "github.com/juju/juju/core/resource/testing"
+	"github.com/juju/juju/domain/application"
+	domainlife "github.com/juju/juju/domain/life"
 	domainresource "github.com/juju/juju/domain/resource"
 	resourceerrors "github.com/juju/juju/domain/resource/errors"
 	charmresource "github.com/juju/juju/internal/charm/resource"
@@ -47,9 +50,11 @@ type ResourcesHandlerSuite struct {
 	resourceReader  io.ReadCloser
 	applicationName string
 
-	resourceService       *MockResourceService
-	resourceServiceGetter *MockResourceServiceGetter
-	downloader            *MockDownloader
+	resourceService          *MockResourceService
+	resourceServiceGetter    *MockResourceServiceGetter
+	applicationService       *MockApplicationService
+	applicationServiceGetter *MockApplicationServiceGetter
+	downloader               *MockDownloader
 }
 
 func TestResourcesHandlerSuite(t *testing.T) {
@@ -96,12 +101,15 @@ func (s *ResourcesHandlerSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.resourceService = NewMockResourceService(ctrl)
 	s.resourceServiceGetter = NewMockResourceServiceGetter(ctrl)
+	s.applicationService = NewMockApplicationService(ctrl)
+	s.applicationServiceGetter = NewMockApplicationServiceGetter(ctrl)
 	s.downloader = NewMockDownloader(ctrl)
 
 	s.handler = NewResourceHandler(
 		s.authFunc,
 		func(context.Context) error { return nil },
 		s.resourceServiceGetter,
+		s.applicationServiceGetter,
 		s.downloader,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -140,10 +148,19 @@ func (s *ResourcesHandlerSuite) TestExpectedAuthTags(c *tc.C) {
 		authFunc,
 		func(context.Context) error { return nil },
 		s.resourceServiceGetter,
+		s.applicationServiceGetter,
 		s.downloader,
 		loggertesting.WrapCheckLog(c),
 	)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -201,6 +218,14 @@ func (s *ResourcesHandlerSuite) TestGetSuccess(c *tc.C) {
 	// Arrange:
 	req := s.newDownloadRequest(c)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -224,6 +249,14 @@ func (s *ResourcesHandlerSuite) TestGetNotFoundError(c *tc.C) {
 	// Arrange:
 	req := s.newDownloadRequest(c)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -241,6 +274,14 @@ func (s *ResourcesHandlerSuite) TestPutSuccessAttachResource(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	// Arrange:
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(gomock.Any(), s.applicationName, s.resourceName).Return(s.resourceUUID, nil)
 	newResourceUUID := coreresourcetesting.GenResourceUUID(c)
 	s.resourceService.EXPECT().UpdateUploadResource(gomock.Any(), s.resourceUUID).Return(newResourceUUID, nil)
@@ -301,6 +342,7 @@ func (s *ResourcesHandlerSuite) TestPutChangeBlocked(c *tc.C) {
 		s.authFunc,
 		changeAllowedFunc,
 		s.resourceServiceGetter,
+		s.applicationServiceGetter,
 		s.downloader,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -320,6 +362,14 @@ func (s *ResourcesHandlerSuite) TestPutSuccessDockerResource(c *tc.C) {
 	// Arrange:
 	req := s.newUploadRequest(c)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -383,6 +433,14 @@ func (s *ResourcesHandlerSuite) TestPutExtensionMismatch(c *tc.C) {
 	req.Header.Set("Content-Disposition", "form-data; filename=different.ext")
 	req.URL.RawQuery += fmt.Sprintf("&pendingid=%s", s.resourceUUID)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResource(gomock.Any(), s.resourceUUID).Return(
 		s.resource, nil,
 	)
@@ -405,6 +463,14 @@ func (s *ResourcesHandlerSuite) TestPutNotValidOrigin(c *tc.C) {
 	req := s.newUploadRequest(c)
 	req.URL.RawQuery += fmt.Sprintf("&pendingid=%s", s.resourceUUID)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	res := s.resource
 	res.Origin = charmresource.OriginStore
 	s.resourceService.EXPECT().GetResource(gomock.Any(), s.resourceUUID).Return(
@@ -429,6 +495,14 @@ func (s *ResourcesHandlerSuite) TestPutWithPending(c *tc.C) {
 	req := s.newUploadRequest(c)
 	req.URL.RawQuery += fmt.Sprintf("&pendingid=%s", s.resourceUUID)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResource(gomock.Any(), s.resourceUUID).Return(
 		s.resource, nil,
 	)
@@ -477,6 +551,14 @@ func (s *ResourcesHandlerSuite) TestPutNotFoundError(c *tc.C) {
 	// Arrange:
 	req := s.newUploadRequest(c)
 
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: false,
+		}, nil)
 	s.resourceService.EXPECT().GetResourceUUIDByApplicationAndResourceName(
 		gomock.Any(),
 		s.applicationName,
@@ -487,6 +569,52 @@ func (s *ResourcesHandlerSuite) TestPutNotFoundError(c *tc.C) {
 	s.serveHTTP(req)
 
 	// Assert:
+	s.checkErrResp(c, http.StatusNotFound, "application/json")
+}
+
+func (s *ResourcesHandlerSuite) TestGetSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	req := s.newDownloadRequest(c)
+
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: true,
+		}, nil)
+
+	// Act
+	s.serveHTTP(req)
+
+	// Assert: SAAS applications should be rejected with application not found
+	// error.
+	s.checkErrResp(c, http.StatusNotFound, "application/json")
+}
+
+func (s *ResourcesHandlerSuite) TestPutSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	req := s.newUploadRequest(c)
+
+	s.applicationServiceGetter.EXPECT().Application(gomock.Any()).Return(s.applicationService, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), s.applicationName).Return(
+		application.ApplicationDetails{
+			UUID:                   coreapplication.UUID("app-uuid"),
+			Life:                   domainlife.Alive,
+			Name:                   s.applicationName,
+			IsApplicationSynthetic: true,
+		}, nil)
+
+	// Act
+	s.serveHTTP(req)
+
+	// Assert: SAAS applications should be rejected with application not found
+	// error.
 	s.checkErrResp(c, http.StatusNotFound, "application/json")
 }
 

@@ -6,6 +6,8 @@ package services
 import (
 	"github.com/juju/juju/core/changestream"
 	"github.com/juju/juju/core/logger"
+	controllernodeservice "github.com/juju/juju/domain/controllernode/service"
+	controllernodestate "github.com/juju/juju/domain/controllernode/state"
 	upgradeservice "github.com/juju/juju/domain/upgrade/service"
 	upgradestate "github.com/juju/juju/domain/upgrade/state"
 )
@@ -35,5 +37,13 @@ func (s *UpgradeServices) Upgrade() *upgradeservice.WatchableService {
 	return upgradeservice.NewWatchableService(
 		upgradestate.NewState(changestream.NewTxnRunnerFactory(s.controllerDB)),
 		s.controllerWatcherFactory("upgrade"),
+	)
+}
+
+// ControllerNode returns the controller node service.
+func (s *UpgradeServices) ControllerNode() *controllernodeservice.Service {
+	return controllernodeservice.NewService(
+		controllernodestate.NewState(changestream.NewTxnRunnerFactory(s.controllerDB)),
+		s.logger.Child("controllernode"),
 	)
 }

@@ -1527,7 +1527,13 @@ func (api *APIBase) consumeOne(ctx context.Context, arg params.ConsumeApplicatio
 
 	applicationName := arg.ApplicationAlias
 	if applicationName == "" {
-		applicationName = arg.OfferName
+		// In this case we can default to the offer name, so we have to get it
+		// from the offer URL.
+		offerURL, err := crossmodel.ParseOfferURL(arg.OfferURL)
+		if err != nil {
+			return internalerrors.Errorf("parsing offer URL: %w", err).Add(coreerrors.BadRequest)
+		}
+		applicationName = offerURL.Name
 	}
 
 	return api.saveRemoteApplicationOfferer(
@@ -1703,7 +1709,7 @@ func (api *APIBase) setConfig(ctx context.Context, arg params.ConfigSet) params.
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotImplementedf("config yaml not supported"))}
 	}
 
-	appID, err := api.applicationService.GetApplicationUUIDByName(ctx, arg.ApplicationName)
+	appDetails, err := api.applicationService.GetApplicationDetailsByName(ctx, arg.ApplicationName)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %q", arg.ApplicationName))}
 	} else if errors.Is(err, applicationerrors.ApplicationNameNotValid) {
@@ -1712,7 +1718,12 @@ func (api *APIBase) setConfig(ctx context.Context, arg params.ConfigSet) params.
 		return params.ErrorResult{Error: apiservererrors.ServerError(err)}
 	}
 
-	err = api.applicationService.UpdateApplicationConfig(ctx, appID, arg.Config)
+	// Reject synthetic applications - they don't support config operations.
+	if appDetails.IsApplicationSynthetic {
+		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %s", arg.ApplicationName))}
+	}
+
+	err = api.applicationService.UpdateApplicationConfig(ctx, appDetails.UUID, arg.Config)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return params.ErrorResult{Error: apiservererrors.ServerError(errors.NotFoundf("application %q", arg.ApplicationName))}
 	} else if errors.Is(err, applicationerrors.InvalidApplicationConfig) {
@@ -1741,13 +1752,19 @@ func (api *APIBase) UnsetApplicationsConfig(ctx context.Context, args params.App
 }
 
 func (api *APIBase) unsetApplicationConfig(ctx context.Context, arg params.ApplicationUnset) error {
-	appID, err := api.applicationService.GetApplicationUUIDByName(ctx, arg.ApplicationName)
+	appDetails, err := api.applicationService.GetApplicationDetailsByName(ctx, arg.ApplicationName)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return errors.NotFoundf("application %s", arg.ApplicationName)
 	} else if err != nil {
 		return errors.Trace(err)
 	}
-	err = api.applicationService.UnsetApplicationConfigKeys(ctx, appID, arg.Options)
+
+	// Reject synthetic applications - they don't support config operations.
+	if appDetails.IsApplicationSynthetic {
+		return errors.NotFoundf("application %s", arg.ApplicationName)
+	}
+
+	err = api.applicationService.UnsetApplicationConfigKeys(ctx, appDetails.UUID, arg.Options)
 	if errors.Is(err, applicationerrors.ApplicationNotFound) {
 		return errors.NotFoundf("application %s", arg.ApplicationName)
 	} else if err != nil {
@@ -2303,9 +2320,36 @@ func (api *APIBase) DeployFromRepository(ctx context.Context, args params.Deploy
 	}, nil
 }
 
-func (api *APIBase) getOneApplicationStorage(entity params.Entity) (map[string]params.StorageDirectives, error) {
-	// TODO(storage): implement and add test.
-	return nil, errors.NotImplementedf("GetApplicationStorage")
+func (api *APIBase) getOneApplicationStorage(ctx context.Context, entity params.Entity) (map[string]params.StorageDirectives, error) {
+	appTag, err := names.ParseApplicationTag(entity.Tag)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	appUUID, err := api.applicationService.GetApplicationUUIDByName(ctx, appTag.Id())
+	if errors.Is(err, applicationerrors.ApplicationNotFound) {
+		return nil, internalerrors.Errorf("application %q not found", appTag.Id()).Add(coreerrors.NotFound)
+	} else if err != nil {
+		return nil, internalerrors.Capture(err)
+	}
+
+	storage, err := api.applicationService.GetApplicationStorageDirectivesInfo(ctx, appUUID)
+	if errors.Is(err, applicationerrors.ApplicationNotFound) {
+		return nil, internalerrors.Errorf("application %q not found", appTag.Id()).Add(coreerrors.NotFound)
+	} else if err != nil {
+		return nil, internalerrors.Capture(err)
+	}
+
+	sc := make(map[string]params.StorageDirectives, len(storage))
+	for name, storageInfo := range storage {
+		sc[name] = params.StorageDirectives{
+			Pool:    storageInfo.StoragePoolName,
+			SizeMiB: &storageInfo.SizeMiB,
+			Count:   &storageInfo.Count,
+		}
+	}
+
+	return sc, nil
 }
 
 // GetApplicationStorage returns the current storage constraints for the specified applications in bulk.
@@ -2317,7 +2361,7 @@ func (api *APIBase) GetApplicationStorage(ctx context.Context, args params.Entit
 		return resp, errors.Trace(err)
 	}
 	for i, entity := range args.Entities {
-		sc, err := api.getOneApplicationStorage(entity)
+		sc, err := api.getOneApplicationStorage(ctx, entity)
 		if err != nil {
 			resp.Results[i].Error = apiservererrors.ServerError(err)
 			continue

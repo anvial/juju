@@ -116,7 +116,7 @@ func (s *MigrationService) transformImportLinkLayerDevice(
 	if len(device.Addresses) > 0 {
 		transformedAddresses := make([]internal.ImportIPAddress, 0, len(device.Addresses))
 		for _, addr := range device.Addresses {
-			transformedAddr, err := s.transformImportIPAddress(ctx, addr, subnets, subnetByProviderId)
+			transformedAddr, err := s.transformImportIPAddress(addr, subnets, subnetByProviderId)
 			if err != nil {
 				return internal.ImportLinkLayerDevice{}, errors.Errorf("converting address %q: %w",
 					addr.AddressValue, err)
@@ -130,11 +130,16 @@ func (s *MigrationService) transformImportLinkLayerDevice(
 
 // transformImportIPAddress transforms an ImportIPAddress by finding and setting its subnet UUID
 func (s *MigrationService) transformImportIPAddress(
-	ctx context.Context,
 	addr internal.ImportIPAddress,
 	subnets network.SubnetInfos,
 	subnetByProviderId map[string]network.SubnetInfo,
 ) (internal.ImportIPAddress, error) {
+	if addr.ConfigType == network.ConfigLoopback {
+		// Loopback addresses will not have an associated subnet, return the
+		// original address.
+		return addr, nil
+	}
+
 	var candidateSubnets network.SubnetInfos
 
 	// If provider subnet ID is provided, use it to find the subnet
@@ -153,7 +158,7 @@ func (s *MigrationService) transformImportIPAddress(
 		}
 	}
 	var err error
-	addr.SubnetUUID, err = s.ensureOneSubnet(ctx, candidateSubnets)
+	addr.SubnetUUID, err = s.ensureOneSubnet(candidateSubnets)
 	return addr, errors.Capture(err)
 }
 
@@ -197,7 +202,7 @@ func (s *MigrationService) getPlaceholderLinkLayerDevices(
 	for _, service := range services {
 		transformedAddresses := make([]internal.ImportIPAddress, 0, len(service.Addresses))
 		for _, addr := range service.Addresses {
-			transformedAddr, err := s.transformCloudServiceAddress(ctx, addr, spaces)
+			transformedAddr, err := s.transformCloudServiceAddress(addr, spaces)
 			if err != nil {
 				return nil, errors.Errorf("converting address %q for %q cloud service: %w",
 					addr.Value,
@@ -226,7 +231,6 @@ func (s *MigrationService) getPlaceholderLinkLayerDevices(
 // transformCloudServiceAddress transforms an ImportCloudServiceAddress by
 // finding and setting its subnet UUID
 func (s *MigrationService) transformCloudServiceAddress(
-	ctx context.Context,
 	addr internal.ImportCloudServiceAddress,
 	spaces network.SpaceInfos,
 ) (internal.ImportIPAddress, error) {
@@ -251,11 +255,11 @@ func (s *MigrationService) transformCloudServiceAddress(
 	if err != nil {
 		return result, errors.Errorf("getting subnets: %w", err)
 	}
-	result.SubnetUUID, err = s.ensureOneSubnet(ctx, candidateSubnets)
+	result.SubnetUUID, err = s.ensureOneSubnet(candidateSubnets)
 	return result, errors.Capture(err)
 }
 
-func (s *MigrationService) ensureOneSubnet(ctx context.Context, subnets network.SubnetInfos) (string, error) {
+func (s *MigrationService) ensureOneSubnet(subnets network.SubnetInfos) (string, error) {
 
 	// Check if we found any subnets
 	if len(subnets) == 0 {
