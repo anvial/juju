@@ -88,6 +88,7 @@ func generate(ctx context.Context, runner *txnRunner) error {
 	}
 
 	var structs []string
+	var structNames []string
 	var imports = make(map[string]struct{})
 
 	for _, tableName := range tableNames {
@@ -100,12 +101,13 @@ func generate(ctx context.Context, runner *txnRunner) error {
 		}
 		structDef, requiredImports := generateStruct(tableName, columns)
 		structs = append(structs, structDef)
+		structNames = append(structNames, toCamelCase(tableName))
 		for _, imp := range requiredImports {
 			imports[imp] = struct{}{}
 		}
 	}
 
-	return writeModelFile(maxVersion, structs, imports)
+	return writeModelFile(maxVersion, structs, structNames, imports)
 }
 
 func getTableNames(ctx context.Context, runner *txnRunner) ([]string, error) {
@@ -132,14 +134,14 @@ func getTableNames(ctx context.Context, runner *txnRunner) ([]string, error) {
 	return tableNames, nil
 }
 
-type Column struct {
+type column struct {
 	Name    string
 	Type    string
 	NotNull bool
 }
 
-func getTableSchema(ctx context.Context, runner *txnRunner, tableName string) ([]Column, error) {
-	var columns []Column
+func getTableSchema(ctx context.Context, runner *txnRunner, tableName string) ([]column, error) {
+	var columns []column
 	query := fmt.Sprintf("PRAGMA table_info(%q)", tableName)
 	err := runner.StdTxn(ctx, func(ctx context.Context, tx *sql.Tx) error {
 		rows, err := tx.QueryContext(ctx, query)
@@ -154,7 +156,7 @@ func getTableSchema(ctx context.Context, runner *txnRunner, tableName string) ([
 			if err := rows.Scan(&cid, &name, &typ, &notnull, &dflt_value, &pk); err != nil {
 				return err
 			}
-			columns = append(columns, Column{
+			columns = append(columns, column{
 				Name:    name.String,
 				Type:    typ.String,
 				NotNull: notnull != 0,
@@ -178,7 +180,7 @@ func toCamelCase(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-func generateStruct(tableName string, columns []Column) (string, []string) {
+func generateStruct(tableName string, columns []column) (string, []string) {
 	structName := toCamelCase(tableName)
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("type %s struct {\n", structName))
@@ -191,7 +193,7 @@ func generateStruct(tableName string, columns []Column) (string, []string) {
 			imports = append(imports, imp)
 		}
 		fieldName := toCamelCase(col.Name)
-		sb.WriteString(fmt.Sprintf("\t%s %s `db:\"%s\"`\n", fieldName, goType, col.Name))
+		sb.WriteString(fmt.Sprintf("\t%s %s `db:%q`\n", fieldName, goType, col.Name))
 	}
 	sb.WriteString("}\n")
 	return sb.String(), imports
@@ -222,7 +224,7 @@ func sqliteTypeToGoType(sqliteType string, notNull bool) (string, string) {
 	return goType, imp
 }
 
-func writeModelFile(version uint64, structs []string, imports map[string]struct{}) error {
+func writeModelFile(version uint64, structs []string, structNames []string, imports map[string]struct{}) error {
 	// We should be in domain/export/generate.
 	_, filename, _, _ := runtime.Caller(0)
 	currentDir := filepath.Dir(filename)
@@ -260,6 +262,14 @@ func writeModelFile(version uint64, structs []string, imports map[string]struct{
 		out.WriteString(s)
 		out.WriteString("\n")
 	}
+
+	// Add the ModelExport struct, which has a slice of
+	// structs for each table row type.
+	out.WriteString("type ModelExport struct {\n")
+	for _, sn := range structNames {
+		out.WriteString(fmt.Sprintf("\t%s []%s\n", sn, sn))
+	}
+	out.WriteString("}\n\n")
 
 	formatted, err := format.Source(out.Bytes())
 	if err != nil {
