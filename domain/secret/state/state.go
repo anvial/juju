@@ -539,18 +539,6 @@ VALUES ($secretID.id)`
 	return nil
 }
 
-// GetSecretOwner returns the owner of the secret with the given URI, returning an error satisfying
-// [secreterrors.SecretNotFound] if the secret does not exist.
-func (st State) GetSecretOwner(ctx domain.AtomicContext, uri *coresecrets.URI) (domainsecret.Owner, error) {
-	var owner domainsecret.Owner
-	err := domain.Run(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		var err error
-		owner, err = st.getSecretOwner(ctx, tx, uri)
-		return errors.Capture(err)
-	})
-	return owner, errors.Capture(err)
-}
-
 func (st State) getSecretOwner(ctx context.Context, tx *sqlair.TX, uri *coresecrets.URI) (domainsecret.Owner, error) {
 	input := secretID{ID: uri.ID}
 	stmt, err := st.Prepare(`

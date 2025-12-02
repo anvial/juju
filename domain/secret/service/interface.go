@@ -28,7 +28,6 @@ type AtomicState interface {
 	DeleteSecret(ctx domain.AtomicContext, uri *secrets.URI, revs []int) error
 	GetApplicationUUID(ctx domain.AtomicContext, appName string) (coreapplication.UUID, error)
 	GetUnitUUID(ctx domain.AtomicContext, name coreunit.Name) (coreunit.UUID, error)
-	GetSecretOwner(ctx domain.AtomicContext, uri *secrets.URI) (domainsecret.Owner, error)
 
 	CheckUserSecretLabelExists(ctx domain.AtomicContext, label string) (bool, error)
 	CheckApplicationSecretLabelExists(ctx domain.AtomicContext, appUUID coreapplication.UUID, label string) (bool, error)

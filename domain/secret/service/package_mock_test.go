@@ -1306,45 +1306,6 @@ func (c *MockStateGetSecretGrantsCall) DoAndReturn(f func(context.Context, *secr
 	return c
 }
 
-// GetSecretOwner mocks base method.
-func (m *MockState) GetSecretOwner(arg0 domain.AtomicContext, arg1 *secrets.URI) (secret.Owner, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretOwner", arg0, arg1)
-	ret0, _ := ret[0].(secret.Owner)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSecretOwner indicates an expected call of GetSecretOwner.
-func (mr *MockStateMockRecorder) GetSecretOwner(arg0, arg1 any) *MockStateGetSecretOwnerCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretOwner", reflect.TypeOf((*MockState)(nil).GetSecretOwner), arg0, arg1)
-	return &MockStateGetSecretOwnerCall{Call: call}
-}
-
-// MockStateGetSecretOwnerCall wrap *gomock.Call
-type MockStateGetSecretOwnerCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockStateGetSecretOwnerCall) Return(arg0 secret.Owner, arg1 error) *MockStateGetSecretOwnerCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockStateGetSecretOwnerCall) Do(f func(domain.AtomicContext, *secrets.URI) (secret.Owner, error)) *MockStateGetSecretOwnerCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateGetSecretOwnerCall) DoAndReturn(f func(domain.AtomicContext, *secrets.URI) (secret.Owner, error)) *MockStateGetSecretOwnerCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // GetSecretRevisionID mocks base method.
 func (m *MockState) GetSecretRevisionID(arg0 context.Context, arg1 *secrets.URI, arg2 int) (string, error) {
 	m.ctrl.T.Helper()

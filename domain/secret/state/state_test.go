@@ -10,6 +10,7 @@ import (
 	stdtesting "testing"
 	"time"
 
+	"github.com/canonical/sqlair"
 	"github.com/juju/tc"
 
 	coredatabase "github.com/juju/juju/core/database"
@@ -65,6 +66,13 @@ VALUES (?, ?, "test", "prod", "iaas", "fluffy", "ec2")
 	})
 	c.Assert(err, tc.ErrorIsNil)
 	return modelUUID.String()
+}
+
+// txn executes a function within a sqlair database transaction and ensures
+// error handling using test context and state.
+// It can be used to run private function from state
+func (s *stateSuite) txn(c *tc.C, st *State, fn func(ctx context.Context, tx *sqlair.TX) error) error {
+	return tc.Must1(c, st.DB, c.Context()).Txn(c.Context(), fn)
 }
 
 func (s *stateSuite) TestGetModelUUID(c *tc.C) {
@@ -1845,7 +1853,10 @@ func (s *stateSuite) TestGetURIByConsumerLabelUnitNotExists(c *tc.C) {
 func (s *stateSuite) TestGetSecretOwnerNotFound(c *tc.C) {
 	st := newSecretState(c, s.TxnRunnerFactory())
 
-	_, err := getSecretOwner(c.Context(), st, coresecrets.NewURI())
+	err := s.txn(c, st, func(ctx context.Context, tx *sqlair.TX) error {
+		_, err := st.getSecretOwner(ctx, tx, coresecrets.NewURI())
+		return err
+	})
 	c.Assert(err, tc.ErrorIs, secreterrors.SecretNotFound)
 }
 
@@ -1868,7 +1879,11 @@ func (s *stateSuite) TestGetSecretOwnerUnitOwned(c *tc.C) {
 	unitUUID, err := getUnitUUID(ctx, st, "mysql/0")
 	c.Assert(err, tc.ErrorIsNil)
 
-	owner, err := getSecretOwner(ctx, st, uri)
+	var owner domainsecret.Owner
+	err = s.txn(c, st, func(ctx context.Context, tx *sqlair.TX) error {
+		owner, err = st.getSecretOwner(ctx, tx, uri)
+		return err
+	})
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(owner, tc.DeepEquals, domainsecret.Owner{Kind: domainsecret.UnitOwner, UUID: unitUUID.String()})
 }
@@ -1892,7 +1907,11 @@ func (s *stateSuite) TestGetSecretOwnerApplicationOwned(c *tc.C) {
 	appUUID, err := getApplicationUUID(ctx, st, "mysql")
 	c.Assert(err, tc.ErrorIsNil)
 
-	owner, err := getSecretOwner(ctx, st, uri)
+	var owner domainsecret.Owner
+	err = s.txn(c, st, func(ctx context.Context, tx *sqlair.TX) error {
+		owner, err = st.getSecretOwner(ctx, tx, uri)
+		return err
+	})
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(owner, tc.DeepEquals, domainsecret.Owner{Kind: domainsecret.ApplicationOwner, UUID: appUUID.String()})
 }
@@ -1911,7 +1930,11 @@ func (s *stateSuite) TestGetSecretOwnerUserSecret(c *tc.C) {
 	err := createUserSecret(ctx, st, 1, uri, sp)
 	c.Assert(err, tc.ErrorIsNil)
 
-	owner, err := getSecretOwner(ctx, st, uri)
+	var owner domainsecret.Owner
+	err = s.txn(c, st, func(ctx context.Context, tx *sqlair.TX) error {
+		owner, err = st.getSecretOwner(ctx, tx, uri)
+		return err
+	})
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(owner, tc.DeepEquals, domainsecret.Owner{Kind: domainsecret.ModelOwner})
 }
