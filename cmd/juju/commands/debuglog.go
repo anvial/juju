@@ -386,7 +386,7 @@ type DebugLogAPI interface {
 	Close() error
 }
 
-var getDebugLogAPI = func(ctx context.Context, c *debugLogCommand) (DebugLogAPI, error) {
+var getDebugLogClient = func(ctx context.Context, c *debugLogCommand) (DebugLogAPI, error) {
 	root, err := c.NewAPIRoot(ctx)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -394,7 +394,7 @@ var getDebugLogAPI = func(ctx context.Context, c *debugLogCommand) (DebugLogAPI,
 	return debuglog.NewClient(root, logger), nil
 }
 
-var getDebugLogAPIForAddresses = func(ctx context.Context, c *debugLogCommand, addresses []string) (DebugLogAPI, error) {
+var getDebugLogClientForAddresses = func(ctx context.Context, c *debugLogCommand, addresses []string) (DebugLogAPI, error) {
 	root, err := c.NewAPIRootWithDialOpts(ctx, &api.DialOpts{
 		DialTimeout: 5 * time.Second,
 		Timeout:     30 * time.Second,
@@ -455,7 +455,7 @@ func (c *debugLogCommand) getDebugLogClients(ctx context.Context, warningLogger 
 	// that the controller details API is not supported, so we fall back to
 	// using the address of the connected controller only.
 	if controllerClient.BestAPIVersion() < 3 {
-		client, err := getDebugLogAPI(ctx, c)
+		client, err := getDebugLogClient(ctx, c)
 		if err != nil {
 			return nil, err
 		}
@@ -471,12 +471,12 @@ func (c *debugLogCommand) getDebugLogClients(ctx context.Context, warningLogger 
 
 	var clients []DebugLogAPI
 	for _, details := range controllers {
-		client, err := getDebugLogAPIForAddresses(ctx, c, details.APIEndpoints)
+		client, err := getDebugLogClientForAddresses(ctx, c, details.APIEndpoints)
 		if len(controllers) > 1 && errors.Is(err, api.ConnectionFailure) {
-			warningLogger.Warningf("cannot connect to debug log API for controller %q at addresses %v: %v", details.ControllerID, details.APIEndpoints, err)
+			warningLogger.Warningf("cannot connect to debug log client for controller %q at addresses %v: %v", details.ControllerID, details.APIEndpoints, err)
 			continue
 		} else if err != nil {
-			return nil, errors.Annotatef(err, "getting debug log API for controller %q", details.ControllerID)
+			return nil, errors.Annotatef(err, "getting debug log client for controller %q", details.ControllerID)
 		}
 		clients = append(clients, client)
 	}
