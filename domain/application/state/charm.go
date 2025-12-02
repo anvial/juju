@@ -895,8 +895,49 @@ WHERE charm.uuid = $charmID.uuid;
 
 // IsImportingModel returns true if the model is being imported.
 func (s *State) IsImportingModel(ctx context.Context) (bool, error) {
-	// TODO(modelmigration): check if this model is being imported.
-	return false, nil
+	db, err := s.DB(ctx)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	var modelUUID entityUUID
+	modelStmt, err := s.Prepare(`SELECT &dbModelUUID.uuid FROM model;`, modelUUID)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	var migrationCheck dbModelMigrating
+	migrationStmt, err := s.Prepare(`
+SELECT &dbModelMigrating.model_uuid 
+FROM model_migrating 
+WHERE model_uuid = $dbModelMigrating.model_uuid
+	`, migrationCheck)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	var isImporting bool
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		// First, get the current model UUID from the model database.
+		err := tx.Query(ctx, modelStmt).Get(&modelUUID)
+		if err != nil {
+			return errors.Errorf("getting model uuid: %w", err)
+		}
+
+		// Query the model_migrating table to check if this model has an entry.
+		migrationCheck.ModelUUID = modelUUID.UUID
+		err = tx.Query(ctx, migrationStmt, migrationCheck).Get(&migrationCheck)
+		if errors.Is(err, sqlair.ErrNoRows) {
+			return nil
+		} else if err != nil {
+			return errors.Errorf("checking if model is importing: %w", err)
+		}
+
+		isImporting = true
+		return nil
+	})
+
+	return isImporting, err
 }
 
 // ResolveMigratingUploadedCharm resolves the charm that is migrating from

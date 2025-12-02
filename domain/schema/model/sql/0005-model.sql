@@ -87,3 +87,11 @@ CREATE TABLE model_life (
     FOREIGN KEY (life_id)
     REFERENCES life (id)
 );
+
+CREATE TABLE model_migrating (
+    uuid TEXT NOT NULL PRIMARY KEY,
+    model_uuid TEXT NOT NULL,
+    CONSTRAINT fk_model_migrating_model
+    FOREIGN KEY (model_uuid)
+    REFERENCES model (uuid)
+);

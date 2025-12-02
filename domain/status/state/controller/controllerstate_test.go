@@ -75,7 +75,26 @@ UPDATE model SET life_id = 1 WHERE uuid = ?
 }
 
 func (s *controllerStateSuite) TestGetModelStatusContextMigrating(c *tc.C) {
-	c.Skip("TODO: Implement this test when v_model_state model migration information is given in the database")
+	modelUUID := modeltesting.CreateTestModel(c, s.TxnRunnerFactory(), "test-model")
+	st := NewControllerState(s.TxnRunnerFactory(), modelUUID)
+
+	// Insert a row into target_model_migration to mark the model as migrating.
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO target_model_migration (uuid, model_uuid) VALUES (?, ?)
+		`, "migration-uuid-123", modelUUID)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	mSt, err := st.GetModelStatusContext(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(mSt, tc.DeepEquals, domainstatus.ModelStatusContext{
+		IsDestroying:                 false,
+		IsMigrating:                  true,
+		HasInvalidCloudCredential:    false,
+		InvalidCloudCredentialReason: "",
+	})
 }
 
 func (s *controllerStateSuite) TestGetModelStatusContextInvalidCredentials(c *tc.C) {

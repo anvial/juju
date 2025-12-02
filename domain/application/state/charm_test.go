@@ -17,6 +17,7 @@ import (
 	coreapplication "github.com/juju/juju/core/application"
 	corecharm "github.com/juju/juju/core/charm"
 	charmtesting "github.com/juju/juju/core/charm/testing"
+	coredatabase "github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/objectstore"
 	objectstoretesting "github.com/juju/juju/core/objectstore/testing"
@@ -26,6 +27,7 @@ import (
 	"github.com/juju/juju/domain/application/charm"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/life"
+	schematesting "github.com/juju/juju/domain/schema/testing"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/uuid"
@@ -3641,4 +3643,72 @@ func jujuInfoRelation() map[string]charm.Relation {
 			Interface: corerelation.JujuInfo,
 			Scope:     charm.ScopeGlobal},
 	}
+}
+
+type charmStateIsImportingSuite struct {
+	schematesting.ControllerModelSuite
+
+	modelUUID   string
+	modelRunner coredatabase.TxnRunner
+}
+
+func TestCharmStateIsImportingSuite(t *testing.T) {
+	tc.Run(t, &charmStateIsImportingSuite{})
+}
+
+func (s *charmStateIsImportingSuite) SetUpTest(c *tc.C) {
+	s.ControllerModelSuite.SetUpTest(c)
+	s.modelUUID = utils.MustNewUUID().String()
+	s.modelRunner = s.ModelTxnRunner(c, s.modelUUID)
+}
+
+func (s *charmStateIsImportingSuite) TestIsImportingModelNotImporting(c *tc.C) {
+	// Populate the model table in the model database
+	err := s.modelRunner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type) 
+VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
+		`, s.modelUUID, "controller-uuid")
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	factory := func(context.Context) (coredatabase.TxnRunner, error) {
+		return s.modelRunner, nil
+	}
+	st := NewState(factory, clock.WallClock, loggertesting.WrapCheckLog(c))
+
+	isImporting, err := st.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(isImporting, tc.Equals, false)
+}
+
+func (s *charmStateIsImportingSuite) TestIsImportingModelImporting(c *tc.C) {
+	// Populate the model table in the model database
+	err := s.modelRunner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type) 
+VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
+		`, s.modelUUID, "controller-uuid")
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Insert a migration record in the model_migrating table
+	err = s.modelRunner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)
+		`, utils.MustNewUUID().String(), s.modelUUID)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	factory := func(context.Context) (coredatabase.TxnRunner, error) {
+		return s.modelRunner, nil
+	}
+	st := NewState(factory, clock.WallClock, loggertesting.WrapCheckLog(c))
+
+	isImporting, err := st.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(isImporting, tc.Equals, true)
 }
