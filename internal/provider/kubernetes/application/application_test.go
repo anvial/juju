@@ -372,7 +372,7 @@ func (s *applicationSuite) assertEnsure(c *tc.C, app caas.Application,
 				Mounts: []caas.MountConfig{
 					{
 						StorageName: "database",
-						Path:        "path/to/here",
+						Path:        "path/in/workload-container",
 					},
 				},
 			},

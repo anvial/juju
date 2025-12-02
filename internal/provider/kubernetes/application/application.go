@@ -224,16 +224,21 @@ func (a *app) Ensure(config caas.ApplicationConfig) (err error) {
 	var handleVolumeMount handleVolumeMountFunc = func(storageName string, m corev1.VolumeMount) error {
 		for i := range podSpec.Containers {
 			name := podSpec.Containers[i].Name
+			// Mount the storage for the charm container.
 			if name == constants.ApplicationCharmContainer {
 				podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, m)
 				continue
 			}
+			// Reaching here means we mount the storage for the workload container.
+			// The location where we mount is defined in the YAML of the charm.
+			// This location is already organized in the `Mounts.Path` field of each
+			// container.
 			for _, mount := range config.Containers[name].Mounts {
 				if mount.StorageName == storageName {
 					volumeMountCopy := m
 					// TODO(sidecar): volumeMountCopy.MountPath was defined in `caas.ApplicationConfig.Filesystems[*].Attachment.Path`.
 					// Consolidate `caas.ApplicationConfig.Filesystems[*].Attachment.Path` and `caas.ApplicationConfig.Containers[*].Mounts[*].Path`!!!
-					//volumeMountCopy.MountPath = mount.Path
+					volumeMountCopy.MountPath = mount.Path
 					podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, volumeMountCopy)
 				}
 			}
