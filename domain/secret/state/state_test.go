@@ -16,6 +16,7 @@ import (
 	"github.com/juju/juju/core/network"
 	corerelation "github.com/juju/juju/core/relation"
 	coresecrets "github.com/juju/juju/core/secrets"
+	coreunit "github.com/juju/juju/core/unit"
 	unittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/application/charm"
@@ -157,7 +158,7 @@ func (s *stateSuite) TestCheckUnitSecretLabelExistsAlreadyUsedByUnit(c *tc.C) {
 	c.Assert(exists, tc.IsTrue)
 	exists, err = checkUnitSecretLabelExists(ctx, st, unitUUID1, "my label")
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(exists, tc.IsTrue)
+	c.Assert(exists, tc.IsFalse)
 }
 
 func (s *stateSuite) TestCheckUnitSecretLabelExistsAlreadyUsedByApp(c *tc.C) {
@@ -1203,6 +1204,36 @@ func (s *stateSuite) TestCreateManyUnitSecretsNoLabelClash(c *tc.C) {
 	createAndCheck("")
 	createAndCheck("")
 	createAndCheck("another label")
+}
+
+func (s *stateSuite) TestCreateUnitSecretsSameLabelDifferentUnits(c *tc.C) {
+	st := newSecretState(c, s.TxnRunnerFactory())
+
+	s.setupUnits(c, "mysql")
+
+	const label = "shared-label"
+
+	createAndCheckOnUnit := func(unit string) {
+		content := label + "-" + unit
+		sp := domainsecret.UpsertSecretParams{
+			Description: ptr("my secretMetadata"),
+			Label:       ptr(label),
+			Data:        coresecrets.SecretData{"foo": content},
+			RevisionID:  ptr(uuid.MustNewUUID().String()),
+		}
+		uri := coresecrets.NewURI()
+		ctx := c.Context()
+		err := createCharmUnitSecret(ctx, st, 1, uri, coreunit.Name(unit), sp)
+		c.Assert(err, tc.ErrorIsNil)
+		owner := coresecrets.Owner{Kind: coresecrets.UnitOwner, ID: unit}
+		s.assertSecret(c, st, uri, sp, 1, owner)
+		data, ref, err := st.GetSecretValue(ctx, uri, 1)
+		c.Assert(err, tc.ErrorIsNil)
+		c.Assert(ref, tc.IsNil)
+		c.Assert(data, tc.DeepEquals, coresecrets.SecretData{"foo": content})
+	}
+	createAndCheckOnUnit("mysql/0")
+	createAndCheckOnUnit("mysql/1")
 }
 
 func (s *stateSuite) TestListCharmSecretsMissingOwners(c *tc.C) {

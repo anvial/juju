@@ -192,17 +192,15 @@ func (st State) CheckUnitSecretLabelExists(ctx domain.AtomicContext, unitUUID co
 SELECT COUNT(*) AS &count.num
 FROM (
     SELECT secret_id
-    FROM   secret_application_owner sao
-           JOIN unit u ON sao.application_uuid = u.application_uuid
+    FROM   secret_application_owner AS sao
+           JOIN unit AS u ON sao.application_uuid = u.application_uuid
     WHERE  label = $secretUnitOwner.label
     AND    u.uuid = $secretUnitOwner.unit_uuid
-    UNION
-    SELECT DISTINCT secret_id
-    FROM   secret_unit_owner suo
-           JOIN unit u ON suo.unit_uuid = u.uuid
-           JOIN unit peer ON peer.application_uuid = u.application_uuid
+    UNION ALL
+    SELECT secret_id
+    FROM   secret_unit_owner AS suo
     WHERE  label = $secretUnitOwner.label
-    AND peer.uuid != u.uuid
+    AND    suo.unit_uuid = $secretUnitOwner.unit_uuid
 )`
 
 	checkExistsStmt, err := st.Prepare(checkLabelExistsSQL, input, count)
