@@ -27,6 +27,25 @@ type APIRemoteCallers interface {
 	GetAPIRemotes() ([]RemoteConnection, error)
 }
 
+// APIRemoteSubscriber is an interface that represents a subscriber to changes
+// in the set of API remotes.
+type APIRemoteSubscriber interface {
+	APIRemoteCallers
+
+	// Subscribe subscribes to changes in the set of API remotes.
+	Subscribe() (Subscription, error)
+}
+
+// Subscription represents a subscription to changes in the set of API remotes.
+type Subscription interface {
+	// Changes returns a channel that signals when the set of API remotes has
+	// changed.
+	Changes() <-chan struct{}
+
+	// Close closes the subscription.
+	Close()
+}
+
 // ManifoldConfig defines the names of the manifolds on which a Manifold will
 // depend.
 type ManifoldConfig struct {
@@ -121,8 +140,11 @@ func remoteOutput(in worker.Worker, out interface{}) error {
 	case *APIRemoteCallers:
 		var target APIRemoteCallers = w
 		*out = target
+	case *APIRemoteSubscriber:
+		var target APIRemoteSubscriber = w
+		*out = target
 	default:
-		return errors.Errorf("expected output of APIRemoteCallers, got %T", out)
+		return errors.Errorf("expected output of APIRemoteCallers or APIRemoteSubscriber, got %T", out)
 	}
 	return nil
 }
