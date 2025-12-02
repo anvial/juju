@@ -87,6 +87,11 @@ type CreateModelState interface {
 
 	// Create creates a new model with all of its associated metadata.
 	Create(context.Context, coremodel.UUID, coremodel.ModelType, model.GlobalModelCreationArgs) error
+
+	// ImportModel imports an existing model with all of its associated metadata.
+	// Unlike Create, it does not check the controller model lifecycle state and
+	// does not register a DQlite namespace.
+	ImportModel(context.Context, coremodel.UUID, coremodel.ModelType, model.GlobalModelCreationArgs) error
 }
 
 // DeleteModelState represents the state required for deleting a model.
@@ -317,7 +322,7 @@ func (s *Service) CreateModel(
 		)
 	}
 
-	activator, err := CreateModel(ctx, s.st, modelID, args)
+	activator, err := createModel(ctx, s.st, modelID, args)
 	if err != nil {
 		return "", nil, errors.Errorf("creating model %q: %w", args.Name, err)
 	}
@@ -364,7 +369,7 @@ func (s *Service) CreateModel(
 // - [modelerrors.CredentialNotValid]: When the cloud credential for the model
 // is not valid. This means that either the credential is not supported with
 // the cloud or the cloud doesn't support having an empty credential.
-func CreateModel(
+func createModel(
 	ctx context.Context,
 	st CreateModelState,
 	id coremodel.UUID,

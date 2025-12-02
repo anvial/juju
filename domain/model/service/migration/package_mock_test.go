@@ -234,6 +234,44 @@ func (c *MockStateDeleteCall) DoAndReturn(f func(context.Context, model.UUID) er
 	return c
 }
 
+// ImportModel mocks base method.
+func (m *MockState) ImportModel(arg0 context.Context, arg1 model.UUID, arg2 model.ModelType, arg3 model0.GlobalModelCreationArgs) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportModel", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ImportModel indicates an expected call of ImportModel.
+func (mr *MockStateMockRecorder) ImportModel(arg0, arg1, arg2, arg3 any) *MockStateImportModelCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportModel", reflect.TypeOf((*MockState)(nil).ImportModel), arg0, arg1, arg2, arg3)
+	return &MockStateImportModelCall{Call: call}
+}
+
+// MockStateImportModelCall wrap *gomock.Call
+type MockStateImportModelCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStateImportModelCall) Return(arg0 error) *MockStateImportModelCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStateImportModelCall) Do(f func(context.Context, model.UUID, model.ModelType, model0.GlobalModelCreationArgs) error) *MockStateImportModelCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStateImportModelCall) DoAndReturn(f func(context.Context, model.UUID, model.ModelType, model0.GlobalModelCreationArgs) error) *MockStateImportModelCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // MockModelDeleter is a mock of ModelDeleter interface.
 type MockModelDeleter struct {
 	ctrl     *gomock.Controller

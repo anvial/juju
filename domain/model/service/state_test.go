@@ -153,6 +153,74 @@ func (d *dummyState) Create(
 	return nil
 }
 
+func (d *dummyState) ImportModel(
+	_ context.Context,
+	modelID coremodel.UUID,
+	modelType coremodel.ModelType,
+	args model.GlobalModelCreationArgs,
+) error {
+	if _, exists := d.models[modelID]; exists {
+		return errors.Errorf("%w %q", modelerrors.AlreadyExists, modelID)
+	}
+
+	for _, v := range d.models {
+		if v.Name == args.Name && v.Qualifier == args.Qualifier {
+			return errors.Errorf("%w for name %s/%s", modelerrors.AlreadyExists, v.Qualifier, v.Name)
+		}
+	}
+
+	cloud, exists := d.clouds[args.Cloud]
+	if !exists {
+		return errors.Errorf("%w cloud %q", coreerrors.NotFound, args.Cloud)
+	}
+
+	for _, u := range args.AdminUsers {
+		_, exists = d.users[u]
+		if !exists {
+			return errors.Errorf("%w for creator %q", usererrors.UserNotFound, u)
+		}
+	}
+
+	hasRegion := false
+	for _, region := range cloud.Regions {
+		if region == args.CloudRegion {
+			hasRegion = true
+		}
+	}
+	if !hasRegion {
+		return errors.Errorf("%w cloud %q region %q", coreerrors.NotFound, args.Cloud, args.CloudRegion)
+	}
+
+	if !args.Credential.IsZero() {
+		if _, exists := cloud.Credentials[args.Credential.String()]; !exists {
+			return errors.Errorf("%w credential %q", coreerrors.NotFound, args.Credential.String())
+		}
+	}
+
+	secretBackendFound := false
+	for _, backend := range d.secretBackends {
+		if backend == args.SecretBackend {
+			secretBackendFound = true
+		}
+	}
+
+	if !secretBackendFound {
+		return secretbackenderrors.NotFound
+	}
+
+	d.nonActivatedModels[modelID] = coremodel.Model{
+		Name:        args.Name,
+		Qualifier:   args.Qualifier,
+		UUID:        modelID,
+		ModelType:   modelType,
+		Cloud:       args.Cloud,
+		CloudRegion: args.CloudRegion,
+		Credential:  args.Credential,
+		Life:        life.Alive,
+	}
+	return nil
+}
+
 func (d *dummyState) Activate(
 	_ context.Context,
 	uuid coremodel.UUID,

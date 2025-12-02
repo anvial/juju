@@ -54,6 +54,14 @@ CREATE TABLE model (
     REFERENCES life (id)
 );
 
+CREATE TABLE target_model_migration (
+    uuid TEXT NOT NULL PRIMARY KEY,
+    model_uuid TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_target_model_migration_model_uuid
+ON target_model_migration (model_uuid);
+
 -- idx_model_qualified_name established an index that stops models being created
 -- with the same qualified name.
 CREATE UNIQUE INDEX idx_model_qualified_name ON model (name, qualifier);

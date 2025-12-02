@@ -78,7 +78,19 @@ func (s *MigrationService) ImportModel(
 		)
 	}
 
-	return service.CreateModel(ctx, s.st, args.UUID, args.GlobalModelCreationArgs)
+	modelType, err := service.ModelTypeForCloud(ctx, s.st, args.Cloud)
+	if err != nil {
+		return nil, errors.Errorf(
+			"determining model type when importing model %q: %w",
+			args.Name, err,
+		)
+	}
+
+	activator := service.ModelActivator(func(ctx context.Context) error {
+		return s.st.Activate(ctx, args.UUID)
+	})
+
+	return activator, s.st.ImportModel(ctx, args.UUID, modelType, args.GlobalModelCreationArgs)
 }
 
 // DeleteModel is responsible for removing a model from Juju and all of it's

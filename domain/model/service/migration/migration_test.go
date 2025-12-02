@@ -15,8 +15,6 @@ import (
 	"github.com/juju/juju/domain/model"
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
-	jujusecrets "github.com/juju/juju/internal/secrets/provider/juju"
-	kubernetessecrets "github.com/juju/juju/internal/secrets/provider/kubernetes"
 	"github.com/juju/juju/internal/testhelpers"
 )
 
@@ -42,13 +40,7 @@ func (s *migrationServiceSuite) TestImportModelIAAS(c *tc.C) {
 
 	sExp := s.state.EXPECT()
 	sExp.CloudType(gomock.Any(), "aws").Return("aws", nil)
-	sExp.CloudSupportsAuthType(gomock.Any(), "aws", cloud.EmptyAuthType).Return(true, nil)
-	sExp.Create(gomock.Any(), uuid, coremodel.IAAS, model.GlobalModelCreationArgs{
-		Name:          "foo",
-		Cloud:         "aws",
-		Qualifier:     coremodel.QualifierFromUserTag(names.NewUserTag("jim")),
-		SecretBackend: jujusecrets.BackendName,
-	}).Return(nil)
+	sExp.ImportModel(gomock.Any(), uuid, coremodel.IAAS, gomock.Any()).Return(nil)
 
 	svc := s.newService(c)
 
@@ -71,13 +63,7 @@ func (s *migrationServiceSuite) TestImportModelCAAS(c *tc.C) {
 
 	sExp := s.state.EXPECT()
 	sExp.CloudType(gomock.Any(), "k8s").Return(cloud.CloudTypeKubernetes, nil)
-	sExp.CloudSupportsAuthType(gomock.Any(), "k8s", cloud.EmptyAuthType).Return(true, nil)
-	sExp.Create(gomock.Any(), uuid, coremodel.CAAS, model.GlobalModelCreationArgs{
-		Name:          "foo",
-		Cloud:         "k8s",
-		Qualifier:     coremodel.QualifierFromUserTag(names.NewUserTag("jim")),
-		SecretBackend: kubernetessecrets.BackendName,
-	}).Return(nil)
+	sExp.ImportModel(gomock.Any(), uuid, coremodel.CAAS, gomock.Any()).Return(nil)
 
 	svc := s.newService(c)
 
@@ -101,9 +87,7 @@ func (s *migrationServiceSuite) TestImportModelActivate(c *tc.C) {
 
 	sExp := s.state.EXPECT()
 	sExp.CloudType(gomock.Any(), gomock.Any()).Return("aws", nil)
-	sExp.CloudSupportsAuthType(gomock.Any(), gomock.Any(), cloud.EmptyAuthType).Return(true, nil)
-	sExp.Create(gomock.Any(), uuid, gomock.Any(), gomock.Any()).Return(nil)
-
+	sExp.ImportModel(gomock.Any(), uuid, gomock.Any(), gomock.Any()).Return(nil)
 	sExp.Activate(gomock.Any(), uuid).Return(nil)
 
 	svc := s.newService(c)
