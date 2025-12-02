@@ -5,6 +5,7 @@ package apiremotecaller
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/juju/clock"
@@ -67,6 +68,7 @@ type remoteServer struct {
 
 	changes     chan []string
 	connections chan chan api.Connection
+	connected   atomic.Bool
 }
 
 // NewRemoteServer creates a new RemoteServer that will connect to the remote
@@ -138,6 +140,7 @@ func (w *remoteServer) Report() map[string]any {
 	report := make(map[string]any)
 	report["controller-id"] = w.controllerID
 	report["addresses"] = w.info.Addrs
+	report["connected"] = w.connected.Load()
 	return report
 }
 
@@ -152,6 +155,8 @@ func (w *remoteServer) loop() error {
 
 	ctx, cancel := w.scopedContext()
 	defer cancel()
+
+	w.logger.Tracef(ctx, "starting remote API caller for controller %q", w.controllerID)
 
 	requests := make(chan request)
 	w.tomb.Go(func() error {
@@ -210,7 +215,6 @@ func (w *remoteServer) loop() error {
 	})
 
 	var (
-		connected  bool
 		monitor    <-chan struct{}
 		connection api.Connection
 
@@ -238,7 +242,7 @@ func (w *remoteServer) loop() error {
 			w.logger.Debugf(ctx, "addresses for %q have changed: %v", w.controllerID, addresses)
 
 			// If the addresses already exist, we don't need to do anything.
-			if connected && w.addressesAlreadyExist(addresses) {
+			if w.connected.Load() && w.addressesAlreadyExist(addresses) {
 				w.logger.Tracef(ctx, "addresses for %q have not changed", w.controllerID)
 				continue
 			}
@@ -286,24 +290,22 @@ func (w *remoteServer) loop() error {
 			// We've successfully connected to the remote server, so update the
 			// addresses.
 			w.info.Addrs = addresses
-			connected = true
+			w.connected.Store(true)
 
 			w.reportInternalState(stateChanged)
 
 		case <-monitor:
-			// If the connection is lost, force the worker to restart. We
-			// won't attempt to reconnect here, just make the worker die.
-			select {
-			case <-w.tomb.Dying():
-				return tomb.ErrDying
-			default:
-				return errors.Errorf("connection to %q has been lost", w.controllerID)
-			}
+			// Force the monitor to be nil, so we don't try to read from it
+			// again until we've reconnected.
+			monitor = nil
+
+			// The connection has broken, we need to reconnect.
+			w.forceReconnect(ctx)
 
 		case ch := <-w.connections:
 			// If we don't have a connection, we'll add the channel to the list
 			// of channels that are waiting for a connection.
-			if !connected {
+			if !w.connected.Load() {
 				channels = append(channels, ch)
 				continue
 			}
@@ -355,7 +357,7 @@ func (w *remoteServer) connect(ctx context.Context, addresses []string) (api.Con
 		},
 		NotifyFunc: func(err error, attempt int) {
 			// This is normal behavior, so we don't need to log it as an error.
-			w.logger.Debugf(ctx, "failed to connect to %s attempt %d, with addresses %v: %v", w.controllerID, attempt, info.Addrs, err)
+			w.logger.Tracef(ctx, "failed to connect to %s attempt %d, with addresses %v: %v", w.controllerID, attempt, info.Addrs, err)
 		},
 		IsFatalError: func(err error) bool {
 			// This is the only legitimist error that can be returned from the
@@ -396,6 +398,24 @@ func (w *remoteServer) callFunc(ctx context.Context, conn api.Connection, fn fun
 	}()
 
 	return fn(ctx, conn)
+}
+
+func (w *remoteServer) forceReconnect(ctx context.Context) {
+	w.logger.Debugf(ctx, "connection to %s has broken", w.controllerID)
+	w.connected.Store(false)
+
+	// If there is already a change pending, no need to send another one. A
+	// new change will trigger a reconnect.
+	if len(w.changes) > 0 {
+		return
+	}
+
+	// Force a reconnect by sending the current address list back through the
+	// changes channel, which will trigger a reconnect.
+	select {
+	case <-w.tomb.Dying():
+	case w.changes <- w.info.Addrs:
+	}
 }
 
 // scopedContext returns a context that is in the scope of the worker lifetime.
