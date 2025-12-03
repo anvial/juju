@@ -377,20 +377,26 @@ type runnerLogger struct {
 	logger logger.Logger
 }
 
-// Error logs a message at the ERROR level.
+// Errorf logs a message at the ERROR level.
 func (c *runnerLogger) Errorf(msg string, args ...any) {
 	c.logger.Helper()
 	c.logger.Errorf(context.Background(), msg, args...)
 }
 
-// Info logs a message at the TRACE level.
+// Infof logs a message at the TRACE level.
 func (c *runnerLogger) Infof(msg string, args ...any) {
 	c.logger.Helper()
 	c.logger.Tracef(context.Background(), msg, args...)
 }
 
-// Debug logs a message at the TRACE level.
+// Debugf logs a message at the TRACE level.
 func (c *runnerLogger) Debugf(msg string, args ...any) {
+	c.logger.Helper()
+	c.logger.Tracef(context.Background(), msg, args...)
+}
+
+// Tracef logs a message at the TRACE level.
+func (c *runnerLogger) Tracef(msg string, args ...any) {
 	c.logger.Helper()
 	c.logger.Tracef(context.Background(), msg, args...)
 }
