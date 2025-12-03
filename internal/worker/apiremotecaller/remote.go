@@ -459,4 +459,15 @@ var dialOpts = api.DialOpts{
 	// API servers, see bug #1733256.
 	Timeout:    10 * time.Second,
 	RetryDelay: 1 * time.Second,
+
+	// For controller to controller connections, we want to ping more frequently
+	// to detect broken connections faster.
+	// We want to ping more frequently to detect broken connections faster, but
+	// keep the default timeout for a ping to happen (30 seconds). The worst
+	// case would be 1 minute to detect a broken connection.
+	PingPeriod: ptr(30 * time.Second),
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }

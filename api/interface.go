@@ -265,6 +265,14 @@ type DialOpts struct {
 	// automatically verified. If the callback returns a non-nil error then
 	// the connection attempt will be aborted.
 	VerifyCA func(host, endpoint string, caCert *x509.Certificate) error
+
+	// PingPeriod is the period between API pings used to detect broken
+	// connections. If nil, a default value is used.
+	PingPeriod *time.Duration
+
+	// PingTimeout is the timeout for each API ping. If nil, a default value is
+	// used.
+	PingTimeout *time.Duration
 }
 
 // IPAddrResolver implements a resolved from host name to the
