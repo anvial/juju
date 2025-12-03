@@ -367,7 +367,7 @@ func (w *remoteServer) connect(ctx context.Context, addresses []string) (api.Con
 		},
 		Attempts:    retry.UnlimitedAttempts,
 		Delay:       1 * time.Second,
-		MaxDelay:    time.Minute,
+		MaxDelay:    time.Second * 30,
 		BackoffFunc: retry.DoubleDelay,
 		Stop:        ctx.Done(),
 		Clock:       w.clock,
