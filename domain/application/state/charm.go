@@ -901,7 +901,7 @@ func (s *State) IsImportingModel(ctx context.Context) (bool, error) {
 	}
 
 	var modelUUID entityUUID
-	modelStmt, err := s.Prepare(`SELECT &dbModelUUID.uuid FROM model;`, modelUUID)
+	modelStmt, err := s.Prepare(`SELECT &entityUUID.uuid FROM model;`, modelUUID)
 	if err != nil {
 		return false, errors.Capture(err)
 	}
