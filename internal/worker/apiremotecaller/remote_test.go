@@ -36,6 +36,20 @@ func TestRemoteSuite(t *testing.T) {
 	tc.Run(t, &RemoteSuite{})
 }
 
+func (s *RemoteSuite) TestControllerID(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	w := s.newRemoteServer(c)
+	defer workertest.DirtyKill(c, w)
+
+	s.ensureStartup(c)
+
+	controllerID := w.ControllerID()
+	c.Assert(controllerID, tc.Equals, "0")
+
+	workertest.CleanKill(c, w)
+}
+
 func (s *RemoteSuite) TestNotConnectedConnection(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 

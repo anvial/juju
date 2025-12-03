@@ -27,6 +27,9 @@ const (
 type RemoteConnection interface {
 	// Connection returns the connection to the remote API server.
 	Connection(context.Context, func(context.Context, api.Connection) error) error
+
+	// ControllerID returns the controller ID of the remote API server.
+	ControllerID() string
 }
 
 // RemoteServer represents the public interface of the worker
@@ -90,6 +93,11 @@ func newRemoteServer(config RemoteServerConfig, internalStates chan string) Remo
 	}
 	w.tomb.Go(w.loop)
 	return w
+}
+
+// ControllerID returns the controller ID of the remote API server.
+func (w *remoteServer) ControllerID() string {
+	return w.controllerID
 }
 
 // Connection returns the current connection to the remote API server if it's
