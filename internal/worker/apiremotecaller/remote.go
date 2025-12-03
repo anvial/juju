@@ -404,17 +404,26 @@ func (w *remoteServer) forceReconnect(ctx context.Context) {
 	w.logger.Debugf(ctx, "connection to %s has broken", w.controllerID)
 	w.connected.Store(false)
 
-	// If there is already a change pending, no need to send another one. A
-	// new change will trigger a reconnect.
-	if len(w.changes) > 0 {
-		return
+	// If there are any pending changes, we want to drain them before forcing a
+	// reconnect. This should ensure that we're using at least the latest
+	// addresses. This will be eventually consistent if they're stale.
+	addresses := w.info.Addrs
+DRAIN:
+	for {
+		select {
+		case <-w.tomb.Dying():
+			return
+		case addresses = <-w.changes:
+		default:
+			break DRAIN
+		}
 	}
 
 	// Force a reconnect by sending the current address list back through the
 	// changes channel, which will trigger a reconnect.
 	select {
 	case <-w.tomb.Dying():
-	case w.changes <- w.info.Addrs:
+	case w.changes <- addresses:
 	}
 }
 
