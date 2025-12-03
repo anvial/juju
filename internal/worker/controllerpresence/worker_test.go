@@ -15,6 +15,8 @@ import (
 
 	"github.com/juju/juju/api"
 	coreerrors "github.com/juju/juju/core/errors"
+	machine "github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/unit"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/testhelpers"
 	apiremotecaller "github.com/juju/juju/internal/worker/apiremotecaller"
@@ -31,6 +33,8 @@ type WorkerSuite struct {
 	statusService       *MockStatusService
 	apiRemoteSubscriber *MockAPIRemoteSubscriber
 	subscription        *MockSubscription
+	connection          *MockConnection
+	remoteConnection    *MockRemoteConnection
 }
 
 func (s *WorkerSuite) TestValidate(c *tc.C) {
@@ -195,6 +199,113 @@ func (s *WorkerSuite) TestWorkerRemotesSubscription(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
+func (s *WorkerSuite) TestNewConnectionTrackerBroken(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.remoteConnection.EXPECT().Connection(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, f func(ctx context.Context, c api.Connection) error) error {
+		return f(ctx, s.connection)
+	})
+	sync0 := make(chan struct{})
+	s.connection.EXPECT().IsBroken(gomock.Any()).DoAndReturn(func(ctx context.Context) bool {
+		defer close(sync0)
+		return false
+	})
+
+	ch := make(chan struct{})
+	s.connection.EXPECT().Broken().Return(ch)
+
+	s.statusService.EXPECT().DeleteMachinePresence(gomock.Any(), machine.Name("0")).Return(nil)
+
+	sync1 := make(chan struct{})
+	s.statusService.EXPECT().DeleteUnitPresence(gomock.Any(), tc.Must1_1(c, unit.NewName, "controller/0")).DoAndReturn(func(ctx context.Context, n unit.Name) error {
+		defer close(sync1)
+		return nil
+	})
+
+	w := s.newConnectionTracker(c)
+	defer workertest.DirtyKill(c, w)
+
+	select {
+	case <-sync0:
+	case <-c.Context().Done():
+		c.Fatal("connection tracker did not start")
+	}
+
+	c.Assert(w.connected.Load(), tc.IsTrue)
+
+	select {
+	case ch <- struct{}{}:
+	case <-c.Context().Done():
+		c.Fatal("connection tracker did not start")
+	}
+
+	select {
+	case <-sync1:
+	case <-c.Context().Done():
+		c.Fatal("connection tracker did not handle broken connection")
+	}
+
+	c.Assert(w.connected.Load(), tc.IsFalse)
+
+	workertest.CleanKill(c, w)
+}
+
+func (s *WorkerSuite) TestNewConnectionTrackerAlreadyBroken(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.remoteConnection.EXPECT().Connection(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, f func(ctx context.Context, c api.Connection) error) error {
+		return f(ctx, s.connection)
+	})
+	sync := make(chan struct{})
+	s.connection.EXPECT().IsBroken(gomock.Any()).DoAndReturn(func(ctx context.Context) bool {
+		defer close(sync)
+		return true
+	})
+
+	w := s.newConnectionTracker(c)
+	defer workertest.DirtyKill(c, w)
+
+	select {
+	case <-sync:
+	case <-c.Context().Done():
+		c.Fatal("connection tracker did not start")
+	}
+
+	err := workertest.CheckKill(c, w)
+	c.Assert(err, tc.ErrorIs, BrokenConnection)
+
+	c.Assert(w.connected.Load(), tc.IsFalse)
+}
+
+func (s *WorkerSuite) TestNewConnectionTrackerReport(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.remoteConnection.EXPECT().Connection(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, f func(ctx context.Context, c api.Connection) error) error {
+		return f(ctx, s.connection)
+	})
+	sync := make(chan struct{})
+	s.connection.EXPECT().IsBroken(gomock.Any()).DoAndReturn(func(ctx context.Context) bool {
+		defer close(sync)
+		return true
+	})
+
+	w := s.newConnectionTracker(c)
+	defer workertest.DirtyKill(c, w)
+
+	select {
+	case <-sync:
+	case <-c.Context().Done():
+		c.Fatal("connection tracker did not start")
+	}
+
+	err := workertest.CheckKill(c, w)
+	c.Assert(err, tc.ErrorIs, BrokenConnection)
+
+	report := w.Report()
+	c.Assert(report["controller-id"], tc.Equals, "0")
+	c.Assert(report["connected"], tc.Equals, false)
+}
+
 func (s *WorkerSuite) newConfig(c *tc.C) WorkerConfig {
 	return WorkerConfig{
 		StatusService:       s.statusService,
@@ -210,16 +321,26 @@ func (s *WorkerSuite) newWorker(c *tc.C) *controllerWorker {
 	return worker.(*controllerWorker)
 }
 
+func (s *WorkerSuite) newConnectionTracker(c *tc.C) *connectionTracker {
+	worker, err := newConnectionTracker("0", s.remoteConnection, s.statusService, loggertesting.WrapCheckLog(c))
+	c.Assert(err, tc.IsNil)
+	return worker.(*connectionTracker)
+}
+
 func (s *WorkerSuite) setupMocks(c *tc.C) *gomock.Controller {
 	mockCtrl := gomock.NewController(c)
 	s.statusService = NewMockStatusService(mockCtrl)
 	s.apiRemoteSubscriber = NewMockAPIRemoteSubscriber(mockCtrl)
 	s.subscription = NewMockSubscription(mockCtrl)
+	s.connection = NewMockConnection(mockCtrl)
+	s.remoteConnection = NewMockRemoteConnection(mockCtrl)
 
 	c.Cleanup(func() {
 		s.statusService = nil
 		s.apiRemoteSubscriber = nil
 		s.subscription = nil
+		s.connection = nil
+		s.remoteConnection = nil
 	})
 
 	return mockCtrl

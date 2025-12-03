@@ -190,8 +190,6 @@ func (w *controllerWorker) ensureConnectionTrackers(ctx context.Context) error {
 	return nil
 }
 
-var id atomic.Int64
-
 type connectionTracker struct {
 	tomb tomb.Tomb
 
@@ -201,8 +199,6 @@ type connectionTracker struct {
 	logger        logger.Logger
 
 	connected atomic.Bool
-
-	id int64
 }
 
 func newConnectionTracker(controllerID string, conn apiremotecaller.RemoteConnection, statusService StatusService, logger logger.Logger) (worker.Worker, error) {
@@ -211,7 +207,6 @@ func newConnectionTracker(controllerID string, conn apiremotecaller.RemoteConnec
 		connection:    conn,
 		statusService: statusService,
 		logger:        logger,
-		id:            id.Add(1),
 	}
 
 	w.tomb.Go(w.loop)
@@ -234,7 +229,6 @@ func (w *connectionTracker) Report() map[string]any {
 	report := make(map[string]any)
 	report["controller-id"] = w.controllerID
 	report["connected"] = w.connected.Load()
-	report["id"] = w.id
 	return report
 }
 
@@ -252,7 +246,7 @@ func (w *connectionTracker) loop() error {
 		case <-w.tomb.Dying():
 			return nil
 		case <-c.Broken():
-			w.connected.Store(true)
+			w.connected.Store(false)
 			return w.handleBrokenConnection(ctx)
 		}
 	}); err != nil {
