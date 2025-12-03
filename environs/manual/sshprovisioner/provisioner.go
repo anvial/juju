@@ -32,16 +32,14 @@ func ProvisionMachine(args manual.ProvisionMachineArgs) (machineId string, err e
 		}
 	}()
 
-	// Create the "ubuntu" user and initialise passwordless sudo. We populate
-	// the ubuntu user's authorized_keys file with the public keys in the current
-	// user's ~/.ssh directory. The authenticationworker will later update the
-	// ubuntu user's authorized_keys.
+	// Create the "ubuntu" user and initialise passwordless sudo using the provisioning user.
+	// We populate the ubuntu user's authorized_keys file with the public keys provided.
 	if err = InitUbuntuUser(args.Host, args.User,
 		args.AuthorizedKeys, args.PrivateKey, args.Stdin, args.Stdout); err != nil {
 		return "", err
 	}
 
-	machineParams, err := gatherMachineParams(args.Host)
+	machineParams, err := gatherMachineParams(args.Host, args.User, args.PrivateKey)
 	if err != nil {
 		return "", err
 	}
@@ -63,8 +61,8 @@ func ProvisionMachine(args manual.ProvisionMachineArgs) (machineId string, err e
 		return "", err
 	}
 
-	// Finally, provision the machine agent.
-	err = runProvisionScript(provisioningScript, args.Host, args.Stderr)
+	// Finally, provision the machine agent using the provisioning user.
+	err = runProvisionScript(provisioningScript, args.Host, args.Stderr, args.User, args.PrivateKey)
 	if err != nil {
 		return machineId, err
 	}
