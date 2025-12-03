@@ -54,7 +54,7 @@ type WorkerConfig struct {
 }
 
 // Validate checks that all the values have been set.
-func (c *WorkerConfig) Validate() error {
+func (c WorkerConfig) Validate() error {
 	if c.StatusService == nil {
 		return errors.New("missing StatusService not valid").Add(coreerrors.NotValid)
 	}
@@ -156,7 +156,7 @@ func (w *controllerWorker) loop() error {
 		case <-subscriber.Changes():
 			// Remove all existing tracking runner workers.
 			for _, name := range w.runner.WorkerNames() {
-				if err := w.runner.StopAndRemoveWorker(name, w.catacomb.Dying()); err != nil {
+				if err := w.runner.StopAndRemoveWorker(name, w.catacomb.Dying()); err != nil && !errors.Is(err, coreerrors.NotFound) {
 					w.cfg.Logger.Debugf(ctx, "stopping connection tracker worker %q: %v", name, err)
 					return errors.Capture(err)
 				}
