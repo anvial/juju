@@ -29,7 +29,6 @@ import (
 	domainstorageprov "github.com/juju/juju/domain/storageprovisioning"
 	storageprovisioningerrors "github.com/juju/juju/domain/storageprovisioning/errors"
 	"github.com/juju/juju/internal/errors"
-	"github.com/juju/juju/internal/storage"
 )
 
 // These consts are the sequence namespaces used to generate
@@ -1532,7 +1531,7 @@ AND si.uuid != $storageCount.uuid
 	return nil
 }
 
-func (st *State) AddStorageForUnit(ctx context.Context, storageName corestorage.Name, unitUUID coreunit.UUID, directive storage.Directive) ([]corestorage.ID, error) {
+func (st *State) AddStorageForUnit(ctx context.Context, storageName corestorage.Name, unitUUID coreunit.UUID, directive corestorage.Directive) ([]corestorage.ID, error) {
 	//TODO implement me
 	return nil, errors.New("not implemented")
 }

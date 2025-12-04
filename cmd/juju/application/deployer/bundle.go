@@ -16,9 +16,9 @@ import (
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/crossmodel"
 	"github.com/juju/juju/core/devices"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/cmd"
-	"github.com/juju/juju/internal/storage"
 )
 
 type deployBundle struct {

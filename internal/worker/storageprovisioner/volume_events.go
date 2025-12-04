@@ -119,7 +119,7 @@ func processAliveVolumePlans(
 	}
 
 	for idx, val := range volumeAttachmentPlans {
-		volPlan, err := plans.PlanByType(val.PlanInfo.DeviceType)
+		volPlan, err := plans.PlanByType(storage.DeviceType(val.PlanInfo.DeviceType))
 		if err != nil {
 			if !errors.Is(err, errors.NotFound) {
 				return errors.Trace(err)
@@ -169,7 +169,7 @@ func processDyingVolumePlans(
 	deps.config.Logger.Tracef(ctx, "processDyingVolumePlans: %#v", volumePlans)
 	ids := volumePlansToMachineIds(volumePlans)
 	for _, val := range volumePlans {
-		volPlan, err := plans.PlanByType(val.Result.PlanInfo.DeviceType)
+		volPlan, err := plans.PlanByType(storage.DeviceType(val.Result.PlanInfo.DeviceType))
 		if err != nil {
 			if !errors.Is(err, errors.NotFound) {
 				return errors.Trace(err)
@@ -628,7 +628,7 @@ func volumeAttachmentsFromStorage(in []storage.VolumeAttachment) []params.Volume
 	for i, v := range in {
 		planInfo := &params.VolumeAttachmentPlanInfo{}
 		if v.PlanInfo != nil {
-			planInfo.DeviceType = v.PlanInfo.DeviceType
+			planInfo.DeviceType = v.PlanInfo.DeviceType.String()
 			planInfo.DeviceAttributes = v.PlanInfo.DeviceAttributes
 		} else {
 			planInfo = nil
