@@ -16,10 +16,10 @@ import (
 	apiservererrors "github.com/juju/juju/apiserver/errors"
 	"github.com/juju/juju/cmd/juju/machine"
 	"github.com/juju/juju/core/model"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/environs/manual"
 	"github.com/juju/juju/internal/cmd"
 	"github.com/juju/juju/internal/cmd/cmdtesting"
-	"github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/internal/testing"
 	"github.com/juju/juju/rpc/params"
 )

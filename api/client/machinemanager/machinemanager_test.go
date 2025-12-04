@@ -15,7 +15,7 @@ import (
 
 	basemocks "github.com/juju/juju/api/base/mocks"
 	"github.com/juju/juju/api/client/machinemanager"
-	"github.com/juju/juju/internal/storage"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/rpc/params"
 )
 

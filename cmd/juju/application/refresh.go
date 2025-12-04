@@ -36,11 +36,11 @@ import (
 	"github.com/juju/juju/cmd/modelcmd"
 	corebase "github.com/juju/juju/core/base"
 	corecharm "github.com/juju/juju/core/charm"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/charmhub"
 	"github.com/juju/juju/internal/cmd"
-	"github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/rpc/params"
 )
 

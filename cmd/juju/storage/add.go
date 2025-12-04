@@ -16,8 +16,8 @@ import (
 	jujucmd "github.com/juju/juju/cmd"
 	"github.com/juju/juju/cmd/juju/common"
 	"github.com/juju/juju/cmd/modelcmd"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/internal/cmd"
-	"github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/rpc/params"
 )
 

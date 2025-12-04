@@ -22,9 +22,9 @@ import (
 	"github.com/juju/juju/core/crossmodel"
 	"github.com/juju/juju/core/devices"
 	"github.com/juju/juju/core/instance"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/internal/charm"
 	internallogger "github.com/juju/juju/internal/logger"
-	"github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/rpc/params"
 )
 

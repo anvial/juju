@@ -9,9 +9,9 @@ import (
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
+	"github.com/juju/juju/core/storage"
 	applicationservice "github.com/juju/juju/domain/application/service"
 	domainstorage "github.com/juju/juju/domain/storage"
-	"github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/internal/uuid"
 )
 

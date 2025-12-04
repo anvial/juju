@@ -19,10 +19,10 @@ import (
 	corebase "github.com/juju/juju/core/base"
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/devices"
+	"github.com/juju/juju/core/storage"
 	bundlechanges "github.com/juju/juju/internal/bundle/changes"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/cmd"
-	"github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/rpc/params"
 )
 
