@@ -1,0 +1,25 @@
+// Copyright 2025 Canonical Ltd. All rights reserved.
+// Licensed under the AGPLv3, see LICENCE file for details.
+
+package model
+
+import (
+	"testing"
+
+	"github.com/juju/tc"
+	schematesting "github.com/juju/juju/domain/schema/testing"
+)
+
+type exportStateSuiteV{{ .Version }} struct {
+	schematesting.ModelSuite
+}
+
+func TestExportStateSuiteV{{ .Version }}(t *testing.T) {
+	tc.Run(t, &exportStateSuiteV{{ .Version }}{})
+}
+
+func (s *exportStateSuiteV{{ .Version }}) TestExportRuns(c *tc.C) {
+	st := NewState(s.TxnRunnerFactory())
+	_, err := st.ExportV{{ .Version }}(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+}

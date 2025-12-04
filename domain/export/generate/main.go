@@ -249,7 +249,6 @@ func writeTypesFile(version uint64, structs []string, structNames []string, impo
 	}
 	sort.Strings(sortedImports)
 
-	// Load the types template from disk.
 	tmplPath := filepath.Join(filepath.Dir(filename), "types.tmpl")
 	tmplBytes, err := os.ReadFile(tmplPath)
 	if err != nil {
@@ -294,7 +293,6 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 		return err
 	}
 
-	// Load the state template from disk.
 	tmplPath := filepath.Join(filepath.Dir(filename), "state.tmpl")
 	tmplBytes, err := os.ReadFile(tmplPath)
 	if err != nil {
@@ -325,5 +323,39 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 
 	filePath := filepath.Join(dir, fmt.Sprintf("v%d.go", version))
 	fmt.Printf("writing to %s\n", filePath)
-	return os.WriteFile(filePath, formatted, 0644)
+	if err := os.WriteFile(filePath, formatted, 0644); err != nil {
+		return err
+	}
+
+	// Also generate a basic test that runs the ExportV<version>
+	// method against the real model DB.
+	testTmplPath := filepath.Join(filepath.Dir(filename), "state_test.tmpl")
+	testTmplBytes, err := os.ReadFile(testTmplPath)
+	if err != nil {
+		return err
+	}
+
+	testData := struct {
+		Version uint64
+	}{
+		Version: version,
+	}
+
+	testT := template.Must(template.New("state_test").Parse(string(testTmplBytes)))
+	var testOut bytes.Buffer
+	if err := testT.Execute(&testOut, testData); err != nil {
+		return err
+	}
+	testFormatted, err := format.Source(testOut.Bytes())
+	if err != nil {
+		return err
+	}
+
+	testFilePath := filepath.Join(dir, fmt.Sprintf("v%d_test.go", version))
+	fmt.Printf("writing to %s\n", testFilePath)
+	if err := os.WriteFile(testFilePath, testFormatted, 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
