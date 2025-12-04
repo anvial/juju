@@ -590,46 +590,6 @@ func (c *MockStateAddCharmCall) DoAndReturn(f func(context.Context, charm0.Charm
 	return c
 }
 
-// AddIAASSubordinateUnit mocks base method.
-func (m *MockState) AddIAASSubordinateUnit(arg0 context.Context, arg1 application0.SubordinateUnitArg) (unit.Name, []machine.Name, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddIAASSubordinateUnit", arg0, arg1)
-	ret0, _ := ret[0].(unit.Name)
-	ret1, _ := ret[1].([]machine.Name)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// AddIAASSubordinateUnit indicates an expected call of AddIAASSubordinateUnit.
-func (mr *MockStateMockRecorder) AddIAASSubordinateUnit(arg0, arg1 any) *MockStateAddIAASSubordinateUnitCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddIAASSubordinateUnit", reflect.TypeOf((*MockState)(nil).AddIAASSubordinateUnit), arg0, arg1)
-	return &MockStateAddIAASSubordinateUnitCall{Call: call}
-}
-
-// MockStateAddIAASSubordinateUnitCall wrap *gomock.Call
-type MockStateAddIAASSubordinateUnitCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockStateAddIAASSubordinateUnitCall) Return(arg0 unit.Name, arg1 []machine.Name, arg2 error) *MockStateAddIAASSubordinateUnitCall {
-	c.Call = c.Call.Return(arg0, arg1, arg2)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockStateAddIAASSubordinateUnitCall) Do(f func(context.Context, application0.SubordinateUnitArg) (unit.Name, []machine.Name, error)) *MockStateAddIAASSubordinateUnitCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateAddIAASSubordinateUnitCall) DoAndReturn(f func(context.Context, application0.SubordinateUnitArg) (unit.Name, []machine.Name, error)) *MockStateAddIAASSubordinateUnitCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // AddIAASUnits mocks base method.
 func (m *MockState) AddIAASUnits(arg0 context.Context, arg1 application.UUID, arg2 ...application0.AddIAASUnitArg) ([]unit.Name, []machine.Name, error) {
 	m.ctrl.T.Helper()

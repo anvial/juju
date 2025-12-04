@@ -24,7 +24,6 @@ import (
 	"github.com/juju/juju/domain/application/charm"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/life"
-	domainnetwork "github.com/juju/juju/domain/network"
 	"github.com/juju/juju/domain/status"
 	"github.com/juju/juju/internal/errors"
 )
@@ -309,123 +308,6 @@ func (s *unitServiceSuite) TestGetUnitNamesOnMachine(c *tc.C) {
 	names, err := s.service.GetUnitNamesOnMachine(c.Context(), coremachine.Name("0"))
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(names, tc.DeepEquals, []coreunit.Name{"foo/666", "bar/667"})
-}
-
-func (s *unitServiceSuite) TestAddIAASSubordinateUnit(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	// Arrange:
-	appID := tc.Must(c, coreapplication.NewUUID)
-	principalUnitName := unittesting.GenNewName(c, "principal/0")
-	principalUnitUUID := tc.Must(c, coreunit.NewUUID)
-	principalNetNodeUUID := tc.Must(c, domainnetwork.NewNetNodeUUID)
-
-	s.state.EXPECT().GetUnitUUIDAndNetNodeForName(gomock.Any(), principalUnitName).Return(
-		principalUnitUUID, principalNetNodeUUID, nil,
-	)
-	s.state.EXPECT().IsSubordinateApplication(gomock.Any(), appID).Return(true, nil)
-	var receivedSubordinateArg application.SubordinateUnitArg
-	s.state.EXPECT().AddIAASSubordinateUnit(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, arg application.SubordinateUnitArg) (coreunit.Name, []coremachine.Name, error) {
-			receivedSubordinateArg = arg
-			return "subordinate/0", nil, nil
-		},
-	)
-
-	// Act:
-	err := s.service.AddIAASSubordinateUnit(c.Context(), appID, principalUnitName)
-
-	// Assert:
-	c.Check(err, tc.ErrorIsNil)
-	c.Check(receivedSubordinateArg.SubordinateAppID, tc.Equals, appID)
-	c.Check(receivedSubordinateArg.PrincipalUnitUUID, tc.Equals, principalUnitUUID.String())
-	// This is important as the subordinate unit must use the same net node uuid
-	// of the principal.
-	c.Check(receivedSubordinateArg.NetNodeUUID, tc.Equals, principalNetNodeUUID)
-}
-
-func (s *unitServiceSuite) TestAddIAASSubordinateUnitUnitAlreadyHasSubordinate(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	// Arrange:
-	appID := tc.Must(c, coreapplication.NewUUID)
-	principalUnitName := unittesting.GenNewName(c, "principal/0")
-
-	s.state.EXPECT().GetUnitUUIDAndNetNodeForName(gomock.Any(), principalUnitName).Return(
-		unittesting.GenUnitUUID(c), tc.Must(c, domainnetwork.NewNetNodeUUID), nil,
-	).AnyTimes()
-	s.state.EXPECT().IsSubordinateApplication(gomock.Any(), appID).Return(true, nil)
-	s.state.EXPECT().AddIAASSubordinateUnit(gomock.Any(), gomock.Any()).Return("", nil, applicationerrors.UnitAlreadyHasSubordinate)
-
-	// Act:
-	err := s.service.AddIAASSubordinateUnit(c.Context(), appID, principalUnitName)
-
-	// Assert:
-	c.Assert(err, tc.ErrorIsNil)
-}
-
-func (s *unitServiceSuite) TestAddIAASSubordinateUnitStateError(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-	// Arrange:
-	appID := tc.Must(c, coreapplication.NewUUID)
-	principalUnitName := unittesting.GenNewName(c, "principal/0")
-
-	s.state.EXPECT().GetUnitUUIDAndNetNodeForName(gomock.Any(), principalUnitName).Return(
-		unittesting.GenUnitUUID(c), tc.Must(c, domainnetwork.NewNetNodeUUID), nil,
-	).AnyTimes()
-	s.state.EXPECT().IsSubordinateApplication(gomock.Any(), appID).Return(true, nil)
-
-	boom := errors.New("boom")
-	s.state.EXPECT().AddIAASSubordinateUnit(gomock.Any(), gomock.Any()).Return("", nil, boom)
-
-	// Act:
-	err := s.service.AddIAASSubordinateUnit(c.Context(), appID, principalUnitName)
-
-	// Assert:
-	c.Assert(err, tc.ErrorIs, boom)
-}
-
-func (s *unitServiceSuite) TestAddIAASSubordinateUnitApplicationNotSubordinate(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	// Arrange:
-	appID := tc.Must(c, coreapplication.NewUUID)
-	principalUnitName := unittesting.GenNewName(c, "principal/0")
-	s.state.EXPECT().GetUnitUUIDAndNetNodeForName(gomock.Any(), principalUnitName).Return(
-		unittesting.GenUnitUUID(c), tc.Must(c, domainnetwork.NewNetNodeUUID), nil,
-	).AnyTimes()
-	s.state.EXPECT().IsSubordinateApplication(gomock.Any(), appID).Return(false, nil)
-
-	// Act:
-	err := s.service.AddIAASSubordinateUnit(c.Context(), appID, principalUnitName)
-
-	// Assert:
-	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotSubordinate)
-}
-
-func (s *unitServiceSuite) TestAddIAASSubordinateUnitBadUnitName(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	// Arrange:
-	appID := tc.Must(c, coreapplication.NewUUID)
-
-	// Act:
-	err := s.service.AddIAASSubordinateUnit(c.Context(), appID, "bad-name")
-
-	// Assert:
-	c.Assert(err, tc.ErrorIs, coreunit.InvalidUnitName)
-}
-
-func (s *unitServiceSuite) TestAddIAASSubordinateUnitBadAppName(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-	// Arrange:
-	principalUnitName := unittesting.GenNewName(c, "principal/0")
-
-	// Act:
-	err := s.service.AddIAASSubordinateUnit(c.Context(), "bad-app-uuid", principalUnitName)
-
-	// Assert:
-	c.Assert(err, tc.ErrorIs, coreerrors.NotValid)
 }
 
 func (s *unitServiceSuite) TestSetUnitWorkloadVersion(c *tc.C) {
