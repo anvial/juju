@@ -461,6 +461,7 @@ func (s *modelSchemaSuite) TestModelViews(c *tc.C) {
 		"v_agent_binary_store",
 		"v_all_unit_address",
 		"v_secret_metadata",
+		"v_secret_owner",
 	)
 	got := readEntityNames(c, s.DB(), "view")
 	c.Assert(got, tc.SameContents, expected.SortedValues(), tc.Commentf(
