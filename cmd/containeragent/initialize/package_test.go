@@ -67,6 +67,7 @@ func (*importSuite) TestImports(c *tc.C) {
 		"core/secrets",
 		"core/semversion",
 		"core/status",
+		"core/storage",
 		"core/trace",
 		"core/unit",
 		"core/upgrade",

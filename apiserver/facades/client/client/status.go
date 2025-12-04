@@ -1460,9 +1460,9 @@ func processStorage(
 				}
 				switch vap.DeviceType {
 				case storageprovisioning.PlanDeviceTypeLocal:
-					pi.DeviceType = internalstorage.DeviceTypeLocal
+					pi.DeviceType = internalstorage.DeviceTypeLocal.String()
 				case storageprovisioning.PlanDeviceTypeISCSI:
-					pi.DeviceType = internalstorage.DeviceTypeISCSI
+					pi.DeviceType = internalstorage.DeviceTypeISCSI.String()
 				}
 				vad.VolumeAttachmentInfo.PlanInfo = &pi
 			}
@@ -1500,9 +1500,9 @@ func processStorage(
 				}
 				switch vap.DeviceType {
 				case storageprovisioning.PlanDeviceTypeLocal:
-					pi.DeviceType = internalstorage.DeviceTypeLocal
+					pi.DeviceType = internalstorage.DeviceTypeLocal.String()
 				case storageprovisioning.PlanDeviceTypeISCSI:
-					pi.DeviceType = internalstorage.DeviceTypeISCSI
+					pi.DeviceType = internalstorage.DeviceTypeISCSI.String()
 				}
 				vad.VolumeAttachmentInfo.PlanInfo = &pi
 			}

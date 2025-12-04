@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/juju/juju/core/life"
-	"github.com/juju/juju/internal/storage"
 )
 
 // BlockDevice is a block device present on a machine.
@@ -252,8 +251,8 @@ type VolumeAttachmentPlans struct {
 // VolumeAttachmentPlanInfo describes info needed by machine agents
 // to initialize attached volumes
 type VolumeAttachmentPlanInfo struct {
-	DeviceType       storage.DeviceType `json:"device-type,omitempty"`
-	DeviceAttributes map[string]string  `json:"device-attributes,omitempty"`
+	DeviceType       string            `json:"device-type,omitempty"`
+	DeviceAttributes map[string]string `json:"device-attributes,omitempty"`
 }
 
 // VolumeAttachmentInfo describes a volume attachment.

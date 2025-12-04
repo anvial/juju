@@ -1141,7 +1141,7 @@ func (s *StorageProvisionerAPI) volumeAttachmentPlan(
 		Life:       life,
 		PlanInfo: params.VolumeAttachmentPlanInfo{
 			DeviceAttributes: vap.DeviceAttributes,
-			DeviceType:       deviceType,
+			DeviceType:       deviceType.String(),
 		},
 	}, nil
 }
@@ -2175,9 +2175,9 @@ func (s *StorageProvisionerAPI) createVolumeAttachmentPlan(
 ) error {
 	var planDeviceType storageprovisioning.PlanDeviceType
 	switch planInfo.DeviceType {
-	case storage.DeviceTypeISCSI:
+	case storage.DeviceTypeISCSI.String():
 		planDeviceType = storageprovisioning.PlanDeviceTypeISCSI
-	case storage.DeviceTypeLocal:
+	case storage.DeviceTypeLocal.String():
 		planDeviceType = storageprovisioning.PlanDeviceTypeLocal
 	default:
 		return errors.Errorf(
@@ -2431,9 +2431,9 @@ func (s *StorageProvisionerAPI) setVolumeAttachmentInfo(
 		DeviceAttributes: vai.PlanInfo.DeviceAttributes,
 	}
 	switch vai.PlanInfo.DeviceType {
-	case storage.DeviceTypeLocal:
+	case storage.DeviceTypeLocal.String():
 		planInfo.DeviceType = storageprovisioning.PlanDeviceTypeLocal
-	case storage.DeviceTypeISCSI:
+	case storage.DeviceTypeISCSI.String():
 		planInfo.DeviceType = storageprovisioning.PlanDeviceTypeISCSI
 	}
 	err = s.storageProvisioningService.SetVolumeAttachmentPlanProvisionedInfo(
