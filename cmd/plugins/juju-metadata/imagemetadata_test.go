@@ -16,6 +16,7 @@ import (
 	"github.com/juju/juju/api/jujuclient"
 	"github.com/juju/juju/api/jujuclient/jujuclienttesting"
 	"github.com/juju/juju/cmd/modelcmd"
+	"github.com/juju/juju/controller"
 	"github.com/juju/juju/core/version"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/cmd"
@@ -149,8 +150,13 @@ func (s *ImageMetadataSuite) TestImageMetadataFilesLatestLTS(c *tc.C) {
 		"region":          "us-east-1",
 	})
 	c.Assert(err, tc.ErrorIsNil)
+	// The controller config used for bootstrap config
+	// does not have the controller uuid or ca cart.
+	controllerCfg := testing.FakeControllerConfig()
+	delete(controllerCfg, controller.ControllerUUIDKey)
+	delete(controllerCfg, controller.CACertKey)
 	s.store.BootstrapConfig["ec2-controller"] = jujuclient.BootstrapConfig{
-		ControllerConfig: testing.FakeControllerConfig(),
+		ControllerConfig: controllerCfg,
 		Cloud:            "ec2",
 		CloudRegion:      "us-east-1",
 		Config:           ec2Config.AllAttrs(),

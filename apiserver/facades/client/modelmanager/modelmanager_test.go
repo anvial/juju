@@ -395,6 +395,18 @@ func (s *modelManagerSuite) TestCreateModelArgsWithAgentVersion(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 }
 
+func (s *modelManagerSuite) TestCreateModelWithTargetControllerSet(c *tc.C) {
+	args := params.ModelCreateArgs{
+		Name:               "foo",
+		CloudTag:           "cloud-some-cloud",
+		CloudRegion:        "qux",
+		CloudCredentialTag: "cloudcred-some-cloud_admin_some-credential",
+		TargetController:   "some-controller",
+	}
+	_, err := s.api.CreateModel(c.Context(), args)
+	c.Assert(err, tc.ErrorMatches, `target-controller parameter is only supported on JAAS`)
+}
+
 func (s *modelManagerSuite) TestCreateModelArgsWithAgentVersionAndStream(c *tc.C) {
 	ctrl := s.setUpAPI(c)
 	defer ctrl.Finish()
