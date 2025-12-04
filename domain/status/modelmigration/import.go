@@ -11,6 +11,7 @@ import (
 
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
+	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/modelmigration"
 	corestatus "github.com/juju/juju/core/status"
@@ -52,25 +53,38 @@ type importOperation struct {
 // ImportService provides a subset of the status domain service methods needed
 // for importing status.
 type ImportService interface {
+	// SetMachineStatus sets the status of the specified machine.
+	SetMachineStatus(context.Context, coremachine.Name, corestatus.StatusInfo) error
+
+	// SetInstanceStatus sets the cloud specific instance status for this machine.
+	SetInstanceStatus(context.Context, coremachine.Name, corestatus.StatusInfo) error
+
 	// SetApplicationStatus saves the given application status, overwriting any
-	// current status data. If returns an error satisfying
-	// [statuserrors.ApplicationNotFound] if the application doesn't exist.
+	// current status data.
 	SetApplicationStatus(context.Context, string, corestatus.StatusInfo) error
 
-	// SetUnitWorkloadStatus sets the workload status of the specified unit,
-	// returning an error satisfying [statuserrors.UnitNotFound] if the unit
-	// doesn't exist.
+	// SetUnitWorkloadStatus sets the workload status of the specified unit.
 	SetUnitWorkloadStatus(context.Context, coreunit.Name, corestatus.StatusInfo) error
 
-	// SetUnitAgentStatus sets the agent status of the specified unit,
-	// returning an error satisfying [statuserrors.UnitNotFound] if the unit
-	// doesn't exist.
+	// SetUnitAgentStatus sets the agent status of the specified unit.
 	SetUnitAgentStatus(context.Context, coreunit.Name, corestatus.StatusInfo) error
 
 	// ImportRelationStatus saves the given relation status, overwriting any
 	// current status data. If returns an error satisfying
 	// [statuserrors.RelationNotFound] if the relation doesn't exist.
 	ImportRelationStatus(context.Context, int, corestatus.StatusInfo) error
+
+	// SetRemoteApplicationOffererStatus sets the status of the specified remote
+	// application in the local model.
+	SetRemoteApplicationOffererStatus(context.Context, string, corestatus.StatusInfo) error
+
+	// SetFilesystemStatus validates and sets the given filesystem status, overwriting any
+	// current status data.
+	SetFilesystemStatus(context.Context, string, corestatus.StatusInfo) error
+
+	// SetVolumeStatus validates and sets the given volume status, overwriting any
+	// current status data.
+	SetVolumeStatus(context.Context, string, corestatus.StatusInfo) error
 }
 
 // Name returns the name of this operation.
@@ -108,7 +122,12 @@ func (i *importOperation) Execute(ctx context.Context, m description.Model) erro
 	modelUUID := model.UUID(m.UUID())
 	service := i.serviceGetter(modelUUID)
 
-	err := i.importApplicationAndUnitStatus(ctx, service, m)
+	err := i.importMachineStatus(ctx, service, m)
+	if err != nil {
+		return errors.Errorf("importing machine status: %w", err)
+	}
+
+	err = i.importApplicationAndUnitStatus(ctx, service, m)
 	if err != nil {
 		return errors.Errorf("importing application and unit status: %w", err)
 	}
@@ -116,6 +135,43 @@ func (i *importOperation) Execute(ctx context.Context, m description.Model) erro
 	err = i.importRelationStatus(ctx, service, m)
 	if err != nil {
 		return errors.Errorf("importing relation status: %w", err)
+	}
+
+	err = i.importRemoteApplicationOffererStatus(ctx, service, m)
+	if err != nil {
+		return errors.Errorf("importing remote application offerer status: %w", err)
+	}
+
+	err = i.importFilesystemStatus(ctx, service, m)
+	if err != nil {
+		return errors.Errorf("importing filesystem status: %w", err)
+	}
+
+	err = i.importVolumeStatus(ctx, service, m)
+	if err != nil {
+		return errors.Errorf("importing volume status: %w", err)
+	}
+
+	return nil
+}
+
+func (i *importOperation) importMachineStatus(
+	ctx context.Context,
+	service ImportService,
+	m description.Model,
+) error {
+	for _, machine := range m.Machines() {
+		machineName := coremachine.Name(machine.Id())
+		machineStatus := i.importStatus(machine.Status())
+		instanceStatus := i.importStatus(machine.Instance().Status())
+
+		if err := service.SetMachineStatus(ctx, machineName, machineStatus); err != nil {
+			return errors.Errorf("setting status for machine %q: %w", machineName, err)
+		}
+
+		if err := service.SetInstanceStatus(ctx, machineName, instanceStatus); err != nil {
+			return errors.Errorf("setting instance status for machine %q: %w", machineName, err)
+		}
 	}
 
 	return nil
@@ -139,12 +195,12 @@ func (i *importOperation) importApplicationAndUnitStatus(
 			}
 			unitAgentStatus := i.importStatus(unit.AgentStatus())
 			if err := service.SetUnitAgentStatus(ctx, unitName, unitAgentStatus); err != nil {
-				return err
+				return errors.Errorf("setting agent status for unit %q: %w", unitName, err)
 			}
 
 			unitWorkloadStatus := i.importStatus(unit.WorkloadStatus())
 			if err := service.SetUnitWorkloadStatus(ctx, unitName, unitWorkloadStatus); err != nil {
-				return err
+				return errors.Errorf("setting workload status for unit %q: %w", unitName, err)
 			}
 		}
 	}
@@ -161,10 +217,53 @@ func (i *importOperation) importRelationStatus(
 	for _, relation := range model.Relations() {
 		relationStatus := i.importStatus(relation.Status())
 		if err := service.ImportRelationStatus(ctx, relation.Id(), relationStatus); err != nil {
-			return err
+			return errors.Errorf("importing status for relation %d: %w", relation.Id(), err)
 		}
 	}
 
+	return nil
+}
+
+func (i *importOperation) importRemoteApplicationOffererStatus(
+	ctx context.Context,
+	service ImportService,
+	model description.Model,
+) error {
+	for _, remoteApp := range model.RemoteApplications() {
+		offererStatus := i.importStatus(remoteApp.Status())
+		if err := service.SetRemoteApplicationOffererStatus(ctx, remoteApp.Name(), offererStatus); err != nil {
+			return errors.Errorf("setting offerer status for remote application %q: %w", remoteApp.Name(), err)
+		}
+	}
+
+	return nil
+}
+
+func (i *importOperation) importFilesystemStatus(
+	ctx context.Context,
+	service ImportService,
+	model description.Model,
+) error {
+	for _, fs := range model.Filesystems() {
+		fsStatus := i.importStatus(fs.Status())
+		if err := service.SetFilesystemStatus(ctx, fs.ID(), fsStatus); err != nil {
+			return errors.Errorf("setting status for filesystem %q: %w", fs.ID(), err)
+		}
+	}
+	return nil
+}
+
+func (i *importOperation) importVolumeStatus(
+	ctx context.Context,
+	service ImportService,
+	model description.Model,
+) error {
+	for _, vol := range model.Volumes() {
+		volStatus := i.importStatus(vol.Status())
+		if err := service.SetVolumeStatus(ctx, vol.ID(), volStatus); err != nil {
+			return errors.Errorf("setting status for volume %q: %w", vol.ID(), err)
+		}
+	}
 	return nil
 }
 
