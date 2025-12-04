@@ -603,7 +603,7 @@ VALUES ($insertApplicationStorageDirective.*)
 // insertUnitStorageAttachments is responsible for creating all of the unit
 // storage attachments for the supplied storage instance uuids. This func will
 // also create storage attachments for each filesystem and volume
-func (st *State) insertUnitStorageAttachments(
+func (st *InsertIAASUnitState) insertUnitStorageAttachments(
 	ctx context.Context,
 	tx *sqlair.TX,
 	unitUUID coreunit.UUID,
@@ -683,7 +683,7 @@ VALUES ($insertStorageVolumeAttachment.*)
 //
 // The storage directives supply must match the storage defined by the charm.
 // It is expected that the caller is satisfied this check has been performed.
-func (st *State) insertUnitStorageDirectives(
+func (st *InsertIAASUnitState) insertUnitStorageDirectives(
 	ctx context.Context,
 	tx *sqlair.TX,
 	unitUUID coreunit.UUID,
@@ -726,7 +726,7 @@ INSERT INTO unit_storage_directive (*) VALUES ($insertUnitStorageDirective.*)
 
 // insertUnitStorageInstances is responsible for creating all of the needed
 // storage instances to satisfy the storage instance arguments supplied.
-func (st *State) insertUnitStorageInstances(
+func (st *InsertIAASUnitState) insertUnitStorageInstances(
 	ctx context.Context,
 	tx *sqlair.TX,
 	stArgs []internal.CreateUnitStorageInstanceArg,
@@ -895,7 +895,7 @@ INSERT INTO storage_volume_status (*) VALUES ($insertStorageVolumeStatus.*)
 
 // insertUnitStorageOwnership is responsible setting unit ownership records for
 // the supplied storage instance uuids.
-func (st *State) insertUnitStorageOwnership(
+func (st *InsertIAASUnitState) insertUnitStorageOwnership(
 	ctx context.Context,
 	tx *sqlair.TX,
 	unitUUID coreunit.UUID,
@@ -926,7 +926,7 @@ INSERT INTO storage_unit_owner (*) VALUES ($insertStorageUnitOwner.*)
 
 // insertMachineVolumeOwnership is responsible setting machine ownership records
 // for the supplied volume uuids.
-func (st *State) insertMachineVolumeOwnership(
+func (st *InsertIAASUnitState) insertMachineVolumeOwnership(
 	ctx context.Context,
 	tx *sqlair.TX,
 	machineUUID coremachine.UUID,
@@ -956,7 +956,7 @@ INSERT INTO machine_volume (*) VALUES ($insertVolumeMachineOwner.*)
 
 // insertMachineFilesystemOwnership is responsible setting machine ownership
 // records for the supplied filesystem uuids.
-func (st *State) insertMachineFilesystemOwnership(
+func (st *InsertIAASUnitState) insertMachineFilesystemOwnership(
 	ctx context.Context,
 	tx *sqlair.TX,
 	machineUUID coremachine.UUID,
@@ -1115,7 +1115,7 @@ WHERE  uuid = $storagePoolUUID.uuid
 
 // makeInsertUnitFilesystemArgs is responsible for making the insert args to
 // establish new filesystems linked to a storage instance in the model.
-func (st *State) makeInsertUnitFilesystemArgs(
+func (st *InsertIAASUnitState) makeInsertUnitFilesystemArgs(
 	ctx context.Context,
 	tx *sqlair.TX,
 	args []internal.CreateUnitStorageInstanceArg,
@@ -1188,7 +1188,7 @@ func (st *State) makeInsertUnitFilesystemArgs(
 // makeInsertUnitFilesystemAttachmentArgs will make a slice of
 // [insertStorageFilesystemAttachment] for each filesystem attachment defined in
 // args.
-func (st *State) makeInsertUnitFilesystemAttachmentArgs(
+func (st *InsertIAASUnitState) makeInsertUnitFilesystemAttachmentArgs(
 	args []internal.CreateUnitStorageAttachmentArg,
 ) []insertStorageFilesystemAttachment {
 	rval := []insertStorageFilesystemAttachment{}
@@ -1214,7 +1214,7 @@ func (st *State) makeInsertUnitFilesystemAttachmentArgs(
 // directive Included in the return is the set of insert values required for
 // making the unit the owner of the new storage instance(s). Attachment records
 // are also returned for each of the storage instances.
-func (st *State) makeInsertUnitStorageInstanceArgs(
+func (st *InsertIAASUnitState) makeInsertUnitStorageInstanceArgs(
 	ctx context.Context,
 	tx *sqlair.TX,
 	args []internal.CreateUnitStorageInstanceArg,
@@ -1288,7 +1288,7 @@ func makeInsertUnitStorageOwnerArgs(
 
 // makeInsertUnitVolumeArgs is responsible for making the insert args to
 // establish new volumes linked to a storage instance in the model.
-func (st *State) makeInsertUnitVolumeArgs(
+func (st *InsertIAASUnitState) makeInsertUnitVolumeArgs(
 	ctx context.Context,
 	tx *sqlair.TX,
 	args []internal.CreateUnitStorageInstanceArg,
@@ -1361,7 +1361,7 @@ func (st *State) makeInsertUnitVolumeArgs(
 // makeInsertUnitVolumeAttachmentArgs will make a slice of
 // [insertStorageVolumeAttachment] values for each volume attachment argument
 // supplied.
-func (st *State) makeInsertUnitVolumeAttachmentArgs(
+func (st *InsertIAASUnitState) makeInsertUnitVolumeAttachmentArgs(
 	args []internal.CreateUnitStorageAttachmentArg,
 ) []insertStorageVolumeAttachment {
 	rval := []insertStorageVolumeAttachment{}
