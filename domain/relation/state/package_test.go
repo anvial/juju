@@ -32,6 +32,8 @@ import (
 	"github.com/juju/juju/internal/uuid"
 )
 
+//go:generate go run go.uber.org/mock/mockgen -typed -package state -destination package_mock_test.go github.com/juju/juju/domain/relation/state InsertIAASUnitState
+
 // baseRelationSuite is a struct embedding ModelSuite for testing relation
 // between application. It provides a set of builder function to create all
 // the necessary context to actually create relation, like charms and applications
@@ -45,7 +47,7 @@ type baseRelationSuite struct {
 
 func (s *baseRelationSuite) SetUpTest(c *tc.C) {
 	s.ModelSuite.SetUpTest(c)
-	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c), nil)
 }
 
 func (s *baseRelationSuite) TearDownTest(c *tc.C) {
