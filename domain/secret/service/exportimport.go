@@ -21,7 +21,7 @@ func (s *SecretService) GetSecretsForExport(ctx context.Context) (*SecretExport,
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	secrets, secretRevisions, err := s.secretState.ListSecrets(ctx, nil, nil, secret.NilLabels)
+	secrets, secretRevisions, err := s.secretState.ListAllSecrets(ctx)
 	if err != nil {
 		return nil, errors.Errorf("loading secrets for export: %w", err)
 	}
