@@ -396,6 +396,64 @@ func (s *RemoteSuite) TestConnectWithSameAddress(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
+func (s *RemoteSuite) TestConnectWithBrokenConnection(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	var counter atomic.Int64
+	s.apiConnectHandler = func(ctx context.Context) error {
+		counter.Add(1)
+
+		select {
+		case s.apiConnect <- struct{}{}:
+		case <-time.After(time.Second):
+			c.Fatalf("timed out waiting for API connect")
+		}
+		return nil
+	}
+
+	s.expectClock()
+	s.expectClockAfter(make(<-chan time.Time))
+
+	addr := &url.URL{Scheme: "wss", Host: "10.0.0.1"}
+
+	broken := make(chan struct{})
+
+	// We require the ordering here to simulate the first connection breaking,
+	// then a new connection being made.
+	gomock.InOrder(
+		s.apiConnection.EXPECT().Broken().Return(broken),
+		s.apiConnection.EXPECT().Close().Return(nil),
+		s.apiConnection.EXPECT().Broken().Return(make(<-chan struct{})),
+		s.apiConnection.EXPECT().Close().Return(nil),
+	)
+
+	w := s.newRemoteServer(c)
+	defer workertest.DirtyKill(c, w)
+
+	s.ensureStartup(c)
+
+	w.UpdateAddresses([]string{addr.String()})
+
+	select {
+	case <-s.apiConnect:
+	case <-time.After(testhelpers.LongWait):
+		c.Fatalf("timed out waiting for API connect")
+	}
+
+	close(broken)
+
+	select {
+	case <-s.apiConnect:
+		// fail fast: Assert on counter will fails anyway,
+		// with a bigger call count
+	case <-time.After(time.Second):
+	}
+
+	c.Assert(counter.Load(), tc.Equals, int64(2))
+
+	workertest.CleanKill(c, w)
+}
+
 func (s *RemoteSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := s.baseSuite.setupMocks(c)
 
@@ -416,9 +474,10 @@ func (s *RemoteSuite) newRemoteServer(c *tc.C) RemoteServer {
 
 func (s *RemoteSuite) newConfig(c *tc.C) RemoteServerConfig {
 	return RemoteServerConfig{
-		Clock:   s.clock,
-		Logger:  loggertesting.WrapCheckLog(c),
-		APIInfo: &api.Info{},
+		Clock:        s.clock,
+		Logger:       loggertesting.WrapCheckLog(c),
+		APIInfo:      &api.Info{},
+		ControllerID: "0",
 		APIOpener: func(ctx context.Context, i *api.Info, do api.DialOpts) (api.Connection, error) {
 			err := s.apiConnectHandler(ctx)
 			if err != nil {
