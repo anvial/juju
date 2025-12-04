@@ -18,10 +18,12 @@ import (
 	"github.com/juju/juju/core/status"
 	coreunit "github.com/juju/juju/core/unit"
 	coreunittesting "github.com/juju/juju/core/unit/testing"
+	domainapplication "github.com/juju/juju/domain/application"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/relation"
 	relationerrors "github.com/juju/juju/domain/relation/errors"
 	"github.com/juju/juju/domain/relation/internal"
+	domainstatus "github.com/juju/juju/domain/status"
 	internalcharm "github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -628,6 +630,8 @@ func (s *relationServiceSuite) TestGetRelationLifeSuspendedStatusNotValid(c *tc.
 	c.Assert(err, tc.ErrorIs, relationerrors.RelationUUIDNotValid)
 }
 
+// TestEnterScope tests EnterScope with no subordinate unit creation
+// expected.
 func (s *relationServiceSuite) TestEnterScope(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -635,8 +639,8 @@ func (s *relationServiceSuite) TestEnterScope(c *tc.C) {
 	relationUUID := corerelationtesting.GenRelationUUID(c)
 	unitName := coreunittesting.GenNewName(c, "app1/0")
 	settings := map[string]string{"ingress": "x.x.x.x"}
-	s.state.EXPECT().EnterScope(gomock.Any(), relationUUID, unitName, settings).Return(nil)
-	s.state.EXPECT().NeedsSubordinateUnit(gomock.Any(), relationUUID, unitName).Return(nil, nil)
+	data := internal.SubordinateUnitStatusHistoryData{}
+	s.state.EXPECT().EnterScope(gomock.Any(), relationUUID, unitName, settings).Return(data, nil)
 
 	// Act.
 	err := s.service.EnterScope(
@@ -644,7 +648,6 @@ func (s *relationServiceSuite) TestEnterScope(c *tc.C) {
 		relationUUID,
 		unitName,
 		settings,
-		nil,
 	)
 	// Assert.
 	c.Assert(err, tc.ErrorIsNil)
@@ -660,7 +663,8 @@ func (s *relationServiceSuite) TestEnterScopeNthTime(c *tc.C) {
 	relationUUID := corerelationtesting.GenRelationUUID(c)
 	unitName := coreunittesting.GenNewName(c, "app1/0")
 	settings := map[string]string{"ingress": "x.x.x.x"}
-	s.state.EXPECT().EnterScope(gomock.Any(), relationUUID, unitName, settings).Return(relationerrors.RelationUnitAlreadyExists)
+	data := internal.SubordinateUnitStatusHistoryData{}
+	s.state.EXPECT().EnterScope(gomock.Any(), relationUUID, unitName, settings).Return(data, relationerrors.RelationUnitAlreadyExists)
 
 	// Act.
 	err := s.service.EnterScope(
@@ -668,7 +672,6 @@ func (s *relationServiceSuite) TestEnterScopeNthTime(c *tc.C) {
 		relationUUID,
 		unitName,
 		settings,
-		nil,
 	)
 	// Assert.
 	c.Assert(err, tc.ErrorIsNil)
@@ -681,11 +684,28 @@ func (s *relationServiceSuite) TestEnterScopeCreatingSubordinate(c *tc.C) {
 	relationUUID := corerelationtesting.GenRelationUUID(c)
 	unitName := coreunittesting.GenNewName(c, "app1/0")
 	settings := map[string]string{"ingress": "x.x.x.x"}
-	s.state.EXPECT().EnterScope(gomock.Any(), relationUUID, unitName, settings).Return(nil)
-
-	subAppID := tc.Must(c, coreapplication.NewUUID)
-	s.state.EXPECT().NeedsSubordinateUnit(gomock.Any(), relationUUID, unitName).Return(&subAppID, nil)
-	s.subordinateCreator.EXPECT().CreateSubordinate(gomock.Any(), subAppID, unitName).Return(nil)
+	data := internal.SubordinateUnitStatusHistoryData{
+		UnitName: unitName.String(),
+		UnitStatus: domainapplication.UnitStatusArg{
+			AgentStatus: &domainstatus.StatusInfo[domainstatus.UnitAgentStatusType]{
+				Status: domainstatus.UnitAgentStatusAllocating,
+			},
+			WorkloadStatus: &domainstatus.StatusInfo[domainstatus.WorkloadStatusType]{
+				Status:  domainstatus.WorkloadStatusActive,
+				Message: "message",
+			},
+		},
+	}
+	s.state.EXPECT().EnterScope(gomock.Any(), relationUUID, unitName, settings).Return(data, nil)
+	s.statusHistory.EXPECT().RecordStatus(gomock.Any(), domainstatus.UnitAgentNamespace.WithID(unitName.String()),
+		status.StatusInfo{
+			Status: status.Allocating,
+		})
+	s.statusHistory.EXPECT().RecordStatus(gomock.Any(), domainstatus.UnitWorkloadNamespace.WithID(unitName.String()),
+		status.StatusInfo{
+			Status:  status.Active,
+			Message: "message",
+		})
 
 	// Act.
 	err := s.service.EnterScope(
@@ -693,7 +713,6 @@ func (s *relationServiceSuite) TestEnterScopeCreatingSubordinate(c *tc.C) {
 		relationUUID,
 		unitName,
 		settings,
-		s.subordinateCreator,
 	)
 
 	// Assert.
@@ -707,7 +726,7 @@ func (s *relationServiceSuite) TestEnterScopeRelationUUIDNotValid(c *tc.C) {
 	unitName := coreunittesting.GenNewName(c, "app1/0")
 
 	// Act.
-	err := s.service.EnterScope(c.Context(), "bad-uuid", unitName, map[string]string{}, nil)
+	err := s.service.EnterScope(c.Context(), "bad-uuid", unitName, map[string]string{})
 
 	// Assert.
 	c.Assert(err, tc.ErrorIs, relationerrors.RelationUUIDNotValid)
@@ -720,7 +739,7 @@ func (s *relationServiceSuite) TestEnterScopeRelationUnitNameNotValid(c *tc.C) {
 	relationUUID := corerelationtesting.GenRelationUUID(c)
 
 	// Act.
-	err := s.service.EnterScope(c.Context(), relationUUID, "", map[string]string{}, nil)
+	err := s.service.EnterScope(c.Context(), relationUUID, "", map[string]string{})
 
 	// Assert.
 	c.Assert(err, tc.ErrorIs, coreunit.InvalidUnitName)
@@ -1344,6 +1363,8 @@ func (s *relationServiceSuite) TestGetInScopeUnitsFail(c *tc.C) {
 }
 
 func (s *relationServiceSuite) TestGetUnitSettingsForUnits(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
 	// Arrange
 	unitNames := []coreunit.Name{"app/0", "app/1"}
 	relUUID := tc.Must(c, corerelation.NewUUID)
@@ -1366,6 +1387,8 @@ func (s *relationServiceSuite) TestGetUnitSettingsForUnits(c *tc.C) {
 }
 
 func (s *relationServiceSuite) TestGetUnitSettingsForUnitsError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
 	// Arrange
 	unitNames := []coreunit.Name{"app/0", "app/1"}
 	relUUID := tc.Must(c, corerelation.NewUUID)
@@ -1705,7 +1728,7 @@ func (s *relationLeadershipServiceSuite) setupMocks(c *tc.C) *gomock.Controller 
 	ctrl := s.baseServiceSuite.setupMocks(c)
 
 	s.leaderEnsurer = NewMockEnsurer(ctrl)
-	s.leadershipService = NewLeadershipService(s.state, s.leaderEnsurer, loggertesting.WrapCheckLog(c))
+	s.leadershipService = NewLeadershipService(s.state, s.leaderEnsurer, s.statusHistory, loggertesting.WrapCheckLog(c))
 
 	return ctrl
 }

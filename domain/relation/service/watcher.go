@@ -136,10 +136,11 @@ func NewWatchableService(
 	st State,
 	watcherFactory WatcherFactory,
 	leaderEnsurer leadership.Ensurer,
+	statusHistory StatusHistory,
 	logger logger.Logger,
 ) *WatchableService {
 	return &WatchableService{
-		LeadershipService: NewLeadershipService(st, leaderEnsurer, logger),
+		LeadershipService: NewLeadershipService(st, leaderEnsurer, statusHistory, logger),
 		watcherFactory:    watcherFactory,
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/juju/tc"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	coreapplication "github.com/juju/juju/core/application"
 	corerelation "github.com/juju/juju/core/relation"
@@ -15,6 +15,7 @@ import (
 	coreunit "github.com/juju/juju/core/unit"
 	coreunittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/domain/relation"
+	"github.com/juju/juju/domain/relation/internal"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/testhelpers"
@@ -198,5 +199,6 @@ func (s *migrationServiceSuite) expectEnterScope(
 	settings map[string]interface{},
 ) {
 	unitSettings, _ := settingsMap(settings)
-	s.state.EXPECT().EnterScope(gomock.Any(), uuid, name, unitSettings).Return(nil)
+	data := internal.SubordinateUnitStatusHistoryData{}
+	s.state.EXPECT().EnterScope(gomock.Any(), uuid, name, unitSettings).Return(data, nil)
 }
