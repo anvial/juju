@@ -1163,6 +1163,69 @@ func (s *stateSuite) TestCreateCharmUnitSecretWithContent(c *tc.C) {
 	c.Assert(access, tc.Equals, "manage")
 }
 
+func (s *stateSuite) TestOwnerKindModelSecret(c *tc.C) {
+	st := newSecretState(c, s.TxnRunnerFactory())
+
+	sp := domainsecret.UpsertSecretParams{
+		Description: ptr("my secretMetadata"),
+		Label:       ptr("model-kind-check"),
+		Data:        coresecrets.SecretData{"foo": "bar"},
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+	}
+	uri := coresecrets.NewURI()
+	ctx := c.Context()
+	err := createUserSecret(ctx, st, 1, uri, sp)
+	c.Assert(err, tc.ErrorIsNil)
+
+	md, _, err := st.GetSecretByURI(ctx, *uri, ptr(1))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(md.Owner.Kind, tc.Equals, coresecrets.ModelOwner)
+}
+
+func (s *stateSuite) TestOwnerKindApplicationSecret(c *tc.C) {
+	st := newSecretState(c, s.TxnRunnerFactory())
+
+	// Ensure application exists
+	s.setupUnits(c, "mysql")
+
+	sp := domainsecret.UpsertSecretParams{
+		Description: ptr("my secretMetadata"),
+		Label:       ptr("app-kind-check"),
+		Data:        coresecrets.SecretData{"foo": "bar"},
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+	}
+	uri := coresecrets.NewURI()
+	ctx := c.Context()
+	err := createCharmApplicationSecret(ctx, st, 1, uri, "mysql", sp)
+	c.Assert(err, tc.ErrorIsNil)
+
+	md, _, err := st.GetSecretByURI(ctx, *uri, ptr(1))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(md.Owner.Kind, tc.Equals, coresecrets.ApplicationOwner)
+}
+
+func (s *stateSuite) TestOwnerKindUnitSecret(c *tc.C) {
+	st := newSecretState(c, s.TxnRunnerFactory())
+
+	// Ensure unit exists
+	s.setupUnits(c, "mysql")
+
+	sp := domainsecret.UpsertSecretParams{
+		Description: ptr("my secretMetadata"),
+		Label:       ptr("unit-kind-check"),
+		Data:        coresecrets.SecretData{"foo": "bar"},
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+	}
+	uri := coresecrets.NewURI()
+	ctx := c.Context()
+	err := createCharmUnitSecret(ctx, st, 1, uri, "mysql/0", sp)
+	c.Assert(err, tc.ErrorIsNil)
+
+	md, _, err := st.GetSecretByURI(ctx, *uri, ptr(1))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(md.Owner.Kind, tc.Equals, coresecrets.UnitOwner)
+}
+
 func (s *stateSuite) TestCreateCharmUnitSecretNotFound(c *tc.C) {
 	st := newSecretState(c, s.TxnRunnerFactory())
 

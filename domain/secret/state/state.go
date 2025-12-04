@@ -1546,7 +1546,7 @@ func (st State) getSecretBySecretID(
 	ctx context.Context, tx *sqlair.TX, uri coresecrets.URI,
 ) (*coresecrets.SecretMetadata, error) {
 	selectBySecretID := func(query string, types, params []any) (newQuery string, newTypes, newParams []any) {
-		return query + "\nWHERE sm.secret_id = $secretID.id",
+		return query + "\nWHERE secret_id = $secretID.id",
 			append(types, secretID{}),
 			append(params, secretID{ID: uri.ID})
 	}
@@ -1571,7 +1571,7 @@ func (st State) listSecretsBySecretLabels(
 ) ([]*coresecrets.SecretMetadata, error) {
 	selectByLabels := func(query string, types, params []any) (newQuery string, newTypes, newParams []any) {
 		type labelList []string
-		return query + "\nWHERE so.label IN ($labelList[:])",
+		return query + "\nWHERE label IN ($labelList[:])",
 			append(types, labelList{}),
 			append(params, labelList(labels))
 	}
@@ -1584,51 +1584,30 @@ func (st State) fetchSecrets(ctx context.Context,
 	tx *sqlair.TX,
 	queryModifierFuncs ...queryModifierFunc,
 ) ([]*coresecrets.SecretMetadata, error) {
-	// TODO(gfouillet): we should introduce a view for this one. It should be done in
-	//    a specific PR since it is not trivial (we need to probably introduce an enum
-	//    table for owner type, and refine the associated code in state)
+	// TODO(gfouillet): remove this helper function and shift the logic to the caller.
 	query := `
-WITH 
-secret_owner AS (
-   SELECT $ownerKind.model_owner_kind AS owner_kind, (SELECT uuid FROM model) AS owner_id, label, secret_id
-   FROM   secret_model_owner
-   UNION
-   SELECT $ownerKind.application_owner_kind AS owner_kind, a.name AS owner_id, label, secret_id
-   FROM   secret_application_owner AS so
-   JOIN   application AS a ON a.uuid = so.application_uuid
-   UNION
-   SELECT $ownerKind.unit_owner_kind AS owner_kind, u.name AS owner_id, label, secret_id
-   FROM   secret_unit_owner AS so
-   JOIN   unit AS u ON u.uuid = so.unit_uuid
-)
-SELECT    sm.secret_id AS &secretInfo.secret_id,
-          sm.version AS &secretInfo.version,
-          sm.description AS &secretInfo.description,
-          sm.auto_prune AS &secretInfo.auto_prune,
-          sm.latest_revision_checksum AS &secretInfo.latest_revision_checksum,
-          sm.create_time AS &secretInfo.create_time,
-          sm.update_time AS &secretInfo.update_time,
-          rp.policy AS &secretInfo.policy,
-          sro.next_rotation_time AS &secretInfo.next_rotation_time,
-          sre.expire_time AS &secretInfo.latest_expire_time,
-          MAX(sr.revision) AS &secretInfo.latest_revision,
-          (so.owner_kind,
-          so.owner_id,
-          so.label) AS (&secretOwner.*)
-FROM      secret_metadata AS sm
-JOIN      secret_revision AS sr ON sm.secret_id = sr.secret_id
-LEFT JOIN secret_revision_expire AS sre ON sre.revision_uuid = sr.uuid
-LEFT JOIN secret_rotate_policy AS rp ON rp.id = sm.rotate_policy_id
-LEFT JOIN secret_rotation AS sro ON sro.secret_id = sm.secret_id
-LEFT JOIN secret_owner AS so ON so.secret_id = sm.secret_id
-`
+SELECT
+    &secretInfo.secret_id,
+    &secretInfo.version,
+    &secretInfo.description,
+    &secretInfo.auto_prune,
+    &secretInfo.latest_revision_checksum,
+    &secretInfo.create_time,
+    &secretInfo.update_time,
+    &secretInfo.policy,
+    &secretInfo.next_rotation_time,
+    expire_time AS &secretInfo.latest_expire_time,
+    MAX(revision) AS &secretInfo.latest_revision,
+    (owner_kind,
+    owner_id,
+    label) AS (&secretOwner.*)
+FROM v_secret_metadata`
 
 	queryTypes := []any{
 		secretInfo{},
 		secretOwner{},
-		ownerKindParam,
 	}
-	queryParams := []any{ownerKindParam}
+	queryParams := []any{}
 	var (
 		dbSecrets      secretInfos
 		dbSecretOwners []secretOwner
@@ -1640,7 +1619,7 @@ LEFT JOIN secret_owner AS so ON so.secret_id = sm.secret_id
 	}
 
 	// Finish by a GROUP BY clause to make the MAX(sr.revision) works.
-	query += "\nGROUP BY sm.secret_id"
+	query += "\nGROUP BY secret_id"
 
 	queryStmt, err := st.Prepare(query, queryTypes...)
 	if err != nil {
