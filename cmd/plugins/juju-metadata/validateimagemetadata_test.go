@@ -13,6 +13,7 @@ import (
 	"github.com/juju/juju/api/jujuclient"
 	"github.com/juju/juju/api/jujuclient/jujuclienttesting"
 	"github.com/juju/juju/cmd/modelcmd"
+	"github.com/juju/juju/controller"
 	corebase "github.com/juju/juju/core/base"
 	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/environs/config"
@@ -135,8 +136,13 @@ func cacheTestEnvConfig(c *tc.C, store *jujuclient.MemStore) {
 		User: "admin",
 	}
 
+	// The controller config used for bootstrap config
+	// does not have the controller uuid or ca cart.
+	controllerCfg := coretesting.FakeControllerConfig()
+	delete(controllerCfg, controller.ControllerUUIDKey)
+	delete(controllerCfg, controller.CACertKey)
 	store.BootstrapConfig["ec2-controller"] = jujuclient.BootstrapConfig{
-		ControllerConfig:    coretesting.FakeControllerConfig(),
+		ControllerConfig:    controllerCfg,
 		ControllerModelUUID: ec2UUID,
 		Config:              ec2Config.AllAttrs(),
 		Cloud:               "ec2",

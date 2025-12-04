@@ -10998,6 +10998,9 @@
                         },
                         "region": {
                             "type": "string"
+                        },
+                        "target-controller": {
+                            "type": "string"
                         }
                     },
                     "additionalProperties": false,
@@ -11184,6 +11187,9 @@
                             "items": {
                                 "$ref": "#/definitions/SupportedFeature"
                             }
+                        },
+                        "target-controller": {
+                            "type": "string"
                         },
                         "type": {
                             "type": "string"
