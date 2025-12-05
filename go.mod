@@ -55,7 +55,7 @@ require (
 	github.com/juju/ansiterm v1.0.0
 	github.com/juju/clock v1.1.1
 	github.com/juju/collections v1.0.4
-	github.com/juju/description/v10 v10.0.0-20250623090906-621967bdcd32
+	github.com/juju/description/v11 v11.0.0-20251203091952-63fec6169be0
 	github.com/juju/errors v1.0.0
 	github.com/juju/gnuflag v1.0.0
 	github.com/juju/gojsonschema v1.0.0
