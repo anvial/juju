@@ -467,8 +467,8 @@ func (s *Service) GetModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
 	return uuids, nil
 }
 
-// GetModelUUIDs returns a list of all model UUIDs in the controller that are
-// active. This excludes the controller model UUID.
+// GetHostedModelUUIDs returns a list of all model UUIDs in the controller that
+// are active. This excludes the controller model UUID.
 func (s *Service) GetHostedModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
