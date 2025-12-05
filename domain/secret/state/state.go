@@ -540,32 +540,16 @@ VALUES ($secretID.id)`
 func (st State) getSecretOwner(ctx context.Context, tx *sqlair.TX, uri *coresecrets.URI) (domainsecret.Owner, error) {
 	input := secretID{ID: uri.ID}
 	stmt, err := st.Prepare(`
-SELECT
-       (so.owner_kind,
-        so.owner_id) AS (&secretOwner.*)
-FROM   secret_metadata sm
-LEFT JOIN (
-    SELECT $ownerKind.model_owner_kind AS owner_kind, '' AS owner_id,  secret_id
-    FROM   secret_model_owner so
-    UNION
-    SELECT $ownerKind.application_owner_kind AS owner_kind, application.uuid AS owner_id,  secret_id
-    FROM   secret_application_owner so
-    JOIN   application
-    WHERE  application.uuid = so.application_uuid
-    UNION
-    SELECT $ownerKind.unit_owner_kind AS owner_kind, unit_uuid AS owner_id,  secret_id
-    FROM   secret_unit_owner so
-    JOIN   unit
-    WHERE  unit.uuid = so.unit_uuid
-) so ON so.secret_id = sm.secret_id
-WHERE  sm.secret_id = $secretID.id
-`, input, secretOwner{}, ownerKindParam)
+SELECT &secretOwner.*
+FROM   v_secret_owner
+WHERE  secret_id = $secretID.id
+`, input, secretOwner{})
 	if err != nil {
 		return domainsecret.Owner{}, errors.Capture(err)
 	}
 
 	var result []secretOwner
-	err = tx.Query(ctx, stmt, input, ownerKindParam).GetAll(&result)
+	err = tx.Query(ctx, stmt, input).GetAll(&result)
 	if errors.Is(err, sqlair.ErrNoRows) || len(result) == 0 {
 		return domainsecret.Owner{}, errors.Errorf("secret %q not found", uri).Add(secreterrors.SecretNotFound)
 	}
@@ -573,7 +557,7 @@ WHERE  sm.secret_id = $secretID.id
 		return domainsecret.Owner{}, errors.Capture(err)
 	}
 	o := result[0]
-	return domainsecret.Owner{UUID: o.OwnerID, Kind: coresecrets.OwnerKind(o.OwnerKind)}, nil
+	return domainsecret.Owner{UUID: o.OwnerUUID, Kind: coresecrets.OwnerKind(o.OwnerKind)}, nil
 }
 
 // createSecret creates the records needed to store secret data,
@@ -594,30 +578,15 @@ SELECT
        MAX(sr.revision) AS &secretInfo.latest_revision,
        sm.latest_revision_checksum AS &secretInfo.latest_revision_checksum,
        sr.uuid AS &secretInfo.latest_revision_uuid,
-       (so.owner_kind,
-        so.owner_id,
-        so.label) AS (&secretOwner.*)
+       (so.*) AS (&secretOwner.*)
 FROM   secret_metadata sm
        JOIN secret_revision sr ON sr.secret_id = sm.secret_id
        LEFT JOIN secret_rotate_policy rp ON rp.id = sm.rotate_policy_id
-       LEFT JOIN (
-          SELECT $ownerKind.model_owner_kind AS owner_kind, '' AS owner_id, label, secret_id
-          FROM   secret_model_owner so
-          UNION
-          SELECT $ownerKind.application_owner_kind AS owner_kind, application.uuid AS owner_id, label, secret_id
-          FROM   secret_application_owner so
-          JOIN   application
-          WHERE  application.uuid = so.application_uuid
-          UNION
-          SELECT $ownerKind.unit_owner_kind AS owner_kind, unit_uuid AS owner_id, label, secret_id
-          FROM   secret_unit_owner so
-          JOIN   unit
-          WHERE  unit.uuid = so.unit_uuid
-       ) so ON so.secret_id = sm.secret_id
+       LEFT JOIN v_secret_owner AS so ON so.secret_id = sm.secret_id
 WHERE  sm.secret_id = $secretID.id
 GROUP BY sm.secret_id`
 
-	existingSecretStmt, err := st.Prepare(existingSecretQuery, secretID{}, secretInfo{}, secretOwner{}, ownerKindParam)
+	existingSecretStmt, err := st.Prepare(existingSecretQuery, secretID{}, secretInfo{}, secretOwner{})
 	if err != nil {
 		return errors.Capture(err)
 	}
@@ -627,7 +596,7 @@ GROUP BY sm.secret_id`
 		dbsecretOwners []secretOwner
 	)
 	secretIDParam := secretID{ID: uri.ID}
-	err = tx.Query(ctx, existingSecretStmt, secretIDParam, ownerKindParam).GetAll(&dbSecrets, &dbsecretOwners)
+	err = tx.Query(ctx, existingSecretStmt, secretIDParam).GetAll(&dbSecrets, &dbsecretOwners)
 	if errors.Is(err, sqlair.ErrNoRows) {
 		return errors.Errorf("secret %q not found", uri).Add(secreterrors.SecretNotFound)
 	}
@@ -640,6 +609,7 @@ GROUP BY sm.secret_id`
 		return errors.Capture(err)
 	}
 	existing := existingResult[0]
+	existingOwner := dbsecretOwners[0]
 	latestRevisionUUID := dbSecrets[0].LatestRevisionUUID
 
 	now := time.Now().UTC()
@@ -658,7 +628,7 @@ GROUP BY sm.secret_id`
 	}
 
 	if secret.Label != nil {
-		if err := st.upsertSecretLabel(ctx, tx, existing.URI, *secret.Label, existing.Owner); err != nil {
+		if err := st.upsertSecretLabel(ctx, tx, existing.URI, *secret.Label, existingOwner); err != nil {
 			return errors.Errorf("updating label for secret %q: %w", uri, err)
 		}
 	}
@@ -791,10 +761,8 @@ ON CONFLICT(revision_uuid) DO UPDATE SET
 	return nil
 }
 
-func (st State) upsertSecretLabel(
-	ctx context.Context, tx *sqlair.TX, uri *coresecrets.URI, label string, owner coresecrets.Owner,
-) error {
-	switch owner.Kind {
+func (st State) upsertSecretLabel(ctx context.Context, tx *sqlair.TX, uri *coresecrets.URI, label string, owner secretOwner) error {
+	switch coresecrets.OwnerKind(owner.OwnerKind) {
 	case coresecrets.ModelOwner:
 		dbSecretOwner := secretModelOwner{
 			SecretID: uri.ID,
@@ -805,9 +773,8 @@ func (st State) upsertSecretLabel(
 		}
 	case coresecrets.ApplicationOwner:
 		dbSecretOwner := secretApplicationOwner{
-			SecretID: uri.ID,
-			// Query selects the application uuid as owner id.
-			ApplicationUUID: owner.ID,
+			SecretID:        uri.ID,
+			ApplicationUUID: owner.OwnerUUID,
 			Label:           label,
 		}
 		if err := st.upsertSecretApplicationOwner(ctx, tx, dbSecretOwner); err != nil {
@@ -816,8 +783,7 @@ func (st State) upsertSecretLabel(
 	case coresecrets.UnitOwner:
 		dbSecretOwner := secretUnitOwner{
 			SecretID: uri.ID,
-			// Query selects the unit uuid as owner id.
-			UnitUUID: owner.ID,
+			UnitUUID: owner.OwnerUUID,
 			Label:    label,
 		}
 		if err := st.upsertSecretUnitOwner(ctx, tx, dbSecretOwner); err != nil {
@@ -1598,9 +1564,10 @@ SELECT
     &secretInfo.next_rotation_time,
     expire_time AS &secretInfo.latest_expire_time,
     MAX(revision) AS &secretInfo.latest_revision,
-    (owner_kind,
-    owner_id,
-    label) AS (&secretOwner.*)
+    &secretOwner.owner_kind,
+    &secretOwner.owner_name,
+	&secretOwner.owner_uuid,
+    &secretOwner.label
 FROM v_secret_metadata`
 
 	queryTypes := []any{
@@ -1680,14 +1647,14 @@ func (st State) listCharmSecrets(
 	var preQueryParts []string
 	appOwnerSelect := `
 app_owners AS
-    (SELECT $ownerKind.application_owner_kind AS owner_kind, application.name AS owner_id, label, secret_id
+    (SELECT $ownerKind.application_owner_kind AS owner_kind, application.name AS owner_name, label, secret_id
      FROM   secret_application_owner so
      JOIN   application ON application.uuid = so.application_uuid
      AND application.name IN ($ApplicationOwners[:]))`[1:]
 
 	unitOwnerSelect := `
 unit_owners AS
-    (SELECT $ownerKind.unit_owner_kind AS owner_kind, unit.name AS owner_id, label, secret_id
+    (SELECT $ownerKind.unit_owner_kind AS owner_kind, unit.name AS owner_name, label, secret_id
      FROM   secret_unit_owner so
      JOIN   unit ON unit.uuid = so.unit_uuid
      AND unit.name IN ($UnitOwners[:]))`[1:]
@@ -1716,7 +1683,7 @@ SELECT sm.secret_id AS &secretInfo.secret_id,
        sm.update_time AS &secretInfo.update_time,
        MAX(sr.revision) AS &secretInfo.latest_revision,
        (so.owner_kind,
-       so.owner_id,
+       so.owner_name,
        so.label) AS (&secretOwner.*)
 FROM   secret_metadata sm
        JOIN secret_revision sr ON sr.secret_id = sm.secret_id

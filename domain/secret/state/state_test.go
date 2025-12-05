@@ -1115,10 +1115,11 @@ func (s *stateSuite) TestOwnerKindModelSecret(c *tc.C) {
 	err := createUserSecret(ctx, s.state, 1, uri, sp)
 	c.Assert(err, tc.ErrorIsNil)
 
-	ownerInfo := s.queryRows(c, `SELECT owner_kind, owner_id FROM v_secret_owner LIMIT 1`)
+	ownerInfo := s.queryRows(c, `SELECT owner_kind, owner_uuid, owner_name FROM v_secret_owner LIMIT 1`)
 	c.Assert(ownerInfo, tc.HasLen, 1)
 	c.Assert(ownerInfo[0]["owner_kind"], tc.Equals, string(coresecrets.ModelOwner))
-	c.Assert(ownerInfo[0]["owner_id"], tc.Equals, s.modelUUID)
+	c.Assert(ownerInfo[0]["owner_uuid"], tc.Equals, s.modelUUID)
+	c.Assert(ownerInfo[0]["owner_name"], tc.Equals, "test")
 }
 
 func (s *stateSuite) TestOwnerKindApplicationSecret(c *tc.C) {
@@ -1136,10 +1137,13 @@ func (s *stateSuite) TestOwnerKindApplicationSecret(c *tc.C) {
 	err := createCharmApplicationSecret(ctx, s.state, 1, uri, "mysql", sp)
 	c.Assert(err, tc.ErrorIsNil)
 
-	ownerInfo := s.queryRows(c, `SELECT owner_kind, owner_id FROM v_secret_owner LIMIT 1`)
+	ownerInfo := s.queryRows(c, `SELECT owner_kind, owner_uuid, owner_name FROM v_secret_owner LIMIT 1`)
+	appInfo := s.queryRows(c, `SELECT uuid FROM application WHERE name = 'mysql' LIMIT 1`)
 	c.Assert(ownerInfo, tc.HasLen, 1)
 	c.Assert(ownerInfo[0]["owner_kind"], tc.Equals, string(coresecrets.ApplicationOwner))
-	c.Assert(ownerInfo[0]["owner_id"], tc.Equals, "mysql")
+	c.Assert(ownerInfo[0]["owner_name"], tc.Equals, "mysql")
+	c.Assert(appInfo, tc.HasLen, 1)
+	c.Assert(ownerInfo[0]["owner_uuid"], tc.Equals, appInfo[0]["uuid"])
 }
 
 func (s *stateSuite) TestOwnerKindUnitSecret(c *tc.C) {
@@ -1157,10 +1161,13 @@ func (s *stateSuite) TestOwnerKindUnitSecret(c *tc.C) {
 	err := createCharmUnitSecret(ctx, s.state, 1, uri, "mysql/0", sp)
 	c.Assert(err, tc.ErrorIsNil)
 
-	ownerInfo := s.queryRows(c, `SELECT owner_kind, owner_id FROM v_secret_owner LIMIT 1`)
+	ownerInfo := s.queryRows(c, `SELECT owner_kind, owner_uuid, owner_name FROM v_secret_owner LIMIT 1`)
+	unitInfo := s.queryRows(c, `SELECT uuid FROM unit WHERE name = 'mysql/0' LIMIT 1`)
 	c.Assert(ownerInfo, tc.HasLen, 1)
 	c.Assert(ownerInfo[0]["owner_kind"], tc.Equals, string(coresecrets.UnitOwner))
-	c.Assert(ownerInfo[0]["owner_id"], tc.Equals, "mysql/0")
+	c.Assert(ownerInfo[0]["owner_name"], tc.Equals, "mysql/0")
+	c.Assert(unitInfo, tc.HasLen, 1)
+	c.Assert(ownerInfo[0]["owner_uuid"], tc.Equals, unitInfo[0]["uuid"])
 }
 
 func (s *stateSuite) TestCreateCharmUnitSecretNotFound(c *tc.C) {
@@ -1986,7 +1993,7 @@ func (s *stateSuite) TestGetSecretOwnerUserSecret(c *tc.C) {
 		return err
 	})
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(owner, tc.DeepEquals, domainsecret.Owner{Kind: domainsecret.ModelOwner})
+	c.Assert(owner, tc.DeepEquals, domainsecret.Owner{Kind: domainsecret.ModelOwner, UUID: s.modelUUID})
 }
 
 func (s *stateSuite) TestUpdateSecretNotFound(c *tc.C) {
