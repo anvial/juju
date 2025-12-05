@@ -43,6 +43,13 @@ type applicationUUIDAndName struct {
 	Name string `db:"name"`
 }
 
+// applicationAndCharmUUID represents the pairing of an application and charm by
+// UUID.
+type applicationAndCharmUUID struct {
+	ApplicationUUID string `db:"application_uuid"`
+	CharmUUID       string `db:"charm_uuid"`
+}
+
 type applicationChannel struct {
 	ApplicationID string `db:"application_uuid"`
 	Track         string `db:"track"`
@@ -245,12 +252,6 @@ type subnet struct {
 }
 
 // These structs represent the persistent charm schema in the database.
-
-// charmID represents a single charm row from the charm table, that only
-// contains the charm ID.
-type charmID struct {
-	UUID string `db:"uuid"`
-}
 
 type charmUUID struct {
 	UUID string `db:"charm_uuid"`

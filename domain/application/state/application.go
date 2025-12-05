@@ -1635,7 +1635,7 @@ func (st *State) GetCharmByApplicationUUID(ctx context.Context, appUUID coreappl
 
 		// Now get the charm by the UUID, but if it doesn't exist, return an
 		// error.
-		chIdent := charmID{UUID: charmUUID}
+		chIdent := entityUUID{UUID: charmUUID}
 		ch, _, err = st.getCharm(ctx, tx, chIdent)
 		if err != nil {
 			return errors.Errorf("getting charm for application %q: %w", appUUID, err)
@@ -1664,23 +1664,22 @@ func (st *State) SetApplicationCharm(
 		return errors.Capture(err)
 	}
 
-	charmIdent := charmID{UUID: chID.String()}
-	appIdent := entityUUID{UUID: appID.String()}
+	appAndCharmPair := applicationAndCharmUUID{ApplicationUUID: appID.String(), CharmUUID: chID.String()}
 
 	setAppCharmStmt, err := st.Prepare(`
 UPDATE application
-SET charm_uuid = $charmID.uuid
-WHERE uuid = $entityUUID.uuid
-`, charmIdent, appIdent)
+SET charm_uuid = $applicationAndCharmUUID.charm_uuid
+WHERE uuid = $applicationAndCharmUUID.application_uuid
+`, applicationAndCharmUUID{})
 	if err != nil {
-		return errors.Capture(err)
+		return errors.Errorf("preparing set application charm: %w", err)
 	}
 
 	updateCharmModifiedVersionStmt, err := st.Prepare(`
 UPDATE application
 SET    charm_modified_version = $charmModifiedVersion.charm_modified_version
 WHERE  uuid = $entityUUID.uuid
-`, charmModifiedVersion{}, appIdent)
+`, charmModifiedVersion{}, entityUUID{})
 	if err != nil {
 		return errors.Capture(err)
 	}
@@ -1689,10 +1688,11 @@ WHERE  uuid = $entityUUID.uuid
 		if err := st.checkApplicationNotDead(ctx, tx, appID); err != nil {
 			return errors.Capture(err)
 		}
+		charmIdent := entityUUID{UUID: chID.String()}
 		if err := st.checkCharmExists(ctx, tx, charmIdent); err != nil {
 			return errors.Capture(err)
 		}
-		if err := st.precheckUpgradeRelation(ctx, tx, appIdent, charmIdent); err != nil {
+		if err := st.precheckUpgradeRelation(ctx, tx, appID, charmIdent); err != nil {
 			return errors.Capture(err)
 		}
 
@@ -1705,10 +1705,11 @@ WHERE  uuid = $entityUUID.uuid
 			return errors.Capture(err)
 		}
 
-		if err := tx.Query(ctx, setAppCharmStmt, charmIdent, appIdent).Run(); err != nil {
+		if err := tx.Query(ctx, setAppCharmStmt, appAndCharmPair).Run(); err != nil {
 			return errors.Errorf("setting application charm: %w", err)
 		}
 
+		appIdent := entityUUID{UUID: appID.String()}
 		if err := st.refreshApplicationConfig(ctx, tx, appIdent, charmIdent); err != nil {
 			return errors.Errorf("refreshing application config: %w", err)
 		}
@@ -1723,15 +1724,15 @@ WHERE  uuid = $entityUUID.uuid
 		}
 
 		charmModifiedVersionNamespace := domainsequence.MakePrefixNamespace(
-			application.ApplicationCharmSequenceNamespace, appIdent.UUID,
+			application.ApplicationCharmSequenceNamespace, appID.String(),
 		)
 		nextCharmModifiedVersion, err := sequencestate.NextValue(ctx, st, tx, charmModifiedVersionNamespace)
 		if err != nil {
-			return errors.Errorf("getting next charm modified version for application %q: %w", appIdent.UUID, err)
+			return errors.Errorf("getting next charm modified version for application %q: %w", appID.String(), err)
 		}
 
 		if err := tx.Query(
-			ctx, updateCharmModifiedVersionStmt, appIdent, charmModifiedVersion{Version: nextCharmModifiedVersion},
+			ctx, updateCharmModifiedVersionStmt, entityUUID{UUID: appID.String()}, charmModifiedVersion{Version: nextCharmModifiedVersion},
 		).Run(); err != nil {
 			return errors.Errorf("updating charm modified version: %w", err)
 		}
@@ -1967,12 +1968,12 @@ func (st *State) ResolveCharmDownload(ctx context.Context, id corecharm.ID, info
 		return errors.Capture(err)
 	}
 
-	charmUUID := charmID{UUID: id.String()}
+	charmUUID := entityUUID{UUID: id.String()}
 
 	resolvedQuery := `
 SELECT &charmAvailable.*
 FROM charm
-WHERE uuid = $charmID.uuid
+WHERE uuid = $entityUUID.uuid
 `
 	resolvedStmt, err := st.Prepare(resolvedQuery, charmUUID, charmAvailable{})
 	if err != nil {
@@ -1992,7 +1993,7 @@ SET
 	object_store_uuid = $resolveCharmState.object_store_uuid,
 	lxd_profile = $resolveCharmState.lxd_profile,
 	available = TRUE
-WHERE uuid = $charmID.uuid;`
+WHERE uuid = $entityUUID.uuid;`
 	charmStmt, err := st.Prepare(charmQuery, charmUUID, chState)
 	if err != nil {
 		return errors.Errorf("preparing query: %w", err)
@@ -2495,7 +2496,7 @@ WHERE uuid = $entityUUID.uuid;
 		// TODO(jack-w-shaw): Retrieve the charm config directly using the application
 		// ID, instead of force-fitting the getCharmConfig method.
 		charmUUID := ident.UUID
-		charmConfig, err = st.getCharmConfig(ctx, tx, charmID{UUID: charmUUID})
+		charmConfig, err = st.getCharmConfig(ctx, tx, entityUUID{UUID: charmUUID})
 		return errors.Capture(err)
 	}); err != nil {
 		return "", charm.Config{}, errors.Capture(err)
@@ -3655,7 +3656,7 @@ GROUP BY a.name, vcr.charm_uuid, vcr.name, vcr.role, vcr.interface, vcr.optional
 // - the new charm implements existing relation given as a argument,
 // - the current count of established relations does not exceed
 // the new charm limit for each specified relation.
-func (st *State) precheckUpgradeRelation(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent charmID) error {
+func (st *State) precheckUpgradeRelation(ctx context.Context, tx *sqlair.TX, appUUID coreapplication.UUID, charmIdent entityUUID) error {
 	charmRelations, err := st.getCharmRelations(ctx, tx, charmIdent)
 	if err != nil {
 		return errors.Errorf("fetching charm relations for charm %q: %w", charmIdent.UUID, err)
@@ -3665,9 +3666,9 @@ func (st *State) precheckUpgradeRelation(ctx context.Context, tx *sqlair.TX, app
 		indexedCharmRelations[rel.Name] = rel
 	}
 
-	appRelations, err := st.getAllRelationInfo(ctx, tx, coreapplication.UUID(appIdent.UUID))
+	appRelations, err := st.getAllRelationInfo(ctx, tx, appUUID)
 	if err != nil {
-		return errors.Errorf("fetching all relation for application %q: %w", appIdent.UUID, err)
+		return errors.Errorf("fetching all relation for application %q: %w", appUUID, err)
 	}
 
 	for _, appRelation := range appRelations {
@@ -3692,7 +3693,7 @@ func (st *State) precheckUpgradeRelation(ctx context.Context, tx *sqlair.TX, app
 	return nil
 }
 
-func (st *State) refreshApplicationConfig(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent charmID) error {
+func (st *State) refreshApplicationConfig(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent entityUUID) error {
 	charmConfig, err := st.getCharmConfig(ctx, tx, charmIdent)
 	if err != nil {
 		return errors.Capture(err)

@@ -1923,7 +1923,7 @@ func (s *applicationStateSuite) TestSetCharmThenGetCharmByApplicationNameInvalid
 func (s *applicationStateSuite) TestCheckCharmExistsNotFound(c *tc.C) {
 	id := charmtesting.GenCharmID(c).String()
 	err := s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		return s.state.checkCharmExists(ctx, tx, charmID{
+		return s.state.checkCharmExists(ctx, tx, entityUUID{
 			UUID: id,
 		})
 	})
@@ -2909,7 +2909,7 @@ func (s *applicationStateSuite) TestCheckApplicationCharm(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		return s.checkApplicationCharm(c.Context(), tx, entityUUID{UUID: id.String()}, charmID{UUID: cid.String()})
+		return s.checkApplicationCharm(c.Context(), tx, applicationAndCharmUUID{ApplicationUUID: id.String(), CharmUUID: cid.String()})
 	})
 	c.Assert(err, tc.ErrorIsNil)
 }
@@ -2918,7 +2918,8 @@ func (s *applicationStateSuite) TestCheckApplicationCharmDifferentCharm(c *tc.C)
 	id := s.createIAASApplication(c, "foo", life.Alive)
 
 	err := s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		return s.checkApplicationCharm(c.Context(), tx, entityUUID{UUID: id.String()}, charmID{UUID: "other"})
+
+		return s.checkApplicationCharm(c.Context(), tx, applicationAndCharmUUID{ApplicationUUID: id.String(), CharmUUID: "other"})
 	})
 	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationHasDifferentCharm)
 }
@@ -4129,21 +4130,21 @@ ORDER BY r.relation_id
 	c.Check(peerRelations, tc.SameContents, expected)
 }
 
-func (s *applicationStateSuite) checkApplicationCharm(ctx context.Context, tx *sqlair.TX, ident entityUUID, charmID charmID) error {
+func (s *applicationStateSuite) checkApplicationCharm(ctx context.Context, tx *sqlair.TX, appAndCharmPair applicationAndCharmUUID) error {
 	query := `
 SELECT COUNT(*) AS &countResult.count
 FROM application
-WHERE uuid = $entityUUID.uuid
-AND charm_uuid = $charmID.uuid;
+WHERE uuid = $applicationAndCharmUUID.application_uuid
+AND charm_uuid = $applicationAndCharmUUID.charm_uuid;
 	`
-	stmt, err := sqlair.Prepare(query, countResult{}, ident, charmID)
+	stmt, err := sqlair.Prepare(query, countResult{}, applicationAndCharmUUID{})
 	if err != nil {
 		return errors.Errorf("preparing verification query: %w", err)
 	}
 
 	// Ensure that the charm is the same as the one we're trying to set.
 	var count countResult
-	if err := tx.Query(ctx, stmt, ident, charmID).Get(&count); err != nil {
+	if err := tx.Query(ctx, stmt, appAndCharmPair).Get(&count); err != nil {
 		return errors.Errorf("verifying charm: %w", err)
 	}
 	if count.Count == 0 {

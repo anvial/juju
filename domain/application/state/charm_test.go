@@ -139,7 +139,7 @@ INSERT INTO object_store_metadata (uuid, sha_256, sha_384, size) VALUES (?, 'foo
 
 	var resultObjectStoreUUID objectstore.UUID
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		ch, err := st.getCharmState(ctx, tx, charmID{UUID: id.String()})
+		ch, err := st.getCharmState(ctx, tx, entityUUID{UUID: id.String()})
 		if err != nil {
 			return errors.Capture(err)
 		}
@@ -179,7 +179,7 @@ func (s *charmStateSuite) TestAddCharmWithoutObjectStoreUUID(c *tc.C) {
 
 	var resultObjectStoreUUID objectstore.UUID
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		ch, err := st.getCharmState(ctx, tx, charmID{UUID: id.String()})
+		ch, err := st.getCharmState(ctx, tx, entityUUID{UUID: id.String()})
 		if err != nil {
 			return errors.Capture(err)
 		}

@@ -221,7 +221,7 @@ func (st *State) GetApplicationEndpointNames(ctx context.Context, appUUID coreap
 		if err != nil {
 			return errors.Errorf("getting charm for application %q: %w", appUUID, err)
 		}
-		eps, err = st.getCharmRelationNames(ctx, tx, charmID{UUID: charmUUID})
+		eps, err = st.getCharmRelationNames(ctx, tx, entityUUID{UUID: charmUUID})
 		if err != nil {
 			return errors.Errorf("getting endpoint names for application %q: %w", appUUID, err)
 		}
@@ -311,7 +311,7 @@ func (st *State) insertApplicationEndpointBindings(ctx context.Context, tx *sqla
 	if err != nil {
 		return errors.Capture(err)
 	}
-	charmUUID := charmID{UUID: charm}
+	charmUUID := entityUUID{UUID: charm}
 
 	// Get charm relation.
 	relations, err := st.getCharmRelationNames(ctx, tx, charmUUID)
@@ -601,12 +601,12 @@ AND    charm_extra_binding_uuid = $updateBinding.binding_uuid
 // getCharmRelationNames retrieves a list of charm relation names from the
 // database based on the provided parameters.
 func (st *State) getCharmRelationNames(ctx context.Context, tx *sqlair.TX,
-	charmUUID charmID) ([]charmRelationName,
+	charmUUID entityUUID) ([]charmRelationName,
 	error) {
 	fetchCharmRelationStmt, err := st.Prepare(`
 SELECT &charmRelationName.* 
 FROM charm_relation
-WHERE charm_relation.charm_uuid = $charmID.uuid
+WHERE charm_relation.charm_uuid = $entityUUID.uuid
 `, charmUUID, charmRelationName{})
 	if err != nil {
 		return nil, errors.Errorf("preparing fetch charm relation: %w", err)
@@ -948,7 +948,7 @@ FROM   requested_spaces
 		Add(networkerrors.SpaceNotFound)
 }
 
-func (st *State) refreshApplicationEndpointBindings(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent charmID) error {
+func (st *State) refreshApplicationEndpointBindings(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent entityUUID) error {
 	if err := st.refreshApplicationRelationEndpointBindings(ctx, tx, appIdent, charmIdent); err != nil {
 		return errors.Errorf("refreshing application relation endpoint bindings: %w", err)
 	}
@@ -958,28 +958,27 @@ func (st *State) refreshApplicationEndpointBindings(ctx context.Context, tx *sql
 	return nil
 }
 
-func (st *State) refreshApplicationRelationEndpointBindings(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent charmID) error {
+func (st *State) refreshApplicationRelationEndpointBindings(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent entityUUID) error {
 	mapCharmRelationStmt, err := st.Prepare(`
 WITH given_charm_relations AS (
-    SELECT uuid, name FROM charm_relation
-    WHERE  charm_uuid = $charmID.uuid
+    SELECT uuid, name
+    FROM   charm_relation
+    WHERE  charm_uuid = $applicationAndCharmUUID.charm_uuid
 )
 SELECT    cr1.uuid AS &mapCharmRelation.source_charm_relation_uuid,
           cr2.uuid AS &mapCharmRelation.destination_charm_relation_uuid
 FROM      application_endpoint AS ae
 JOIN      charm_relation AS cr1 ON ae.charm_relation_uuid = cr1.uuid
 LEFT JOIN given_charm_relations AS cr2 ON cr1.name = cr2.name
-WHERE     ae.application_uuid = $entityUUID.uuid
-	`, mapCharmRelation{}, appIdent, charmIdent)
+WHERE     ae.application_uuid = $applicationAndCharmUUID.application_uuid
+	`, mapCharmRelation{}, applicationAndCharmUUID{})
 	if err != nil {
 		return errors.Capture(err)
 	}
 
 	// This type is only needed inlined here because we have a query with two
 	// entityUUIDs, so we need to differentiate them.
-	type charmRelationUUID struct {
-		UUID string `db:"uuid"`
-	}
+	type charmRelationUUID entityUUID
 	removeApplicationEndpointStmt, err := st.Prepare(`
 DELETE FROM application_endpoint
 WHERE application_uuid = $entityUUID.uuid
@@ -1004,13 +1003,13 @@ WITH ep_names AS (
     SELECT cr.name
     FROM application_endpoint AS ae
     JOIN charm_relation AS cr ON ae.charm_relation_uuid = cr.uuid
-    WHERE ae.application_uuid = $entityUUID.uuid
+    WHERE ae.application_uuid = $applicationAndCharmUUID.application_uuid
 )
 SELECT &charmRelationUUID.*
 FROM charm_relation
-WHERE charm_uuid = $charmID.uuid
+WHERE charm_uuid = $applicationAndCharmUUID.charm_uuid
 AND name NOT IN ep_names
-	`, charmRelationUUID{}, appIdent, charmIdent)
+	`, charmRelationUUID{}, applicationAndCharmUUID{})
 	if err != nil {
 		return errors.Capture(err)
 	}
@@ -1024,7 +1023,8 @@ VALUES ($setApplicationEndpointBinding.*)
 	}
 
 	charmRelationPairs := []mapCharmRelation{}
-	err = tx.Query(ctx, mapCharmRelationStmt, appIdent, charmIdent).GetAll(&charmRelationPairs)
+	appAndCharmPair := applicationAndCharmUUID{ApplicationUUID: appIdent.UUID, CharmUUID: charmIdent.UUID}
+	err = tx.Query(ctx, mapCharmRelationStmt, appAndCharmPair).GetAll(&charmRelationPairs)
 	if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
 		return errors.Capture(err)
 	}
@@ -1050,7 +1050,7 @@ VALUES ($setApplicationEndpointBinding.*)
 	}
 
 	additionalRelations := []charmRelationUUID{}
-	err = tx.Query(ctx, additionalRelationsStmt, appIdent, charmIdent).GetAll(&additionalRelations)
+	err = tx.Query(ctx, additionalRelationsStmt, appAndCharmPair).GetAll(&additionalRelations)
 	if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
 		return errors.Capture(err)
 	}
@@ -1086,7 +1086,7 @@ VALUES ($setApplicationEndpointBinding.*)
 // application_extra_endpoint is not the target of any foreign key constraints,
 // it does not have a uuid primary key column. So we can achieve this be clearing
 // the table and inserting the new bindings.
-func (st *State) refreshApplicationExtraEndpointBindings(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent charmID) error {
+func (st *State) refreshApplicationExtraEndpointBindings(ctx context.Context, tx *sqlair.TX, appIdent entityUUID, charmIdent entityUUID) error {
 	extraEndpointBindings, err := st.getExtraEndpointBindings(ctx, tx, appIdent)
 	if err != nil {
 		return errors.Errorf("getting existing extra endpoint bindings: %w", err)
