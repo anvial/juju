@@ -30,7 +30,7 @@ type Directive struct {
 var (
 	poolRE  = regexp.MustCompile("^[a-zA-Z]+[-?a-zA-Z0-9]*$")
 	countRE = regexp.MustCompile("^-?[0-9]+$")
-	sizeRE  = regexp.MustCompile("^-?[0-9]+(?:\\.[0-9]+)?[MGTPEZY](?:i?B)?$")
+	sizeRE  = regexp.MustCompile(`^-?[0-9]+(?:\.[0-9]+)?[MGTPEZY](?:i?B)?$`)
 )
 
 // ParseDirective parses the specified string and creates a Directive structure.

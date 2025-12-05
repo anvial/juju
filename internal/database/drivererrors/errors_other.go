@@ -9,8 +9,6 @@ import (
 	"errors"
 
 	"github.com/mattn/go-sqlite3"
-
-	"github.com/juju/juju/internal/database/driver"
 )
 
 // IsExtendedErrorCode returns true if the given error is a dqlite error with
@@ -29,11 +27,6 @@ func IsExtendedErrorCode(err error, code sqlite3.ErrNoExtended) bool {
 // can't have a extended error code. In those cases, we just return early and
 // prevent error unwrapping for common cases.
 func IsErrLocked(err error) bool {
-	var dErr *driver.Error
-	if errors.As(err, &dErr) && dErr.Code == driver.ErrBusy {
-		return true
-	}
-
 	return errors.Is(err, sqlite3.ErrLocked) || errors.Is(err, sqlite3.ErrBusy)
 }
 

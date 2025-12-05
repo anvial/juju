@@ -1688,7 +1688,7 @@ func volumeAttachmentsToAPIServer(attachments []storage.VolumeAttachment) map[st
 		var planInfo *params.VolumeAttachmentPlanInfo
 		if a.PlanInfo != nil {
 			planInfo = &params.VolumeAttachmentPlanInfo{
-				DeviceType:       a.PlanInfo.DeviceType,
+				DeviceType:       a.PlanInfo.DeviceType.String(),
 				DeviceAttributes: a.PlanInfo.DeviceAttributes,
 			}
 		}

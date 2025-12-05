@@ -18,7 +18,9 @@ import (
 
 func main() {
 	current := version.Current
-	if current.Patch == 0 {
+
+	// Don't generate any ddls for betas, rcs, or if there are no previous patches.
+	if current.Tag != "" || current.Patch == 0 {
 		return
 	}
 

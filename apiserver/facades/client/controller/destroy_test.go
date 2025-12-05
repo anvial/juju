@@ -324,6 +324,24 @@ func (s *destroyControllerSuite) TestDestroyControllerNoHostedModelsWithBlockFai
 	c.Assert(len(numBlocks), tc.Equals, 2)
 }
 
+// TestDestroyControllerHostedModelsErr tests that [params.CodeHasHostedModels]
+// is returned when destroying a controller with hosted models without passing
+// `--destroy-all-models` flag.
+func (s *destroyControllerSuite) TestDestroyControllerHostedModelsErr(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.mockModelInfoService.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
+	s.mockModelService.EXPECT().ListModelUUIDs(gomock.Any()).Return(
+		[]coremodel.UUID{
+			coremodel.UUID(s.ControllerUUID),
+			coremodel.UUID(s.otherModelUUID),
+		}, nil,
+	)
+
+	err := s.controller.DestroyController(c.Context(), params.DestroyControllerArgs{})
+	c.Assert(params.IsCodeHasHostedModels(err), tc.IsTrue)
+}
+
 // BlockAllChanges blocks all operations that could change the model.
 func (s *destroyControllerSuite) BlockAllChanges(c *tc.C, msg string) {
 	err := s.DefaultModelDomainServices(c).BlockCommand().SwitchBlockOn(c.Context(), blockcommand.ChangeBlock, msg)

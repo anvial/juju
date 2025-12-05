@@ -313,7 +313,7 @@ func (s *provisionerSuite) TestVolumeAttachmentPlans(c *tc.C) {
 			MachineTag: "machine-100",
 			VolumeTag:  "volume-100",
 			PlanInfo: params.VolumeAttachmentPlanInfo{
-				DeviceType: storage.DeviceTypeISCSI,
+				DeviceType: storage.DeviceTypeISCSI.String(),
 				DeviceAttributes: map[string]string{
 					"iqn":         "bogusIQN",
 					"address":     "192.168.1.1",
@@ -694,7 +694,7 @@ func (s *provisionerSuite) TestCreateVolumeAttachmentPlan(c *tc.C) {
 			MachineTag: "machine-100",
 			VolumeTag:  "volume-100",
 			PlanInfo: params.VolumeAttachmentPlanInfo{
-				DeviceType: storage.DeviceTypeISCSI,
+				DeviceType: storage.DeviceTypeISCSI.String(),
 				DeviceAttributes: map[string]string{
 					"iqn":         "bogusIQN",
 					"address":     "192.168.1.1",
@@ -720,7 +720,7 @@ func (s *provisionerSuite) TestCreateVolumeAttachmentPlan(c *tc.C) {
 					MachineTag: "machine-100",
 					VolumeTag:  "volume-100",
 					PlanInfo: params.VolumeAttachmentPlanInfo{
-						DeviceType: storage.DeviceTypeISCSI,
+						DeviceType: storage.DeviceTypeISCSI.String(),
 						DeviceAttributes: map[string]string{
 							"iqn":         "bogusIQN",
 							"address":     "192.168.1.1",
@@ -760,7 +760,7 @@ func (s *provisionerSuite) TestSetVolumeAttachmentPlanBlockInfo(c *tc.C) {
 			MachineTag: "machine-100",
 			VolumeTag:  "volume-100",
 			PlanInfo: params.VolumeAttachmentPlanInfo{
-				DeviceType: storage.DeviceTypeISCSI,
+				DeviceType: storage.DeviceTypeISCSI.String(),
 				DeviceAttributes: map[string]string{
 					"iqn":         "bogusIQN",
 					"address":     "192.168.1.1",
@@ -786,7 +786,7 @@ func (s *provisionerSuite) TestSetVolumeAttachmentPlanBlockInfo(c *tc.C) {
 					MachineTag: "machine-100",
 					VolumeTag:  "volume-100",
 					PlanInfo: params.VolumeAttachmentPlanInfo{
-						DeviceType: storage.DeviceTypeISCSI,
+						DeviceType: storage.DeviceTypeISCSI.String(),
 						DeviceAttributes: map[string]string{
 							"iqn":         "bogusIQN",
 							"address":     "192.168.1.1",

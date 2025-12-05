@@ -52,7 +52,8 @@ func (c *ControllerAPI) DestroyController(ctx context.Context, args params.Destr
 	// models sneaking in. If we are not destroying hosted models,
 	// this will fail if any hosted models are found.
 	if !args.DestroyModels && len(modelUUIDs) != 0 {
-		return apiservererrors.ServerError(errors.BadRequestf("cannot destroy controller with hosted models"))
+		return apiservererrors.ParamsErrorf(params.CodeHasHostedModels,
+			"cannot destroy controller with hosted models")
 	}
 
 	for _, uuid := range modelUUIDs {

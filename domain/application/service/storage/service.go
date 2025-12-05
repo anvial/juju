@@ -76,7 +76,7 @@ type State interface {
 	// - [github.com/juju/juju/domain/application/errors.InvalidStorageCount]: when the allowed attachment count would be violated.
 	// - [github.com/juju/juju/domain/application/errors.InvalidStorageMountPoint]: when the filesystem being attached to the unit's machine has a mount point path conflict.
 	AddStorageForUnit(
-		ctx context.Context, storageName corestorage.Name, unitUUID coreunit.UUID, directive storage.Directive,
+		ctx context.Context, storageName corestorage.Name, unitUUID coreunit.UUID, directive corestorage.Directive,
 	) ([]corestorage.ID, error)
 
 	// DetachStorageForUnit detaches the specified storage from the specified unit.
@@ -206,7 +206,7 @@ func (s *Service) AttachStorage(
 // - [github.com/juju/juju/domain/application/errors.InvalidStorageCount]: when the allowed attachment count would be violated.
 // - [github.com/juju/juju/domain/application/errors.InvalidStorageMountPoint]: when the filesystem being attached to the unit's machine has a mount point path conflict.
 func (s *Service) AddStorageForUnit(
-	ctx context.Context, storageName corestorage.Name, unitName coreunit.Name, directive storage.Directive,
+	ctx context.Context, storageName corestorage.Name, unitName coreunit.Name, directive corestorage.Directive,
 ) ([]corestorage.ID, error) {
 	// TODO (tlm): re-implement in DQlite
 	return nil, errors.New("not implemented")

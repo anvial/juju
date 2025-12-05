@@ -580,9 +580,17 @@ func (conn *StubClient) CreateVolume(pool, volume string, config map[string]stri
 	return conn.NextErr()
 }
 
-func (conn *StubClient) DeleteStoragePoolVolume(pool, volType, volume string) error {
+type stubOperation struct {
+	lxdclient.Operation
+}
+
+func (stubOperation) Wait() error {
+	return nil
+}
+
+func (conn *StubClient) DeleteStoragePoolVolume(pool, volType, volume string) (lxdclient.Operation, error) {
 	conn.AddCall("DeleteStoragePoolVolume", pool, volType, volume)
-	return conn.NextErr()
+	return stubOperation{}, conn.NextErr()
 }
 
 func (conn *StubClient) GetStoragePoolVolume(
@@ -610,9 +618,9 @@ func (conn *StubClient) GetStoragePoolVolumes(pool string) ([]api.StorageVolume,
 
 func (conn *StubClient) UpdateStoragePoolVolume(
 	pool string, volType string, name string, volume api.StorageVolumePut, etag string,
-) error {
+) (lxdclient.Operation, error) {
 	conn.AddCall("UpdateStoragePoolVolume", pool, volType, name, volume, etag)
-	return conn.NextErr()
+	return stubOperation{}, conn.NextErr()
 }
 
 func (conn *StubClient) AliveContainers(prefix string) ([]lxd.Container, error) {

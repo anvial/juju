@@ -241,9 +241,9 @@ func volumeAttachmentPlanFromAttachment(attachment storage.VolumeAttachment) par
 	var planInfo params.VolumeAttachmentPlanInfo
 	if attachment.PlanInfo != nil {
 		planInfo.DeviceAttributes = attachment.PlanInfo.DeviceAttributes
-		planInfo.DeviceType = attachment.PlanInfo.DeviceType
+		planInfo.DeviceType = attachment.PlanInfo.DeviceType.String()
 	} else {
-		planInfo.DeviceType = storage.DeviceTypeLocal
+		planInfo.DeviceType = storage.DeviceTypeLocal.String()
 	}
 	return params.VolumeAttachmentPlan{
 		VolumeTag:  attachment.Volume.String(),
