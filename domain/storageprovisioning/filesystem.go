@@ -144,6 +144,8 @@ type FilesystemTemplate struct {
 	// Attachments describes the attachment templates for this filesystem.
 	Attachments []FilesystemAttachmentTemplate
 
+	AttachmentsForWorkload []FilesystemAttachmentTemplate
+
 	// Attributes are a set of key value pairs that are supplied to the provider
 	// or provisioner to facilitate this filesystem(s).
 	Attributes map[string]string

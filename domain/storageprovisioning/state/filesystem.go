@@ -1339,7 +1339,7 @@ WHERE  uuid = $entityUUID.uuid
 func (st *State) GetContainerMountsForCharm(
 	ctx context.Context,
 	charmID corecharm.ID,
-) ([]storageprovisioning.ContainerMount, error) {
+) (map[string][]storageprovisioning.ContainerMount, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return nil, errors.Capture(err)
@@ -1366,13 +1366,19 @@ WHERE  charm_uuid = $entityUUID.uuid
 		return nil, errors.Capture(err)
 	}
 
-	rvals := make([]storageprovisioning.ContainerMount, 0, len(containerMounts))
-	for _, v := range containerMounts {
-		rvals = append(rvals, storageprovisioning.ContainerMount{
-			ContainerKey: v.charmContainerKey,
-			StorageName:  v.storage,
-			MountPoint:   v.location,
-		})
+	rvals := make(map[string][]storageprovisioning.ContainerMount)
+
+	for _, mount := range containerMounts {
+		_, ok := rvals[mount.storage]
+		if !ok {
+			rvals[mount.storage] = make([]storageprovisioning.ContainerMount, 0)
+		}
+		rvals[mount.storage] = append(rvals[mount.storage],
+			storageprovisioning.ContainerMount{
+				ContainerKey: mount.charmContainerKey,
+				StorageName:  mount.storage,
+				MountPoint:   mount.location,
+			})
 	}
 
 	return rvals, nil
