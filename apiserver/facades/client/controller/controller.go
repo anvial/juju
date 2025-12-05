@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/juju/collections/set"
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 	"gopkg.in/macaroon.v2"

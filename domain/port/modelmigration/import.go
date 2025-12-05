@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/juju/collections/transform"
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"

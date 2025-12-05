@@ -6,7 +6,7 @@ package modelmigration
 import (
 	"context"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	coreagentbinary "github.com/juju/juju/core/agentbinary"
 	"github.com/juju/juju/core/logger"

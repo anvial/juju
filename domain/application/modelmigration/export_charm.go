@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	internalcharm "github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/errors"

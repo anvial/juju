@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/juju/clock"
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	coreapplication "github.com/juju/juju/core/application"
 	"github.com/juju/juju/core/arch"
