@@ -58,7 +58,6 @@ type Config struct {
 	FirewallerAPI             FirewallerAPI
 	CrossModelRelationService CrossModelRelationService
 	PortsService              PortService
-	MachineService            MachineService
 	ApplicationService        ApplicationService
 	RelationService           RelationService
 	EnvironFirewaller         EnvironFirewaller
@@ -105,9 +104,6 @@ func (cfg Config) Validate() error {
 	if cfg.PortsService == nil {
 		return errors.NotValidf("nil PortsService")
 	}
-	if cfg.MachineService == nil {
-		return errors.NotValidf("nil MachineService")
-	}
 	if cfg.RelationService == nil {
 		return errors.NotValidf("nil RelationService")
 	}
@@ -131,10 +127,9 @@ func (cfg Config) Validate() error {
 // Uses Firewaller API V1.
 type Firewaller struct {
 	catacomb                  catacomb.Catacomb
-	firewallerApi             FirewallerAPI
+	firewallerAPI             FirewallerAPI
 	crossModelRelationService CrossModelRelationService
 	portService               PortService
-	machineService            MachineService
 	applicationService        ApplicationService
 	relationService           RelationService
 	environFirewaller         EnvironFirewaller
@@ -206,10 +201,9 @@ func NewFirewaller(cfg Config) (worker.Worker, error) {
 	}
 
 	fw := &Firewaller{
-		firewallerApi:              cfg.FirewallerAPI,
+		firewallerAPI:              cfg.FirewallerAPI,
 		crossModelRelationService:  cfg.CrossModelRelationService,
 		portService:                cfg.PortsService,
-		machineService:             cfg.MachineService,
 		applicationService:         cfg.ApplicationService,
 		relationService:            cfg.RelationService,
 		environFirewaller:          cfg.EnvironFirewaller,
@@ -256,7 +250,7 @@ func NewFirewaller(cfg Config) (worker.Worker, error) {
 
 func (fw *Firewaller) setUp(ctx context.Context) error {
 	var err error
-	fw.machinesWatcher, err = fw.firewallerApi.WatchModelMachines(ctx)
+	fw.machinesWatcher, err = fw.firewallerAPI.WatchModelMachines(ctx)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -264,7 +258,7 @@ func (fw *Firewaller) setUp(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	fw.portsWatcher, err = fw.portService.WatchMachineOpenedPorts(ctx)
+	fw.portsWatcher, err = fw.portService.WatchOpenedPorts(ctx)
 	if err != nil {
 		return errors.Annotatef(err, "failed to start ports watcher")
 	}
@@ -289,7 +283,7 @@ func (fw *Firewaller) setUp(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	fw.subnetWatcher, err = fw.firewallerApi.WatchSubnets(ctx)
+	fw.subnetWatcher, err = fw.firewallerAPI.WatchSubnets(ctx)
 	if err != nil {
 		return errors.Annotatef(err, "failed to start subnet watcher")
 	}
@@ -298,7 +292,7 @@ func (fw *Firewaller) setUp(ctx context.Context) error {
 	}
 
 	if fw.environModelFirewaller != nil {
-		fw.modelFirewallWatcher, err = fw.firewallerApi.WatchModelFirewallRules(ctx)
+		fw.modelFirewallWatcher, err = fw.firewallerAPI.WatchModelFirewallRules(ctx)
 		if err != nil {
 			return errors.Annotatef(err, "failed to start subnet watcher")
 		}
@@ -307,7 +301,7 @@ func (fw *Firewaller) setUp(ctx context.Context) error {
 		}
 	}
 
-	if fw.spaceInfos, err = fw.firewallerApi.AllSpaceInfos(ctx); err != nil {
+	if fw.spaceInfos, err = fw.firewallerAPI.AllSpaceInfos(ctx); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -358,8 +352,8 @@ func (fw *Firewaller) loop() error {
 			if !ok {
 				return errors.New("machines watcher closed")
 			}
-			for _, machineId := range change {
-				if err := fw.machineLifeChanged(ctx, machine.Name(machineId)); err != nil {
+			for _, machineName := range change {
+				if err := fw.machineLifeChanged(ctx, machine.Name(machineName)); err != nil {
 					return err
 				}
 			}
@@ -386,8 +380,12 @@ func (fw *Firewaller) loop() error {
 			if !ok {
 				return errors.New("ports watcher closed")
 			}
-			for _, portsGlobalKey := range change {
-				if err := fw.openedPortsChanged(ctx, machine.Name(portsGlobalKey)); err != nil {
+			for _, u := range change {
+				unitUUID, err := coreunit.ParseID(u)
+				if err != nil {
+					return errors.Trace(err)
+				}
+				if err := fw.openedPortsChanged(ctx, unitUUID); err != nil {
 					return errors.Trace(err)
 				}
 			}
@@ -446,7 +444,7 @@ func (fw *Firewaller) loop() error {
 func (fw *Firewaller) subnetsChanged(ctx context.Context) error {
 	// Refresh space topology
 	var err error
-	if fw.spaceInfos, err = fw.firewallerApi.AllSpaceInfos(ctx); err != nil {
+	if fw.spaceInfos, err = fw.firewallerAPI.AllSpaceInfos(ctx); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -598,7 +596,7 @@ func (fw *Firewaller) startMachine(ctx context.Context, machineName machine.Name
 }
 
 // startUnit creates a new data value for tracking details of the unit
-// The provided machineTag must be the tag for the machine the unit was last
+// The provided machine must be the machine the unit was last
 // observed to be assigned to.
 func (fw *Firewaller) startUnit(ctx context.Context, unit Unit, machineName machine.Name) error {
 	application, err := unit.Application()
@@ -611,9 +609,12 @@ func (fw *Firewaller) startUnit(ctx context.Context, unit Unit, machineName mach
 	if err != nil {
 		return err
 	}
+	unitUUID, err := fw.applicationService.GetUnitUUID(ctx, unitName)
+	if err != nil {
+		return err
+	}
 	unitd := &unitData{
 		fw:   fw,
-		unit: unit,
 		name: unitName,
 	}
 	fw.unitds[unitName] = unitd
@@ -631,7 +632,7 @@ func (fw *Firewaller) startUnit(ctx context.Context, unit Unit, machineName mach
 	unitd.applicationd = fw.applicationids[applicationTag]
 	unitd.applicationd.unitds[unitName] = unitd
 
-	if err = fw.openedPortsChanged(ctx, machineName); err != nil {
+	if err = fw.openedPortsChanged(ctx, unitUUID); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -790,7 +791,7 @@ func (fw *Firewaller) unitsChanged(ctx context.Context, change *unitsChange) err
 			return errors.Trace(err)
 		}
 
-		unit, err := fw.firewallerApi.Unit(ctx, names.NewUnitTag(unitName.String()))
+		unit, err := fw.firewallerAPI.Unit(ctx, names.NewUnitTag(unitName.String()))
 		if err != nil && !params.IsCodeNotFound(err) {
 			return err
 		}
@@ -820,12 +821,12 @@ func (fw *Firewaller) unitsChanged(ctx context.Context, change *unitsChange) err
 }
 
 // openedPortsChanged handles port change notifications
-func (fw *Firewaller) openedPortsChanged(ctx context.Context, machineName machine.Name) (err error) {
-	defer func() {
-		if params.IsCodeNotFound(err) {
-			err = nil
-		}
-	}()
+func (fw *Firewaller) openedPortsChanged(ctx context.Context, unitUUID coreunit.UUID) error {
+	machineName, machineUUID, err := fw.applicationService.GetUnitMachineNameAndUUID(ctx, unitUUID)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	machined, ok := fw.machineds[machineName]
 	if !ok {
 		// It is common to receive a port change notification before
@@ -836,12 +837,7 @@ func (fw *Firewaller) openedPortsChanged(ctx context.Context, machineName machin
 		return nil
 	}
 
-	machineUUID, err := fw.machineService.GetMachineUUID(ctx, machineName)
-	if err != nil {
-		return err
-	}
-
-	openedPortRangesByEndpoint, err := fw.portService.GetMachineOpenedPorts(ctx, machineUUID.String())
+	openedPortRangesByEndpoint, err := fw.portService.GetMachineOpenedPorts(ctx, machineUUID)
 	if err != nil {
 		return err
 	}
@@ -1108,7 +1104,7 @@ func (fw *Firewaller) updateForRemoteRelationIngress(ctx context.Context, appTag
 
 	// If there's still too many after merging, look for any firewall whitelist.
 	if cidrs.Size() > maxAllowedCIDRS {
-		cfg, err := fw.firewallerApi.ModelConfig(ctx)
+		cfg, err := fw.firewallerAPI.ModelConfig(ctx)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
@@ -1177,7 +1173,7 @@ func (fw *Firewaller) flushModel(ctx context.Context) error {
 	// Reset the flag because the models are being flushed now.
 	fw.needsToFlushModel = false
 
-	want, err := fw.firewallerApi.ModelFirewallRules(ctx)
+	want, err := fw.firewallerAPI.ModelFirewallRules(ctx)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -1279,7 +1275,7 @@ func (fw *Firewaller) flushInstancePorts(ctx context.Context, machined *machineD
 // is starting, or when new machines come to life, and stops watching
 // machines that are dying.
 func (fw *Firewaller) machineLifeChanged(ctx context.Context, name machine.Name) error {
-	m, err := fw.firewallerApi.Machine(ctx, names.NewMachineTag(name.String()))
+	m, err := fw.firewallerAPI.Machine(ctx, names.NewMachineTag(name.String()))
 	found := !params.IsCodeNotFound(err)
 	if found && err != nil {
 		return err
@@ -1378,7 +1374,7 @@ type machineData struct {
 }
 
 func (md *machineData) machine(ctx context.Context) (Machine, error) {
-	return md.fw.firewallerApi.Machine(ctx, names.NewMachineTag(md.name.String()))
+	return md.fw.firewallerAPI.Machine(ctx, names.NewMachineTag(md.name.String()))
 }
 
 // watchLoop watches the machine for units added or removed.
@@ -1421,7 +1417,6 @@ func (md *machineData) Wait() error {
 type unitData struct {
 	fw           *Firewaller
 	name         coreunit.Name
-	unit         Unit
 	applicationd *applicationData
 	machined     *machineData
 }
@@ -1908,7 +1903,7 @@ func (rd *remoteRelationData) watchRemoteEgressApplyLocal() error {
 
 	rd.fw.logger.Tracef(ctx, "watching remote egress for %q to apply local ingress", rd.tag.Id())
 
-	apiInfo, err := rd.fw.firewallerApi.ControllerAPIInfoForModel(ctx, rd.remoteModelUUID.String())
+	apiInfo, err := rd.fw.firewallerAPI.ControllerAPIInfoForModel(ctx, rd.remoteModelUUID.String())
 	if err != nil {
 		return errors.Annotatef(err, "cannot get api info for model %q", rd.remoteModelUUID)
 	}
@@ -1965,7 +1960,7 @@ func (rd *remoteRelationData) watchRemoteEgressApplyLocal() error {
 func (rd *remoteRelationData) publishIngressToRemote(ctx context.Context, cidrs []string) error {
 	rd.fw.logger.Debugf(ctx, "publishing ingress cidrs for %v: %+v", rd.tag, cidrs)
 
-	apiInfo, err := rd.fw.firewallerApi.ControllerAPIInfoForModel(ctx, rd.remoteModelUUID.String())
+	apiInfo, err := rd.fw.firewallerAPI.ControllerAPIInfoForModel(ctx, rd.remoteModelUUID.String())
 	if err != nil {
 		return errors.Annotatef(err, "cannot get api info for model %q", rd.remoteModelUUID)
 	}

@@ -659,7 +659,17 @@ func encodeMachineStatus(s corestatus.StatusInfo) (status.StatusInfo[status.Mach
 }
 
 // decodeMachineStatus converts a db status info into a core status info.
-func decodeMachineStatus(s status.StatusInfo[status.MachineStatusType]) (corestatus.StatusInfo, error) {
+func decodeMachineStatus(s status.StatusInfo[status.MachineStatusType], present bool) (corestatus.StatusInfo, error) {
+	// If the agent isn't present then we need to modify the status for the
+	// agent.
+	if !present && (s.Status != status.MachineStatusPending && s.Status != status.MachineStatusStopped) {
+		return corestatus.StatusInfo{
+			Status:  corestatus.Down,
+			Message: "agent is not communicating with the server",
+			Since:   s.Since,
+		}, nil
+	}
+
 	statusType, err := decodeMachineStatusType(s.Status)
 	if err != nil {
 		return corestatus.StatusInfo{}, err
@@ -684,8 +694,6 @@ func decodeMachineStatus(s status.StatusInfo[status.MachineStatusType]) (coresta
 // status id.
 func encodeInstanceStatusType(s corestatus.Status) (status.InstanceStatusType, error) {
 	switch s {
-	case corestatus.Unset:
-		return status.InstanceStatusUnset, nil
 	case corestatus.Pending:
 		return status.InstanceStatusPending, nil
 	case corestatus.Provisioning:
@@ -694,6 +702,8 @@ func encodeInstanceStatusType(s corestatus.Status) (status.InstanceStatusType, e
 		return status.InstanceStatusRunning, nil
 	case corestatus.ProvisioningError:
 		return status.InstanceStatusProvisioningError, nil
+	case corestatus.Unknown:
+		return status.InstanceStatusUnknown, nil
 	default:
 		return -1, errors.Errorf("unknown instance status %q", s)
 	}
@@ -703,8 +713,6 @@ func encodeInstanceStatusType(s corestatus.Status) (status.InstanceStatusType, e
 // status.
 func decodeInstanceStatusType(s status.InstanceStatusType) (corestatus.Status, error) {
 	switch s {
-	case status.InstanceStatusUnset:
-		return corestatus.Unset, nil
 	case status.InstanceStatusPending:
 		return corestatus.Pending, nil
 	case status.InstanceStatusAllocating:
@@ -713,6 +721,8 @@ func decodeInstanceStatusType(s status.InstanceStatusType) (corestatus.Status, e
 		return corestatus.Running, nil
 	case status.InstanceStatusProvisioningError:
 		return corestatus.ProvisioningError, nil
+	case status.InstanceStatusUnknown:
+		return corestatus.Unknown, nil
 	default:
 		return corestatus.Unset, errors.Errorf("unknown instance status %d", s)
 	}

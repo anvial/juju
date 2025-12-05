@@ -41,7 +41,7 @@ func (s *serviceSuite) TestGetSecretsForExport(c *tc.C) {
 		Revision: 3,
 	}}}
 
-	s.state.EXPECT().ListSecrets(gomock.Any(), nil, nil, domainsecret.NilLabels).Return(
+	s.state.EXPECT().ListAllSecrets(gomock.Any()).Return(
 		secrets, revisions, nil,
 	)
 	s.state.EXPECT().GetSecretValue(gomock.Any(), uri, 1).Return(

@@ -11,10 +11,12 @@ import (
 	"github.com/juju/clock"
 	"github.com/juju/tc"
 
+	coreapplication "github.com/juju/juju/core/application"
 	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/application/charm"
+	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/application/internal"
-	schematesting "github.com/juju/juju/domain/schema/testing"
+	"github.com/juju/juju/domain/life"
 	domainstorage "github.com/juju/juju/domain/storage"
 	storageerrors "github.com/juju/juju/domain/storage/errors"
 	storagetesting "github.com/juju/juju/domain/storage/testing"
@@ -26,7 +28,7 @@ import (
 // The primary means for testing state funcs not realted to applications
 // themselves.
 type storageSuite struct {
-	schematesting.ModelSuite
+	baseSuite
 	storageHelper
 }
 
@@ -92,6 +94,90 @@ INSERT INTO storage_pool (uuid, name, type) VALUES (?, ?, ?)
 	)
 	c.Assert(err, tc.ErrorIsNil)
 	return poolUUID
+}
+
+func (s *applicationStateSuite) TestGetApplicationStorageDirectivesInfo(c *tc.C) {
+	ctx := c.Context()
+
+	ebsPoolUUID := s.createStoragePool(c, "my-ebs", "ebs")
+	rootFsPoolUUID := s.createStoragePool(c, "my-rootfs", "rootfs")
+	fastPoolUUID := s.createStoragePool(c, "my-fast", "ebs")
+
+	chStorage := []charm.Storage{{
+		Name: "database",
+		Type: "block",
+	}, {
+		Name: "logs",
+		Type: "filesystem",
+	}, {
+		Name: "cache",
+		Type: "block",
+	}}
+
+	directives := []internal.CreateApplicationStorageDirectiveArg{
+		{
+			Name:     "database",
+			PoolUUID: ebsPoolUUID,
+			Size:     10,
+			Count:    2,
+		},
+		{
+			Name:     "logs",
+			PoolUUID: rootFsPoolUUID,
+			Size:     20,
+			Count:    1,
+		},
+		{
+			Name:     "cache",
+			PoolUUID: fastPoolUUID,
+			Size:     30,
+			Count:    1,
+		},
+	}
+
+	appName := "test-app-storage"
+	appUUID, _, err := s.state.CreateIAASApplication(
+		ctx,
+		appName,
+		s.addIAASApplicationArgForStorage(
+			c,
+			appName,
+			chStorage,
+			directives,
+		),
+		nil,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(appUUID.IsEmpty(), tc.Equals, false)
+
+	foundDirectives, err := s.state.GetApplicationStorageDirectivesInfo(ctx, appUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	d0count := uint64(directives[0].Count)
+	d1count := uint64(directives[1].Count)
+	d2count := uint64(directives[2].Count)
+	c.Assert(
+		foundDirectives,
+		tc.DeepEquals,
+		map[string]application.ApplicationStorageInfo{
+			"database": {StoragePoolName: "my-ebs", SizeMiB: directives[0].Size, Count: d0count},
+			"logs":     {StoragePoolName: "my-rootfs", SizeMiB: directives[1].Size, Count: d1count},
+			"cache":    {StoragePoolName: "my-fast", SizeMiB: directives[2].Size, Count: d2count},
+		},
+	)
+}
+
+func (s *applicationStateSuite) TestGetApplicationStorageDirectivesInfo_ApplicationNotFound(c *tc.C) {
+	ctx := c.Context()
+
+	_, err := s.state.GetApplicationStorageDirectivesInfo(ctx, "invalid-uuid")
+	tc.Check(c, err, tc.ErrorIs, applicationerrors.ApplicationNotFound)
+
+	randomAppUUID, err := coreapplication.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	_, err = s.state.GetApplicationStorageDirectivesInfo(ctx, randomAppUUID)
+	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotFound)
 }
 
 // TestCreateApplicationWithResources tests creation of an application with
@@ -542,7 +628,8 @@ func (s *storageSuite) TestGetStorageInstancesForProviderIDSomeStorageOwned(c *t
 	instUUID3, fsUUID3 := s.newStorageInstanceFilesysatemWithProviderID(c, "st1", "provider3")
 	instUUID4, vUUID1 := s.newStorageInstanceVolumeWithProviderID(c, "st3", "provider4")
 
-	unitUUID := s.newUnit(c)
+	_, unitUUIDs := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
+	unitUUID := unitUUIDs[0]
 	s.newStorageUnitOwner(c, instUUID1, unitUUID)
 
 	st := NewState(

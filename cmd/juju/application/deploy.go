@@ -37,11 +37,11 @@ import (
 	"github.com/juju/juju/core/devices"
 	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/semversion"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/charmhub"
 	"github.com/juju/juju/internal/cmd"
-	"github.com/juju/juju/internal/storage"
 	apiparams "github.com/juju/juju/rpc/params"
 )
 

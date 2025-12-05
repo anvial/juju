@@ -10,6 +10,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	coreapplication "github.com/juju/juju/core/application"
+	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/network"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/port"
@@ -27,7 +28,7 @@ func TestServiceSuite(t *testing.T) {
 
 const (
 	unitUUID    coreunit.UUID        = "unit-uuid"
-	machineUUID string               = "machine-uuid"
+	machineUUID coremachine.UUID     = "machine-uuid"
 	appUUID     coreapplication.UUID = "app-uuid"
 )
 
@@ -95,7 +96,7 @@ func (s *serviceSuite) TestGetAllOpenedPorts(c *tc.C) {
 func (s *serviceSuite) TestGetMachineOpenedPorts(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	s.st.EXPECT().GetMachineOpenedPorts(gomock.Any(), machineUUID).Return(map[coreunit.Name]network.GroupedPortRanges{
+	s.st.EXPECT().GetMachineOpenedPorts(gomock.Any(), machineUUID.String()).Return(map[coreunit.Name]network.GroupedPortRanges{
 		"unit/1": {
 			"ep1": {
 				network.MustParsePortRange("80/tcp"),

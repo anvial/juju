@@ -15,16 +15,20 @@ import (
 	"github.com/juju/worker/v4/dependency"
 
 	"github.com/juju/juju/agent"
+	coreagentbinary "github.com/juju/juju/core/agentbinary"
+	"github.com/juju/juju/core/arch"
 	coredatabase "github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/core/upgrade"
+	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
 	"github.com/juju/juju/domain/schema"
 	domainupgrade "github.com/juju/juju/domain/upgrade"
 	upgradeerrors "github.com/juju/juju/domain/upgrade/errors"
+	internalerrors "github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/worker/gate"
 )
 
@@ -67,6 +71,19 @@ type UpgradeService interface {
 	WatchForUpgradeState(ctx context.Context, upgradeUUID domainupgrade.UUID, state upgrade.State) (watcher.NotifyWatcher, error)
 }
 
+// ControllerNodeService provides the subset of methods of
+// [github.com/juju/juju/domain/controllernode/service.Service] .
+type ControllerNodeService interface {
+	// SetControllerNodeReportedAgentVersion sets the agent version for the
+	// supplied controllerID. Version represents the version of the controller
+	// node's agent binary.
+	SetControllerNodeReportedAgentVersion(
+		ctx context.Context,
+		controllerID string,
+		version coreagentbinary.Version,
+	) error
+}
+
 // Config holds the configuration for the worker.
 type Config struct {
 	// DBUpgradeCompleteLock is a lock used to synchronise workers that must
@@ -75,6 +92,10 @@ type Config struct {
 
 	// Agent is the running machine agent.
 	Agent agent.Agent
+
+	// ControllerNodeService provides a means to communicate the controller's
+	// running agent version.
+	ControllerNodeService ControllerNodeService
 
 	// UpgradeService is the upgrade service used to drive the upgrade.
 	UpgradeService UpgradeService
@@ -134,7 +155,8 @@ type upgradeDBWorker struct {
 
 	dbGetter coredatabase.DBGetter
 
-	upgradeService UpgradeService
+	upgradeService        UpgradeService
+	controllerNodeService ControllerNodeService
 
 	logger logger.Logger
 	clock  clock.Clock
@@ -156,7 +178,8 @@ func NewUpgradeDatabaseWorker(config Config) (worker.Worker, error) {
 
 		dbGetter: config.DBGetter,
 
-		upgradeService: config.UpgradeService,
+		upgradeService:        config.UpgradeService,
+		controllerNodeService: config.ControllerNodeService,
 
 		logger: config.Logger,
 		clock:  config.Clock,
@@ -187,6 +210,11 @@ func (w *upgradeDBWorker) Wait() error {
 func (w *upgradeDBWorker) loop() error {
 	ctx, cancel := w.scopedContext()
 	defer cancel()
+
+	err := w.recordControllerNodeAgentVersion(ctx)
+	if err != nil {
+		return errors.Annotate(err, "recording controller version")
+	}
 
 	if w.upgradeDone(ctx) {
 		// We're already upgraded, so we can uninstall this worker. This will
@@ -286,7 +314,7 @@ func (w *upgradeDBWorker) watchUpgrade(ctx context.Context) error {
 		// cause the upgrade to be marked as failed, and the next time the agent
 		// restarts, it will try again.
 		w.logger.Errorf(ctx, "failed to set controller ready: %v", err)
-		return w.abort(ctx, upgradeUUID)
+		return w.abort(ctx, upgradeUUID, internalerrors.Errorf("failed to set controller ready: %w", err))
 	}
 	w.logger.Infof(ctx, "marking the controller ready for upgrade")
 
@@ -368,7 +396,7 @@ func (w *upgradeDBWorker) runUpgrade(ctx context.Context, upgradeUUID domainupgr
 			return w.catacomb.ErrDying()
 
 		case <-w.clock.After(defaultUpgradeTimeout):
-			return w.abort(ctx, upgradeUUID)
+			return w.abort(ctx, upgradeUUID, errors.New("upgrade timed out"))
 
 		case <-watcher.Changes():
 			w.logger.Infof(ctx, "database upgrade starting")
@@ -389,13 +417,13 @@ func (w *upgradeDBWorker) runUpgrade(ctx context.Context, upgradeUUID domainupgr
 
 			w.logger.Errorf(ctx, "database upgrade failed, check logs for details")
 
-			return w.abort(ctx, upgradeUUID)
+			return w.abort(ctx, upgradeUUID, err)
 		}
 	}
 }
 
-func (w *upgradeDBWorker) abort(ctx context.Context, upgradeUUID domainupgrade.UUID) error {
-	return w.abortWithError(ctx, upgradeUUID, dependency.ErrBounce)
+func (w *upgradeDBWorker) abort(ctx context.Context, upgradeUUID domainupgrade.UUID, err error) error {
+	return w.abortWithError(ctx, upgradeUUID, internalerrors.Errorf("aborting upgrade: %w", err).Add(dependency.ErrBounce))
 }
 
 // abort marks the upgrade as failed and returns dependency.ErrBounce.
@@ -497,6 +525,30 @@ func (w *upgradeDBWorker) addWatcher(ctx context.Context, watcher eventsource.Wa
 	// that event before we can start watching.
 	if _, err := eventsource.ConsumeInitialEvent[struct{}](ctx, watcher); err != nil {
 		return errors.Trace(err)
+	}
+
+	return nil
+}
+
+// recordControllerNodeAgentVersion ensures that this controllers current running
+// version is correctly recorded in the controller database against the controller's id.
+// This method MUST be called every time the worker starts regardless of database
+// upgrades to perform. This ensures the database is always a correct reflection
+// of the controller' version.
+func (w *upgradeDBWorker) recordControllerNodeAgentVersion(
+	ctx context.Context,
+) error {
+	version := coreagentbinary.Version{
+		Number: jujuversion.Current,
+		Arch:   arch.HostArch(),
+	}
+	err := w.controllerNodeService.SetControllerNodeReportedAgentVersion(
+		ctx,
+		w.controllerID,
+		version,
+	)
+	if err != nil {
+		return errors.Annotate(err, "recoding controller node agent version")
 	}
 
 	return nil

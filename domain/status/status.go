@@ -42,6 +42,14 @@ type UnitStatusInfo[T UnitStatusID] struct {
 	Present bool
 }
 
+// MachineStatusInfo holds details about the status of a machine. This
+// indicates if the machine agent is present and currently active in the model.
+type MachineStatusInfo[T StatusID] struct {
+	StatusInfo[T]
+	// Present is true if the machine agent logged into the API server.
+	Present bool
+}
+
 // K8sPodStatusType represents the status of a cloud container
 // as recorded in the k8s_pod_status_value lookup table.
 type K8sPodStatusType int
@@ -399,7 +407,7 @@ func EncodeMachineStatus(s MachineStatusType) (int, error) {
 type InstanceStatusType int
 
 const (
-	InstanceStatusUnset InstanceStatusType = iota
+	InstanceStatusUnknown InstanceStatusType = iota
 	InstanceStatusPending
 	InstanceStatusAllocating
 	InstanceStatusRunning
@@ -412,7 +420,7 @@ const (
 func EncodeCloudInstanceStatus(s InstanceStatusType) (int, error) {
 	var result int
 	switch s {
-	case InstanceStatusUnset:
+	case InstanceStatusUnknown:
 		result = 0
 	case InstanceStatusPending:
 		result = 1
@@ -435,7 +443,7 @@ func DecodeCloudInstanceStatus(s string) (InstanceStatusType, error) {
 	var result InstanceStatusType
 	switch s {
 	case "unknown", "":
-		result = InstanceStatusUnset
+		result = InstanceStatusUnknown
 	case "pending":
 		result = InstanceStatusPending
 	case "allocating":

@@ -24,14 +24,16 @@ import (
 	statuserrors "github.com/juju/juju/domain/status/errors"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
+	"github.com/juju/juju/internal/statushistory"
 )
 
 type leaderServiceSuite struct {
 	modelState      *MockModelState
 	controllerState *MockControllerState
 
-	leadership    *MockEnsurer
-	statusHistory *statusHistoryRecorder
+	leadership       *MockEnsurer
+	clusterDescriber *MockClusterDescriber
+	statusHistory    *statusHistoryRecorder
 
 	service *LeadershipService
 }
@@ -128,6 +130,16 @@ func (s *leaderServiceSuite) TestSetApplicationStatusForUnitLeader(c *tc.C) {
 		Since:   &now,
 	})
 	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(s.statusHistory.records, tc.DeepEquals, []statusHistoryRecord{{
+		ns: statushistory.Namespace{Kind: corestatus.KindApplication, ID: "foo"},
+		s: corestatus.StatusInfo{
+			Status:  corestatus.Active,
+			Message: "doink",
+			Data:    map[string]any{"foo": "bar"},
+			Since:   &now,
+		},
+	}})
 }
 
 func (s *leaderServiceSuite) TestSetApplicationStatusForUnitLeaderNotLeader(c *tc.C) {
@@ -178,7 +190,7 @@ func (s *leaderServiceSuite) TestSetApplicationStatusForUnitLeaderNoUnitFound(c 
 	unitName := coreunit.Name("foo/666")
 
 	s.modelState.EXPECT().GetApplicationUUIDAndNameByUnitName(gomock.Any(), unitName).
-		Return(applicationUUID, "foo", statuserrors.UnitNotFound)
+		Return(applicationUUID, "foo", applicationerrors.UnitNotFound)
 
 	err := s.service.SetApplicationStatusForUnitLeader(c.Context(), unitName, corestatus.StatusInfo{
 		Status:  corestatus.Active,
@@ -186,7 +198,7 @@ func (s *leaderServiceSuite) TestSetApplicationStatusForUnitLeaderNoUnitFound(c 
 		Data:    map[string]interface{}{"foo": "bar"},
 		Since:   &now,
 	})
-	c.Assert(err, tc.ErrorIs, statuserrors.UnitNotFound)
+	c.Assert(err, tc.ErrorIs, applicationerrors.UnitNotFound)
 }
 
 func (s *leaderServiceSuite) TestGetApplicationAndUnitStatusesForUnitWithLeaderNotLeader(c *tc.C) {
@@ -386,12 +398,14 @@ func (s *leaderServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	s.modelState = NewMockModelState(ctrl)
 	s.controllerState = NewMockControllerState(ctrl)
 	s.leadership = NewMockEnsurer(ctrl)
+	s.clusterDescriber = NewMockClusterDescriber(ctrl)
 	s.statusHistory = &statusHistoryRecorder{}
 
 	s.service = NewLeadershipService(
 		s.modelState,
 		s.controllerState,
 		s.leadership,
+		s.clusterDescriber,
 		nil,
 		model.UUID("test-model"),
 		s.statusHistory,
@@ -401,6 +415,15 @@ func (s *leaderServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
+
+	c.Cleanup(func() {
+		s.modelState = nil
+		s.controllerState = nil
+		s.leadership = nil
+		s.clusterDescriber = nil
+		s.statusHistory = nil
+		s.service = nil
+	})
 
 	return ctrl
 }

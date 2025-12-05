@@ -15,6 +15,7 @@ import (
 	"github.com/juju/juju/domain/application/charm"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/application/internal"
+	"github.com/juju/juju/domain/life"
 	domainstorage "github.com/juju/juju/domain/storage"
 	domainstorageprov "github.com/juju/juju/domain/storageprovisioning"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -134,7 +135,8 @@ func (u *unitStorageSuite) TestGetUnitOwnedStorageInstancesUnitNotFound(c *tc.C)
 // storage that it owns no error is returned and an empty results set is
 // provided.
 func (u *unitStorageSuite) TestGetUnitOwnedStorageInstancesNoStorage(c *tc.C) {
-	unitUUID := u.newUnit(c)
+	_, unitUUIDs := u.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
+	unitUUID := unitUUIDs[0]
 
 	st := NewState(
 		u.TxnRunnerFactory(),
@@ -148,7 +150,9 @@ func (u *unitStorageSuite) TestGetUnitOwnedStorageInstancesNoStorage(c *tc.C) {
 }
 
 func (u *unitStorageSuite) TestGetUnitOwnedStorageInstances(c *tc.C) {
-	unitUUID := u.newUnit(c)
+	_, unitUUIDs := u.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
+	unitUUID := unitUUIDs[0]
+
 	st1UUID, fs1UUID := u.newStorageInstanceWithModelFilesystem(c)
 	st2UUID, fs2UUID := u.newStorageInstanceWithModelFilesystem(c)
 	u.newStorageUnitOwner(c, st1UUID, unitUUID)
@@ -216,7 +220,9 @@ func (u *unitStorageSuite) TestGetUnitStorageDirectives(c *tc.C) {
 				Type:        charm.StorageFilesystem,
 			},
 		})
-	unitUUID := u.newUnit(c)
+	_, unitUUIDs := u.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
+	unitUUID := unitUUIDs[0]
+
 	storagePoolUUID := u.newStoragePool(c, "test-pool", "test-provider")
 
 	_, err := u.DB().ExecContext(
@@ -293,7 +299,8 @@ func (u *unitStorageSuite) TestGetUnitStorageDirectives(c *tc.C) {
 
 // TestGetUnitStorageDirectivesEmpty ensures that when a unit has no storage
 func (u *unitStorageSuite) TestGetUnitStorageDirectivesEmpty(c *tc.C) {
-	unitUUID := u.newUnit(c)
+	_, unitUUIDs := u.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
+	unitUUID := unitUUIDs[0]
 
 	st := NewState(
 		u.TxnRunnerFactory(),

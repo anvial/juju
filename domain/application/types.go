@@ -13,6 +13,7 @@ import (
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/core/resource"
+	"github.com/juju/juju/core/storage"
 	coreunit "github.com/juju/juju/core/unit"
 	domaincharm "github.com/juju/juju/domain/application/charm"
 	"github.com/juju/juju/domain/application/internal"
@@ -24,7 +25,7 @@ import (
 	"github.com/juju/juju/domain/status"
 	internalcharm "github.com/juju/juju/internal/charm"
 	charmresource "github.com/juju/juju/internal/charm/resource"
-	"github.com/juju/juju/internal/storage"
+	internalstorage "github.com/juju/juju/internal/storage"
 )
 
 // BaseAddApplicationArg contains parameters for saving an application to state
@@ -266,7 +267,7 @@ type SubordinateUnitArg struct {
 
 	// PrincipalUnitUUID describes the unique id of the principal unit for this
 	// subordinate.
-	PrincipalUnitUUID coreunit.UUID
+	PrincipalUnitUUID string
 }
 
 type SubordinateIAASUnitArg struct {
@@ -465,7 +466,7 @@ type InsertApplicationArgs struct {
 	Scale int
 	// StoragePoolKind holds a mapping of the kind of storage supported
 	// by the named storage pool / provider type.
-	StoragePoolKind map[string]storage.StorageKind
+	StoragePoolKind map[string]internalstorage.StorageKind
 	// EndpointBindings is a map to bind application endpoint by name to a
 	// specific space. The default space is referenced by an empty key, if any.
 	EndpointBindings map[string]network.SpaceName
@@ -509,6 +510,7 @@ type SetCharmStateParams struct {
 
 // ApplicationDetails contains details about an application.
 type ApplicationDetails struct {
+	UUID                   application.UUID
 	Life                   life.Life
 	Name                   string
 	IsApplicationSynthetic bool

@@ -174,7 +174,11 @@ func (s *Server) ensureDefaultNetworking(profile *api.Profile, eTag string) erro
 		"parent":  network.DefaultLXDBridge,
 	}
 
-	if err := s.UpdateProfile(profile.Name, profile.Writable(), eTag); err != nil {
+	op, err := s.UpdateProfile(profile.Name, profile.Writable(), eTag)
+	if err == nil {
+		err = op.Wait()
+	}
+	if err != nil {
 		return errors.Trace(err)
 	}
 	logger.Debugf(context.TODO(), "created new nic device %q in profile %q", nicName, profile.Name)

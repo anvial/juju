@@ -38,6 +38,7 @@ import (
 	applicationservice "github.com/juju/juju/domain/application/service"
 	crossmodelrelationerrors "github.com/juju/juju/domain/crossmodelrelation/errors"
 	crossmodelrelationservice "github.com/juju/juju/domain/crossmodelrelation/service"
+	domainlife "github.com/juju/juju/domain/life"
 	"github.com/juju/juju/domain/relation"
 	relationerrors "github.com/juju/juju/domain/relation/errors"
 	"github.com/juju/juju/domain/removal"
@@ -855,7 +856,7 @@ func (s *applicationSuite) TestCharmConfigApplicationNotFound(c *tc.C) {
 
 	s.setupAPI(c)
 
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return("", applicationerrors.ApplicationNotFound)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{}, applicationerrors.ApplicationNotFound)
 
 	res, err := s.api.CharmConfig(c.Context(), params.ApplicationGetArgs{
 		Args: []params.ApplicationGet{{
@@ -873,7 +874,12 @@ func (s *applicationSuite) TestCharmConfig(c *tc.C) {
 	s.setupAPI(c)
 	appID := tc.Must(c, application.NewUUID)
 
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return(appID, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "foo",
+		IsApplicationSynthetic: false,
+	}, nil)
 	s.applicationService.EXPECT().GetApplicationAndCharmConfig(gomock.Any(), appID).Return(applicationservice.ApplicationConfig{
 		CharmName: "ch",
 		ApplicationConfig: internalcharm.Config{
@@ -919,6 +925,30 @@ func (s *applicationSuite) TestCharmConfig(c *tc.C) {
 			"default":     17,
 		},
 	})
+}
+
+func (s *applicationSuite) TestCharmConfigSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.setupAPI(c)
+	appID := tc.Must(c, application.NewUUID)
+
+	// SAAS applications should be rejected with application not found error
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "saas-app").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "saas-app",
+		IsApplicationSynthetic: true,
+	}, nil)
+
+	res, err := s.api.CharmConfig(c.Context(), params.ApplicationGetArgs{
+		Args: []params.ApplicationGet{{
+			ApplicationName: "saas-app",
+		}},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(res.Results, tc.HasLen, 1)
+	c.Assert(res.Results[0].Error, tc.Satisfies, params.IsCodeNotFound)
 }
 
 func (s *applicationSuite) TestSetCharm(c *tc.C) {
@@ -999,7 +1029,7 @@ func (s *applicationSuite) TestSetConfigsApplicationNotFound(c *tc.C) {
 
 	s.setupAPI(c)
 
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return("", applicationerrors.ApplicationNotFound)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{}, applicationerrors.ApplicationNotFound)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
 		Args: []params.ConfigSet{{
@@ -1017,7 +1047,7 @@ func (s *applicationSuite) TestSetConfigsNotValidApplicationName(c *tc.C) {
 
 	s.setupAPI(c)
 
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return("", applicationerrors.ApplicationNameNotValid)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{}, applicationerrors.ApplicationNameNotValid)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
 		Args: []params.ConfigSet{{
@@ -1036,7 +1066,12 @@ func (s *applicationSuite) TestSetConfigsInvalidConfig(c *tc.C) {
 	s.setupAPI(c)
 	appID := tc.Must(c, application.NewUUID)
 
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return(appID, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "foo",
+		IsApplicationSynthetic: false,
+	}, nil)
 	s.applicationService.EXPECT().UpdateApplicationConfig(gomock.Any(), appID, gomock.Any()).Return(applicationerrors.InvalidApplicationConfig)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
@@ -1056,7 +1091,12 @@ func (s *applicationSuite) TestSetConfigs(c *tc.C) {
 	s.setupAPI(c)
 	appID := tc.Must(c, application.NewUUID)
 
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), "foo").Return(appID, nil)
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "foo").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "foo",
+		IsApplicationSynthetic: false,
+	}, nil)
 	s.applicationService.EXPECT().UpdateApplicationConfig(gomock.Any(), appID, map[string]string{"foo": "bar"}).Return(nil)
 
 	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
@@ -1068,6 +1108,31 @@ func (s *applicationSuite) TestSetConfigs(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(res.Results, tc.HasLen, 1)
 	c.Assert(res.Results[0].Error, tc.IsNil)
+}
+
+func (s *applicationSuite) TestSetConfigsSAASApplicationNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.setupAPI(c)
+	appID := tc.Must(c, application.NewUUID)
+
+	// SAAS applications should be rejected with application not found error
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "saas-app").Return(domainapplication.ApplicationDetails{
+		UUID:                   appID,
+		Life:                   domainlife.Alive,
+		Name:                   "saas-app",
+		IsApplicationSynthetic: true,
+	}, nil)
+
+	res, err := s.api.SetConfigs(c.Context(), params.ConfigSetArgs{
+		Args: []params.ConfigSet{{
+			ApplicationName: "saas-app",
+			Config:          map[string]string{"foo": "bar"},
+		}},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(res.Results, tc.HasLen, 1)
+	c.Assert(res.Results[0].Error, tc.Satisfies, params.IsCodeNotFound)
 }
 
 func (s *applicationSuite) TestResolveUnitErrorsAllAndEntitesMutuallyExclusive(c *tc.C) {
@@ -1795,6 +1860,91 @@ func (s *applicationSuite) TestConsumeInvalidEndpointRole(c *tc.C) {
 	})
 }
 
+func (s *applicationSuite) TestConsumeWithEmptyApplicationAlias(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := tc.Must(c, uuid.NewUUID).String()
+	offerUUID := tc.Must(c, offer.NewUUID)
+	macaroon := newMacaroon(c, "test")
+
+	// When ApplicationAlias is empty, the application name should be parsed from the offer URL
+	s.crossModelRelationService.EXPECT().AddRemoteApplicationOfferer(gomock.Any(), "my-offer", crossmodelrelationservice.AddRemoteApplicationOffererArgs{
+		OfferUUID:        offerUUID,
+		OfferURL:         tc.Must1(c, crossmodel.ParseOfferURL, "controller:qualifier/model.my-offer"),
+		OffererModelUUID: modelUUID,
+		Endpoints: []applicationcharm.Relation{{
+			Name:      "db",
+			Role:      applicationcharm.RoleRequirer,
+			Interface: "db",
+			Limit:     1,
+		}},
+		Macaroon: macaroon,
+	}).Return(nil)
+
+	s.setupAPI(c)
+
+	results, err := s.api.Consume(c.Context(), params.ConsumeApplicationArgsV5{
+		Args: []params.ConsumeApplicationArgV5{{
+			ApplicationOfferDetailsV5: params.ApplicationOfferDetailsV5{
+				OfferUUID:      offerUUID.String(),
+				OfferName:      "my-offer",
+				OfferURL:       "controller:qualifier/model.my-offer",
+				SourceModelTag: names.NewModelTag(modelUUID).String(),
+				Endpoints: []params.RemoteEndpoint{{
+					Name:      "db",
+					Role:      "requirer",
+					Interface: "db",
+					Limit:     1,
+				}},
+			},
+			// ApplicationAlias is empty, should default to name from offer URL
+			ApplicationAlias: "",
+			Macaroon:         macaroon,
+		}},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.ErrorResults{
+		Results: []params.ErrorResult{{}},
+	})
+}
+
+func (s *applicationSuite) TestConsumeWithInvalidOfferURL(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := tc.Must(c, uuid.NewUUID).String()
+	offerUUID := tc.Must(c, offer.NewUUID)
+
+	s.setupAPI(c)
+
+	results, err := s.api.Consume(c.Context(), params.ConsumeApplicationArgsV5{
+		Args: []params.ConsumeApplicationArgV5{{
+			ApplicationOfferDetailsV5: params.ApplicationOfferDetailsV5{
+				OfferUUID:      offerUUID.String(),
+				OfferName:      "my-offer",
+				OfferURL:       "invalid-offer-url",
+				SourceModelTag: names.NewModelTag(modelUUID).String(),
+				Endpoints: []params.RemoteEndpoint{{
+					Name:      "db",
+					Role:      "requirer",
+					Interface: "db",
+					Limit:     1,
+				}},
+			},
+			// ApplicationAlias is empty, will try to parse offer URL.
+			ApplicationAlias: "",
+		}},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.ErrorResults{
+		Results: []params.ErrorResult{{
+			Error: &params.Error{
+				Code:    params.CodeBadRequest,
+				Message: `parsing offer URL: offer URL is missing the name`,
+			},
+		}},
+	})
+}
+
 func (s *applicationSuite) TestSetRelationsSuspended(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -1915,6 +2065,54 @@ func (s *applicationSuite) TestSetRelationsSuspendedNotFound(c *tc.C) {
 				Message: "relation 42 not found",
 			},
 		}},
+	})
+}
+
+func (s *applicationSuite) TestGetApplicationStorageDirectivesInfo(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.setupAPI(c)
+
+	appUUID := tc.Must(c, application.NewUUID)
+	s.applicationService.EXPECT().GetApplicationUUIDByName(
+		gomock.Any(),
+		"kafka",
+	).Return(
+		appUUID,
+		nil,
+	)
+
+	poolName := "my-loop"
+	size := uint64(20)
+	count := uint64(1)
+	s.applicationService.EXPECT().GetApplicationStorageDirectivesInfo(
+		gomock.Any(),
+		appUUID,
+	).Return(
+		map[string]domainapplication.ApplicationStorageInfo{
+			"logs": {
+				StoragePoolName: poolName,
+				SizeMiB:         size,
+				Count:           count,
+			},
+		},
+		nil,
+	)
+
+	res, err := s.api.GetApplicationStorage(c.Context(), params.Entities{
+		Entities: []params.Entity{{Tag: "application-kafka"}},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(res.Results, tc.HasLen, 1)
+	c.Assert(res.Results[0].Error, tc.IsNil)
+
+	sc := res.Results[0].StorageConstraints
+	c.Check(sc, tc.DeepEquals, map[string]params.StorageDirectives{
+		"logs": {
+			Pool:    poolName,
+			SizeMiB: &size,
+			Count:   &count,
+		},
 	})
 }
 

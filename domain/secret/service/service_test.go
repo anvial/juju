@@ -720,6 +720,174 @@ func (s *serviceSuite) TestUpdateCharmSecretForUnitOwned(c *tc.C) {
 	c.Assert(rollbackCalled, tc.IsFalse)
 }
 
+func (s *serviceSuite) TestUpdateCharmSecret_RotatePolicyTransitions(c *tc.C) {
+	uri := coresecrets.NewURI()
+
+	cases := []struct {
+		name            string
+		prev            coresecrets.RotatePolicy
+		newPol          *coresecrets.RotatePolicy
+		expectRecompute bool
+	}{
+		{
+			name:            "RecomputeNextRotateFromNever",
+			prev:            coresecrets.RotateNever,
+			newPol:          ptr(coresecrets.RotateMonthly),
+			expectRecompute: true,
+		},
+		{
+			name:            "RecomputeNextRotateToNever",
+			prev:            coresecrets.RotateMonthly,
+			newPol:          ptr(coresecrets.RotateNever),
+			expectRecompute: false, // This will be handled at the state level
+		},
+		{
+			name:            "RecomputeNextRotateFromNeverToNever",
+			prev:            coresecrets.RotateNever,
+			newPol:          ptr(coresecrets.RotateNever),
+			expectRecompute: false, // Edge case
+		},
+		{
+			name:            "RecomputeNextRotateTimeIfNotMoreFrequent",
+			prev:            coresecrets.RotateDaily,
+			newPol:          ptr(coresecrets.RotateMonthly),
+			expectRecompute: false,
+		},
+	}
+
+	for _, tcse := range cases {
+		c.Logf("case: %s", tcse.name)
+		s.runRotatePolicyUpdateCase(c, uri, tcse.prev, tcse.newPol, tcse.expectRecompute)
+	}
+}
+
+// runRotatePolicyUpdateCase encapsulates the common setup and assertions for
+// UpdateCharmSecret rotate policy transition tests.
+func (s *serviceSuite) runRotatePolicyUpdateCase(c *tc.C, uri *coresecrets.URI, prev coresecrets.RotatePolicy, newPol *coresecrets.RotatePolicy, expectRecompute bool) {
+	defer s.setupMocks(c).Finish()
+
+	unitUUID, err := coreunit.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Build expected Upsert params.
+	want := domainsecret.UpsertSecretParams{
+		Label:        ptr("my secret"),
+		Data:         coresecrets.SecretData{"foo": "bar"},
+		RotatePolicy: ptr(domainsecret.MarshallRotatePolicy(newPol)),
+		RevisionID:   ptr(s.fakeUUID.String()),
+	}
+	var expectedNext *time.Time
+	if expectRecompute && newPol != nil && newPol.WillRotate() {
+		// Compute from the suite's clock to match service usage.
+		expectedNext = newPol.NextRotateTime(s.clock.Now())
+		want.NextRotateTime = expectedNext
+	}
+
+	// Access check.
+	s.state.EXPECT().GetSecretAccess(gomock.Any(), uri, domainsecret.AccessParams{
+		SubjectTypeID: domainsecret.SubjectUnit,
+		SubjectID:     "mariadb/0",
+	}).Return("manage", nil)
+
+	// Only query previous policy when the new policy will rotate.
+	if newPol != nil && newPol.WillRotate() {
+		s.state.EXPECT().GetRotatePolicy(gomock.Any(), uri).Return(prev, nil)
+	}
+
+	s.state.EXPECT().GetModelUUID(gomock.Any()).Return(s.modelID, nil)
+	rollbackCalled := false
+	s.secretBackendState.EXPECT().AddSecretBackendReference(gomock.Any(), nil, s.modelID, s.fakeUUID.String()).Return(func() error {
+		rollbackCalled = true
+		return nil
+	}, nil)
+
+	// Label uniqueness checks for unit-owned secret.
+	s.state.EXPECT().GetSecretOwner(domaintesting.IsAtomicContextChecker, uri).Return(domainsecret.Owner{Kind: domainsecret.UnitOwner, UUID: unitUUID.String()}, nil)
+	s.state.EXPECT().CheckUnitSecretLabelExists(domaintesting.IsAtomicContextChecker, unitUUID, "my secret").Return(false, nil)
+
+	s.state.EXPECT().UpdateSecret(domaintesting.IsAtomicContextChecker, uri, gomock.Any()).DoAndReturn(func(_ domain.AtomicContext, _ *coresecrets.URI, got domainsecret.UpsertSecretParams) error {
+		if expectRecompute {
+			c.Assert(got.NextRotateTime, tc.NotNil)
+			c.Assert(*got.NextRotateTime, tc.Almost, *expectedNext)
+		} else {
+			c.Assert(got.NextRotateTime, tc.IsNil)
+		}
+		// For deep equals, normalise NextRotateTime to nil on both sides if we asserted above.
+		got.NextRotateTime = nil
+		wantCopy := want
+		wantCopy.NextRotateTime = nil
+		c.Assert(got, tc.DeepEquals, wantCopy)
+		return nil
+	})
+
+	err = s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
+		Accessor: SecretAccessor{
+			Kind: UnitAccessor,
+			ID:   "mariadb/0",
+		},
+		Label:        ptr("my secret"),
+		Data:         map[string]string{"foo": "bar"},
+		RotatePolicy: newPol,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(rollbackCalled, tc.IsFalse)
+}
+
+// When updating the rotate policy to a less frequent schedule (e.g. daily -> monthly),
+// we must NOT recompute nextRotateTime; it will be applied on the next rotation.
+func (s *serviceSuite) TestUpdateCharmSecret_DoNotRecomputeNextRotateTimeIfLessFrequent(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+
+	unitUUID, err := coreunit.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	// No nextRotateTime expected when policy becomes less frequent.
+	p := domainsecret.UpsertSecretParams{
+		RotatePolicy: ptr(domainsecret.RotateMonthly),
+		Description:  ptr("a secret"),
+		Label:        ptr("my secret"),
+		Data:         coresecrets.SecretData{"foo": "bar"},
+		Checksum:     "checksum-1234",
+		RevisionID:   ptr(s.fakeUUID.String()),
+	}
+
+	s.state.EXPECT().GetSecretAccess(gomock.Any(), uri, domainsecret.AccessParams{
+		SubjectTypeID: domainsecret.SubjectUnit,
+		SubjectID:     "mariadb/0",
+	}).Return("manage", nil)
+	// Previous policy was daily; new policy monthly is less frequent -> do not recompute nextRotateTime.
+	s.state.EXPECT().GetRotatePolicy(gomock.Any(), uri).Return(
+		coresecrets.RotateDaily,
+		nil)
+
+	s.state.EXPECT().GetModelUUID(gomock.Any()).Return(s.modelID, nil)
+	rollbackCalled := false
+	s.secretBackendState.EXPECT().AddSecretBackendReference(gomock.Any(), nil, s.modelID, s.fakeUUID.String()).Return(func() error {
+		rollbackCalled = true
+		return nil
+	}, nil)
+
+	s.state.EXPECT().GetSecretOwner(domaintesting.IsAtomicContextChecker, uri).Return(domainsecret.Owner{Kind: domainsecret.UnitOwner, UUID: unitUUID.String()}, nil)
+	s.state.EXPECT().CheckUnitSecretLabelExists(domaintesting.IsAtomicContextChecker, unitUUID, "my secret").Return(false, nil)
+	s.state.EXPECT().UpdateSecret(domaintesting.IsAtomicContextChecker, uri, p).Return(nil)
+
+	err = s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
+		Accessor: SecretAccessor{
+			Kind: UnitAccessor,
+			ID:   "mariadb/0",
+		},
+		Description:  ptr("a secret"),
+		Label:        ptr("my secret"),
+		Data:         map[string]string{"foo": "bar"},
+		Checksum:     "checksum-1234",
+		RotatePolicy: ptr(coresecrets.RotateMonthly),
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(rollbackCalled, tc.IsFalse)
+}
+
 func (s *serviceSuite) TestUpdateCharmSecretForUnitOwnedFailedLabelExists(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -1027,6 +1195,137 @@ func (s *serviceSuite) TestListCharmSecrets(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(gotSecrets, tc.DeepEquals, md)
 	c.Assert(gotRevisions, tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsErrWhenURIAndLabelsProvided(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+	labels := domainsecret.Labels{"env"}
+
+	_, _, err := s.service.ListSecrets(c.Context(), uri, nil, labels)
+	c.Assert(err, tc.ErrorMatches, "cannot specify both URI and labels")
+}
+
+func (s *serviceSuite) TestListSecretsByURI(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+	md := &coresecrets.SecretMetadata{Label: "by-uri"}
+	revs := []*coresecrets.SecretRevisionMetadata{{Revision: 7}}
+
+	s.state.EXPECT().GetSecretByURI(gomock.Any(), *uri, (*int)(nil)).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), uri, nil, nil)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.HasLen, 1)
+	c.Assert(gotRevs, tc.HasLen, 1)
+	c.Assert(gotMDs[0], tc.DeepEquals, md)
+	c.Assert(gotRevs[0], tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsByURIError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	uri := coresecrets.NewURI()
+
+	s.state.EXPECT().GetSecretByURI(gomock.Any(), *uri, (*int)(nil)).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), uri, nil, nil)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, fmt.Sprintf("getting secret by URI %q: boom", uri.ID))
+}
+
+func (s *serviceSuite) TestListSecretsByLabels(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"tier"}
+	md := []*coresecrets.SecretMetadata{{Label: "one"}, {Label: "two"}}
+	revs := [][]*coresecrets.SecretRevisionMetadata{{{Revision: 1}}, {{Revision: 2}}}
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, (*int)(nil)).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), nil, nil, labels)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.DeepEquals, md)
+	c.Assert(gotRevs, tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsByLabelsError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"tier"}
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, (*int)(nil)).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), nil, nil, labels)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, "getting secrets by labels: boom")
+}
+
+func (s *serviceSuite) TestListSecretsByLabelsWithRevision(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"owner"}
+	rev := 3
+	md := []*coresecrets.SecretMetadata{{Label: "rev-3"}}
+	revs := [][]*coresecrets.SecretRevisionMetadata{{{Revision: 3}}}
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, &rev).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), nil, &rev, labels)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.DeepEquals, md)
+	c.Assert(gotRevs, tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsByLabelsWithRevisionError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	labels := domainsecret.Labels{"owner"}
+	rev := 3
+
+	s.state.EXPECT().ListSecretsByLabels(gomock.Any(), labels, &rev).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), nil, &rev, labels)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, "getting secrets by labels: boom")
+}
+
+func (s *serviceSuite) TestListSecretsErrOnRevisionOnly(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	rev := 2
+	_, _, err := s.service.ListSecrets(c.Context(), nil, &rev, nil)
+	c.Assert(err, tc.ErrorMatches, "cannot specify revision without URI or labels")
+}
+
+func (s *serviceSuite) TestListSecretsAll(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	md := []*coresecrets.SecretMetadata{{Label: "a"}}
+	revs := [][]*coresecrets.SecretRevisionMetadata{{{Revision: 1}}}
+
+	s.state.EXPECT().ListAllSecrets(gomock.Any()).Return(md, revs, nil)
+
+	gotMDs, gotRevs, err := s.service.ListSecrets(c.Context(), nil, nil, nil)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(gotMDs, tc.DeepEquals, md)
+	c.Assert(gotRevs, tc.DeepEquals, revs)
+}
+
+func (s *serviceSuite) TestListSecretsAllError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.state.EXPECT().ListAllSecrets(gomock.Any()).Return(nil, nil, errors.New("boom"))
+
+	md, revs, err := s.service.ListSecrets(c.Context(), nil, nil, nil)
+	c.Assert(md, tc.IsNil)
+	c.Assert(revs, tc.IsNil)
+	c.Assert(err, tc.ErrorMatches, "listing all secrets: boom")
 }
 
 func (s *serviceSuite) TestListCharmJustApplication(c *tc.C) {
@@ -1975,52 +2274,23 @@ func (s *serviceSuite) TestWatchObsoleteMapperSendObsoleteRevisionAndRemovedURIs
 	unitOwners := domainsecret.UnitOwners([]string{"mysql/0", "mysql/1"})
 
 	ownedURI := coresecrets.NewURI()
-	removedOwnedURI := coresecrets.NewURI()
-	notOwnedURI := coresecrets.NewURI()
 
 	s.state.EXPECT().GetRevisionIDsForObsolete(gomock.Any(),
 		appOwners, unitOwners,
-		"revision-uuid-3",
-		"revision-uuid-1",
-		"revision-uuid-2",
+		[]string{
+			"revision-uuid-3",
+			"revision-uuid-1",
+			"revision-uuid-2",
+		},
 	).Return(
-		map[string]string{
-			"revision-uuid-1": ownedURI.ID + "/1",
-			"revision-uuid-3": ownedURI.ID + "/3",
+		[]string{
+			ownedURI.ID + "/1",
+			ownedURI.ID + "/3",
 		}, nil,
 	)
 
-	gomock.InOrder(
-		// When we receive the initial event, the removedOwnedURI is not removed yet.
-		s.state.EXPECT().GetOwnedSecretIDs(gomock.Any(), appOwners, unitOwners).Return(
-			[]string{ownedURI.ID, removedOwnedURI.ID}, nil,
-		),
-
-		// When we receive the event 2nd time, the removedOwnedURI is removed.
-		s.state.EXPECT().GetOwnedSecretIDs(gomock.Any(), appOwners, unitOwners).Return(
-			[]string{ownedURI.ID}, nil,
-		),
-	)
-
-	mapper := obsoleteWatcherMapperFunc(
-		loggertesting.WrapCheckLog(c),
-		s.state,
-		appOwners, unitOwners,
-		"secret_metadata", "secret_revision_obsolete",
-	)
-
+	mapper := s.service.obsoleteWatcherMapperFunc(appOwners, unitOwners)
 	result, err := mapper(
-		c.Context(),
-		[]changestream.ChangeEvent{
-			// The initial events.
-			newSecretChangeEvent(ownedURI.ID),
-			newSecretChangeEvent(removedOwnedURI.ID),
-		},
-	)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(result, tc.HasLen, 0)
-
-	result, err = mapper(
 		c.Context(),
 		[]changestream.ChangeEvent{
 			// Owned obsolete revision events will be sent in order.
@@ -2029,18 +2299,13 @@ func (s *serviceSuite) TestWatchObsoleteMapperSendObsoleteRevisionAndRemovedURIs
 
 			// Not owned obsolete revision will be ignored.
 			newObsoleteRevisionChangeEvent("revision-uuid-2"),
-
-			// Deletion events of the secretWatcher are sent.
-			newSecretChangeEvent(removedOwnedURI.ID),
-			newSecretChangeEvent(notOwnedURI.ID), // not owned by the given owners will be ignored.
 		},
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(result, tc.HasLen, 2)
-	revisionChange3 := result[0]
-	revisionChange1 := result[1]
-	c.Assert(revisionChange3, tc.Equals, ownedURI.ID+"/3")
-	c.Assert(revisionChange1, tc.Equals, ownedURI.ID+"/1")
+	c.Assert(result, tc.SameContents, []string{
+		ownedURI.ID + "/3",
+		ownedURI.ID + "/1",
+	})
 }
 
 // TestWatchObsoleteMapperSendObsoleteRevisions tests the behavior of the mapper function
@@ -2056,25 +2321,21 @@ func (s *serviceSuite) TestWatchObsoleteMapperSendObsoleteRevisions(c *tc.C) {
 	ownedURI := coresecrets.NewURI()
 
 	s.state.EXPECT().GetRevisionIDsForObsolete(gomock.Any(),
-		appOwners, unitOwners,
-		"revision-uuid-3",
-		"revision-uuid-2",
-		"revision-uuid-1",
-		"revision-uuid-4",
+		appOwners, unitOwners, []string{
+			"revision-uuid-3",
+			"revision-uuid-2",
+			"revision-uuid-1",
+			"revision-uuid-4",
+		},
 	).Return(
-		map[string]string{
-			"revision-uuid-1": ownedURI.ID + "/1",
-			"revision-uuid-2": ownedURI.ID + "/2",
-			"revision-uuid-3": ownedURI.ID + "/3",
+		[]string{
+			ownedURI.ID + "/1",
+			ownedURI.ID + "/2",
+			ownedURI.ID + "/3",
 		}, nil,
 	)
 
-	mapper := obsoleteWatcherMapperFunc(
-		loggertesting.WrapCheckLog(c),
-		s.state,
-		appOwners, unitOwners,
-		"secret_metadata", "secret_revision_obsolete",
-	)
+	mapper := s.service.obsoleteWatcherMapperFunc(appOwners, unitOwners)
 	result, err := mapper(
 		c.Context(),
 		[]changestream.ChangeEvent{
@@ -2088,13 +2349,11 @@ func (s *serviceSuite) TestWatchObsoleteMapperSendObsoleteRevisions(c *tc.C) {
 		},
 	)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(result, tc.HasLen, 3)
-	revisionChange3 := result[0]
-	revisionChange2 := result[1]
-	revisionChange1 := result[2]
-	c.Assert(revisionChange3, tc.Equals, ownedURI.ID+"/3")
-	c.Assert(revisionChange2, tc.Equals, ownedURI.ID+"/2")
-	c.Assert(revisionChange1, tc.Equals, ownedURI.ID+"/1")
+	c.Check(result, tc.SameContents, []string{
+		ownedURI.ID + "/3",
+		ownedURI.ID + "/2",
+		ownedURI.ID + "/1",
+	})
 }
 
 // TestWatchDeletedMapperSendRemovedURIs tests the behavior of the mapper function
@@ -2172,13 +2431,9 @@ func (s *serviceSuite) TestWatchObsolete(c *tc.C) {
 			_ eventsource.Mapper,
 			secretFilter eventsource.FilterOption, filters ...eventsource.FilterOption,
 		) (watcher.Watcher[[]string], error) {
-			c.Assert(secretFilter.Namespace(), tc.Equals, "secret_metadata")
-			c.Assert(secretFilter.ChangeMask(), tc.Equals, changestream.All)
-
-			c.Assert(filters, tc.HasLen, 1)
-			obsoleteRevisionFilter := filters[0]
-			c.Assert(obsoleteRevisionFilter.Namespace(), tc.Equals, "secret_revision_obsolete")
-			c.Assert(obsoleteRevisionFilter.ChangeMask(), tc.Equals, changestream.Changed)
+			c.Assert(secretFilter.Namespace(), tc.Equals, "secret_revision_obsolete")
+			c.Assert(secretFilter.ChangeMask(), tc.Equals, changestream.Changed)
+			c.Assert(filters, tc.HasLen, 0)
 			return NewMockStringsWatcher(ctrl), nil
 		},
 	)
@@ -2288,61 +2543,26 @@ func (s *serviceSuite) TestWatchConsumedSecretsChanges(c *tc.C) {
 	defer ctrl.Finish()
 
 	mockWatcherFactory := NewMockWatcherFactory(ctrl)
-
-	uri1 := coresecrets.NewURI()
-	uri2 := coresecrets.NewURI()
-
-	ch := make(chan []string)
-	mockStringWatcher := NewMockStringsWatcher(ctrl)
-	mockStringWatcher.EXPECT().Changes().Return(ch).AnyTimes()
-	mockStringWatcher.EXPECT().Wait().Return(nil).AnyTimes()
-	mockStringWatcher.EXPECT().Kill().AnyTimes()
-
-	chRemote := make(chan []string)
-	mockStringWatcherRemote := NewMockStringsWatcher(ctrl)
-	mockStringWatcherRemote.EXPECT().Changes().Return(chRemote).AnyTimes()
-	mockStringWatcherRemote.EXPECT().Wait().Return(nil).AnyTimes()
-	mockStringWatcherRemote.EXPECT().Kill().AnyTimes()
+	expectedWatcher := NewMockStringsWatcher(ctrl)
 
 	var namespaceQuery eventsource.NamespaceQuery = func(context.Context, database.TxnRunner) ([]string, error) {
 		return nil, nil
 	}
 	s.state.EXPECT().InitialWatchStatementForConsumedSecretsChange(unittesting.GenNewName(c, "mysql/0")).Return("secret_revision", namespaceQuery)
 	s.state.EXPECT().InitialWatchStatementForConsumedRemoteSecretsChange(unittesting.GenNewName(c, "mysql/0")).Return("secret_reference", namespaceQuery)
-	mockWatcherFactory.EXPECT().NewNamespaceWatcher(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mockStringWatcher, nil)
-	mockWatcherFactory.EXPECT().NewNamespaceWatcher(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mockStringWatcherRemote, nil)
-
-	s.state.EXPECT().GetConsumedSecretURIsWithChanges(gomock.Any(),
-		unittesting.GenNewName(c, "mysql/0"), "revision-uuid-1",
-	).Return([]string{uri1.String()}, nil)
-	s.state.EXPECT().GetConsumedRemoteSecretURIsWithChanges(gomock.Any(),
-		unittesting.GenNewName(c, "mysql/0"), "revision-uuid-2",
-	).Return([]string{uri2.String()}, nil)
+	mockWatcherFactory.EXPECT().NewNamespaceMapperWatcher(
+		gomock.Any(), gomock.Any(),
+		"consumed secrets watcher",
+		gomock.Any(),
+		tc.Bind(tc.DeepEquals, eventsource.NamespaceFilter("secret_revision", changestream.Changed)),
+		tc.Bind(tc.DeepEquals, eventsource.NamespaceFilter("secret_reference", changestream.All)),
+	).Return(expectedWatcher, nil)
 
 	svc := NewWatchableService(
 		s.state, s.secretBackendState, s.ensurer, mockWatcherFactory, loggertesting.WrapCheckLog(c))
 	w, err := svc.WatchConsumedSecretsChanges(c.Context(), "mysql/0")
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(w, tc.NotNil)
-	defer workertest.CleanKill(c, w)
-	wc := watchertest.NewStringsWatcherC(c, w)
-
-	select {
-	case ch <- []string{"revision-uuid-1"}:
-	case <-time.After(coretesting.ShortWait):
-		c.Fatalf("timed out waiting for the initial changes")
-	}
-	select {
-	case chRemote <- []string{"revision-uuid-2"}:
-	case <-time.After(coretesting.ShortWait):
-		c.Fatalf("timed out waiting for the initial changes")
-	}
-
-	wc.AssertChange(
-		uri1.String(),
-		uri2.String(),
-	)
-	wc.AssertNoChange()
+	c.Assert(w, tc.Equals, expectedWatcher)
 }
 
 func (s *serviceSuite) TestWatchSecretsRotationChanges(c *tc.C) {

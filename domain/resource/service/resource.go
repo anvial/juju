@@ -150,14 +150,6 @@ type State interface {
 	//     be found in the database.
 	//   - [resourceerrors.OriginNotValid] if the resource origin is not valid.
 	ImportResources(ctx context.Context, args resource.ImportResourcesArgs) error
-
-	// DeleteImportedResources deletes all imported resource associated with the
-	// given applications during an import rollback.
-	//
-	// The following error types can be expected to be returned:
-	//   - [resourceerrors.ApplicationNotFound] is returned if the application is
-	//     not found.
-	DeleteImportedResources(ctx context.Context, appNames []string) error
 }
 
 type ResourceStoreGetter interface {
@@ -759,15 +751,6 @@ func (s *Service) ImportResources(ctx context.Context, args resource.ImportResou
 		}
 	}
 	return s.st.ImportResources(ctx, args)
-}
-
-// DeleteImportedResources deletes all imported resource associated with the
-// given applications during an import rollback.
-func (s *Service) DeleteImportedResources(
-	ctx context.Context,
-	appNames []string,
-) error {
-	return s.st.DeleteImportedResources(ctx, appNames)
 }
 
 // isValidApplicationName returns whether name is a valid application name.

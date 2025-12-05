@@ -141,40 +141,6 @@ func (s *modelSuite) TestCreateAndReadModel(c *tc.C) {
 	c.Assert(count, tc.Equals, 1)
 }
 
-func (s *modelSuite) TestDeleteModel(c *tc.C) {
-	runner := s.TxnRunnerFactory()
-	state := NewState(runner, loggertesting.WrapCheckLog(c))
-
-	id := modeltesting.GenModelUUID(c)
-	args := model.ModelDetailArgs{
-		UUID:               id,
-		AgentStream:        domainagentbinary.AgentStreamReleased,
-		AgentVersion:       jujuversion.Current,
-		LatestAgentVersion: jujuversion.Current,
-		ControllerUUID:     s.controllerUUID,
-		Name:               "my-awesome-model",
-		Qualifier:          "prod",
-		Type:               coremodel.IAAS,
-		Cloud:              "aws",
-		CloudType:          "ec2",
-		CloudRegion:        "myregion",
-		CredentialOwner:    usertesting.GenNewName(c, "myowner"),
-		CredentialName:     "mycredential",
-	}
-	err := state.Create(c.Context(), args)
-	c.Assert(err, tc.ErrorIsNil)
-
-	err = state.Delete(c.Context(), id)
-	c.Assert(err, tc.ErrorIsNil)
-
-	err = state.Delete(c.Context(), id)
-	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
-
-	// Check that it was written correctly.
-	_, err = state.GetModel(c.Context())
-	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
-}
-
 func (s *modelSuite) TestCreateModelMultipleTimesWithSameUUID(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
@@ -952,8 +918,8 @@ func (s *modelSuite) TestEnsureDefaultStoragePoolsWithNoAttributes(c *tc.C) {
 		"SELECT key, value FROM storage_pool_attribute WHERE storage_pool_uuid = ?",
 		createArgs[0].UUID,
 	)
-	defer rows.Close()
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
+	defer func() { _ = rows.Close() }()
 	c.Check(rows.Next(), tc.IsFalse)
 }
 

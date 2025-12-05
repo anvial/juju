@@ -38,10 +38,6 @@ type ImportService interface {
 	// ImportSequences imports the sequences from the given map. This is used to
 	// import the sequences from the database.
 	ImportSequences(ctx context.Context, seqs map[string]uint64) error
-
-	// RemoveAllSequences removes all sequences from the model. This is used
-	// to remove the sequences from the database.
-	RemoveAllSequences(ctx context.Context) error
 }
 
 // Name returns the name of this operation.
@@ -71,12 +67,4 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 	}
 
 	return i.service.ImportSequences(ctx, s)
-}
-
-// Rollback the import operation. This is required to remove any sequences
-// that were added during the import operation.
-// For instance, if multiple sequences are add, each with their own
-// transaction, then if one fails, the others should be rolled back.
-func (i *importOperation) Rollback(ctx context.Context, model description.Model) error {
-	return i.service.RemoveAllSequences(ctx)
 }

@@ -500,7 +500,8 @@ func (s *SecretService) UpdateCharmSecret(ctx context.Context, uri *secrets.URI,
 		if err != nil {
 			return errors.Capture(err)
 		}
-		if !policy.WillRotate() {
+		// If the policy is less than the new policy, update the next rotation time.
+		if params.RotatePolicy.LessThan(policy) {
 			p.NextRotateTime = params.RotatePolicy.NextRotateTime(s.clock.Now())
 		}
 	}
@@ -638,8 +639,6 @@ func (s *SecretService) updateSecret(ctx domain.AtomicContext, uri *secrets.URI,
 }
 
 // ListSecrets returns the secrets matching the specified terms.
-// If multiple values for a given term are specified, secrets matching any of the
-// values for that term are included.
 func (s *SecretService) ListSecrets(ctx context.Context, uri *secrets.URI,
 	revision *int,
 	labels domainsecret.Labels,
@@ -647,7 +646,38 @@ func (s *SecretService) ListSecrets(ctx context.Context, uri *secrets.URI,
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	return s.secretState.ListSecrets(ctx, uri, revision, labels)
+	// We look for secret either by URI or by label.
+	if uri != nil && len(labels) > 0 {
+		return nil, nil, errors.Errorf("cannot specify both URI and labels")
+	}
+
+	if uri != nil {
+		metadata, revisions, err := s.secretState.GetSecretByURI(ctx, *uri, revision)
+		if err != nil {
+			return nil, nil, errors.Errorf("getting secret by URI %q: %w", uri.ID, err)
+		}
+		return []*secrets.SecretMetadata{metadata}, [][]*secrets.SecretRevisionMetadata{revisions}, nil
+	}
+
+	if len(labels) > 0 {
+		metadataList, revisionsList, err := s.secretState.ListSecretsByLabels(ctx, labels, revision)
+		if err != nil {
+			return nil, nil, errors.Errorf("getting secrets by labels: %w", err)
+		}
+		return metadataList, revisionsList, nil
+	}
+
+	// If there is no URI or labels, we will list all secrets. In this case, a
+	// revision cannot be specified.
+	if revision != nil {
+		return nil, nil, errors.Errorf("cannot specify revision without URI or labels")
+	}
+
+	metadataList, revisionList, err := s.secretState.ListAllSecrets(ctx)
+	if err != nil {
+		return nil, nil, errors.Errorf("listing all secrets: %w", err)
+	}
+	return metadataList, revisionList, nil
 }
 
 func splitCharmSecretOwners(owners ...CharmSecretOwner) (domainsecret.ApplicationOwners, domainsecret.UnitOwners) {

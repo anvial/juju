@@ -3341,11 +3341,12 @@ func (c *MockInstanceServerCreateStoragePoolBucketKeyCall) DoAndReturn(f func(st
 }
 
 // CreateStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) CreateStoragePoolVolume(arg0 string, arg1 api.StorageVolumesPost) error {
+func (m *MockInstanceServer) CreateStoragePoolVolume(arg0 string, arg1 api.StorageVolumesPost) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateStoragePoolVolume", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CreateStoragePoolVolume indicates an expected call of CreateStoragePoolVolume.
@@ -3361,19 +3362,19 @@ type MockInstanceServerCreateStoragePoolVolumeCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceServerCreateStoragePoolVolumeCall) Return(arg0 error) *MockInstanceServerCreateStoragePoolVolumeCall {
-	c.Call = c.Call.Return(arg0)
+func (c *MockInstanceServerCreateStoragePoolVolumeCall) Return(arg0 lxd.Operation, arg1 error) *MockInstanceServerCreateStoragePoolVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceServerCreateStoragePoolVolumeCall) Do(f func(string, api.StorageVolumesPost) error) *MockInstanceServerCreateStoragePoolVolumeCall {
+func (c *MockInstanceServerCreateStoragePoolVolumeCall) Do(f func(string, api.StorageVolumesPost) (lxd.Operation, error)) *MockInstanceServerCreateStoragePoolVolumeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceServerCreateStoragePoolVolumeCall) DoAndReturn(f func(string, api.StorageVolumesPost) error) *MockInstanceServerCreateStoragePoolVolumeCall {
+func (c *MockInstanceServerCreateStoragePoolVolumeCall) DoAndReturn(f func(string, api.StorageVolumesPost) (lxd.Operation, error)) *MockInstanceServerCreateStoragePoolVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -4987,11 +4988,12 @@ func (c *MockInstanceServerDeleteStoragePoolBucketKeyCall) DoAndReturn(f func(st
 }
 
 // DeleteStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) DeleteStoragePoolVolume(arg0, arg1, arg2 string) error {
+func (m *MockInstanceServer) DeleteStoragePoolVolume(arg0, arg1, arg2 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStoragePoolVolume", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // DeleteStoragePoolVolume indicates an expected call of DeleteStoragePoolVolume.
@@ -5007,19 +5009,19 @@ type MockInstanceServerDeleteStoragePoolVolumeCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceServerDeleteStoragePoolVolumeCall) Return(arg0 error) *MockInstanceServerDeleteStoragePoolVolumeCall {
-	c.Call = c.Call.Return(arg0)
+func (c *MockInstanceServerDeleteStoragePoolVolumeCall) Return(arg0 lxd.Operation, arg1 error) *MockInstanceServerDeleteStoragePoolVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceServerDeleteStoragePoolVolumeCall) Do(f func(string, string, string) error) *MockInstanceServerDeleteStoragePoolVolumeCall {
+func (c *MockInstanceServerDeleteStoragePoolVolumeCall) Do(f func(string, string, string) (lxd.Operation, error)) *MockInstanceServerDeleteStoragePoolVolumeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceServerDeleteStoragePoolVolumeCall) DoAndReturn(f func(string, string, string) error) *MockInstanceServerDeleteStoragePoolVolumeCall {
+func (c *MockInstanceServerDeleteStoragePoolVolumeCall) DoAndReturn(f func(string, string, string) (lxd.Operation, error)) *MockInstanceServerDeleteStoragePoolVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -13640,11 +13642,12 @@ func (c *MockInstanceServerRenameProjectCall) DoAndReturn(f func(string, api.Pro
 }
 
 // RenameStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) RenameStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePost) error {
+func (m *MockInstanceServer) RenameStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePost) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RenameStoragePoolVolume", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // RenameStoragePoolVolume indicates an expected call of RenameStoragePoolVolume.
@@ -13660,19 +13663,19 @@ type MockInstanceServerRenameStoragePoolVolumeCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceServerRenameStoragePoolVolumeCall) Return(arg0 error) *MockInstanceServerRenameStoragePoolVolumeCall {
-	c.Call = c.Call.Return(arg0)
+func (c *MockInstanceServerRenameStoragePoolVolumeCall) Return(arg0 lxd.Operation, arg1 error) *MockInstanceServerRenameStoragePoolVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceServerRenameStoragePoolVolumeCall) Do(f func(string, string, string, api.StorageVolumePost) error) *MockInstanceServerRenameStoragePoolVolumeCall {
+func (c *MockInstanceServerRenameStoragePoolVolumeCall) Do(f func(string, string, string, api.StorageVolumePost) (lxd.Operation, error)) *MockInstanceServerRenameStoragePoolVolumeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceServerRenameStoragePoolVolumeCall) DoAndReturn(f func(string, string, string, api.StorageVolumePost) error) *MockInstanceServerRenameStoragePoolVolumeCall {
+func (c *MockInstanceServerRenameStoragePoolVolumeCall) DoAndReturn(f func(string, string, string, api.StorageVolumePost) (lxd.Operation, error)) *MockInstanceServerRenameStoragePoolVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -15017,11 +15020,12 @@ func (c *MockInstanceServerUpdatePlacementGroupCall) DoAndReturn(f func(string, 
 }
 
 // UpdateProfile mocks base method.
-func (m *MockInstanceServer) UpdateProfile(arg0 string, arg1 api.ProfilePut, arg2 string) error {
+func (m *MockInstanceServer) UpdateProfile(arg0 string, arg1 api.ProfilePut, arg2 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateProfile", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateProfile indicates an expected call of UpdateProfile.
@@ -15037,19 +15041,19 @@ type MockInstanceServerUpdateProfileCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceServerUpdateProfileCall) Return(arg0 error) *MockInstanceServerUpdateProfileCall {
-	c.Call = c.Call.Return(arg0)
+func (c *MockInstanceServerUpdateProfileCall) Return(arg0 lxd.Operation, arg1 error) *MockInstanceServerUpdateProfileCall {
+	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceServerUpdateProfileCall) Do(f func(string, api.ProfilePut, string) error) *MockInstanceServerUpdateProfileCall {
+func (c *MockInstanceServerUpdateProfileCall) Do(f func(string, api.ProfilePut, string) (lxd.Operation, error)) *MockInstanceServerUpdateProfileCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceServerUpdateProfileCall) DoAndReturn(f func(string, api.ProfilePut, string) error) *MockInstanceServerUpdateProfileCall {
+func (c *MockInstanceServerUpdateProfileCall) DoAndReturn(f func(string, api.ProfilePut, string) (lxd.Operation, error)) *MockInstanceServerUpdateProfileCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -15245,11 +15249,12 @@ func (c *MockInstanceServerUpdateStoragePoolBucketKeyCall) DoAndReturn(f func(st
 }
 
 // UpdateStoragePoolVolume mocks base method.
-func (m *MockInstanceServer) UpdateStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePut, arg4 string) error {
+func (m *MockInstanceServer) UpdateStoragePoolVolume(arg0, arg1, arg2 string, arg3 api.StorageVolumePut, arg4 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStoragePoolVolume", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateStoragePoolVolume indicates an expected call of UpdateStoragePoolVolume.
@@ -15265,29 +15270,30 @@ type MockInstanceServerUpdateStoragePoolVolumeCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceServerUpdateStoragePoolVolumeCall) Return(arg0 error) *MockInstanceServerUpdateStoragePoolVolumeCall {
-	c.Call = c.Call.Return(arg0)
+func (c *MockInstanceServerUpdateStoragePoolVolumeCall) Return(arg0 lxd.Operation, arg1 error) *MockInstanceServerUpdateStoragePoolVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceServerUpdateStoragePoolVolumeCall) Do(f func(string, string, string, api.StorageVolumePut, string) error) *MockInstanceServerUpdateStoragePoolVolumeCall {
+func (c *MockInstanceServerUpdateStoragePoolVolumeCall) Do(f func(string, string, string, api.StorageVolumePut, string) (lxd.Operation, error)) *MockInstanceServerUpdateStoragePoolVolumeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceServerUpdateStoragePoolVolumeCall) DoAndReturn(f func(string, string, string, api.StorageVolumePut, string) error) *MockInstanceServerUpdateStoragePoolVolumeCall {
+func (c *MockInstanceServerUpdateStoragePoolVolumeCall) DoAndReturn(f func(string, string, string, api.StorageVolumePut, string) (lxd.Operation, error)) *MockInstanceServerUpdateStoragePoolVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // UpdateStoragePoolVolumeSnapshot mocks base method.
-func (m *MockInstanceServer) UpdateStoragePoolVolumeSnapshot(arg0, arg1, arg2, arg3 string, arg4 api.StorageVolumeSnapshotPut, arg5 string) error {
+func (m *MockInstanceServer) UpdateStoragePoolVolumeSnapshot(arg0, arg1, arg2, arg3 string, arg4 api.StorageVolumeSnapshotPut, arg5 string) (lxd.Operation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStoragePoolVolumeSnapshot", arg0, arg1, arg2, arg3, arg4, arg5)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(lxd.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateStoragePoolVolumeSnapshot indicates an expected call of UpdateStoragePoolVolumeSnapshot.
@@ -15303,19 +15309,19 @@ type MockInstanceServerUpdateStoragePoolVolumeSnapshotCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall) Return(arg0 error) *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall {
-	c.Call = c.Call.Return(arg0)
+func (c *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall) Return(arg0 lxd.Operation, arg1 error) *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall {
+	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall) Do(f func(string, string, string, string, api.StorageVolumeSnapshotPut, string) error) *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall {
+func (c *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall) Do(f func(string, string, string, string, api.StorageVolumeSnapshotPut, string) (lxd.Operation, error)) *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall) DoAndReturn(f func(string, string, string, string, api.StorageVolumeSnapshotPut, string) error) *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall {
+func (c *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall) DoAndReturn(f func(string, string, string, string, api.StorageVolumeSnapshotPut, string) (lxd.Operation, error)) *MockInstanceServerUpdateStoragePoolVolumeSnapshotCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

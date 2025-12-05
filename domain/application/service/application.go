@@ -109,6 +109,13 @@ type ApplicationState interface {
 	// the application does not exist.
 	GetApplicationDetails(ctx context.Context, appUUID coreapplication.UUID) (application.ApplicationDetails, error)
 
+	// GetApplicationDetailsByName returns the application details for the given
+	// application name. This includes the UUID, life status, name, and whether
+	// the application is synthetic.
+	// Returns an error satisfying [applicationerrors.ApplicationNotFound] if
+	// the application does not exist.
+	GetApplicationDetailsByName(ctx context.Context, name string) (application.ApplicationDetails, error)
+
 	// CheckAllApplicationsAndUnitsAreAlive checks that all applications and units
 	// in the model are alive, returning an error if any are not.
 	// The following errors may be returned:
@@ -802,6 +809,9 @@ func (s *Service) GetApplicationName(ctx context.Context, appUUID coreapplicatio
 // GetApplicationUUIDByName returns an application UUID by application name. It
 // returns an error if the application can not be found by the name.
 //
+// Deprecated: Use GetApplicationDetailsByName instead, which provides UUID along with
+// other application details in a single call.
+//
 // Returns [applicationerrors.ApplicationNameNotValid] if the name is not valid,
 // and [applicationerrors.ApplicationNotFound] if the application is not found.
 func (s *Service) GetApplicationUUIDByName(ctx context.Context, name string) (coreapplication.UUID, error) {
@@ -817,6 +827,25 @@ func (s *Service) GetApplicationUUIDByName(ctx context.Context, name string) (co
 		return "", errors.Capture(err)
 	}
 	return appUUID, nil
+}
+
+// GetApplicationDetailsByName returns the application details for the named application.
+// This includes the UUID, life status, name, and whether the application is synthetic.
+// If no application is found, an error satisfying [applicationerrors.ApplicationNotFound]
+// is returned.
+func (s *Service) GetApplicationDetailsByName(ctx context.Context, name string) (application.ApplicationDetails, error) {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	if !application.IsValidApplicationName(name) {
+		return application.ApplicationDetails{}, applicationerrors.ApplicationNameNotValid
+	}
+
+	details, err := s.st.GetApplicationDetailsByName(ctx, name)
+	if err != nil {
+		return application.ApplicationDetails{}, errors.Capture(err)
+	}
+	return details, nil
 }
 
 // GetCharmLocatorByApplicationName returns a CharmLocator by application name.

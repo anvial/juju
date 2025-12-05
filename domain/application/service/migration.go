@@ -540,15 +540,3 @@ func makeCloudContainerArg(unitName coreunit.Name, cloudContainer application.Cl
 	}
 	return result
 }
-
-// RemoveImportedApplication removes an application that was imported. The
-// application might be in an incomplete state, so it's important to remove
-// as much of the application as possible, even on failure.
-func (s *MigrationService) RemoveImportedApplication(ctx context.Context, name string) error {
-	_, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	// TODO (stickupkid): This is a placeholder for now, we need to implement
-	// this method.
-	return nil
-}

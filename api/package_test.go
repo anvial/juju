@@ -49,6 +49,7 @@ func (*ImportSuite) TestImports(c *tc.C) {
 		"core/secrets",
 		"core/semversion",
 		"core/status",
+		"core/storage",
 		"core/trace",
 		"core/user",
 		"core/version",

@@ -13,6 +13,7 @@ import (
 
 	"github.com/juju/juju/cloud"
 	"github.com/juju/juju/core/changestream"
+	corecloud "github.com/juju/juju/core/cloud"
 	"github.com/juju/juju/core/credential"
 	"github.com/juju/juju/core/life"
 	"github.com/juju/juju/core/logger"
@@ -66,18 +67,9 @@ type StatusHistoryGetter interface {
 	GetStatusHistoryForModel(ctx context.Context, modelUUID coremodel.UUID) (StatusHistory, error)
 }
 
-// State is the model state required by this service.
-type State interface {
+// CreateModelState represents the state required for creating a new model.
+type CreateModelState interface {
 	ModelTypeState
-	ProviderControllerState
-
-	// CheckModelExists is a check that allows the caller to find out if a model
-	// exists and is active within the controller. True or false is returned
-	// indicating if the model exists.
-	CheckModelExists(context.Context, coremodel.UUID) (bool, error)
-
-	// Create creates a new model with all of its associated metadata.
-	Create(context.Context, coremodel.UUID, coremodel.ModelType, model.GlobalModelCreationArgs) error
 
 	// Activate is responsible for setting a model as fully constructed and
 	// indicates the final system state for the model is ready for use.
@@ -92,6 +84,38 @@ type State interface {
 	// If no cloud exists for the supplied name an error satisfying
 	// [github.com/juju/juju/domain/cloud/errors.NotFound] is returned.
 	CloudSupportsAuthType(context.Context, string, cloud.AuthType) (bool, error)
+
+	// Create creates a new model with all of its associated metadata.
+	Create(context.Context, coremodel.UUID, coremodel.ModelType, model.GlobalModelCreationArgs) error
+}
+
+// DeleteModelState represents the state required for deleting a model.
+type DeleteModelState interface {
+	// Delete removes a model and all of it's associated data from Juju.
+	Delete(context.Context, coremodel.UUID) error
+}
+
+// ProviderControllerState is the controller state required by the provider service.
+type ProviderControllerState interface {
+	// GetModelCloudAndCredential returns the cloud and credential UUID for the model.
+	// The following errors can be expected:
+	// - [modelerrors.NotFound] if the model is not found.
+	GetModelCloudAndCredential(
+		ctx context.Context,
+		modelUUID coremodel.UUID,
+	) (corecloud.UUID, credential.UUID, error)
+}
+
+// State is the model state required by this service.
+type State interface {
+	CreateModelState
+	DeleteModelState
+	ProviderControllerState
+
+	// CheckModelExists is a check that allows the caller to find out if a model
+	// exists and is active within the controller. True or false is returned
+	// indicating if the model exists.
+	CheckModelExists(context.Context, coremodel.UUID) (bool, error)
 
 	// GetModel returns the model associated with the provided uuid.
 	GetModel(context.Context, coremodel.UUID) (coremodel.Model, error)
@@ -115,9 +139,6 @@ type State interface {
 	// model identified by the model uuid. If no model exists for the
 	// provided name and user a [modelerrors.NotFound] error is returned.
 	GetModelCloudInfo(context.Context, coremodel.UUID) (string, string, error)
-
-	// Delete removes a model and all of it's associated data from Juju.
-	Delete(context.Context, coremodel.UUID) error
 
 	// ListAllModels returns all models registered in the controller. If no
 	// models exist a zero value slice will be returned.
@@ -291,7 +312,7 @@ func (s *Service) CreateModel(
 		)
 	}
 
-	activator, err := createModel(ctx, s.st, modelID, args)
+	activator, err := CreateModel(ctx, s.st, modelID, args)
 	if err != nil {
 		return "", nil, errors.Errorf("creating model %q: %w", args.Name, err)
 	}
@@ -338,9 +359,9 @@ func (s *Service) CreateModel(
 // - [modelerrors.CredentialNotValid]: When the cloud credential for the model
 // is not valid. This means that either the credential is not supported with
 // the cloud or the cloud doesn't support having an empty credential.
-func createModel(
+func CreateModel(
 	ctx context.Context,
-	st State,
+	st CreateModelState,
 	id coremodel.UUID,
 	args model.GlobalModelCreationArgs,
 ) (func(context.Context) error, error) {
@@ -640,8 +661,26 @@ func (s *Service) GetDeadModels(ctx context.Context) ([]coremodel.UUID, error) {
 	return s.st.GetDeadModels(ctx)
 }
 
+// NotifyMapperWatcherFactory describes methods for creating notify watchers.
+type NotifyMapperWatcherFactory interface {
+	// NewNotifyMapperWatcher returns a new watcher that receives changes from the
+	// input base watcher's db/queue. A single filter option is required, though
+	// additional filter options can be provided. Filtering of values is done first
+	// by the filter, and then subsequently by the mapper. Based on the mapper's
+	// logic a subset of them (or none) may be emitted.
+	NewNotifyMapperWatcher(
+		ctx context.Context,
+		summary string,
+		mapper eventsource.Mapper,
+		filter eventsource.FilterOption,
+		filterOpts ...eventsource.FilterOption,
+	) (watcher.NotifyWatcher, error)
+}
+
 // WatcherFactory describes methods for creating watchers.
 type WatcherFactory interface {
+	NotifyMapperWatcherFactory
+
 	// NewNamespaceMapperWatcher returns a new namespace watcher for events
 	// based on the input change mask. The initialStateQuery ensures the watcher
 	// starts with the current state of the system, preventing data loss from
@@ -660,19 +699,6 @@ type WatcherFactory interface {
 	NewNotifyWatcher(
 		ctx context.Context,
 		summary string,
-		filter eventsource.FilterOption,
-		filterOpts ...eventsource.FilterOption,
-	) (watcher.NotifyWatcher, error)
-
-	// NewNotifyMapperWatcher returns a new watcher that receives changes from the
-	// input base watcher's db/queue. A single filter option is required, though
-	// additional filter options can be provided. Filtering of values is done first
-	// by the filter, and then subsequently by the mapper. Based on the mapper's
-	// logic a subset of them (or none) may be emitted.
-	NewNotifyMapperWatcher(
-		ctx context.Context,
-		summary string,
-		mapper eventsource.Mapper,
 		filter eventsource.FilterOption,
 		filterOpts ...eventsource.FilterOption,
 	) (watcher.NotifyWatcher, error)
@@ -795,8 +821,9 @@ func (s *WatchableService) WatchModel(ctx context.Context, modelUUID coremodel.U
 	)
 }
 
-// WatchModelCloudCredential returns a new NotifyWatcher watching for changes that
-// result in the cloud spec for a model changing. The changes watched for are:
+// WatchModelCloudCredential returns a new NotifyWatcher watching for changes
+// that result in the cloud spec for a model changing. The changes watched for
+// are:
 // - updates to model cloud.
 // - updates to model credential.
 // - changes to the credential set on a model.
@@ -806,11 +833,19 @@ func (s *WatchableService) WatchModelCloudCredential(ctx context.Context, modelU
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	return watchModelCloudCredential(ctx, s.st, s.watcherFactory, modelUUID)
+	return WatchModelCloudCredential(ctx, s.st, s.watcherFactory, modelUUID)
 }
 
-func watchModelCloudCredential(
-	ctx context.Context, st ProviderControllerState, watcherFactory WatcherFactory, modelUUID coremodel.UUID,
+// WatchModelCloudCredential returns a new NotifyWatcher watching for changes
+// that result in the cloud spec for a model changing. The changes watched for
+// are:
+// - updates to model cloud.
+// - updates to model credential.
+// - changes to the credential set on a model.
+// The following errors can be expected:
+// - [modelerrors.NotFound] when the model is not found.
+func WatchModelCloudCredential(
+	ctx context.Context, st ProviderControllerState, watcherFactory NotifyMapperWatcherFactory, modelUUID coremodel.UUID,
 ) (watcher.NotifyWatcher, error) {
 	if err := modelUUID.Validate(); err != nil {
 		return nil, errors.Errorf("invalid model UUID watching model cloud credential: %w", err)

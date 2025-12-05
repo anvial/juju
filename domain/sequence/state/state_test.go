@@ -130,31 +130,3 @@ func (s *stateSuite) TestImportSequencesTwice(c *tc.C) {
 	})
 	c.Assert(err, tc.ErrorIs, sequenceerrors.DuplicateNamespaceSequence)
 }
-
-func (s *stateSuite) TestRemoveAllSequences(c *tc.C) {
-	state := NewState(s.TxnRunnerFactory())
-
-	seq, err := state.GetSequencesForExport(c.Context())
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(seq, tc.HasLen, 0)
-
-	err = state.ImportSequences(c.Context(), map[string]uint64{
-		"foo":     1,
-		"foo_bar": 2,
-	})
-	c.Assert(err, tc.ErrorIsNil)
-
-	seq, err = state.GetSequencesForExport(c.Context())
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(seq, tc.DeepEquals, map[string]uint64{
-		"foo":     1,
-		"foo_bar": 2,
-	})
-
-	err = state.RemoveAllSequences(c.Context())
-	c.Assert(err, tc.ErrorIsNil)
-
-	seq, err = state.GetSequencesForExport(c.Context())
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(seq, tc.HasLen, 0)
-}

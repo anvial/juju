@@ -40,7 +40,7 @@ import (
 	"github.com/juju/juju/domain/resolve"
 	resolvestate "github.com/juju/juju/domain/resolve/state"
 	"github.com/juju/juju/domain/status"
-	statusstate "github.com/juju/juju/domain/status/state"
+	statusstate "github.com/juju/juju/domain/status/state/model"
 	domaintesting "github.com/juju/juju/domain/testing"
 	changestreamtesting "github.com/juju/juju/internal/changestream/testing"
 	internalcharm "github.com/juju/juju/internal/charm"
@@ -1126,7 +1126,7 @@ func (s *watcherSuite) TestWatchUnitAddRemoveOnMachine(c *tc.C) {
 		c.Assert(err, tc.ErrorIsNil)
 		err = removalSt.MarkUnitAsDead(ctx, unitUUID.String())
 		c.Assert(err, tc.ErrorIsNil)
-		err = removalSt.DeleteUnit(ctx, unitUUID.String())
+		err = removalSt.DeleteUnit(ctx, unitUUID.String(), false)
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.SliceAssert([]string{"foo/0"}))
@@ -1139,7 +1139,7 @@ func (s *watcherSuite) TestWatchUnitAddRemoveOnMachine(c *tc.C) {
 		c.Assert(err, tc.ErrorIsNil)
 		err = removalSt.MarkUnitAsDead(ctx, unitUUID.String())
 		c.Assert(err, tc.ErrorIsNil)
-		err = removalSt.DeleteUnit(ctx, unitUUID.String())
+		err = removalSt.DeleteUnit(ctx, unitUUID.String(), false)
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.AssertNoChange()
@@ -1233,7 +1233,7 @@ func (s *watcherSuite) TestWatchUnitAddRemoveOnMachineSubordinates(c *tc.C) {
 		c.Assert(err, tc.ErrorIsNil)
 		err = removalSt.MarkUnitAsDead(ctx, unitUUID.String())
 		c.Assert(err, tc.ErrorIsNil)
-		err = removalSt.DeleteUnit(ctx, unitUUID.String())
+		err = removalSt.DeleteUnit(ctx, unitUUID.String(), false)
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.SliceAssert([]string{"bar/0"}))
@@ -1246,7 +1246,7 @@ func (s *watcherSuite) TestWatchUnitAddRemoveOnMachineSubordinates(c *tc.C) {
 		c.Assert(err, tc.ErrorIsNil)
 		err = removalSt.MarkUnitAsDead(ctx, unitUUID.String())
 		c.Assert(err, tc.ErrorIsNil)
-		err = removalSt.DeleteUnit(ctx, unitUUID.String())
+		err = removalSt.DeleteUnit(ctx, unitUUID.String(), false)
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.AssertNoChange()

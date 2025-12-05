@@ -14,7 +14,7 @@ import (
 	domainstorage "github.com/juju/juju/domain/storage"
 	storageerrors "github.com/juju/juju/domain/storage/errors"
 	"github.com/juju/juju/internal/errors"
-	"github.com/juju/juju/internal/storage"
+	internalstorage "github.com/juju/juju/internal/storage"
 )
 
 // StoragePoolState defines an interface for interacting with the underlying state.
@@ -83,7 +83,7 @@ type PoolAttrs map[string]any
 // CreateStoragePool creates a storage pool with the specified configuration.
 // The following errors can be expected:
 // - [storageerrors.PoolAlreadyExists] if a pool with the same name already exists.
-func (s *StoragePoolService) CreateStoragePool(ctx context.Context, name string, providerType storage.ProviderType, attrs PoolAttrs) error {
+func (s *StoragePoolService) CreateStoragePool(ctx context.Context, name string, providerType internalstorage.ProviderType, attrs PoolAttrs) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -104,18 +104,18 @@ func (s *StoragePoolService) CreateStoragePool(ctx context.Context, name string,
 	return nil
 }
 
-func (s *StoragePoolService) validateConfig(ctx context.Context, name string, providerType storage.ProviderType, attrs map[string]interface{}) error {
+func (s *StoragePoolService) validateConfig(ctx context.Context, name string, providerType internalstorage.ProviderType, attrs map[string]interface{}) error {
 	if name == "" {
 		return storageerrors.MissingPoolNameError
 	}
-	if !storage.IsValidPoolName(name) {
+	if !corestorage.IsValidPoolName(name) {
 		return errors.Errorf("pool name %q not valid", name).Add(storageerrors.InvalidPoolNameError)
 	}
 	if providerType == "" {
 		return storageerrors.MissingPoolTypeError
 	}
 
-	cfg, err := storage.NewConfig(name, providerType, attrs)
+	cfg, err := internalstorage.NewConfig(name, providerType, attrs)
 	if err != nil {
 		return errors.Capture(err)
 	}
@@ -181,11 +181,11 @@ func (s *StoragePoolService) DeleteStoragePool(ctx context.Context, name string)
 // The following errors can be expected:
 // - [storageerrors.PoolNotFoundError] if a pool with the specified name does not exist.
 // - [storageerrors.InvalidPoolNameError] if the pool name is not valid.
-func (s *StoragePoolService) ReplaceStoragePool(ctx context.Context, name string, providerType storage.ProviderType, attrs PoolAttrs) error {
+func (s *StoragePoolService) ReplaceStoragePool(ctx context.Context, name string, providerType internalstorage.ProviderType, attrs PoolAttrs) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	if !storage.IsValidPoolName(name) {
+	if !corestorage.IsValidPoolName(name) {
 		return errors.Errorf("pool name %q not valid", name).Add(storageerrors.InvalidPoolNameError)
 	}
 
@@ -200,7 +200,7 @@ func (s *StoragePoolService) ReplaceStoragePool(ctx context.Context, name string
 		if err != nil {
 			return errors.Capture(err)
 		}
-		providerType = storage.ProviderType(existingConfig.Provider)
+		providerType = internalstorage.ProviderType(existingConfig.Provider)
 	}
 
 	if err := s.validateConfig(ctx, name, providerType, attrs); err != nil {
@@ -320,7 +320,7 @@ func (s *StoragePoolService) GetStoragePoolUUID(ctx context.Context, name string
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	if !storage.IsValidPoolName(name) {
+	if !corestorage.IsValidPoolName(name) {
 		return "", errors.Errorf(
 			"pool name %q not valid", name,
 		).Add(storageerrors.InvalidPoolNameError)
@@ -339,7 +339,7 @@ func (s *StoragePoolService) GetStoragePoolByName(ctx context.Context, name stri
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	if !storage.IsValidPoolName(name) {
+	if !corestorage.IsValidPoolName(name) {
 		return domainstorage.StoragePool{}, errors.Errorf(
 			"pool name %q not valid", name,
 		).Add(storageerrors.InvalidPoolNameError)
@@ -375,7 +375,7 @@ func (s *StoragePoolService) validateNameCriteria(names []string) error {
 	}
 
 	for _, n := range names {
-		if !storage.IsValidPoolName(n) {
+		if !corestorage.IsValidPoolName(n) {
 			return errors.Errorf("pool name %q not valid", n).Add(storageerrors.InvalidPoolNameError)
 		}
 	}
@@ -396,7 +396,7 @@ func (s *StoragePoolService) validateProviderCriteria(ctx context.Context, provi
 	}
 
 	for _, p := range providers {
-		_, err := registry.StorageProvider(storage.ProviderType(p))
+		_, err := registry.StorageProvider(internalstorage.ProviderType(p))
 		if err != nil {
 			return errors.Capture(err)
 		}

@@ -17,6 +17,8 @@ import (
 	"github.com/juju/worker/v4/workertest"
 	"go.uber.org/mock/gomock"
 
+	coreagentbinary "github.com/juju/juju/core/agentbinary"
+	"github.com/juju/juju/core/arch"
 	coredatabase "github.com/juju/juju/core/database"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/semversion"
@@ -38,7 +40,8 @@ type workerSuite struct {
 
 	upgradeUUID domainupgrade.UUID
 
-	upgradeService *MockUpgradeService
+	upgradeService        *MockUpgradeService
+	controllerNodeService *MockControllerNodeService
 }
 
 func TestWorkerSuite(t *stdtesting.T) {
@@ -50,9 +53,11 @@ func (s *workerSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.upgradeUUID = domainupgrade.UUID(uuid.MustNewUUID().String())
 	s.upgradeService = NewMockUpgradeService(ctrl)
+	s.controllerNodeService = NewMockControllerNodeService(ctrl)
 
 	c.Cleanup(func() {
 		s.upgradeService = nil
+		s.controllerNodeService = nil
 		s.upgradeUUID = domainupgrade.UUID("")
 	})
 	return ctrl
@@ -60,6 +65,15 @@ func (s *workerSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 func (s *workerSuite) TestLockAlreadyUnlocked(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	s.lock.EXPECT().IsUnlocked().Return(true)
 
@@ -72,6 +86,15 @@ func (s *workerSuite) TestLockAlreadyUnlocked(c *tc.C) {
 
 func (s *workerSuite) TestLockIsUnlockedIfMatchingVersions(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	s.lock.EXPECT().IsUnlocked().Return(false)
 	s.lock.EXPECT().Unlock()
@@ -89,6 +112,15 @@ func (s *workerSuite) TestLockIsUnlockedIfMatchingVersions(c *tc.C) {
 
 func (s *workerSuite) TestWatchUpgradeCompleted(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
@@ -149,6 +181,15 @@ func (s *workerSuite) TestWatchUpgradeCompleted(c *tc.C) {
 func (s *workerSuite) TestWatchUpgradeCompletedErrorSetControllerReady(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
 
@@ -204,6 +245,15 @@ func (s *workerSuite) TestWatchUpgradeCompletedErrorSetControllerReady(c *tc.C) 
 
 func (s *workerSuite) TestWatchUpgradeCompletedErrorSetControllerReadyError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
@@ -262,6 +312,15 @@ func (s *workerSuite) TestWatchUpgradeCompletedErrorSetControllerReadyError(c *t
 func (s *workerSuite) TestWatchUpgradeCompletedNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
 
@@ -300,6 +359,15 @@ func (s *workerSuite) TestWatchUpgradeCompletedNotFound(c *tc.C) {
 func (s *workerSuite) TestWatchUpgradeCompletedInErrorState(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
 
@@ -337,6 +405,15 @@ func (s *workerSuite) TestWatchUpgradeCompletedInErrorState(c *tc.C) {
 
 func (s *workerSuite) TestWatchUpgradeFailed(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
@@ -400,6 +477,15 @@ func (s *workerSuite) TestWatchUpgradeFailed(c *tc.C) {
 func (s *workerSuite) TestWatchUpgradeError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
 
@@ -428,6 +514,15 @@ func (s *workerSuite) TestWatchUpgradeError(c *tc.C) {
 
 func (s *workerSuite) TestUpgradeController(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
@@ -480,6 +575,15 @@ func (s *workerSuite) TestUpgradeController(c *tc.C) {
 
 func (s *workerSuite) TestUpgradeControllerThatIsAlreadyUpgraded(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
@@ -540,6 +644,15 @@ func (s *workerSuite) TestUpgradeControllerThatIsAlreadyUpgraded(c *tc.C) {
 func (s *workerSuite) TestUpgradeModels(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
 
@@ -596,6 +709,15 @@ func (s *workerSuite) TestUpgradeModels(c *tc.C) {
 
 func (s *workerSuite) TestUpgradeModelsThatIsAlreadyUpgraded(c *tc.C) {
 	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
 
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
@@ -660,6 +782,15 @@ func (s *workerSuite) TestUpgradeModelsThatIsAlreadyUpgraded(c *tc.C) {
 func (s *workerSuite) TestUpgradeFailsWhenKilled(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
 	// Ensure that the update hasn't already happened.
 	s.lock.EXPECT().IsUnlocked().Return(false)
 
@@ -718,6 +849,28 @@ func (s *workerSuite) TestUpgradeFailsWhenKilled(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 }
 
+// TestReportControllerNodeAgentVersionFails tests that the correct error type
+// is propagated.
+func (s *workerSuite) TestReportControllerNodeAgentVersionFails(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	settingError := errors.New("setting controller node agent version")
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	).Return(settingError)
+
+	w, err := NewUpgradeDatabaseWorker(s.getConfig())
+	c.Assert(err, tc.ErrorIsNil)
+
+	err = workertest.CheckKill(c, w)
+	c.Check(err, tc.ErrorIs, settingError)
+}
+
 func (s *workerSuite) getConfig() Config {
 	return Config{
 		DBUpgradeCompleteLock: s.lock,
@@ -725,6 +878,7 @@ func (s *workerSuite) getConfig() Config {
 		Logger:                s.logger,
 		Clock:                 clock.WallClock,
 		UpgradeService:        s.upgradeService,
+		ControllerNodeService: s.controllerNodeService,
 		DBGetter:              s.dbGetter,
 		FromVersion:           semversion.MustParse("3.0.0"),
 		ToVersion:             semversion.MustParse("6.6.6"),

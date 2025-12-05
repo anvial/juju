@@ -1063,6 +1063,7 @@ func (api *OffersAPI) getConsumeDetails(
 				SourceModelTag: names.NewModelTag(model.UUID.String()).String(),
 				OfferUUID:      details.OfferUUID,
 				OfferURL:       offerURL.String(),
+				OfferName:      offerURL.Name,
 				Endpoints:      endpoints,
 			},
 			ControllerInfo: externalControllerInfo,

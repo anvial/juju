@@ -18,7 +18,7 @@ import (
 	"github.com/juju/juju/core/instance"
 	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/semversion"
-	"github.com/juju/juju/internal/storage"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/internal/tools"
 )
 
@@ -965,6 +965,30 @@ type ControllerDetails struct {
 	ControllerId string   `json:"controller-id"`
 	APIAddresses []string `json:"api-addresses"`
 	Error        *Error   `json:"error,omitempty"`
+}
+
+// ControllersChangeResult contains the results
+// of a single EnableHA API call or
+// an error.
+type ControllersChangeResult struct {
+	Result ControllersChanges `json:"result"`
+	Error  *Error             `json:"error,omitempty"`
+}
+
+// ControllersChangeResults contains the results
+// of the EnableHA API call.
+type ControllersChangeResults struct {
+	Results []ControllersChangeResult `json:"results"`
+}
+
+// ControllersChanges lists the servers
+// that have been added, removed or maintained in the
+// pool as a result of an enable-ha operation.
+type ControllersChanges struct {
+	Added      []string `json:"added,omitempty"`
+	Maintained []string `json:"maintained,omitempty"`
+	Removed    []string `json:"removed,omitempty"`
+	Converted  []string `json:"converted,omitempty"`
 }
 
 // FindToolsParams defines parameters for the FindTools method.

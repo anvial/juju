@@ -153,6 +153,10 @@ func reloadSpaces(ctx context.Context, modelNetworkService NetworkService) error
 func (m *ModelManagerAPI) CreateModel(ctx context.Context, args params.ModelCreateArgs) (params.ModelInfo, error) {
 	result := params.ModelInfo{}
 
+	if args.TargetController != "" {
+		return result, errors.NewNotSupported(nil, "target-controller parameter is only supported on JAAS")
+	}
+
 	// We need to get the controller's default cloud and credential. To help
 	// Juju users when creating their first models we allow them to omit this
 	// information from the model creation args. If they have done exactly this

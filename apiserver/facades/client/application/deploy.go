@@ -21,6 +21,7 @@ import (
 	"github.com/juju/juju/core/objectstore"
 	coreresource "github.com/juju/juju/core/resource"
 	"github.com/juju/juju/core/status"
+	"github.com/juju/juju/core/storage"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/application"
 	applicationcharm "github.com/juju/juju/domain/application/charm"
@@ -30,7 +31,6 @@ import (
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/charm/assumes"
 	"github.com/juju/juju/internal/errors"
-	"github.com/juju/juju/internal/storage"
 )
 
 // ModelService provides access to the model state.

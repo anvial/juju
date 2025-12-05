@@ -76,7 +76,7 @@ type State interface {
 	// - [github.com/juju/juju/domain/application/errors.InvalidStorageCount]: when the allowed attachment count would be violated.
 	// - [github.com/juju/juju/domain/application/errors.InvalidStorageMountPoint]: when the filesystem being attached to the unit's machine has a mount point path conflict.
 	AddStorageForUnit(
-		ctx context.Context, storageName corestorage.Name, unitUUID coreunit.UUID, directive storage.Directive,
+		ctx context.Context, storageName corestorage.Name, unitUUID coreunit.UUID, directive corestorage.Directive,
 	) ([]corestorage.ID, error)
 
 	// DetachStorageForUnit detaches the specified storage from the specified unit.
@@ -90,6 +90,17 @@ type State interface {
 	// The following error types can be expected:
 	// - [github.com/juju/juju/domain/application/errors.StorageNotDetachable]: when the type of storage is not detachable.
 	DetachStorage(ctx context.Context, storageUUID domainstorage.StorageInstanceUUID) error
+
+	// GetApplicationStorageDirectivesInfo returns the storage directives set for an application,
+	// keyed to the storage name. If the application does not have any storage
+	// directives set then an empty result is returned.
+	//
+	// If the application does not exist, then a [applicationerrors.ApplicationNotFound]
+	// error is returned.
+	GetApplicationStorageDirectivesInfo(
+		ctx context.Context,
+		appUUID coreapplication.UUID,
+	) (map[string]application.ApplicationStorageInfo, error)
 
 	// GetApplicationStorageDirectives returns the storage directives that are
 	// set for an application. If the application does not have any storage
@@ -195,7 +206,7 @@ func (s *Service) AttachStorage(
 // - [github.com/juju/juju/domain/application/errors.InvalidStorageCount]: when the allowed attachment count would be violated.
 // - [github.com/juju/juju/domain/application/errors.InvalidStorageMountPoint]: when the filesystem being attached to the unit's machine has a mount point path conflict.
 func (s *Service) AddStorageForUnit(
-	ctx context.Context, storageName corestorage.Name, unitName coreunit.Name, directive storage.Directive,
+	ctx context.Context, storageName corestorage.Name, unitName coreunit.Name, directive corestorage.Directive,
 ) ([]corestorage.ID, error) {
 	// TODO (tlm): re-implement in DQlite
 	return nil, errors.New("not implemented")

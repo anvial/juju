@@ -851,6 +851,7 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 		resourceAuthFunc,
 		resourceChangeAllowedFunc,
 		&resourceServiceGetter{ctxt: httpCtxt},
+		&resourcesApplicationServiceGetter{ctxt: httpCtxt},
 		resourcesdownload.NewDownloader(logger.Child("resourcedownloader"), resourcesdownload.DefaultFileSystem()),
 		logger,
 	), "applications")
@@ -1088,10 +1089,22 @@ func (srv *Server) healthHandler(w http.ResponseWriter, req *http.Request) {
 
 func (srv *Server) apiHandler(w http.ResponseWriter, req *http.Request) {
 	connectionID := atomic.AddUint64(&srv.connectionID, 1)
+	fd := -1
+	if v, ok := req.Context().Value("raw-http-fd").(int); ok {
+		fd = v
+	}
 
 	apiObserver := srv.newObserver()
-	apiObserver.Join(req.Context(), req, connectionID)
-	defer apiObserver.Leave(req.Context())
+	apiObserver.Join(req.Context(), req, connectionID, fd)
+	defer func() {
+		// Don't use the request context as it will cause the Leave to be
+		// cancelled and not report the leave correctly. Giving it a timeout
+		// should ensure that the request doesn't hang indefinitely.
+		ctx, cancel := context.WithTimeout(srv.catacomb.Context(context.Background()), time.Second*5)
+		defer cancel()
+
+		apiObserver.Leave(ctx)
+	}()
 
 	// Create a new offer auth context. This will be used to bake new
 	// macaroons for offers, and to validate incoming macaroons.
@@ -1120,7 +1133,7 @@ func (srv *Server) apiHandler(w http.ResponseWriter, req *http.Request) {
 		// deferred to the facade methods.
 		ctx := coremodel.WithContextModelUUID(req.Context(), resolvedModelUUID)
 
-		logger.Tracef(ctx, "got a request for model %q", modelUUID)
+		logger.Tracef(ctx, "got a request for model %q fd:%v", modelUUID, fd)
 		if err := srv.serveConn(
 			srv.catacomb.Context(ctx),
 			conn,
@@ -1404,6 +1417,19 @@ func (a *resourceServiceGetter) Resource(r *http.Request) (handlersresources.Res
 	}
 
 	return domainServices.Resource(), nil
+}
+
+type resourcesApplicationServiceGetter struct {
+	ctxt httpContext
+}
+
+func (a *resourcesApplicationServiceGetter) Application(r *http.Request) (handlersresources.ApplicationService, error) {
+	domainServices, err := a.ctxt.domainServicesForRequest(r.Context())
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return domainServices.Application(), nil
 }
 
 type migratingResourceServiceGetter struct {

@@ -63,7 +63,7 @@ type Machine struct {
 	IPAddresses             []string
 	InstanceID              instance.Id
 	Life                    life.Life
-	MachineStatus           StatusInfo[MachineStatusType]
+	MachineStatus           MachineStatusInfo[MachineStatusType]
 	InstanceStatus          StatusInfo[InstanceStatusType]
 	Platform                deployment.Platform
 	Constraints             constraints.Constraints
@@ -157,4 +157,10 @@ type Endpoint struct {
 	Role      string
 	Interface string
 	Limit     int
+}
+
+// ControllerNode represents the status of a controller node.
+type ControllerNode struct {
+	ControllerID string
+	DqliteNodeID uint64
 }

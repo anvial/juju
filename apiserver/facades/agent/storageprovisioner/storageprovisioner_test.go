@@ -3532,7 +3532,7 @@ func (s *provisionerSuite) TestSetVolumeAttachmentInfo(c *tc.C) {
 					BusAddress: "z",
 					ReadOnly:   true,
 					PlanInfo: &params.VolumeAttachmentPlanInfo{
-						DeviceType: storage.DeviceTypeISCSI,
+						DeviceType: storage.DeviceTypeISCSI.String(),
 						DeviceAttributes: map[string]string{
 							"a": "b",
 						},
@@ -3595,7 +3595,7 @@ func (s *provisionerSuite) TestGetVolumeAttachmentPlan(c *tc.C) {
 		MachineTag: machineTag.String(),
 		Life:       corelife.Dying,
 		PlanInfo: params.VolumeAttachmentPlanInfo{
-			DeviceType:       storage.DeviceTypeISCSI,
+			DeviceType:       storage.DeviceTypeISCSI.String(),
 			DeviceAttributes: attrs,
 		},
 	})
@@ -3645,7 +3645,7 @@ func (s *provisionerSuite) TestCreateVolumeAttachmentPlan(c *tc.C) {
 				VolumeTag:  tag.String(),
 				MachineTag: machineTag.String(),
 				PlanInfo: params.VolumeAttachmentPlanInfo{
-					DeviceType:       storage.DeviceTypeISCSI,
+					DeviceType:       storage.DeviceTypeISCSI.String(),
 					DeviceAttributes: attrs,
 				},
 			},

@@ -60,57 +60,6 @@ func TestImportSuite(t *testing.T) {
 	tc.Run(t, &importSuite{})
 }
 
-func (s *importSuite) TestRollback(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	model := description.NewModel(description.ModelArgs{})
-	appArgs := description.ApplicationArgs{
-		Name:     "prometheus",
-		CharmURL: "ch:prometheus-1",
-	}
-	model.AddApplication(appArgs)
-
-	importOp := importOperation{
-		service: s.importService,
-		logger:  loggertesting.WrapCheckLog(c),
-	}
-
-	s.importService.EXPECT().RemoveImportedApplication(gomock.Any(), "prometheus").Return(nil)
-
-	err := importOp.Rollback(c.Context(), model)
-	c.Assert(err, tc.ErrorIsNil)
-}
-
-func (s *importSuite) TestRollbackForMultipleApplicationsRollbacksAll(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	model := description.NewModel(description.ModelArgs{})
-	appArgs0 := description.ApplicationArgs{
-		Name:     "prometheus",
-		CharmURL: "ch:prometheus-1",
-	}
-	model.AddApplication(appArgs0)
-
-	appArgs1 := description.ApplicationArgs{
-		Name:     "grafana",
-		CharmURL: "ch:grafana-1",
-	}
-	model.AddApplication(appArgs1)
-
-	importOp := importOperation{
-		service: s.importService,
-		logger:  loggertesting.WrapCheckLog(c),
-	}
-
-	gomock.InOrder(
-		s.importService.EXPECT().RemoveImportedApplication(gomock.Any(), "prometheus").Return(errors.Errorf("boom")),
-		s.importService.EXPECT().RemoveImportedApplication(gomock.Any(), "grafana").Return(nil),
-	)
-
-	err := importOp.Rollback(c.Context(), model)
-	c.Assert(err, tc.ErrorMatches, "rollback failed: boom")
-}
-
 func (s *importSuite) TestApplicationImportWithMinimalCharmForCAAS(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 

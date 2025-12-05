@@ -36,11 +36,11 @@ import (
 	"github.com/juju/juju/cmd/modelcmd"
 	corebase "github.com/juju/juju/core/base"
 	corecharm "github.com/juju/juju/core/charm"
+	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/charmhub"
 	"github.com/juju/juju/internal/cmd"
-	"github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/rpc/params"
 )
 
@@ -250,6 +250,12 @@ cause unexpected behavior.
 ` + "`--force`" + ` option for LXD Profiles is not generally recommended when upgrading an
 application; overriding profiles on the container may cause unexpected
 behavior.
+
+### Behavior on machines vs. Kubernetes
+
+On machines, charm upgrades happen at the same time on all units of an application.
+However, on Kubernetes, because Juju deploys applications as ` + "`StatefulSets`" + `
+with rolling updates, charm upgrades happen sequentially, unit by unit.
 `
 
 const refreshExamples = `

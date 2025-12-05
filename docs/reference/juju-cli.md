@@ -10,6 +10,7 @@ See also: {ref}`manage-juju`
 :hidden:
 juju-cli/list-of-juju-cli-commands/index
 juju-cli/juju-environment-variables
+juju-cli/plugin-juju-metadata
 ```
 
 <!--HARRY SAYS: THIS DOC IS MISSING A LOT OF DETAIL-->
@@ -57,11 +58,6 @@ LXD itself can operate over the network and Juju does support this (`v.2.5.0`).
 ## Environment variables
 
 You can also configure the Juju client using various environment variables. For more, see {ref}`juju-environment-variables`.
-
-
-## Plugins
-
-The Juju client can be extended with plugins. For more, see {ref}`plugin`, {ref}`list-of-known-juju-plugins`.
 
 ## Roadmap and releases
 
