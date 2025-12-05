@@ -141,9 +141,9 @@ type StatusService interface {
 
 // ModelService defines the methods to get models hosted on this controller.
 type ModelService interface {
-	// ListAllModels  lists all models in the controller. If no models exist then
+	// GetAllModels  lists all models in the controller. If no models exist then
 	// an empty slice is returned.
-	ListAllModels(ctx context.Context) ([]coremodel.Model, error)
+	GetAllModels(ctx context.Context) ([]coremodel.Model, error)
 	// Model returns the model associated with the provided uuid.
 	Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Model, error)
 }

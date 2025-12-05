@@ -100,15 +100,15 @@ type ModelService interface {
 	// either cloud or credential specified.
 	DefaultModelCloudInfo(context.Context) (string, string, error)
 
-	// ListAllModels returns a list of all models.
-	ListAllModels(context.Context) ([]coremodel.Model, error)
+	// GetAllModels returns a list of all models.
+	GetAllModels(context.Context) ([]coremodel.Model, error)
 
 	// ListModelsForUser returns a list of models for the given user.
 	ListModelsForUser(context.Context, user.UUID) ([]coremodel.Model, error)
 
-	// ListModelUUIDs returns a list of all model UUIDs in the controller that
+	// GetModelUUIDs returns a list of all model UUIDs in the controller that
 	// are active.
-	ListModelUUIDs(context.Context) ([]coremodel.UUID, error)
+	GetModelUUIDs(context.Context) ([]coremodel.UUID, error)
 
 	// ListModelUUIDsForUser returns a list of model UUIDs that the supplied
 	// user has access to. If the user supplied does not have access to any

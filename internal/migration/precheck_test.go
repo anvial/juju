@@ -903,7 +903,7 @@ func (s *TargetPrecheckSuite) TestIsMigrationActive(c *tc.C) {
 	models := []coremodel.Model{
 		{Name: modelName, Qualifier: modelOwner, UUID: coremodel.UUID(modelUUID), Life: corelife.Alive},
 	}
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(models, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.modelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeExporting, nil)
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -921,7 +921,7 @@ func (s *TargetPrecheckSuite) TestModelNameAlreadyInUse(c *tc.C) {
 	models := []coremodel.Model{
 		{Name: modelName, Qualifier: modelOwner, UUID: coremodel.UUID(otherModelUUID), Life: corelife.Alive},
 	}
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(models, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.otherModelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeNone, nil)
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -950,7 +950,7 @@ func (s *TargetPrecheckSuite) TestModelNameOverlapOkForDifferentOwner(c *tc.C) {
 	models := []coremodel.Model{
 		{Name: modelName, Qualifier: coremodel.Qualifier("tom"), UUID: coremodel.UUID(otherModelUUID), Life: corelife.Alive},
 	}
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(models, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.otherModelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeNone, nil)
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -966,7 +966,7 @@ func (s *TargetPrecheckSuite) TestUUIDAlreadyExists(c *tc.C) {
 	models := []coremodel.Model{
 		{Name: modelName, Qualifier: modelOwner, UUID: coremodel.UUID(modelUUID), Life: corelife.Alive},
 	}
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(models, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.modelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeNone, nil)
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -983,7 +983,7 @@ func (s *TargetPrecheckSuite) TestUUIDAlreadyExistsButImporting(c *tc.C) {
 	models := []coremodel.Model{
 		{Name: modelName, Qualifier: modelOwner, UUID: coremodel.UUID(modelUUID), Life: corelife.Alive},
 	}
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(models, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.modelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeImporting, nil)
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)

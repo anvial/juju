@@ -972,9 +972,9 @@ func (s *State) GetModelTypes(ctx context.Context) ([]coremodel.ModelType, error
 	})
 }
 
-// ListAllModels returns a slice of all models in the controller. If no models
+// GetAllModels returns a slice of all models in the controller. If no models
 // exist an empty slice is returned.
-func (s *State) ListAllModels(ctx context.Context) ([]coremodel.Model, error) {
+func (s *State) GetAllModels(ctx context.Context) ([]coremodel.Model, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
 		return nil, errors.Capture(err)
@@ -1016,8 +1016,8 @@ ORDER BY name`, dbModel{})
 	return rval, nil
 }
 
-// ListModelUUIDs returns a list of all model UUIDs in the system that are active.
-func (s *State) ListModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
+// GetModelUUIDs returns a list of all model UUIDs in the system that are active.
+func (s *State) GetModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
 		return nil, errors.Capture(err)

@@ -197,7 +197,7 @@ func TargetPrecheck(
 	}
 
 	// Check for conflicts with existing models
-	models, err := modelService.ListAllModels(ctx)
+	models, err := modelService.GetAllModels(ctx)
 	if err != nil {
 		return errors.Annotate(err, "retrieving models")
 	}

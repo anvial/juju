@@ -926,7 +926,7 @@ func (m *stateSuite) TestDeleteModel(c *tc.C) {
 	err = row.Scan(&val)
 	c.Assert(err, tc.ErrorIs, sql.ErrNoRows)
 
-	modelUUIDS, err := modelSt.ListModelUUIDs(c.Context())
+	modelUUIDS, err := modelSt.GetModelUUIDs(c.Context())
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(modelUUIDS, tc.DeepEquals, []coremodel.UUID{m.controllerModelUUID})
 
@@ -947,9 +947,9 @@ func (m *stateSuite) TestDeleteModelNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
-// TestListModelUUIDs is testing that once we have created several models calling
+// GetModelUUIDs is testing that once we have created several models calling
 // list returns all the models created.
-func (m *stateSuite) TestListModelUUIDs(c *tc.C) {
+func (m *stateSuite) GetModelUUIDs(c *tc.C) {
 	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
 	m.createModel(c, m.uuid, m.userUUID)
 
@@ -1000,7 +1000,7 @@ func (m *stateSuite) TestListModelUUIDs(c *tc.C) {
 	err = modelSt.Activate(c.Context(), uuid2)
 	c.Assert(err, tc.ErrorIsNil)
 
-	uuids, err := modelSt.ListModelUUIDs(c.Context())
+	uuids, err := modelSt.GetModelUUIDs(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(uuids, tc.HasLen, 4)
 	c.Check(uuids, tc.SameContents, []coremodel.UUID{
@@ -1177,12 +1177,12 @@ func (m *stateSuite) TestModelsForNonExistantUser(c *tc.C) {
 	c.Check(len(models), tc.Equals, 0)
 }
 
-func (m *stateSuite) TestAllModels(c *tc.C) {
+func (m *stateSuite) TestGetAllModels(c *tc.C) {
 	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
 	m.createModel(c, m.uuid, m.userUUID)
 
 	modelSt := NewState(m.TxnRunnerFactory())
-	models, err := modelSt.ListAllModels(c.Context())
+	models, err := modelSt.GetAllModels(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Check(models, tc.DeepEquals, []coremodel.Model{

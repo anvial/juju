@@ -39,7 +39,7 @@ func (c *ControllerAPI) DestroyController(ctx context.Context, args params.Destr
 		return apiservererrors.ServerError(errors.BadRequestf("current model is not the controller model"))
 	}
 
-	modelUUIDs, err := c.modelService.ListModelUUIDs(ctx)
+	modelUUIDs, err := c.modelService.GetModelUUIDs(ctx)
 	if err != nil {
 		return apiservererrors.ServerError(err)
 	}

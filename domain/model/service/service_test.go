@@ -208,7 +208,7 @@ func (s *serviceSuite) TestModelCreation(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(exists, tc.IsTrue)
 
-	modelList, err := svc.ListModelUUIDs(c.Context())
+	modelList, err := svc.GetModelUUIDs(c.Context())
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(len(modelList), tc.Equals, 2)
 }
@@ -538,25 +538,25 @@ func (s *serviceSuite) TestUpdateModelCredentialNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, coreerrors.NotFound)
 }
 
-// TestListAllModelsNoResults is asserting that when no models exist the return
-// value of ListAllModels is an empty slice.
-func (s *serviceSuite) TestListAllModelsNoResults(c *tc.C) {
+// TestGetAllModelsNoResults is asserting that when no models exist the return
+// value of GetAllModels is an empty slice.
+func (s *serviceSuite) TestGetAllModelsNoResults(c *tc.C) {
 	svc := s.newStubService(c)
-	models, err := svc.ListAllModels(c.Context())
+	models, err := svc.GetAllModels(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(len(models), tc.Equals, 1)
 }
 
-// TestListAllModel is a basic test to assert the happy path of
-// [Service.ListAllModels].
-func (s *serviceSuite) TestListAllModels(c *tc.C) {
+// TestGetAllModel is a basic test to assert the happy path of
+// [Service.GetAllModels].
+func (s *serviceSuite) TestGetAllModels(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	svc := s.newService(c)
 
 	id1 := modeltesting.GenModelUUID(c)
 	id2 := modeltesting.GenModelUUID(c)
-	s.mockState.EXPECT().ListAllModels(gomock.Any()).Return([]coremodel.Model{
+	s.mockState.EXPECT().GetAllModels(gomock.Any()).Return([]coremodel.Model{
 		{
 			Name:         "my-awesome-model",
 			AgentVersion: jujuversion.Current,
@@ -589,7 +589,7 @@ func (s *serviceSuite) TestListAllModels(c *tc.C) {
 		},
 	}, nil)
 
-	models, err := svc.ListAllModels(c.Context())
+	models, err := svc.GetAllModels(c.Context())
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(models, tc.DeepEquals, []coremodel.Model{
 		{
