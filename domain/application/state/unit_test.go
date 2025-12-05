@@ -1545,39 +1545,6 @@ func (s *unitStateSubordinateSuite) SetUpTest(c *tc.C) {
 	s.state = NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 }
 
-func (s *unitStateSubordinateSuite) createPrincipalUnit(
-	c *tc.C,
-) (coreunit.UUID, domainnetwork.NetNodeUUID) {
-	uuid, netNodeUUID := s.createNPrincipalUnits(c, 1)
-	return uuid[0], netNodeUUID[0]
-}
-
-func (s *unitStateSubordinateSuite) createNPrincipalUnits(
-	c *tc.C, n int,
-) ([]coreunit.UUID, []domainnetwork.NetNodeUUID) {
-	netNodeUUIDs := make([]domainnetwork.NetNodeUUID, 0, n)
-	args := make([]application.AddIAASUnitArg, 0, n)
-
-	for range n {
-		netNodeUUID := tc.Must(c, domainnetwork.NewNetNodeUUID)
-		args = append(args, application.AddIAASUnitArg{
-			AddUnitArg: application.AddUnitArg{
-				NetNodeUUID: netNodeUUID,
-			},
-			MachineNetNodeUUID: netNodeUUID,
-			MachineUUID:        machinetesting.GenUUID(c),
-		})
-		netNodeUUIDs = append(netNodeUUIDs, netNodeUUID)
-	}
-
-	appUUID := s.createIAASApplication(c, "principal", life.Alive, args...)
-
-	unitUUIDs := s.getApplicationUnits(c, appUUID)
-	c.Assert(unitUUIDs, tc.HasLen, n)
-
-	return unitUUIDs, netNodeUUIDs
-}
-
 func (s *unitStateSubordinateSuite) TestIsSubordinateApplication(c *tc.C) {
 	// Arrange:
 	appID := s.createSubordinateApplication(c, "sub", life.Alive)
@@ -1693,28 +1660,6 @@ func (s *unitStateSubordinateSuite) TestGetUnitSubordinatesNotFound(c *tc.C) {
 
 	_, err := s.state.GetUnitSubordinates(c.Context(), principalName)
 	c.Assert(err, tc.ErrorIs, applicationerrors.UnitNotFound)
-}
-
-func (s *unitStateSubordinateSuite) assertUnitMachinesMatch(c *tc.C, unit1, unit2 coreunit.UUID) {
-	m1 := s.getUnitMachine(c, unit1)
-	m2 := s.getUnitMachine(c, unit2)
-	c.Assert(m1, tc.Equals, m2)
-}
-
-func (s *unitStateSubordinateSuite) getUnitMachine(c *tc.C, unitUUID coreunit.UUID) string {
-	var machineUUID string
-	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-
-		err := tx.QueryRow(`
-SELECT machine.uuid
-FROM unit
-JOIN machine ON unit.net_node_uuid = machine.net_node_uuid
-WHERE unit.uuid = ?
-`, unitUUID).Scan(&machineUUID)
-		return err
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	return machineUUID
 }
 
 func (s *unitStateSubordinateSuite) addUnitPrincipal(c *tc.C, principal, sub coreunit.UUID) {

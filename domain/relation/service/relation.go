@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/juju/clock"
 	"github.com/juju/collections/transform"
+
 	"github.com/juju/juju/core/application"
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/leadership"
@@ -402,7 +402,6 @@ func (s *LeadershipService) SetRelationApplicationAndUnitSettings(
 // Service provides the API for working with relations.
 type Service struct {
 	st     State
-	clock  clock.Clock
 	logger logger.Logger
 
 	statusHistory StatusHistory

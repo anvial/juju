@@ -4389,25 +4389,3 @@ ORDER BY r.relation_id, rne.cidr
 func (s *relationSuite) doesRelationUnitExist(c *tc.C, relationUnitUUID string) bool {
 	return s.doesUUIDExist(c, "relation_unit", relationUnitUUID)
 }
-
-func (s *relationSuite) addPeerRelation(c *tc.C, charmUUID corecharm.ID, appUUID coreapplication.UUID) (corerelation.UUID, string) {
-	endpoint1 := charm.Relation{
-		Name:      "fake-endpoint-name-1",
-		Role:      charm.RoleProvider,
-		Interface: "database",
-		Scope:     charm.ScopeContainer,
-	}
-	charmRelationUUID1 := s.addCharmRelation(c, charmUUID, endpoint1)
-	applicationEndpointUUID1 := s.addApplicationEndpoint(c, appUUID, charmRelationUUID1)
-	relationUUID := s.addRelation(c)
-	relationEndpointUUID := s.addRelationEndpoint(c, relationUUID, applicationEndpointUUID1)
-
-	return relationUUID, relationEndpointUUID
-}
-
-func (s *relationSuite) addUnitPrincipal(c *tc.C, principalUnit, subordinateUnit coreunit.UUID) {
-	s.query(c, `
-INSERT INTO unit_principal (principal_uuid, unit_uuid)
-VALUES (?, ?)
-`, principalUnit, subordinateUnit)
-}

@@ -5,6 +5,7 @@ package state
 
 import (
 	"github.com/juju/clock"
+
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/domain"
