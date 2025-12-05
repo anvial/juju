@@ -190,6 +190,8 @@ func (config ManifoldConfig) start(context dependency.Context) (worker.Worker, e
 		APIPortOpenDelay:      controllerConfig.APIPortOpenDelay(),
 		ControllerAPIPort:     controllerConfig.ControllerAPIPort(),
 		IdleConnectionTimeout: controllerConfig.IdleConnectionTimeout(),
+		ReadTimeout:           controllerConfig.ReadTimeout(),
+		WriteTimeout:          controllerConfig.WriteTimeout(),
 	})
 	if err != nil {
 		_ = stTracker.Done()

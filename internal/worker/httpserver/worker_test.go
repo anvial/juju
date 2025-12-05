@@ -399,6 +399,8 @@ func (s *WorkerControllerPortSuite) TestDualPortListenerWithDelay(c *gc.C) {
 		"api-port-open-delay":     s.config.APIPortOpenDelay,
 		"controller-api-port":     s.config.ControllerAPIPort,
 		"idle-connection-timeout": s.config.IdleConnectionTimeout,
+		"read-timeout":            s.config.ReadTimeout,
+		"write-timeout":           s.config.WriteTimeout,
 		"status":                  "running",
 		"ports":                   reportPorts,
 	}

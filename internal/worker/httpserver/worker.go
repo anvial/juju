@@ -50,6 +50,8 @@ type Config struct {
 	APIPortOpenDelay      time.Duration
 	ControllerAPIPort     int
 	IdleConnectionTimeout time.Duration
+	ReadTimeout           time.Duration
+	WriteTimeout          time.Duration
 }
 
 // Validate validates the API server configuration.
@@ -139,6 +141,8 @@ func (w *Worker) Report() map[string]interface{} {
 		"api-port":                w.config.APIPort,
 		"status":                  w.status,
 		"idle-connection-timeout": w.config.IdleConnectionTimeout,
+		"read-timeout":            w.config.ReadTimeout,
+		"write-timeout":           w.config.WriteTimeout,
 	}
 	if w.holdable != nil {
 		result["ports"] = w.holdable.report()
@@ -207,10 +211,11 @@ func (w *Worker) loop() error {
 		TLSConfig:   w.config.TLSConfig,
 		ErrorLog:    serverLog,
 		IdleTimeout: w.config.IdleConnectionTimeout,
-		// As recommended by Copilot: the Read/Write timeouts should only affect the initial handshake.
-		// Once it has been upgraded to Websocket, then gorilla takes over the read/write deadlines.
-		ReadTimeout:  60 * time.Second,
-		WriteTimeout: 60 * time.Second,
+		// ReadTimeout and WriteTimeout default to 0 (disabled) to allow
+		// long-running operations like charm uploads. When set to 0,
+		// only IdleTimeout applies to cleanup idle connections.
+		ReadTimeout:  w.config.ReadTimeout,
+		WriteTimeout: w.config.WriteTimeout,
 		ConnContext:  recordRawFd,
 	}
 	go func() {

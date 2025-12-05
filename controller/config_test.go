@@ -223,6 +223,30 @@ var newConfigTests = []struct {
 	},
 	expectError: `idle-connection-timeout: conversion to duration: time: missing unit in duration "99"`,
 }, {
+	about: "read-timeout not a string",
+	config: controller.Config{
+		controller.ReadTimeout: 99,
+	},
+	expectError: `read-timeout: expected string or time.Duration, got int\(99\)`,
+}, {
+	about: "read-timeout not a duration",
+	config: controller.Config{
+		controller.ReadTimeout: "99",
+	},
+	expectError: `read-timeout: conversion to duration: time: missing unit in duration "99"`,
+}, {
+	about: "write-timeout not a string",
+	config: controller.Config{
+		controller.WriteTimeout: 99,
+	},
+	expectError: `write-timeout: expected string or time.Duration, got int\(99\)`,
+}, {
+	about: "write-timeout not a duration",
+	config: controller.Config{
+		controller.WriteTimeout: "99",
+	},
+	expectError: `write-timeout: conversion to duration: time: missing unit in duration "99"`,
+}, {
 	about: "txn-prune-sleep-time not a duration",
 	config: controller.Config{
 		controller.PruneTxnSleepTime: "15",

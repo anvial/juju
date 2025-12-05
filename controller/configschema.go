@@ -22,6 +22,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	APIPort:                          schema.ForceInt(),
 	APIPortOpenDelay:                 schema.TimeDuration(),
 	IdleConnectionTimeout:            schema.TimeDuration(),
+	ReadTimeout:                      schema.TimeDuration(),
+	WriteTimeout:                     schema.TimeDuration(),
 	ControllerAPIPort:                schema.ForceInt(),
 	ControllerName:                   schema.NonEmptyString(ControllerName),
 	StatePort:                        schema.ForceInt(),
@@ -70,6 +72,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	APIPort:                          DefaultAPIPort,
 	APIPortOpenDelay:                 DefaultAPIPortOpenDelay,
 	IdleConnectionTimeout:            DefaultIdleConnectionTimeout,
+	ReadTimeout:                      DefaultReadTimeout,
+	WriteTimeout:                     DefaultWriteTimeout,
 	ControllerAPIPort:                schema.Omit,
 	ControllerName:                   schema.Omit,
 	AuditingEnabled:                  DefaultAuditingEnabled,
@@ -171,6 +175,20 @@ the api-port and when the api-port is actually opened
 resets of all idle connections. By default, every 10 minutes
 the controller will close all idle connections.
 `,
+	},
+	ReadTimeout: {
+		Type: environschema.Tstring,
+		Description: `The maximum duration for reading the entire HTTP request, including the body.
+A zero or negative value means no timeout. This should generally be left at 0 (no timeout)
+to allow long-running operations like charm uploads to complete. The idle-connection-timeout
+setting handles cleanup of idle connections.`,
+	},
+	WriteTimeout: {
+		Type: environschema.Tstring,
+		Description: `The maximum duration before timing out writes of the HTTP response.
+A zero or negative value means no timeout. This should generally be left at 0 (no timeout)
+to allow long-running operations to send their complete responses. The idle-connection-timeout
+setting handles cleanup of idle connections.`,
 	},
 	ControllerAPIPort: {
 		Type: environschema.Tint,

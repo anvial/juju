@@ -203,6 +203,8 @@ func (s *ManifoldSuite) TestStart(c *gc.C) {
 		LogDir:                "log-dir",
 		Logger:                s.config.Logger,
 		IdleConnectionTimeout: 30 * time.Second,
+		ReadTimeout:           0 * time.Second,
+		WriteTimeout:          0 * time.Second,
 	})
 }
 

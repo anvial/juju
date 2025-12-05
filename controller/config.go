@@ -281,6 +281,14 @@ const (
 
 	// IdleConnectionTimeout is the time between the controller resetting all idle connections.
 	IdleConnectionTimeout = "idle-connection-timeout"
+
+	// ReadTimeout is the maximum duration for reading the entire HTTP request, including the body.
+	// A zero or negative value means no timeout.
+	ReadTimeout = "read-timeout"
+
+	// WriteTimeout is the maximum duration before timing out writes of the HTTP response.
+	// A zero or negative value means no timeout.
+	WriteTimeout = "write-timeout"
 )
 
 // Attribute Defaults
@@ -422,6 +430,16 @@ const (
 	// controller will reset idle connections. Apache defaults to a much more
 	// aggressive 5s timeout.
 	DefaultIdleConnectionTimeout = 30 * time.Second
+
+	// DefaultReadTimeout is disabled by default (0 means no timeout).
+	// This allows long-running operations like charm uploads to complete.
+	// The IdleTimeout handles cleanup of idle connections.
+	DefaultReadTimeout = 0 * time.Second
+
+	// DefaultWriteTimeout is disabled by default (0 means no timeout).
+	// This allows long-running operations to complete their responses.
+	// The IdleTimeout handles cleanup of idle connections.
+	DefaultWriteTimeout = 0 * time.Second
 )
 
 var (
@@ -434,6 +452,8 @@ var (
 		APIPort,
 		APIPortOpenDelay,
 		IdleConnectionTimeout,
+		ReadTimeout,
+		WriteTimeout,
 		AutocertDNSNameKey,
 		AutocertURLKey,
 		CACertKey,
@@ -695,6 +715,18 @@ func (c Config) APIPortOpenDelay() time.Duration {
 // IdleConnectionTimeout returns the time between the controller resetting all idle connections
 func (c Config) IdleConnectionTimeout() time.Duration {
 	return c.durationOrDefault(IdleConnectionTimeout, DefaultIdleConnectionTimeout)
+}
+
+// ReadTimeout returns the maximum duration for reading the entire HTTP request, including the body.
+// A zero or negative value means no timeout.
+func (c Config) ReadTimeout() time.Duration {
+	return c.durationOrDefault(ReadTimeout, DefaultReadTimeout)
+}
+
+// WriteTimeout returns the maximum duration before timing out writes of the HTTP response.
+// A zero or negative value means no timeout.
+func (c Config) WriteTimeout() time.Duration {
+	return c.durationOrDefault(WriteTimeout, DefaultWriteTimeout)
 }
 
 // ControllerAPIPort returns the optional API port to be used for

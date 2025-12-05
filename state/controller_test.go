@@ -39,6 +39,8 @@ func (s *ControllerSuite) TestControllerAndModelConfigInitialisation(c *gc.C) {
 		controller.AllowModelAccessKey,
 		controller.APIPortOpenDelay,
 		controller.IdleConnectionTimeout,
+		controller.ReadTimeout,
+		controller.WriteTimeout,
 		controller.AuditLogExcludeMethods,
 		controller.AutocertURLKey,
 		controller.AutocertDNSNameKey,
