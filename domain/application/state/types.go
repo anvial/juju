@@ -39,22 +39,22 @@ type KeyValue struct {
 
 // applicationUUIDAndName is used to get the ID and name of an application.
 type applicationUUIDAndName struct {
-	ID   coreapplication.UUID `db:"uuid"`
-	Name string               `db:"name"`
+	ID   string `db:"uuid"`
+	Name string `db:"name"`
 }
 
 type applicationChannel struct {
-	ApplicationID coreapplication.UUID `db:"application_uuid"`
-	Track         string               `db:"track"`
-	Risk          string               `db:"risk"`
-	Branch        string               `db:"branch"`
+	ApplicationID string `db:"application_uuid"`
+	Track         string `db:"track"`
+	Risk          string `db:"risk"`
+	Branch        string `db:"branch"`
 }
 
 type applicationPlatform struct {
-	ApplicationID  coreapplication.UUID `db:"application_uuid"`
-	OSTypeID       int                  `db:"os_id"`
-	Channel        string               `db:"channel"`
-	ArchitectureID int                  `db:"architecture_id"`
+	ApplicationID  string `db:"application_uuid"`
+	OSTypeID       int    `db:"os_id"`
+	Channel        string `db:"channel"`
+	ArchitectureID int    `db:"architecture_id"`
 }
 
 // applicationName is used to get the name of an application.
@@ -63,27 +63,27 @@ type applicationName struct {
 }
 
 type setApplicationDetails struct {
-	UUID      coreapplication.UUID `db:"uuid"`
-	Name      string               `db:"name"`
-	CharmUUID corecharm.ID         `db:"charm_uuid"`
-	LifeID    life.Life            `db:"life_id"`
-	SpaceUUID string               `db:"space_uuid"`
+	UUID      string    `db:"uuid"`
+	Name      string    `db:"name"`
+	CharmUUID string    `db:"charm_uuid"`
+	LifeID    life.Life `db:"life_id"`
+	SpaceUUID string    `db:"space_uuid"`
 }
 
 type applicationDetails struct {
-	UUID                   coreapplication.UUID `db:"uuid"`
-	Name                   string               `db:"name"`
-	CharmUUID              corecharm.ID         `db:"charm_uuid"`
-	LifeID                 life.Life            `db:"life_id"`
-	SpaceUUID              string               `db:"space_uuid"`
-	IsApplicationSynthetic bool                 `db:"is_application_synthetic"`
+	UUID                   string    `db:"uuid"`
+	Name                   string    `db:"name"`
+	CharmUUID              string    `db:"charm_uuid"`
+	LifeID                 life.Life `db:"life_id"`
+	SpaceUUID              string    `db:"space_uuid"`
+	IsApplicationSynthetic bool      `db:"is_application_synthetic"`
 }
 
 type applicationScale struct {
-	ApplicationID coreapplication.UUID `db:"application_uuid"`
-	Scaling       bool                 `db:"scaling"`
-	Scale         int                  `db:"scale"`
-	ScaleTarget   int                  `db:"scale_target"`
+	ApplicationID string `db:"application_uuid"`
+	Scaling       bool   `db:"scaling"`
+	Scale         int    `db:"scale"`
+	ScaleTarget   int    `db:"scale_target"`
 }
 
 type architectureMap struct {
@@ -116,20 +116,20 @@ type unitNameLife struct {
 }
 
 type unitRow struct {
-	UnitUUID                coreunit.UUID        `db:"uuid"`
-	Name                    coreunit.Name        `db:"name"`
-	LifeID                  life.Life            `db:"life_id"`
-	ApplicationID           coreapplication.UUID `db:"application_uuid"`
-	NetNodeID               string               `db:"net_node_uuid"`
-	CharmUUID               corecharm.ID         `db:"charm_uuid"`
-	PasswordHash            sql.NullString       `db:"password_hash"`
-	PasswordHashAlgorithmID sql.NullInt16        `db:"password_hash_algorithm_id"`
+	UnitUUID                string         `db:"uuid"`
+	Name                    string         `db:"name"`
+	LifeID                  life.Life      `db:"life_id"`
+	ApplicationID           string         `db:"application_uuid"`
+	NetNodeID               string         `db:"net_node_uuid"`
+	CharmUUID               string         `db:"charm_uuid"`
+	PasswordHash            sql.NullString `db:"password_hash"`
+	PasswordHashAlgorithmID sql.NullInt16  `db:"password_hash_algorithm_id"`
 }
 
 type unitDetails struct {
-	UnitUUID  coreunit.UUID `db:"uuid"`
-	NetNodeID string        `db:"net_node_uuid"`
-	Name      coreunit.Name `db:"name"`
+	UnitUUID  string `db:"uuid"`
+	NetNodeID string `db:"net_node_uuid"`
+	Name      string `db:"name"`
 }
 
 type unitAttributes struct {
@@ -141,9 +141,9 @@ type unitAttributes struct {
 }
 
 type unitPassword struct {
-	UnitUUID                coreunit.UUID `db:"uuid"`
-	PasswordHash            string        `db:"password_hash"`
-	PasswordHashAlgorithmID int           `db:"password_hash_algorithm_id"`
+	UnitUUID                string `db:"uuid"`
+	PasswordHash            string `db:"password_hash"`
+	PasswordHashAlgorithmID int    `db:"password_hash_algorithm_id"`
 }
 
 type unitUUIDs []coreunit.UUID
@@ -162,16 +162,16 @@ type unitLifeAndNetNode struct {
 }
 
 type unitStatusInfo struct {
-	UnitUUID  coreunit.UUID `db:"unit_uuid"`
-	StatusID  int           `db:"status_id"`
-	Message   string        `db:"message"`
-	Data      []byte        `db:"data"`
-	UpdatedAt *time.Time    `db:"updated_at"`
+	UnitUUID  string     `db:"unit_uuid"`
+	StatusID  int        `db:"status_id"`
+	Message   string     `db:"message"`
+	Data      []byte     `db:"data"`
+	UpdatedAt *time.Time `db:"updated_at"`
 }
 
 type cloudContainer struct {
-	UnitUUID   coreunit.UUID `db:"unit_uuid"`
-	ProviderID string        `db:"provider_id"`
+	UnitUUID   string `db:"unit_uuid"`
+	ProviderID string `db:"provider_id"`
 }
 
 type unitNameCloudContainer struct {
@@ -180,10 +180,10 @@ type unitNameCloudContainer struct {
 }
 
 type cloudService struct {
-	UUID            string               `db:"uuid"`
-	ApplicationUUID coreapplication.UUID `db:"application_uuid"`
-	NetNodeUUID     string               `db:"net_node_uuid"`
-	ProviderID      string               `db:"provider_id"`
+	UUID            string `db:"uuid"`
+	ApplicationUUID string `db:"application_uuid"`
+	NetNodeUUID     string `db:"net_node_uuid"`
+	ProviderID      string `db:"provider_id"`
 }
 
 type cloudServiceDevice struct {
@@ -207,8 +207,8 @@ type k8sPodPort struct {
 }
 
 type unitK8sPodPort struct {
-	UnitUUID coreunit.UUID `db:"unit_uuid"`
-	Port     string        `db:"port"`
+	UnitUUID string `db:"unit_uuid"`
+	Port     string `db:"port"`
 }
 
 type unitK8sPodInfo struct {
@@ -249,11 +249,11 @@ type subnet struct {
 // charmID represents a single charm row from the charm table, that only
 // contains the charm ID.
 type charmID struct {
-	UUID corecharm.ID `db:"uuid"`
+	UUID string `db:"uuid"`
 }
 
 type charmUUID struct {
-	UUID corecharm.ID `db:"charm_uuid"`
+	UUID string `db:"charm_uuid"`
 }
 
 // charmName is used to pass the name to the query.
@@ -711,13 +711,13 @@ type applicationCharmDownloadInfo struct {
 }
 
 type resourceToAdd struct {
-	UUID      string       `db:"uuid"`
-	CharmUUID corecharm.ID `db:"charm_uuid"`
-	Name      string       `db:"charm_resource_name"`
-	Revision  *int         `db:"revision"`
-	Origin    string       `db:"origin_type_name"`
-	State     string       `db:"state_name"`
-	CreatedAt time.Time    `db:"created_at"`
+	UUID      string    `db:"uuid"`
+	CharmUUID string    `db:"charm_uuid"`
+	Name      string    `db:"charm_resource_name"`
+	Revision  *int      `db:"revision"`
+	Origin    string    `db:"origin_type_name"`
+	State     string    `db:"state_name"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 // storagePoolType is used to represent the type value of a storage pool record.
@@ -762,10 +762,10 @@ type applicationConfig struct {
 }
 
 type setApplicationConfig struct {
-	ApplicationUUID coreapplication.UUID `db:"application_uuid"`
-	Key             string               `db:"key"`
-	Value           any                  `db:"value"`
-	TypeID          int                  `db:"type_id"`
+	ApplicationUUID string `db:"application_uuid"`
+	Key             string `db:"key"`
+	Value           any    `db:"value"`
+	TypeID          int    `db:"type_id"`
 }
 
 type applicationSettings struct {
@@ -773,8 +773,8 @@ type applicationSettings struct {
 }
 
 type setApplicationSettings struct {
-	ApplicationUUID coreapplication.UUID `db:"application_uuid"`
-	Trust           bool                 `db:"trust"`
+	ApplicationUUID string `db:"application_uuid"`
+	Trust           bool   `db:"trust"`
 }
 
 type applicationConfigHash struct {
@@ -822,15 +822,15 @@ type setApplicationConstraint struct {
 
 type setApplicationEndpointBinding struct {
 	UUID          corerelation.EndpointUUID `db:"uuid"`
-	ApplicationID coreapplication.UUID      `db:"application_uuid"`
+	ApplicationID string                    `db:"application_uuid"`
 	RelationUUID  string                    `db:"charm_relation_uuid"`
 	Space         sql.Null[string]          `db:"space_uuid"`
 }
 
 type setApplicationExtraEndpointBinding struct {
-	ApplicationID coreapplication.UUID `db:"application_uuid"`
-	RelationUUID  string               `db:"charm_extra_binding_uuid"`
-	Space         sql.Null[string]     `db:"space_uuid"`
+	ApplicationID string           `db:"application_uuid"`
+	RelationUUID  string           `db:"charm_extra_binding_uuid"`
+	Space         sql.Null[string] `db:"space_uuid"`
 }
 
 type setConstraint struct {

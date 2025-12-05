@@ -11,7 +11,6 @@ import (
 	"github.com/canonical/sqlair"
 
 	coreapplication "github.com/juju/juju/core/application"
-	corecharm "github.com/juju/juju/core/charm"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremachine "github.com/juju/juju/core/machine"
 	corestorage "github.com/juju/juju/core/storage"
@@ -560,8 +559,7 @@ SELECT &storageDirective.* FROM (
 func (st *State) insertApplicationStorageDirectives(
 	ctx context.Context,
 	tx *sqlair.TX,
-	uuid coreapplication.UUID,
-	charmUUID corecharm.ID,
+	uuid, charmUUID string,
 	directives []internal.CreateApplicationStorageDirectiveArg,
 ) error {
 	if len(directives) == 0 {
@@ -573,8 +571,8 @@ func (st *State) insertApplicationStorageDirectives(
 		insertDirectivesInput = append(
 			insertDirectivesInput,
 			insertApplicationStorageDirective{
-				ApplicationUUID: uuid.String(),
-				CharmUUID:       charmUUID.String(),
+				ApplicationUUID: uuid,
+				CharmUUID:       charmUUID,
 				Count:           d.Count,
 				Size:            d.Size,
 				StorageName:     d.Name.String(),
@@ -606,7 +604,7 @@ VALUES ($insertApplicationStorageDirective.*)
 func (st *InsertIAASUnitState) insertUnitStorageAttachments(
 	ctx context.Context,
 	tx *sqlair.TX,
-	unitUUID coreunit.UUID,
+	unitUUID string,
 	storageToAttach []internal.CreateUnitStorageAttachmentArg,
 ) error {
 	storageAttachmentArgs := makeInsertUnitStorageAttachmentArgs(
@@ -686,8 +684,7 @@ VALUES ($insertStorageVolumeAttachment.*)
 func (st *InsertIAASUnitState) insertUnitStorageDirectives(
 	ctx context.Context,
 	tx *sqlair.TX,
-	unitUUID coreunit.UUID,
-	charmUUID corecharm.ID,
+	unitUUID, charmUUID string,
 	args []internal.CreateUnitStorageDirectiveArg,
 ) error {
 	if len(args) == 0 {
@@ -705,12 +702,12 @@ INSERT INTO unit_storage_directive (*) VALUES ($insertUnitStorageDirective.*)
 	insertArgs := make([]insertUnitStorageDirective, 0, len(args))
 	for _, arg := range args {
 		insertArgs = append(insertArgs, insertUnitStorageDirective{
-			CharmUUID:       charmUUID.String(),
+			CharmUUID:       charmUUID,
 			Count:           arg.Count,
 			Size:            arg.Size,
 			StorageName:     arg.Name.String(),
 			StoragePoolUUID: arg.PoolUUID.String(),
-			UnitUUID:        unitUUID.String(),
+			UnitUUID:        unitUUID,
 		})
 	}
 
@@ -898,7 +895,7 @@ INSERT INTO storage_volume_status (*) VALUES ($insertStorageVolumeStatus.*)
 func (st *InsertIAASUnitState) insertUnitStorageOwnership(
 	ctx context.Context,
 	tx *sqlair.TX,
-	unitUUID coreunit.UUID,
+	unitUUID string,
 	storageToOwn []domainstorage.StorageInstanceUUID,
 ) error {
 	args := makeInsertUnitStorageOwnerArgs(ctx, unitUUID, storageToOwn)
@@ -1251,7 +1248,7 @@ func (st *InsertIAASUnitState) makeInsertUnitStorageInstanceArgs(
 // storage instance attachment arguments that correspond to the storage uuids.
 func makeInsertUnitStorageAttachmentArgs(
 	_ context.Context,
-	unitUUID coreunit.UUID,
+	unitUUID string,
 	storageToAttach []internal.CreateUnitStorageAttachmentArg,
 ) []insertStorageInstanceAttachment {
 	rval := make([]insertStorageInstanceAttachment, 0, len(storageToAttach))
@@ -1259,7 +1256,7 @@ func makeInsertUnitStorageAttachmentArgs(
 		rval = append(rval, insertStorageInstanceAttachment{
 			LifeID:              int(life.Alive),
 			StorageInstanceUUID: sa.StorageInstanceUUID.String(),
-			UnitUUID:            unitUUID.String(),
+			UnitUUID:            unitUUID,
 			UUID:                sa.UUID.String(),
 		})
 	}
@@ -1272,14 +1269,14 @@ func makeInsertUnitStorageAttachmentArgs(
 // instances supplied.
 func makeInsertUnitStorageOwnerArgs(
 	_ context.Context,
-	unitUUID coreunit.UUID,
+	unitUUID string,
 	storageToOwn []domainstorage.StorageInstanceUUID,
 ) []insertStorageUnitOwner {
 	rval := make([]insertStorageUnitOwner, 0, len(storageToOwn))
 	for _, instUUID := range storageToOwn {
 		rval = append(rval, insertStorageUnitOwner{
 			StorageInstanceUUID: instUUID.String(),
-			UnitUUID:            unitUUID.String(),
+			UnitUUID:            unitUUID,
 		})
 	}
 

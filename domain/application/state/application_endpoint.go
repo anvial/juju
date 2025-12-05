@@ -217,7 +217,7 @@ func (st *State) GetApplicationEndpointNames(ctx context.Context, appUUID coreap
 
 	var eps []charmRelationName
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUID)
+		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUID.String())
 		if err != nil {
 			return errors.Errorf("getting charm for application %q: %w", appUUID, err)
 		}
@@ -286,7 +286,7 @@ func (st *State) mergeApplicationEndpointBindings(ctx context.Context, tx *sqlai
 // insertApplicationEndpointsParams contains parameters required to insert
 // application endpoints into the database.
 type insertApplicationEndpointsParams struct {
-	appID coreapplication.UUID
+	appID string
 
 	// EndpointBindings is a map to bind application endpoint by name to a
 	// specific space. The default space is referenced by an empty key, if any.
@@ -354,7 +354,7 @@ func (st *State) insertApplicationEndpointBindings(ctx context.Context, tx *sqla
 func (st *State) insertApplicationRelationEndpointBindings(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appID coreapplication.UUID,
+	appUUID string,
 	relations []charmRelationName,
 	spaceNamesToUUID map[network.SpaceName]string,
 	bindings map[string]network.SpaceName,
@@ -392,7 +392,7 @@ VALUES ($setApplicationEndpointBinding.*)
 		}
 		inserts[i] = setApplicationEndpointBinding{
 			UUID:          uuid,
-			ApplicationID: appID,
+			ApplicationID: appUUID,
 			RelationUUID:  relation.UUID,
 			Space:         space,
 		}
@@ -406,7 +406,7 @@ VALUES ($setApplicationEndpointBinding.*)
 func (st *State) insertApplicationExtraBindings(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appID coreapplication.UUID,
+	appID string,
 	extraBindings []charmExtraBinding,
 	spaceNamesToUUID map[network.SpaceName]string,
 	bindings map[string]network.SpaceName,
@@ -1062,7 +1062,7 @@ VALUES ($setApplicationEndpointBinding.*)
 		}
 		inserts[i] = setApplicationEndpointBinding{
 			UUID:          uuid,
-			ApplicationID: coreapplication.UUID(appIdent.UUID),
+			ApplicationID: appIdent.UUID,
 			RelationUUID:  relation.UUID,
 			// New relations should inherit the default space. If a binding is
 			// specified, it will be set later
@@ -1125,7 +1125,7 @@ VALUES ($setApplicationExtraEndpointBinding.*)
 		originalboundSpaceUUID, _ := extraBindingsMap[charmExtraBinding.Name]
 
 		refreshedExtraBindings = append(refreshedExtraBindings, setApplicationExtraEndpointBinding{
-			ApplicationID: coreapplication.UUID(appIdent.UUID),
+			ApplicationID: appIdent.UUID,
 			RelationUUID:  charmExtraBinding.UUID,
 			Space:         originalboundSpaceUUID,
 		})

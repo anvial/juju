@@ -78,7 +78,7 @@ WHERE uuid = $charmID.uuid;
 //   - If the charm exists, it returns the id and the error
 //     [applicationerrors.CharmAlreadyExists]
 //   - Any other error are returned if the check fails
-func (s *State) checkCharmReferenceExists(ctx context.Context, tx *sqlair.TX, referenceName string, revision int) (corecharm.ID, error) {
+func (s *State) checkCharmReferenceExists(ctx context.Context, tx *sqlair.TX, referenceName string, revision int) (string, error) {
 	selectQuery := `
 SELECT &charmID.*
 FROM charm

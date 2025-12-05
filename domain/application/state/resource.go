@@ -10,8 +10,6 @@ import (
 
 	"github.com/canonical/sqlair"
 
-	coreapplication "github.com/juju/juju/core/application"
-	corecharm "github.com/juju/juju/core/charm"
 	coreresource "github.com/juju/juju/core/resource"
 	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/application/charm"
@@ -41,7 +39,7 @@ func (st *State) createApplicationResources(
 // Returns a slice of resourceToAdd and an error if any issues occur during
 // creation.
 func (st *State) buildResourcesToAdd(
-	charmUUID corecharm.ID,
+	charmUUID string,
 	charmSource charm.CharmSource,
 	appResources []application.AddApplicationResourceArg,
 ) ([]resourceToAdd, error) {
@@ -99,8 +97,8 @@ func (st *State) buildResourcesToAdd(
 }
 
 type insertResourcesArgs struct {
-	appID        coreapplication.UUID
-	charmUUID    corecharm.ID
+	appID        string
+	charmUUID    string
 	charmSource  charm.CharmSource
 	appResources []application.AddApplicationResourceArg
 }
@@ -129,7 +127,7 @@ VALUES ($linkResourceApplication.*)`, linkResourceApplication{})
 	}
 
 	// Insert resources
-	appUUID := args.appID.String()
+	appUUID := args.appID
 	for _, res := range resources {
 		// Insert the resource.
 		if err = tx.Query(ctx, insertStmt, res).Run(); database.IsErrConstraintForeignKey(err) {
@@ -172,7 +170,7 @@ type uuids []string
 func (st *State) resolvePendingResources(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appID coreapplication.UUID,
+	appUUID string,
 	charmSource charm.CharmSource,
 	resources []coreresource.UUID,
 ) error {
@@ -218,7 +216,6 @@ VALUES ($linkResourceApplication.*)`, linkResourceApplication{})
 	}
 
 	// Insert resources
-	appUUID := appID.String()
 	for _, res := range resUUIDs {
 		// Link the resource to the application.
 		if err = tx.Query(ctx, linkStmt, linkResourceApplication{

@@ -105,7 +105,7 @@ func (s *subordinateUnitSuite) TestAddSubordinateUnit(c *tc.C) {
 		},
 	}
 	s.insertIAASUnitState.EXPECT().InsertIAASUnit(
-		gomock.Any(), gomock.Any(), subordinateApplicationUUID, subordinateCharmUUID, addIAASUnitArgMatcher{
+		gomock.Any(), gomock.Any(), subordinateApplicationUUID.String(), subordinateCharmUUID.String(), addIAASUnitArgMatcher{
 			c:        c,
 			expected: args,
 		}).Return(
@@ -196,7 +196,9 @@ func (s *subordinateUnitSuite) TestAddSubordinateUnitAlreadyRelated(c *tc.C) {
 		// Arrange: ensure the unit_principle row exists, as if the
 		// subordinate was already created.
 		err = s.state.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), subordinateUnitUUID.String())
-		c.Check(err, tc.ErrorIsNil)
+		if err != nil {
+			return err
+		}
 
 		// Act
 		obtainedData, err = s.state.addSubordinateUnit(ctx, tx, relationUUID.String(), relationUnitUUID.String(), principalUnitUUID.String())
@@ -237,7 +239,9 @@ func (s *subordinateUnitSuite) TestAddSubordinateUnitSubordinateNotAlive(c *tc.C
 		// Arrange: ensure the unit_principle row exists, as if the
 		// subordinate was already created.
 		err = s.state.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), subordinateUnitUUID.String())
-		c.Check(err, tc.ErrorIsNil)
+		if err != nil {
+			return err
+		}
 
 		// Act
 		obtainedData, err = s.state.addSubordinateUnit(ctx, tx, relationUUID.String(), relationUnitUUID.String(), principalUnitUUID.String())

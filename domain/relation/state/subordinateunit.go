@@ -9,8 +9,6 @@ import (
 
 	"github.com/canonical/sqlair"
 
-	coreapplication "github.com/juju/juju/core/application"
-	"github.com/juju/juju/core/charm"
 	corelife "github.com/juju/juju/core/life"
 	"github.com/juju/juju/core/machine"
 	corestatus "github.com/juju/juju/core/status"
@@ -32,8 +30,7 @@ type InsertIAASUnitState interface {
 	InsertIAASUnit(
 		ctx context.Context,
 		tx *sqlair.TX,
-		appUUID coreapplication.UUID,
-		charmUUID charm.ID,
+		appUUID, charmUUID string,
 		args application.AddIAASUnitArg,
 	) (unit.Name, unit.UUID, []machine.Name, error)
 }
@@ -62,7 +59,7 @@ func (st *State) addSubordinateUnit(
 	}
 
 	// Check if there is already a subordinate unit.
-	if exists, err := st.subordinateUnitExists(ctx, tx, subAppUUID.String(), principalUnitUUID); err != nil {
+	if exists, err := st.subordinateUnitExists(ctx, tx, subAppUUID, principalUnitUUID); err != nil {
 		return empty, errors.Errorf("checking if subordinate already exists: %w", err)
 	} else if exists {
 		return empty, nil
@@ -179,7 +176,7 @@ WHERE  u.uuid = $entityUUID.uuid
 	return dbVal, nil
 }
 
-func (s *State) getCharmIDByApplicationUUID(ctx context.Context, tx *sqlair.TX, appID coreapplication.UUID) (charm.ID, error) {
+func (s *State) getCharmIDByApplicationUUID(ctx context.Context, tx *sqlair.TX, appID string) (string, error) {
 	query := `
 SELECT charm_uuid AS &entityUUID.uuid
 FROM application
@@ -190,13 +187,13 @@ WHERE uuid = $entityUUID.uuid;
 		return "", errors.Errorf("preparing query: %w", err)
 	}
 	var charmUUID entityUUID
-	if err := tx.Query(ctx, stmt, entityUUID{UUID: appID.String()}).Get(&charmUUID); errors.Is(err, sqlair.ErrNoRows) {
+	if err := tx.Query(ctx, stmt, entityUUID{UUID: appID}).Get(&charmUUID); errors.Is(err, sqlair.ErrNoRows) {
 		return "", applicationerrors.ApplicationNotFound
 	} else if err != nil {
 		return "", errors.Errorf("getting charm ID by application UUID: %w", err)
 	}
 
-	return charm.ParseID(charmUUID.UUID)
+	return charmUUID.UUID, nil
 }
 
 // recordUnitPrincipal records a subordinate-principal relationship between
@@ -240,7 +237,7 @@ func (st *State) findRelatedSubordinateApplication(
 	ctx context.Context,
 	tx *sqlair.TX,
 	unitUUID string,
-) (coreapplication.UUID, bool, error) {
+) (string, bool, error) {
 	type getSub struct {
 		UnitUUID      string `db:"unit_uuid"`
 		Subordinate   bool   `db:"subordinate"`
@@ -284,7 +281,7 @@ WHERE  ru.uuid = $getSub.unit_uuid
 		return "", false, applicationerrors.ApplicationNotAlive
 	}
 
-	return coreapplication.UUID(arg.ApplicationID), arg.Subordinate, nil
+	return arg.ApplicationID, arg.Subordinate, nil
 }
 
 // subordinateUnitExists checks if the principal unit already has a subordinate

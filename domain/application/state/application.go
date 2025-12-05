@@ -97,10 +97,11 @@ func (st *State) CreateIAASApplication(
 	if err != nil {
 		return "", nil, errors.Capture(err)
 	}
+	appUUIDStr := appUUID.String()
 
 	var machineNames []coremachine.Name
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := st.insertApplication(ctx, tx, name, appUUID, args.BaseAddApplicationArg); err != nil {
+		if err := st.insertApplication(ctx, tx, name, appUUIDStr, args.BaseAddApplicationArg); err != nil {
 			return errors.Errorf("inserting IAAS application %q: %w", name, err)
 		}
 
@@ -108,7 +109,7 @@ func (st *State) CreateIAASApplication(
 			return nil
 		}
 
-		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUID)
+		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUIDStr)
 		if err != nil {
 			return errors.Errorf(
 				"getting charm uuid for new application %q: %w",
@@ -117,9 +118,9 @@ func (st *State) CreateIAASApplication(
 		}
 
 		if machineNames, err = st.insertIAASApplicationUnits(
-			ctx, tx, appUUID, charmUUID, units,
+			ctx, tx, appUUIDStr, charmUUID, units,
 		); err != nil {
-			return errors.Errorf("inserting IAAS units for application %q: %w", appUUID, err)
+			return errors.Errorf("inserting IAAS units for application %q: %w", appUUIDStr, err)
 		}
 		return nil
 	})
@@ -149,9 +150,10 @@ func (st *State) CreateCAASApplication(
 	if err != nil {
 		return "", errors.Capture(err)
 	}
+	appUUIDStr := appUUID.String()
 
 	scaleInfo := applicationScale{
-		ApplicationID: appUUID,
+		ApplicationID: appUUIDStr,
 		Scale:         args.Scale,
 	}
 	createScale := `INSERT INTO application_scale (*) VALUES ($applicationScale.*)`
@@ -161,7 +163,7 @@ func (st *State) CreateCAASApplication(
 	}
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := st.insertApplication(ctx, tx, name, appUUID, args.BaseAddApplicationArg); err != nil {
+		if err := st.insertApplication(ctx, tx, name, appUUIDStr, args.BaseAddApplicationArg); err != nil {
 			return errors.Errorf("inserting CAAS application %q: %w", name, err)
 		}
 
@@ -173,7 +175,7 @@ func (st *State) CreateCAASApplication(
 			return nil
 		}
 
-		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUID)
+		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUIDStr)
 		if err != nil {
 			return errors.Errorf(
 				"getting charm uuid for new application %q: %w",
@@ -181,8 +183,8 @@ func (st *State) CreateCAASApplication(
 			)
 		}
 
-		if err = st.insertCAASApplicationUnits(ctx, tx, appUUID, charmUUID, units); err != nil {
-			return errors.Errorf("inserting CAAS units for application %q: %w", appUUID, err)
+		if err = st.insertCAASApplicationUnits(ctx, tx, appUUIDStr, charmUUID, units); err != nil {
+			return errors.Errorf("inserting CAAS units for application %q: %w", appUUIDStr, err)
 		}
 		return nil
 	})
@@ -195,8 +197,7 @@ func (st *State) CreateCAASApplication(
 func (st *State) insertApplication(
 	ctx context.Context,
 	tx *sqlair.TX,
-	name string,
-	appUUID coreapplication.UUID,
+	name, appUUID string,
 	args application.BaseAddApplicationArg,
 ) error {
 	charmID, err := corecharm.NewID()
@@ -214,7 +215,7 @@ func (st *State) insertApplication(
 	appDetails := setApplicationDetails{
 		UUID:      appUUID,
 		Name:      name,
-		CharmUUID: charmID,
+		CharmUUID: charmID.String(),
 		LifeID:    life.Alive,
 		// We return either the default space from model config or the alpha space
 		// if the model config is not set.
@@ -333,13 +334,13 @@ func (st *State) insertApplication(
 	if err := st.insertApplicationSettings(ctx, tx, appDetails.UUID, args.Settings); err != nil {
 		return errors.Errorf("inserting settings for application %q: %w", name, err)
 	}
-	if err := st.updateConfigHash(ctx, tx, entityUUID{UUID: appUUID.String()}); err != nil {
+	if err := st.updateConfigHash(ctx, tx, entityUUID{UUID: appUUID}); err != nil {
 		return errors.Errorf("refreshing config hash for application %q: %w", name, err)
 	}
 	if err := st.insertApplicationStatus(ctx, tx, appDetails.UUID, args.Status); err != nil {
 		return errors.Errorf("inserting status for application %q: %w", name, err)
 	}
-	if err := st.updateDefaultSpace(ctx, tx, appDetails.UUID.String(), args.EndpointBindings); err != nil {
+	if err := st.updateDefaultSpace(ctx, tx, appDetails.UUID, args.EndpointBindings); err != nil {
 		return errors.Errorf("updating default space: %w", err)
 	}
 	if err := st.insertApplicationEndpointBindings(ctx, tx, insertApplicationEndpointsParams{
@@ -358,7 +359,7 @@ func (st *State) insertApplication(
 		return errors.Errorf("inserting device constraints for application %q: %w", appUUID, err)
 	}
 	charmModifiedVersionNamespace := domainsequence.MakePrefixNamespace(
-		application.ApplicationCharmSequenceNamespace, appDetails.UUID.String(),
+		application.ApplicationCharmSequenceNamespace, appDetails.UUID,
 	)
 	if _, err := sequencestate.NextValue(ctx, st, tx, charmModifiedVersionNamespace); err != nil {
 		return errors.Errorf("initialising charm modified version sequence: %w", err)
@@ -423,8 +424,7 @@ VALUES ($setApplicationDetails.uuid)
 
 func (st *State) insertIAASApplicationUnits(
 	ctx context.Context, tx *sqlair.TX,
-	appUUID coreapplication.UUID,
-	charmUUID corecharm.ID,
+	appUUID, charmUUID string,
 	units []application.AddIAASUnitArg,
 ) ([]coremachine.Name, error) {
 	var machineNames []coremachine.Name
@@ -441,8 +441,8 @@ func (st *State) insertIAASApplicationUnits(
 
 func (st *State) insertCAASApplicationUnits(
 	ctx context.Context, tx *sqlair.TX,
-	appUUID coreapplication.UUID,
-	charmUUID corecharm.ID,
+	appUUID,
+	charmUUID string,
 	units []application.AddCAASUnitArg,
 ) error {
 	for i, unit := range units {
@@ -509,7 +509,7 @@ func (st *State) GetApplicationScaleState(ctx context.Context, appUUID coreappli
 	var appScale application.ScaleState
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
-		appScale, err = st.getApplicationScaleState(ctx, tx, appUUID)
+		appScale, err = st.getApplicationScaleState(ctx, tx, appUUID.String())
 		return err
 	})
 	if err != nil {
@@ -518,7 +518,7 @@ func (st *State) GetApplicationScaleState(ctx context.Context, appUUID coreappli
 	return appScale, nil
 }
 
-func (st *State) getApplicationScaleState(ctx context.Context, tx *sqlair.TX, appUUID coreapplication.UUID) (application.ScaleState, error) {
+func (st *State) getApplicationScaleState(ctx context.Context, tx *sqlair.TX, appUUID string) (application.ScaleState, error) {
 	appScale := applicationScale{ApplicationID: appUUID}
 	queryScale := `
 SELECT &applicationScale.*
@@ -586,7 +586,7 @@ func (st *State) GetApplicationDetails(ctx context.Context, appUUID coreapplicat
 		return application.ApplicationDetails{}, errors.Capture(err)
 	}
 
-	app := applicationDetails{UUID: appUUID}
+	app := applicationDetails{UUID: appUUID.String()}
 	query := `
 SELECT a.uuid AS &applicationDetails.uuid,
 	   a.name AS &applicationDetails.name,
@@ -616,7 +616,7 @@ WHERE a.uuid = $applicationDetails.uuid;
 	}
 
 	return application.ApplicationDetails{
-		UUID:                   app.UUID,
+		UUID:                   coreapplication.UUID(app.UUID),
 		Life:                   app.LifeID,
 		Name:                   app.Name,
 		IsApplicationSynthetic: app.IsApplicationSynthetic,
@@ -663,7 +663,7 @@ WHERE a.name = $applicationDetails.name;
 	}
 
 	return application.ApplicationDetails{
-		UUID:                   app.UUID,
+		UUID:                   coreapplication.UUID(app.UUID),
 		Life:                   app.LifeID,
 		Name:                   app.Name,
 		IsApplicationSynthetic: app.IsApplicationSynthetic,
@@ -733,7 +733,7 @@ func (st *State) GetApplicationLifeByName(ctx context.Context, appName string) (
 		}
 		return nil
 	})
-	return app.UUID, app.LifeID, errors.Capture(err)
+	return coreapplication.UUID(app.UUID), app.LifeID, errors.Capture(err)
 }
 
 // CheckAllApplicationsAndUnitsAreAlive checks that all applications and units
@@ -829,7 +829,7 @@ func (st *State) SetDesiredApplicationScale(ctx context.Context, appUUID coreapp
 	}
 
 	scaleDetails := applicationScale{
-		ApplicationID: appUUID,
+		ApplicationID: appUUID.String(),
 		Scale:         scale,
 	}
 	upsertApplicationScale := `
@@ -867,7 +867,7 @@ WHERE application_uuid = $applicationScale.application_uuid
 	}
 	var newScale int
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		currentScaleState, err := st.getApplicationScaleState(ctx, tx, appUUID)
+		currentScaleState, err := st.getApplicationScaleState(ctx, tx, appUUID.String())
 		if err != nil {
 			return errors.Capture(err)
 		}
@@ -879,7 +879,7 @@ WHERE application_uuid = $applicationScale.application_uuid
 		}
 
 		scaleDetails := applicationScale{
-			ApplicationID: appUUID,
+			ApplicationID: appUUID.String(),
 			Scale:         newScale,
 		}
 		return tx.Query(ctx, upsertStmt, scaleDetails).Run()
@@ -1131,7 +1131,7 @@ INSERT INTO link_layer_device (*) VALUES ($cloudServiceDevice.*)
 	return devUUID, nil
 }
 
-func (st *State) deleteCloudServiceAddresses(ctx context.Context, tx *sqlair.TX, appUUID coreapplication.UUID, providerID string) error {
+func (st *State) deleteCloudServiceAddresses(ctx context.Context, tx *sqlair.TX, appUUID, providerID string) error {
 	cloudService := cloudService{
 		ApplicationUUID: appUUID,
 		ProviderID:      providerID,
@@ -1592,7 +1592,7 @@ func (st *State) GetCharmIDByApplicationName(ctx context.Context, name string) (
 		return "", errors.Capture(err)
 	}
 
-	var result corecharm.ID
+	var result string
 	if err := db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		appUUID, err := st.getApplicationUUID(ctx, tx, name)
 		if err != nil {
@@ -1609,7 +1609,7 @@ func (st *State) GetCharmIDByApplicationName(ctx context.Context, name string) (
 		return "", errors.Capture(err)
 	}
 
-	return result, nil
+	return corecharm.ID(result), nil
 }
 
 // GetCharmByApplicationUUID returns the charm for the specified application
@@ -1628,7 +1628,7 @@ func (st *State) GetCharmByApplicationUUID(ctx context.Context, appUUID coreappl
 
 	var ch charm.Charm
 	if err := db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUID)
+		charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUID.String())
 		if err != nil {
 			return errors.Errorf("getting charm ID from application UUID %q: %w", appUUID, err)
 		}
@@ -1664,7 +1664,7 @@ func (st *State) SetApplicationCharm(
 		return errors.Capture(err)
 	}
 
-	charmIdent := charmID{UUID: chID}
+	charmIdent := charmID{UUID: chID.String()}
 	appIdent := entityUUID{UUID: appID.String()}
 
 	setAppCharmStmt, err := st.Prepare(`
@@ -1717,7 +1717,7 @@ WHERE  uuid = $entityUUID.uuid
 			return errors.Errorf("refreshing application endpoint bindings: %w", err)
 		}
 		if params.Channel != nil {
-			if err := st.upsertApplicationChannel(ctx, tx, *params.Channel, appID); err != nil {
+			if err := st.upsertApplicationChannel(ctx, tx, *params.Channel, appID.String()); err != nil {
 				return errors.Errorf("updating application channel: %w", err)
 			}
 		}
@@ -1744,7 +1744,7 @@ WHERE  uuid = $entityUUID.uuid
 	return nil
 }
 
-func (st *State) upsertApplicationChannel(ctx context.Context, tx *sqlair.TX, channel deployment.Channel, appID coreapplication.UUID) error {
+func (st *State) upsertApplicationChannel(ctx context.Context, tx *sqlair.TX, channel deployment.Channel, appID string) error {
 	appChannel := applicationChannel{
 		ApplicationID: appID,
 		Track:         channel.Track,
@@ -1841,7 +1841,7 @@ WHERE u.name = $unitName.name;
 	if err != nil {
 		return "", "", errors.Errorf("querying unit %q application UUID: %w", name, err)
 	}
-	return app.ID, app.Name, nil
+	return coreapplication.UUID(app.ID), app.Name, nil
 }
 
 // GetCharmModifiedVersion looks up the charm modified version of the given
@@ -1967,7 +1967,7 @@ func (st *State) ResolveCharmDownload(ctx context.Context, id corecharm.ID, info
 		return errors.Capture(err)
 	}
 
-	charmUUID := charmID{UUID: id}
+	charmUUID := charmID{UUID: id.String()}
 
 	resolvedQuery := `
 SELECT &charmAvailable.*
@@ -2333,7 +2333,7 @@ ON CONFLICT(application_uuid) DO UPDATE SET
 			return errors.Errorf("encoding config type: %w", err)
 		}
 		upserts = append(upserts, setApplicationConfig{
-			ApplicationUUID: coreapplication.UUID(ident.UUID),
+			ApplicationUUID: ident.UUID,
 			Key:             k,
 			Value:           cfgVal.Value,
 			TypeID:          typeID,
@@ -2353,7 +2353,7 @@ ON CONFLICT(application_uuid) DO UPDATE SET
 
 		if settings.Trust != nil {
 			if err := tx.Query(ctx, upsertSettingsStmt, setApplicationSettings{
-				ApplicationUUID: appID,
+				ApplicationUUID: appID.String(),
 				Trust:           *settings.Trust,
 			}).Run(); err != nil {
 				return errors.Errorf("upserting settings: %w", err)
@@ -2441,7 +2441,7 @@ ON CONFLICT(application_uuid) DO UPDATE SET
 		}
 
 		if err := tx.Query(ctx, settingsStmt, setApplicationSettings{
-			ApplicationUUID: coreapplication.UUID(ident.UUID),
+			ApplicationUUID: ident.UUID,
 			Trust:           false,
 		}).Run(); err != nil {
 			return errors.Errorf("deleting setting: %w", err)
@@ -2501,7 +2501,7 @@ WHERE uuid = $entityUUID.uuid;
 		return "", charm.Config{}, errors.Capture(err)
 	}
 
-	return ident.UUID, charmConfig, nil
+	return corecharm.ID(ident.UUID), charmConfig, nil
 }
 
 // GetApplicationName returns the name of the specified application.
@@ -2516,7 +2516,7 @@ func (st *State) GetApplicationName(ctx context.Context, appID coreapplication.U
 	var name string
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
-		name, err = st.us.getApplicationName(ctx, tx, appID)
+		name, err = st.us.getApplicationName(ctx, tx, appID.String())
 		return err
 	})
 	if err != nil {
@@ -2535,14 +2535,14 @@ func (st *State) GetApplicationUUIDByName(ctx context.Context, name string) (cor
 		return "", errors.Capture(err)
 	}
 
-	var id coreapplication.UUID
+	var id string
 	if err := db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		id, err = st.getApplicationUUID(ctx, tx, name)
 		return err
 	}); err != nil {
 		return "", errors.Capture(err)
 	}
-	return id, nil
+	return coreapplication.UUID(id), nil
 }
 
 // ShouldAllowCharmUpgradeOnError indicates if the units of an application
@@ -2589,7 +2589,8 @@ WHERE  name = $getCharmUpgradeOnError.name AND c.source_id < 2;
 func (st *InsertIAASUnitState) getApplicationName(
 	ctx context.Context,
 	tx *sqlair.TX,
-	id coreapplication.UUID) (string, error) {
+	id string,
+) (string, error) {
 	arg := applicationUUIDAndName{
 		ID: id,
 	}
@@ -2816,14 +2817,14 @@ func (st *State) SetApplicationConstraints(ctx context.Context, appID coreapplic
 			return errors.Capture(err)
 		}
 
-		return st.setApplicationConstraints(ctx, tx, appID, cons)
+		return st.setApplicationConstraints(ctx, tx, appID.String(), cons)
 	})
 }
 
 func (st *State) setApplicationConstraints(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appID coreapplication.UUID,
+	appUUID string,
 	cons constraints.Constraints,
 ) error {
 
@@ -2938,7 +2939,7 @@ ON CONFLICT (application_uuid) DO NOTHING
 	// First check if the constraint already exists, in that case
 	// we need to update it, unsetting the nil values.
 	var retrievedConstraintUUID constraintUUID
-	err = tx.Query(ctx, selectConstraintUUIDStmt, applicationUUID{ApplicationUUID: appID.String()}).Get(&retrievedConstraintUUID)
+	err = tx.Query(ctx, selectConstraintUUIDStmt, applicationUUID{ApplicationUUID: appUUID}).Get(&retrievedConstraintUUID)
 	if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
 		return errors.Capture(err)
 	} else if err == nil {
@@ -3002,7 +3003,7 @@ ON CONFLICT (application_uuid) DO NOTHING
 
 	return errors.Capture(
 		tx.Query(ctx, insertAppConstraintsStmt, setApplicationConstraint{
-			ApplicationUUID: appID.String(),
+			ApplicationUUID: appUUID,
 			ConstraintUUID:  cUUIDStr,
 		}).Run(),
 	)
@@ -3072,7 +3073,7 @@ func (st *State) decodeDeviceConstraints(cons []deviceConstraint) map[string]dev
 	return res
 }
 
-func (st *State) insertDeviceConstraints(ctx context.Context, tx *sqlair.TX, appID coreapplication.UUID, cons map[string]devices.Constraints) error {
+func (st *State) insertDeviceConstraints(ctx context.Context, tx *sqlair.TX, appUUID string, cons map[string]devices.Constraints) error {
 	if len(cons) == 0 {
 		return nil
 	}
@@ -3085,7 +3086,7 @@ func (st *State) insertDeviceConstraints(ctx context.Context, tx *sqlair.TX, app
 		}
 		setDeviceConstraints = append(setDeviceConstraints, setDeviceConstraint{
 			UUID:            uuid.String(),
-			ApplicationUUID: appID.String(),
+			ApplicationUUID: appUUID,
 			Name:            name,
 			Count:           deviceCons.Count,
 			Type:            string(deviceCons.Type),
@@ -3299,7 +3300,7 @@ func encodeConstraints(constraintUUID string, cons constraints.Constraints, cont
 //
 // If no application is found, an error satisfying
 // [applicationerrors.ApplicationNotFound] is returned.
-func (st *State) getApplicationUUID(ctx context.Context, tx *sqlair.TX, name string) (coreapplication.UUID, error) {
+func (st *State) getApplicationUUID(ctx context.Context, tx *sqlair.TX, name string) (string, error) {
 	app := applicationUUIDAndName{Name: name}
 	queryApplicationStmt, err := st.Prepare(`
 SELECT a.uuid AS &applicationUUIDAndName.uuid
@@ -3385,7 +3386,7 @@ WHERE application_uuid = $entityUUID.uuid;
 func (st *State) insertApplicationConfig(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appID coreapplication.UUID,
+	appID string,
 	config map[string]application.AddApplicationConfig,
 ) error {
 	if len(config) == 0 {
@@ -3426,7 +3427,7 @@ VALUES ($setApplicationConfig.*);
 func (st *State) insertApplicationSettings(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appID coreapplication.UUID,
+	appID string,
 	settings application.ApplicationSettings,
 ) error {
 	insertQuery := `
@@ -3451,7 +3452,7 @@ VALUES ($setApplicationSettings.*);
 func (st *State) insertApplicationStatus(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appID coreapplication.UUID,
+	appUUID string,
 	sts *status.StatusInfo[status.WorkloadStatusType],
 ) error {
 	if sts == nil {
@@ -3473,7 +3474,7 @@ INSERT INTO application_status (*) VALUES ($applicationStatus.*);
 	}
 
 	if err := tx.Query(ctx, insertStmt, applicationStatus{
-		ApplicationUUID: appID.String(),
+		ApplicationUUID: appUUID,
 		StatusID:        statusID,
 		Message:         sts.Message,
 		Data:            sts.Data,
@@ -3733,7 +3734,7 @@ WHERE application_uuid = $entityUUID.uuid;
 		return errors.Errorf("clearing old application config: %w", err)
 	}
 
-	if err := st.insertApplicationConfig(ctx, tx, coreapplication.UUID(appIdent.UUID), filteredApplicationConfig); err != nil {
+	if err := st.insertApplicationConfig(ctx, tx, appIdent.UUID, filteredApplicationConfig); err != nil {
 		return errors.Errorf("inserting application config: %w", err)
 	}
 
