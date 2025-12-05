@@ -265,6 +265,20 @@ func (d *dummyState) GetModelUUIDs(
 	return rval, nil
 }
 
+func (d *dummyState) GetHostedModelUUIDs(
+	_ context.Context,
+) ([]coremodel.UUID, error) {
+	rval := make([]coremodel.UUID, 0, len(d.models))
+	for k := range d.models {
+		if k == d.controllerModelUUID {
+			continue
+		}
+		rval = append(rval, k)
+	}
+
+	return rval, nil
+}
+
 func (d *dummyState) GetControllerModelUUID(
 	_ context.Context,
 ) (coremodel.UUID, error) {

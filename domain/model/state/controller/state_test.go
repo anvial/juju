@@ -947,9 +947,9 @@ func (m *stateSuite) TestDeleteModelNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
-// GetModelUUIDs is testing that once we have created several models calling
+// TestGetModelUUIDs is testing that once we have created several models calling
 // list returns all the models created.
-func (m *stateSuite) GetModelUUIDs(c *tc.C) {
+func (m *stateSuite) TestGetModelUUIDs(c *tc.C) {
 	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
 	m.createModel(c, m.uuid, m.userUUID)
 
@@ -1005,6 +1005,69 @@ func (m *stateSuite) GetModelUUIDs(c *tc.C) {
 	c.Assert(uuids, tc.HasLen, 4)
 	c.Check(uuids, tc.SameContents, []coremodel.UUID{
 		m.controllerModelUUID,
+		m.uuid,
+		uuid1,
+		uuid2,
+	})
+}
+
+// TestGetHostedModelUUIDs is testing that once we have created several models
+// calling list returns all the models created.
+func (m *stateSuite) TestGetHostedModelUUIDs(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	uuid1 := tc.Must(c, coremodel.NewUUID)
+	modelSt := NewState(m.TxnRunnerFactory())
+	err := modelSt.Create(
+		c.Context(),
+		uuid1,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "listtest1",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	err = modelSt.Activate(c.Context(), uuid1)
+	c.Assert(err, tc.ErrorIsNil)
+
+	uuid2 := tc.Must(c, coremodel.NewUUID)
+	err = modelSt.Create(
+		c.Context(),
+		uuid2,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "listtest2",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	err = modelSt.Activate(c.Context(), uuid2)
+	c.Assert(err, tc.ErrorIsNil)
+
+	uuids, err := modelSt.GetHostedModelUUIDs(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(uuids, tc.HasLen, 3)
+	c.Check(uuids, tc.SameContents, []coremodel.UUID{
 		m.uuid,
 		uuid1,
 		uuid2,

@@ -222,9 +222,8 @@ func (s *destroyControllerSuite) TestDestroyControllerKillErrsOnHostedModelsWith
 	s.BlockRemoveObject(c, "TestBlockRemoveObject")
 
 	s.mockModelInfoService.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
-	s.mockModelService.EXPECT().GetModelUUIDs(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetHostedModelUUIDs(gomock.Any()).Return(
 		[]coremodel.UUID{
-			coremodel.UUID(s.ControllerUUID),
 			coremodel.UUID(s.otherModelUUID),
 		}, nil,
 	)
@@ -245,9 +244,8 @@ func (s *destroyControllerSuite) TestDestroyControllerReturnsBlockedModelErr(c *
 	s.BlockRemoveObject(c, "TestBlockRemoveObject")
 
 	s.mockModelInfoService.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
-	s.mockModelService.EXPECT().GetModelUUIDs(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetHostedModelUUIDs(gomock.Any()).Return(
 		[]coremodel.UUID{
-			coremodel.UUID(s.ControllerUUID),
 			coremodel.UUID(s.otherModelUUID),
 		}, nil,
 	)
@@ -267,9 +265,8 @@ func (s *destroyControllerSuite) TestDestroyControllerLeavesBlocksIfNotKillAll(c
 	s.BlockRemoveObject(c, "TestBlockRemoveObject")
 
 	s.mockModelInfoService.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
-	s.mockModelService.EXPECT().GetModelUUIDs(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetHostedModelUUIDs(gomock.Any()).Return(
 		[]coremodel.UUID{
-			coremodel.UUID(s.ControllerUUID),
 			coremodel.UUID(s.otherModelUUID),
 		}, nil,
 	)
@@ -285,9 +282,8 @@ func (s *destroyControllerSuite) TestDestroyControllerErrsOnNoHostedModelsWithBl
 	defer s.setupMocks(c).Finish()
 
 	s.mockModelInfoService.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
-	s.mockModelService.EXPECT().GetModelUUIDs(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetHostedModelUUIDs(gomock.Any()).Return(
 		[]coremodel.UUID{
-			coremodel.UUID(s.ControllerUUID),
 			coremodel.UUID(s.otherModelUUID),
 		}, nil,
 	)
@@ -310,9 +306,8 @@ func (s *destroyControllerSuite) TestDestroyControllerNoHostedModelsWithBlockFai
 	s.BlockRemoveObject(c, "TestBlockRemoveObject")
 
 	s.mockModelInfoService.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
-	s.mockModelService.EXPECT().GetModelUUIDs(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetHostedModelUUIDs(gomock.Any()).Return(
 		[]coremodel.UUID{
-			coremodel.UUID(s.ControllerUUID),
 			coremodel.UUID(s.otherModelUUID),
 		}, nil,
 	)
@@ -331,9 +326,8 @@ func (s *destroyControllerSuite) TestDestroyControllerHostedModelsErr(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	s.mockModelInfoService.EXPECT().IsControllerModel(gomock.Any()).Return(true, nil)
-	s.mockModelService.EXPECT().GetModelUUIDs(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetHostedModelUUIDs(gomock.Any()).Return(
 		[]coremodel.UUID{
-			coremodel.UUID(s.ControllerUUID),
 			coremodel.UUID(s.otherModelUUID),
 		}, nil,
 	)

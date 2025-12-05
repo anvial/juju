@@ -86,7 +86,7 @@ type ModelService interface {
 	GetModelUUIDs(context.Context) ([]coremodel.UUID, error)
 	// GetHostedModelUUIDs returns a list of all hosted model UUIDs in the
 	// controller. This excludes the controller model UUID.
-	//GetHostedModelUUIDs(context.Context) ([]coremodel.UUID, error)
+	GetHostedModelUUIDs(context.Context) ([]coremodel.UUID, error)
 	// CheckModelExists checks if a model exists within the controller. True or
 	// false is returned indiciating of the model exists.
 	CheckModelExists(ctx context.Context, modelUUID coremodel.UUID) (bool, error)
