@@ -31,6 +31,8 @@ type VolumeAttachmentUUID uuid
 // VolumeUUID represents the unique id for a storage volume instance.
 type VolumeUUID uuid
 
+type CharmUUID uuid
+
 type uuid string
 
 // NewStorageAttachmentUUID creates a new, valid storage attachment identifier.

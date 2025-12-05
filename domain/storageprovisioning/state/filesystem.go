@@ -11,6 +11,7 @@ import (
 	"github.com/canonical/sqlair"
 
 	coreapplication "github.com/juju/juju/core/application"
+	corecharm "github.com/juju/juju/core/charm"
 	"github.com/juju/juju/core/database"
 	coremachine "github.com/juju/juju/core/machine"
 	coreunit "github.com/juju/juju/core/unit"
@@ -1304,4 +1305,75 @@ WHERE  uuid = $filesystemAttachmentProvisionedInfo.uuid
 		return errors.Capture(err)
 	}
 	return nil
+}
+
+func (st *State) GetCharmIDForApplication(ctx context.Context, appUUID coreapplication.UUID) (corecharm.ID, error) {
+	db, err := st.DB(ctx)
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+
+	input := entityUUID{UUID: appUUID.String()}
+	stmt, err := st.Prepare(`
+SELECT &charmUUID.*
+FROM   application
+WHERE  uuid = $entityUUID.uuid
+`, input)
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+	charmUUID := charmUUID{}
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err = tx.Query(ctx, stmt, input).Get(&charmUUID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+	return corecharm.ParseID(charmUUID.uuid)
+}
+
+func (st *State) GetContainerMountsForCharm(
+	ctx context.Context,
+	charmID corecharm.ID,
+) ([]storageprovisioning.ContainerMount, error) {
+	db, err := st.DB(ctx)
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	var containerMounts []ContainerMount
+	input := entityUUID{charmID.String()}
+
+	stmt, err := st.Prepare(`
+SELECT &ContainerMount.*
+FROM   charm_container_mount
+WHERE  charm_uuid = $entityUUID.uuid
+`, input)
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err := tx.Query(ctx, stmt, input).GetAll(&containerMounts)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	rvals := make([]storageprovisioning.ContainerMount, 0, len(containerMounts))
+	for _, v := range containerMounts {
+		rvals = append(rvals, storageprovisioning.ContainerMount{
+			ContainerKey: v.charmContainerKey,
+			StorageName:  v.storage,
+			MountPoint:   v.location,
+		})
+	}
+
+	return rvals, nil
 }

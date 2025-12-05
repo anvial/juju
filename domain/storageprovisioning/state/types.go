@@ -439,3 +439,13 @@ type storageAttachmentInfo struct {
 	FilesystemMountPoint  string    `db:"mount_point"`
 	BlockDeviceUUID       string    `db:"block_device_uuid"`
 }
+
+type ContainerMount struct {
+	charmContainerKey string `db:"charm_container_key"`
+	storage           string `db:"storage"`
+	location          string `db:"location"`
+}
+
+type charmUUID struct {
+	uuid string `db:"uuid"`
+}

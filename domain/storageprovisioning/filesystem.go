@@ -195,3 +195,9 @@ type FilesystemAttachmentProvisionedInfo struct {
 	// ReadOnly is true if the filesystem is mounted read-only.
 	ReadOnly bool
 }
+
+type ContainerMount struct {
+	ContainerKey string
+	StorageName  string
+	MountPoint   string
+}

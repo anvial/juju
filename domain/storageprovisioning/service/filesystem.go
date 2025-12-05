@@ -209,6 +209,11 @@ type FilesystemState interface {
 	SetFilesystemAttachmentProvisionedInfo(ctx context.Context, filesystemAttachmentUUID storageprovisioning.FilesystemAttachmentUUID, info storageprovisioning.FilesystemAttachmentProvisionedInfo) error
 }
 
+type CharmState interface {
+	GetCharmIDForApplication(context.Context, coreapplication.UUID) (corecharm.ID, error)
+	GetContainerMountsForCharm(context.Context, corecharm.ID) ([]storageprovisioning.ContainerMount, error)
+}
+
 // CheckFilesystemForIDExists checks if a filesystem exists for the supplied
 // filesystem ID. True is returned when a filesystem exists.
 func (s *Service) CheckFilesystemForIDExists(
