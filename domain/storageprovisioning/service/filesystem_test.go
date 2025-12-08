@@ -11,6 +11,7 @@ import (
 
 	coreapplication "github.com/juju/juju/core/application"
 	"github.com/juju/juju/core/changestream"
+	corecharm "github.com/juju/juju/core/charm"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremachine "github.com/juju/juju/core/machine"
 	machinetesting "github.com/juju/juju/core/machine/testing"
@@ -26,6 +27,7 @@ import (
 	domaintesting "github.com/juju/juju/domain/storageprovisioning/testing"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
+	"github.com/juju/juju/internal/uuid"
 )
 
 // filesystemSuite provides a test suite for asserting the [Service] interface
@@ -460,8 +462,10 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
+	id := tc.Must(c, uuid.NewUUID)
+	charmID := corecharm.ID(id.String())
 	stateTemplates := []internal.FilesystemTemplate{{
-		StorageName:       "a",
+		StorageName:       "config",
 		Count:             2,
 		MaxCount:          10,
 		SizeMiB:           1234,
@@ -474,6 +478,16 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
+	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
+		Return(charmID, nil)
+	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+		Return(map[string][]storageprovisioning.ContainerMount{
+			"config": {{
+				ContainerKey: "web-server",
+				StorageName:  "config",
+				MountPoint:   "/data/config",
+			}},
+		}, nil)
 
 	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
 	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
@@ -490,7 +504,17 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 				ReadOnly:   true,
 			},
 		},
-		StorageName:  "a",
+		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{
+			{
+				MountPoint: "/data/config/0",
+				ReadOnly:   true,
+			},
+			{
+				MountPoint: "/data/config/1",
+				ReadOnly:   true,
+			},
+		},
+		StorageName:  "config",
 		Count:        2,
 		SizeMiB:      1234,
 		ProviderType: "foo",
@@ -507,8 +531,10 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
+	id := tc.Must(c, uuid.NewUUID)
+	charmID := corecharm.ID(id.String())
 	stateTemplates := []internal.FilesystemTemplate{{
-		StorageName:       "a",
+		StorageName:       "config",
 		Count:             1,
 		MaxCount:          1,
 		SizeMiB:           1234,
@@ -521,6 +547,16 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
+	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
+		Return(charmID, nil)
+	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+		Return(map[string][]storageprovisioning.ContainerMount{
+			"config": {{
+				ContainerKey: "web-server",
+				StorageName:  "config",
+				MountPoint:   "/data/config",
+			}},
+		}, nil)
 
 	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
 	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
@@ -533,10 +569,66 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 				ReadOnly:   true,
 			},
 		},
-		StorageName:  "a",
+		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{
+			{
+				MountPoint: "/data/config",
+				ReadOnly:   true,
+			},
+		},
+		StorageName:  "config",
 		Count:        1,
 		SizeMiB:      1234,
 		ProviderType: "foo",
+		Attributes: map[string]string{
+			"laz": "baz",
+		},
+	}}
+	c.Check(result, tc.DeepEquals, expectedResult)
+}
+
+// TestGetFilesystemsTemplateForApplicationEmptyWorkloadContainerMounts tests
+// the workload container does not have any mount points defined.
+func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyWorkloadContainerMounts(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	appUUID := tc.Must(c, coreapplication.NewUUID)
+	id := tc.Must(c, uuid.NewUUID)
+	charmID := corecharm.ID(id.String())
+	stateTemplates := []internal.FilesystemTemplate{{
+		StorageName:       "config",
+		Count:             1,
+		MaxCount:          1,
+		SizeMiB:           1234,
+		ProviderType:      "foo",
+		ReadOnly:          true,
+		CharmLocationHint: "/bar",
+		Attributes: map[string]string{
+			"laz": "baz",
+		},
+	}}
+	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
+		Return(stateTemplates, nil)
+	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
+		Return(charmID, nil)
+	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+		Return(nil, nil)
+
+	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
+	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	expectedResult := []storageprovisioning.FilesystemTemplate{{
+		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
+			{
+				MountPoint: "/bar",
+				ReadOnly:   true,
+			},
+		},
+		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{},
+		StorageName:            "config",
+		Count:                  1,
+		SizeMiB:                1234,
+		ProviderType:           "foo",
 		Attributes: map[string]string{
 			"laz": "baz",
 		},
@@ -552,8 +644,10 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
+	id := tc.Must(c, uuid.NewUUID)
+	charmID := corecharm.ID(id.String())
 	stateTemplates := []internal.FilesystemTemplate{{
-		StorageName:  "a",
+		StorageName:  "config",
 		Count:        1,
 		MaxCount:     1,
 		SizeMiB:      1234,
@@ -565,6 +659,16 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
+	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
+		Return(charmID, nil)
+	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+		Return(map[string][]storageprovisioning.ContainerMount{
+			"config": {{
+				ContainerKey: "web-server",
+				StorageName:  "config",
+				MountPoint:   "/data/config",
+			}},
+		}, nil)
 
 	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
 	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
@@ -573,11 +677,20 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/var/lib/juju/storage/a-0",
+				MountPoint: "/var/lib/juju/storage/config-0",
 				ReadOnly:   true,
 			},
 		},
-		StorageName:  "a",
+		// AttachmentsForWorkload doesn't default to `/var/lib/juju/storage/*`
+		// because the charm definition expects `containers[*].mounts[*].location`
+		// to have a value.
+		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{
+			{
+				MountPoint: "/data/config",
+				ReadOnly:   true,
+			},
+		},
+		StorageName:  "config",
 		Count:        1,
 		SizeMiB:      1234,
 		ProviderType: "foo",

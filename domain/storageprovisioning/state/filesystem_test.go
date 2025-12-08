@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"testing"
 
-	corecharm "github.com/juju/juju/core/charm"
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/core/application"
+	corecharm "github.com/juju/juju/core/charm"
 	domainapplicationerrors "github.com/juju/juju/domain/application/errors"
 	domainlife "github.com/juju/juju/domain/life"
 	domainnetwork "github.com/juju/juju/domain/network"
