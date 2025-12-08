@@ -1171,34 +1171,6 @@ func addressTypeForUnspecifiedCIDR(cidr string) network.AddressType {
 	}
 }
 
-func (st *InsertIAASUnitState) k8sSubnetUUIDsByAddressType(ctx context.Context, tx *sqlair.TX) (map[network.AddressType]string, error) {
-	result := make(map[network.AddressType]string)
-	subnetStmt, err := st.Prepare(`
- SELECT &subnet.*
- FROM subnet
- `, subnet{})
-	if err != nil {
-		return nil, errors.Capture(err)
-	}
-
-	var subnets []subnet
-	if err = tx.Query(ctx, subnetStmt).GetAll(&subnets); err != nil {
-		return nil, errors.Errorf("getting subnet uuid: %w", err)
-	}
-	// Note: Today there are only two k8s subnets, which are a placeholders.
-	// Finding the subnet for the ip address will be more complex
-	// in the future.
-	if len(subnets) != 2 {
-		return nil, errors.Errorf("expected 2 subnet uuid, got %d", len(subnets))
-	}
-
-	for _, subnet := range subnets {
-		addrType := addressTypeForUnspecifiedCIDR(subnet.CIDR)
-		result[addrType] = subnet.UUID
-	}
-	return result, nil
-}
-
 func (st *State) insertCloudServiceAddresses(
 	ctx context.Context, tx *sqlair.TX, linkLayerDeviceUUID string, netNodeUUID string, addresses network.ProviderAddresses) error {
 	if len(addresses) == 0 {
@@ -2583,36 +2555,6 @@ WHERE  name = $getCharmUpgradeOnError.name AND c.source_id < 2;
 	}
 
 	return arg.CharmUpgradeOnError, nil
-}
-
-// getApplicationName returns the application name. If no application is found,
-// an error satisfying [applicationerrors.ApplicationNotFound] is returned.
-func (st *InsertIAASUnitState) getApplicationName(
-	ctx context.Context,
-	tx *sqlair.TX,
-	id string,
-) (string, error) {
-	arg := applicationUUIDAndName{
-		ID: id,
-	}
-	stmt, err := st.Prepare(`
-SELECT a.name AS &applicationUUIDAndName.name
-FROM   application AS a
-JOIN   charm AS c ON c.uuid = a.charm_uuid
-WHERE  a.uuid = $applicationUUIDAndName.uuid AND c.source_id < 2;
-`, arg)
-	if err != nil {
-		return "", errors.Capture(err)
-	}
-
-	err = tx.Query(ctx, stmt, arg).Get(&arg)
-	if errors.Is(err, sqlair.ErrNoRows) {
-		return "", errors.Errorf("application %q not found", id).Add(applicationerrors.ApplicationNotFound)
-	} else if err != nil {
-		return "", errors.Capture(err)
-	}
-
-	return arg.Name, nil
 }
 
 // GetApplicationConfigHash returns the SHA256 hash of the application config

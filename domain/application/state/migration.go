@@ -424,7 +424,7 @@ func (st *State) importCAASUnit(
 				"getting unit uuid for principal unit: %w", err,
 			)
 		}
-		if err = st.us.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID); err != nil {
+		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID); err != nil {
 			return errors.Errorf("importing subordinate info for unit %q: %w", args.UnitName, err)
 		}
 	}
@@ -444,6 +444,40 @@ func (st *State) importCAASUnit(
 	//if err != nil {
 	//	return errors.Errorf("importing storage for unit %q: %w", args.UnitName, err)
 	//}
+	return nil
+}
+
+// recordUnitPrincipal records a subordinate-principal relationship between
+// units.
+//
+// It is expected that the caller has already verified that both unit uuids
+// exist in the model.
+func (st *State) recordUnitPrincipal(
+	ctx context.Context,
+	tx *sqlair.TX,
+	principalUnitUUID, subordinateUnitUUID string,
+) error {
+	type unitPrincipal struct {
+		PrincipalUUID   string `db:"principal_uuid"`
+		SubordinateUUID string `db:"unit_uuid"`
+	}
+	arg := unitPrincipal{
+		PrincipalUUID:   principalUnitUUID,
+		SubordinateUUID: subordinateUnitUUID,
+	}
+	stmt, err := st.Prepare(`
+INSERT INTO unit_principal (*)
+VALUES ($unitPrincipal.*)
+`, arg)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	err = tx.Query(ctx, stmt, arg).Run()
+	if err != nil {
+		return errors.Capture(err)
+	}
+
 	return nil
 }
 
@@ -495,7 +529,7 @@ func (st *State) importIAASUnit(
 			)
 		}
 
-		if err = st.us.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID); err != nil {
+		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID); err != nil {
 			return errors.Errorf("importing subordinate info for unit %q: %w", args.UnitName, err)
 		}
 	}
