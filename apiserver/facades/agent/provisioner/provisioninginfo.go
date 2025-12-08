@@ -221,6 +221,24 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 		return result, errors.Errorf("cannot get available image metadata: %w", err)
 	}
 
+	// If the api is not the controller model, we can short-circuit some of
+	// the processing as no controller-specific jobs or tags are required.
+	if !api.isControllerModel {
+		result.Jobs = []model.MachineJob{model.JobHostUnits}
+		result.Tags, err = api.machineTags(ctx, unitNames, machineName, false, resourceTags)
+		if err != nil {
+			return result, errors.Capture(err)
+		}
+
+		return result, nil
+	}
+
+	// If we're in the controller model, we need to determine if the machine is
+	// a controller machine, so we can correctly set jobs and tags. This is a
+	// bit sub-optimal, as it requires an extra call per machine, but it will
+	// only be used in the controller model, so the impact should be minimal.
+	// Though it can still be improved in future.
+
 	isController, err := api.machineService.IsMachineController(ctx, machineName)
 	if errors.Is(err, machineerrors.MachineNotFound) {
 		return result, apiservererrors.ServerError(jujuerrors.NotFoundf("machine %q", machineName))
@@ -228,8 +246,6 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 		return result, errors.Errorf("checking if machine %q is a controller: %w", machineName, err)
 	}
 
-	// Every machine can host units, we just need to check if it is a controller
-	// to determine if it can host models.
 	jobs := []model.MachineJob{model.JobHostUnits}
 	if isController {
 		jobs = append(jobs, model.JobManageModel)
