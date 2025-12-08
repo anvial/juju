@@ -217,13 +217,6 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 	result.Volumes = volParams
 	result.VolumeAttachments = volAttachParams
 
-	if result.CharmLXDProfiles, err =
-		api.machineService.UpdateLXDProfiles(
-			ctx, api.modelName, api.modelUUID, machineName.String(),
-		); err != nil {
-		return result, errors.Errorf("cannot write lxd profiles: %w", err)
-	}
-
 	if result.ImageMetadata, err = api.availableImageMetadata(ctx, machineName, imageStream); err != nil {
 		return result, errors.Errorf("cannot get available image metadata: %w", err)
 	}
