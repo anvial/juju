@@ -8,31 +8,6 @@
 Juju 3.6 series is LTS
 ```
 
-### 🔸 **Juju 3.6.13** (unreleased)
-
-🛠️ Fixes:
-
-#### Configurable HTTP read and write timeouts
-The hardcoded 60-second HTTP read and write timeouts introduced in 3.6.12 (PR #21081) 
-caused issues with long-running operations such as charm uploads, resulting in 
-`SSL: DECRYPTION_FAILED_OR_BAD_RECORD_MAC` errors.
-
-Two new controller configuration options have been added:
-- `read-timeout`: HTTP request read timeout (default: 0s = disabled)
-- `write-timeout`: HTTP response write timeout (default: 0s = disabled)
-
-The defaults of 0 (disabled) restore the pre-3.6.12 behavior, allowing long operations 
-to complete while still benefiting from the idle connection cleanup introduced in 3.6.12.
-
-Users can set these timeouts if needed:
-```
-juju controller-config read-timeout=5m write-timeout=5m
-```
-
-Related issue: https://bugs.launchpad.net/juju/+bug/2095006
-
-* fix: make HTTP read/write timeouts configurable controller settings
-
 ### 🔸 **Juju 3.6.12**
 🗓️ 26 Nov 2025
 

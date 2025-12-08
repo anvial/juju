@@ -283,11 +283,11 @@ const (
 	IdleConnectionTimeout = "idle-connection-timeout"
 
 	// ReadTimeout is the maximum duration for reading the entire HTTP request, including the body.
-	// A zero or negative value means no timeout.
+	// A zero value means no timeout.
 	ReadTimeout = "read-timeout"
 
 	// WriteTimeout is the maximum duration before timing out writes of the HTTP response.
-	// A zero or negative value means no timeout.
+	// A zero value means no timeout.
 	WriteTimeout = "write-timeout"
 )
 
@@ -431,15 +431,13 @@ const (
 	// aggressive 5s timeout.
 	DefaultIdleConnectionTimeout = 30 * time.Second
 
-	// DefaultReadTimeout is disabled by default (0 means no timeout).
-	// This allows long-running operations like charm uploads to complete.
-	// The IdleTimeout handles cleanup of idle connections.
-	DefaultReadTimeout = 0 * time.Second
+	// DefaultReadTimeout is set to 60 seconds to prevent indefinite reads
+	// while still allowing most operations to complete.
+	DefaultReadTimeout = 60 * time.Second
 
-	// DefaultWriteTimeout is disabled by default (0 means no timeout).
-	// This allows long-running operations to complete their responses.
-	// The IdleTimeout handles cleanup of idle connections.
-	DefaultWriteTimeout = 0 * time.Second
+	// DefaultWriteTimeout is set to 60 seconds to prevent indefinite writes
+	// while still allowing most operations to complete.
+	DefaultWriteTimeout = 60 * time.Second
 )
 
 var (
@@ -524,6 +522,8 @@ var (
 		AgentRateLimitRate,
 		APIPortOpenDelay,
 		IdleConnectionTimeout,
+		ReadTimeout,
+		WriteTimeout,
 		ApplicationResourceDownloadLimit,
 		AuditingEnabled,
 		AuditLogCaptureArgs,
@@ -718,13 +718,13 @@ func (c Config) IdleConnectionTimeout() time.Duration {
 }
 
 // ReadTimeout returns the maximum duration for reading the entire HTTP request, including the body.
-// A zero or negative value means no timeout.
+// A zero value means no timeout.
 func (c Config) ReadTimeout() time.Duration {
 	return c.durationOrDefault(ReadTimeout, DefaultReadTimeout)
 }
 
 // WriteTimeout returns the maximum duration before timing out writes of the HTTP response.
-// A zero or negative value means no timeout.
+// A zero value means no timeout.
 func (c Config) WriteTimeout() time.Duration {
 	return c.durationOrDefault(WriteTimeout, DefaultWriteTimeout)
 }

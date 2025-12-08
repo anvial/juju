@@ -179,16 +179,16 @@ the controller will close all idle connections.
 	ReadTimeout: {
 		Type: environschema.Tstring,
 		Description: `The maximum duration for reading the entire HTTP request, including the body.
-A zero or negative value means no timeout. This should generally be left at 0 (no timeout)
-to allow long-running operations like charm uploads to complete. The idle-connection-timeout
-setting handles cleanup of idle connections.`,
+A zero value means no timeout. The default is 60 seconds, which works well for
+most operations. Set to 0 to disable the timeout if you have operations that require more
+than 60 seconds to upload data.`,
 	},
 	WriteTimeout: {
 		Type: environschema.Tstring,
 		Description: `The maximum duration before timing out writes of the HTTP response.
-A zero or negative value means no timeout. This should generally be left at 0 (no timeout)
-to allow long-running operations to send their complete responses. The idle-connection-timeout
-setting handles cleanup of idle connections.`,
+A zero value means no timeout. The default is 60 seconds, which works well for
+most operations. Set to 0 to disable the timeout if you have operations that require more
+than 60 seconds to download data.`,
 	},
 	ControllerAPIPort: {
 		Type: environschema.Tint,

@@ -211,9 +211,8 @@ func (w *Worker) loop() error {
 		TLSConfig:   w.config.TLSConfig,
 		ErrorLog:    serverLog,
 		IdleTimeout: w.config.IdleConnectionTimeout,
-		// ReadTimeout and WriteTimeout default to 0 (disabled) to allow
-		// long-running operations like charm uploads. When set to 0,
-		// only IdleTimeout applies to cleanup idle connections.
+		// ReadTimeout and WriteTimeout default to 60 seconds to prevent indefinite
+		// reads/writes while allowing most operations to complete. Set to 0 to disable.
 		ReadTimeout:  w.config.ReadTimeout,
 		WriteTimeout: w.config.WriteTimeout,
 		ConnContext:  recordRawFd,
