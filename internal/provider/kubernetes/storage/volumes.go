@@ -199,11 +199,22 @@ func PushUniqueVolumeClaimTemplate(existing *[]corev1.PersistentVolumeClaim, pvc
 func isSamePVC(pvc1, pvc2 corev1.PersistentVolumeClaim) bool {
 	sameObjectMeta := pvc1.Name == pvc2.Name && maps.Equal(pvc1.Labels, pvc2.Labels) &&
 		maps.Equal(pvc1.Annotations, pvc2.Annotations)
+
 	storage1 := pvc1.Spec.Resources.Requests.Storage()
 	storage2 := pvc2.Spec.Resources.Requests.Storage()
-	sameSpec := storage1 != nil && storage2 != nil && storage1.Equal(*storage2) &&
-		slices.Equal(pvc1.Spec.AccessModes, pvc2.Spec.AccessModes) &&
-		pvc1.Spec.StorageClassName == pvc2.Spec.StorageClassName
+
+	sameStorage := (storage1 == nil && storage1 == storage2) ||
+		(storage1 != nil && storage2 != nil && storage1.Equal(*storage2))
+	sameAccessModes := slices.Equal(pvc1.Spec.AccessModes, pvc2.Spec.AccessModes)
+
+	sameStorageClassName := (pvc1.Spec.StorageClassName == nil &&
+		pvc1.Spec.StorageClassName == pvc2.Spec.StorageClassName) ||
+		(pvc1.Spec.StorageClassName != nil && pvc2.Spec.StorageClassName != nil &&
+			*pvc1.Spec.StorageClassName == *pvc2.Spec.StorageClassName)
+
+	sameSpec := sameStorage &&
+		sameAccessModes &&
+		sameStorageClassName
 
 	return sameObjectMeta && sameSpec
 }
