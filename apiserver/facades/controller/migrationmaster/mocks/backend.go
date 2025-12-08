@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	description "github.com/juju/description/v10"
+	description "github.com/juju/description/v11"
 	cloud "github.com/juju/juju/cloud"
 	controller "github.com/juju/juju/controller"
 	base "github.com/juju/juju/core/base"

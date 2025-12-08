@@ -12,7 +12,7 @@ import (
 	"github.com/go-macaroon-bakery/macaroon-bakery/v3/bakery"
 	"github.com/go-macaroon-bakery/macaroon-bakery/v3/bakery/checkers"
 	"github.com/juju/clock"
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/names/v6"
 	"github.com/juju/worker/v4"
 	"gopkg.in/macaroon.v2"

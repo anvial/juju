@@ -6,7 +6,7 @@ package modelmigration
 import (
 	"time"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	"github.com/juju/juju/domain/cloudimagemetadata"
 )
