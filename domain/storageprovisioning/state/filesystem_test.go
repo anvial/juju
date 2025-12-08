@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	corecharm "github.com/juju/juju/core/charm"
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/core/application"
@@ -1144,6 +1145,37 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMountPointSet(c *tc.C
 	})
 }
 
+func (s *filesystemSuite) TestGetCharmUUIDForApplication(c *tc.C) {
+	appUUID, expectedCharmUUID := s.newApplication(c, "foo")
+
+	st := NewState(s.TxnRunnerFactory())
+
+	charmUUID, err := st.GetCharmUUIDForApplication(c.Context(), application.UUID(appUUID))
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(charmUUID.String(), tc.Equals, expectedCharmUUID)
+}
+
+func (s *filesystemSuite) TestGetContainerMountsForCharm(c *tc.C) {
+	charmUUID := s.newCharmContainer(c)
+
+	st := NewState(s.TxnRunnerFactory())
+
+	mounts, err := st.GetContainerMountsForCharm(c.Context(), charmUUID)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(mounts, tc.DeepEquals, map[string][]storageprovisioning.ContainerMount{
+		"config": {{
+			ContainerKey: "web-server",
+			StorageName:  "config",
+			MountPoint:   "/data/config",
+		}},
+		"cert": {{
+			ContainerKey: "web-server",
+			StorageName:  "cert",
+			MountPoint:   "/data/cert",
+		}},
+	})
+}
+
 // changeFilesystemLife is a utility function for updating the life value of a
 // filesystem.
 func (s *filesystemSuite) changeFilesystemLife(
@@ -1342,4 +1374,22 @@ VALUES (?, ?, 0, 0)
 	c.Assert(err, tc.ErrorIsNil)
 
 	return fsUUID, fsID
+}
+
+func (s *filesystemSuite) newCharmContainer(c *tc.C) corecharm.ID {
+	_, charmUUID := s.newApplication(c, "foo")
+
+	_, err := s.DB().Exec(`
+INSERT INTO charm_container (charm_uuid, "key", resource)
+VALUES (?, 'web-server', 'foo-resource')
+`, charmUUID)
+	c.Check(err, tc.ErrorIsNil)
+
+	_, err = s.DB().Exec(`
+INSERT INTO charm_container_mount (array_index, charm_uuid, charm_container_key, storage, location)
+VALUES (1, ?, 'web-server', 'config', '/data/config'), (0, ?, 'web-server', 'cert', '/data/cert')
+`, charmUUID, charmUUID)
+	c.Check(err, tc.ErrorIsNil)
+
+	return corecharm.ID(charmUUID)
 }
