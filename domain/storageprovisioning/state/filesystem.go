@@ -1333,7 +1333,6 @@ WHERE  uuid = $entityUUID.uuid
 	if err != nil {
 		return "", errors.Capture(err)
 	}
-	return corecharm.ParseID(charmUUID.uuid)
 	return corecharm.ParseID(app.CharmUUID)
 }
 
