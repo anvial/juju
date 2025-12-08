@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	application "github.com/juju/juju/core/application"
+	charm "github.com/juju/juju/core/charm"
 	machine "github.com/juju/juju/core/machine"
 	unit "github.com/juju/juju/core/unit"
 	watcher "github.com/juju/juju/core/watcher"
@@ -240,6 +241,84 @@ func (c *MockStateGetBlockDeviceForVolumeAttachmentCall) Do(f func(context.Conte
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockStateGetBlockDeviceForVolumeAttachmentCall) DoAndReturn(f func(context.Context, storageprovisioning.VolumeAttachmentUUID) (blockdevice.BlockDeviceUUID, error)) *MockStateGetBlockDeviceForVolumeAttachmentCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetCharmUUIDForApplication mocks base method.
+func (m *MockState) GetCharmUUIDForApplication(arg0 context.Context, arg1 application.UUID) (charm.ID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCharmUUIDForApplication", arg0, arg1)
+	ret0, _ := ret[0].(charm.ID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCharmUUIDForApplication indicates an expected call of GetCharmUUIDForApplication.
+func (mr *MockStateMockRecorder) GetCharmUUIDForApplication(arg0, arg1 any) *MockStateGetCharmUUIDForApplicationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCharmUUIDForApplication", reflect.TypeOf((*MockState)(nil).GetCharmUUIDForApplication), arg0, arg1)
+	return &MockStateGetCharmUUIDForApplicationCall{Call: call}
+}
+
+// MockStateGetCharmUUIDForApplicationCall wrap *gomock.Call
+type MockStateGetCharmUUIDForApplicationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStateGetCharmUUIDForApplicationCall) Return(arg0 charm.ID, arg1 error) *MockStateGetCharmUUIDForApplicationCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStateGetCharmUUIDForApplicationCall) Do(f func(context.Context, application.UUID) (charm.ID, error)) *MockStateGetCharmUUIDForApplicationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStateGetCharmUUIDForApplicationCall) DoAndReturn(f func(context.Context, application.UUID) (charm.ID, error)) *MockStateGetCharmUUIDForApplicationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetContainerMountsForCharm mocks base method.
+func (m *MockState) GetContainerMountsForCharm(arg0 context.Context, arg1 charm.ID) (map[string][]storageprovisioning.ContainerMount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContainerMountsForCharm", arg0, arg1)
+	ret0, _ := ret[0].(map[string][]storageprovisioning.ContainerMount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContainerMountsForCharm indicates an expected call of GetContainerMountsForCharm.
+func (mr *MockStateMockRecorder) GetContainerMountsForCharm(arg0, arg1 any) *MockStateGetContainerMountsForCharmCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainerMountsForCharm", reflect.TypeOf((*MockState)(nil).GetContainerMountsForCharm), arg0, arg1)
+	return &MockStateGetContainerMountsForCharmCall{Call: call}
+}
+
+// MockStateGetContainerMountsForCharmCall wrap *gomock.Call
+type MockStateGetContainerMountsForCharmCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStateGetContainerMountsForCharmCall) Return(arg0 map[string][]storageprovisioning.ContainerMount, arg1 error) *MockStateGetContainerMountsForCharmCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStateGetContainerMountsForCharmCall) Do(f func(context.Context, charm.ID) (map[string][]storageprovisioning.ContainerMount, error)) *MockStateGetContainerMountsForCharmCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStateGetContainerMountsForCharmCall) DoAndReturn(f func(context.Context, charm.ID) (map[string][]storageprovisioning.ContainerMount, error)) *MockStateGetContainerMountsForCharmCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

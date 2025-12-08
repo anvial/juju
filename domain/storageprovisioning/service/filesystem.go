@@ -9,8 +9,6 @@ import (
 	"path"
 	"strconv"
 
-	jujuerrors "github.com/juju/errors"
-
 	coreapplication "github.com/juju/juju/core/application"
 	corechangestream "github.com/juju/juju/core/changestream"
 	corecharm "github.com/juju/juju/core/charm"
