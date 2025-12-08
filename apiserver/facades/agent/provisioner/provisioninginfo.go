@@ -66,6 +66,11 @@ func (api *ProvisionerAPI) ProvisioningInfo(ctx context.Context, args params.Ent
 		return result, errors.Errorf("getting model config: %w", err)
 	}
 
+	controllerConfig, err := api.controllerConfigService.ControllerConfig(ctx)
+	if err != nil {
+		return result, errors.Errorf("cannot get controller configuration: %w", err)
+	}
+
 	cloudInitUserData := modelConfig.CloudInitUserData()
 	imageStream := modelConfig.ImageStream()
 	resourceTags := makeResourceTags(modelConfig)
@@ -77,10 +82,18 @@ func (api *ProvisionerAPI) ProvisioningInfo(ctx context.Context, args params.Ent
 			continue
 		}
 		machineName := coremachine.Name(tag.Id())
-		result.Results[i].Result, err = api.getProvisioningInfo(ctx,
-			machineName, allSpaces, cloudInitUserData, imageStream, resourceTags, modelInfo.CloudType)
 
-		result.Results[i].Error = apiservererrors.ServerError(err)
+		info, err := api.getProvisioningInfo(ctx,
+			machineName, allSpaces, cloudInitUserData, imageStream, resourceTags, modelInfo.CloudType)
+		if err != nil {
+			result.Results[i].Error = apiservererrors.ServerError(err)
+		}
+
+		// Attach the required controller config to the provisioning info,
+		// before returning it to the caller.
+		info.ControllerConfig = controllerConfig
+
+		result.Results[i].Result = info
 	}
 	return result, nil
 }
@@ -213,10 +226,6 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 
 	if result.ImageMetadata, err = api.availableImageMetadata(ctx, machineName, imageStream); err != nil {
 		return result, errors.Errorf("cannot get available image metadata: %w", err)
-	}
-
-	if result.ControllerConfig, err = api.controllerConfigService.ControllerConfig(ctx); err != nil {
-		return result, errors.Errorf("cannot get controller configuration: %w", err)
 	}
 
 	isController, err := api.machineService.IsMachineController(ctx, machineName)
