@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/juju/juju/core/arch"
+	"github.com/juju/juju/core/base"
 	corecharm "github.com/juju/juju/core/charm"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/charm/repository/mocks"
@@ -1209,12 +1212,6 @@ func TestSelectNextBaseSuite(t *testing.T) {
 	tc.Run(t, &selectNextBaseSuite{})
 }
 
-func (s *selectNextBaseSuite) TestSelectNextBaseWithNoBases(c *tc.C) {
-	repo := new(CharmHubRepository)
-	_, err := repo.selectNextBases(nil, corecharm.Origin{})
-	c.Assert(err, tc.ErrorMatches, `no bases available`)
-}
-
 func (s *selectNextBaseSuite) TestSelectNextBaseWithInvalidBases(c *tc.C) {
 	repo := new(CharmHubRepository)
 	_, err := repo.selectNextBases([]transport.Base{{
@@ -1591,5 +1588,312 @@ func resourceRevision(rev int) transport.ResourceRevision {
 		Type:        "file",
 		Filename:    "wal-e.snap",
 		Description: "WAL-E Snap Package",
+	}
+}
+
+type retryResolveWithRespBasesSuite struct {
+	testhelpers.IsolationSuite
+	client *mocks.MockCharmHubClient
+}
+
+func TestRetryResolveWithRespBasesSuite(t *testing.T) {
+	tc.Run(t, &retryResolveWithRespBasesSuite{})
+}
+
+func (s *retryResolveWithRespBasesSuite) TestRetryResolveSortsBasesByTrackDescending(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+	repo := s.newClient(c)
+
+	// Setup error with different tracks.
+	apiError := &transport.APIError{
+		Code:    transport.ErrorCodeInvalidCharmBase,
+		Message: "invalid charm base",
+		Extra: transport.APIErrorExtra{
+			DefaultBases: []transport.Base{
+				{Architecture: "amd64", Name: "ubuntu", Channel: "20.04"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "18.04"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "16.04"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "22.04"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "24.04"},
+			},
+		},
+	}
+
+	// Expect refresh with the highest track version.
+	cfg, err := charmhub.InstallOneFromChannel(context.Background(), "ubuntu-advantage", "stable", charmhub.RefreshBase{
+		Architecture: "amd64",
+		Name:         "ubuntu",
+		Channel:      "24.04",
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	s.client.EXPECT().Refresh(gomock.Any(), RefreshConfigMatcher{c: c, Config: cfg}).Return([]transport.RefreshResponse{{
+		InstanceKey: charmhub.ExtractConfigInstanceKey(cfg),
+		Entity: transport.RefreshEntity{
+			Type:         transport.CharmType,
+			ID:           "nt3kOo4yOEiUojrMTl09O9baTSBtTfsv",
+			Name:         "ubuntu-advantage",
+			Revision:     143,
+			MetadataYAML: "description: Ubuntu Advantage charm\nname: ubuntu-advantage\n",
+			ConfigYAML:   "options:\n  contract_url:\n",
+		},
+		EffectiveChannel: "stable",
+	}}, nil)
+
+	origin := corecharm.Origin{
+		Source: "charm-hub",
+		Platform: corecharm.Platform{
+			Architecture: "amd64",
+		},
+	}
+
+	result, err := repo.retryResolveWithRespBases(context.Background(), "ubuntu-advantage", origin, apiError)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.NotNil)
+
+	// Verify the selected base is 24.04 (highest version).
+	c.Check(result.origin.Platform.Channel, tc.Equals, "24.04")
+	c.Check(result.origin.Platform.OS, tc.Equals, "ubuntu")
+
+	// Verify bases are sorted with 24.04 first.
+	c.Assert(result.bases, tc.HasLen, 5)
+	c.Check(result.bases[0].Channel, tc.Equals, "24.04")
+	c.Check(result.bases[1].Channel, tc.Equals, "22.04")
+	c.Check(result.bases[2].Channel, tc.Equals, "20.04")
+	c.Check(result.bases[3].Channel, tc.Equals, "18.04")
+	c.Check(result.bases[4].Channel, tc.Equals, "16.04")
+}
+
+func (s *retryResolveWithRespBasesSuite) TestRetryResolveSortsBasesByRiskStability(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+	repo := s.newClient(c)
+
+	// Setup error with same track but different risks.
+	apiError := &transport.APIError{
+		Code:    transport.ErrorCodeInvalidCharmBase,
+		Message: "invalid charm base",
+		Extra: transport.APIErrorExtra{
+			DefaultBases: []transport.Base{
+				{Architecture: "amd64", Name: "ubuntu", Channel: "24.04/edge"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "24.04/stable"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "24.04/beta"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "24.04/candidate"},
+			},
+		},
+	}
+
+	// Expect refresh with most stable risk.
+	cfg, err := charmhub.InstallOneFromChannel(context.Background(), "ubuntu-advantage", "stable", charmhub.RefreshBase{
+		Architecture: "amd64",
+		Name:         "ubuntu",
+		Channel:      "24.04/stable",
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	s.client.EXPECT().Refresh(gomock.Any(), RefreshConfigMatcher{c: c, Config: cfg}).Return([]transport.RefreshResponse{{
+		InstanceKey: charmhub.ExtractConfigInstanceKey(cfg),
+		Entity: transport.RefreshEntity{
+			Type:         transport.CharmType,
+			ID:           "nt3kOo4yOEiUojrMTl09O9baTSBtTfsv",
+			Name:         "ubuntu-advantage",
+			Revision:     143,
+			MetadataYAML: "description: Ubuntu Advantage charm\nname: ubuntu-advantage\n",
+			ConfigYAML:   "options:\n  contract_url:\n",
+		},
+		EffectiveChannel: "stable",
+	}}, nil)
+
+	origin := corecharm.Origin{
+		Source: "charm-hub",
+		Platform: corecharm.Platform{
+			Architecture: "amd64",
+		},
+	}
+
+	result, err := repo.retryResolveWithRespBases(context.Background(), "ubuntu-advantage", origin, apiError)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.NotNil)
+
+	// Verify the selected base is stable (most stable risk).
+	c.Check(result.origin.Platform.Channel, tc.Equals, "24.04/stable")
+
+	// Verify bases are sorted by stability: stable > candidate > beta > edge.
+	c.Assert(result.bases, tc.HasLen, 4)
+	c.Check(result.bases[0].Channel, tc.Equals, "24.04/stable")
+	c.Check(result.bases[1].Channel, tc.Equals, "24.04/candidate")
+	c.Check(result.bases[2].Channel, tc.Equals, "24.04/beta")
+	c.Check(result.bases[3].Channel, tc.Equals, "24.04/edge")
+}
+
+func (s *retryResolveWithRespBasesSuite) TestRetryResolveSortsBasesTrackThenRisk(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+	repo := s.newClient(c)
+
+	// Setup error with mixed tracks and risks.
+	apiError := &transport.APIError{
+		Code:    transport.ErrorCodeInvalidCharmBase,
+		Message: "invalid charm base",
+		Extra: transport.APIErrorExtra{
+			DefaultBases: []transport.Base{
+				{Architecture: "amd64", Name: "ubuntu", Channel: "20.04/stable"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "24.04/beta"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "22.04/edge"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "24.04/stable"},
+				{Architecture: "amd64", Name: "ubuntu", Channel: "22.04/stable"},
+			},
+		},
+	}
+
+	// Expect refresh with 24.04/stable (highest track, most stable risk).
+	cfg, err := charmhub.InstallOneFromChannel(context.Background(), "ubuntu-advantage", "stable", charmhub.RefreshBase{
+		Architecture: "amd64",
+		Name:         "ubuntu",
+		Channel:      "24.04/stable",
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	s.client.EXPECT().Refresh(gomock.Any(), RefreshConfigMatcher{c: c, Config: cfg}).Return([]transport.RefreshResponse{{
+		InstanceKey: charmhub.ExtractConfigInstanceKey(cfg),
+		Entity: transport.RefreshEntity{
+			Type:         transport.CharmType,
+			ID:           "nt3kOo4yOEiUojrMTl09O9baTSBtTfsv",
+			Name:         "ubuntu-advantage",
+			Revision:     143,
+			MetadataYAML: "description: Ubuntu Advantage charm\nname: ubuntu-advantage\n",
+			ConfigYAML:   "options:\n  contract_url:\n",
+		},
+		EffectiveChannel: "stable",
+	}}, nil)
+
+	origin := corecharm.Origin{
+		Source: "charm-hub",
+		Platform: corecharm.Platform{
+			Architecture: "amd64",
+		},
+	}
+
+	result, err := repo.retryResolveWithRespBases(context.Background(), "ubuntu-advantage", origin, apiError)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.NotNil)
+
+	// Verify 24.04/stable is selected (highest track + most stable).
+	c.Check(result.origin.Platform.Channel, tc.Equals, "24.04/stable")
+
+	// Verify sorting: 24.04/* > 22.04/* > 20.04/*, and within same track: stable > beta > edge.
+	c.Assert(result.bases, tc.HasLen, 5)
+	c.Check(result.bases[0].Channel, tc.Equals, "24.04/stable")
+	c.Check(result.bases[1].Channel, tc.Equals, "24.04/beta")
+	c.Check(result.bases[2].Channel, tc.Equals, "22.04/stable")
+	c.Check(result.bases[3].Channel, tc.Equals, "22.04/edge")
+	c.Check(result.bases[4].Channel, tc.Equals, "20.04/stable")
+}
+
+func (s *retryResolveWithRespBasesSuite) TestRetryResolveNoBases(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+	repo := s.newClient(c)
+
+	// Setup error with no bases returned.
+	apiError := &transport.APIError{
+		Code:    transport.ErrorCodeInvalidCharmBase,
+		Message: "invalid charm base",
+		Extra: transport.APIErrorExtra{
+			DefaultBases: []transport.Base{},
+		},
+	}
+
+	origin := corecharm.Origin{
+		Source: "charm-hub",
+		Platform: corecharm.Platform{
+			Architecture: "amd64",
+		},
+	}
+
+	result, err := repo.retryResolveWithRespBases(context.Background(), "ubuntu-advantage", origin, apiError)
+	c.Assert(err, tc.ErrorMatches, `no bases available`)
+	c.Assert(result, tc.IsNil)
+}
+
+func (s *retryResolveWithRespBasesSuite) TestRetryResolvePrefersLTSWhenNewerVersionsAvailable(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+	repo := s.newClient(c)
+
+	supportedLTSTrack := base.DefaultSupportedLTSBase().Channel.Track
+
+	// Split track to get year and month.
+	parts := strings.Split(supportedLTSTrack, ".")
+	c.Assert(len(parts), tc.Equals, 2)
+	ltsYear, err := strconv.Atoi(parts[0])
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Create later tracks.
+	futureTrack2 := fmt.Sprintf("%02d.%s", ltsYear+2, parts[1])
+	futureTrack4 := fmt.Sprintf("%02d.%s", ltsYear+4, parts[1])
+
+	// Setup error with future versions, supported LTS.
+	// The code will select the highest priority track version available.
+	apiError := &transport.APIError{
+		Code:    transport.ErrorCodeInvalidCharmBase,
+		Message: "invalid charm base",
+		Extra: transport.APIErrorExtra{
+			DefaultBases: []transport.Base{
+				{Architecture: "amd64", Name: "ubuntu", Channel: futureTrack2},
+				{Architecture: "amd64", Name: "ubuntu", Channel: supportedLTSTrack},
+				{Architecture: "amd64", Name: "ubuntu", Channel: futureTrack4},
+			},
+		},
+	}
+
+	// Expect refresh with supported LTS track.
+	cfg, err := charmhub.InstallOneFromChannel(context.Background(), "ubuntu-advantage", "stable", charmhub.RefreshBase{
+		Architecture: "amd64",
+		Name:         "ubuntu",
+		Channel:      supportedLTSTrack,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	s.client.EXPECT().Refresh(gomock.Any(), RefreshConfigMatcher{c: c, Config: cfg}).Return([]transport.RefreshResponse{{
+		InstanceKey: charmhub.ExtractConfigInstanceKey(cfg),
+		Entity: transport.RefreshEntity{
+			Type:         transport.CharmType,
+			ID:           "nt3kOo4yOEiUojrMTl09O9baTSBtTfsv",
+			Name:         "ubuntu-advantage",
+			Revision:     143,
+			MetadataYAML: "description: Ubuntu Advantage charm\nname: ubuntu-advantage\n",
+			ConfigYAML:   "options:\n  contract_url:\n",
+		},
+		EffectiveChannel: "stable",
+	}}, nil)
+
+	origin := corecharm.Origin{
+		Source: "charm-hub",
+		Platform: corecharm.Platform{
+			Architecture: "amd64",
+		},
+	}
+
+	result, err := repo.retryResolveWithRespBases(context.Background(), "ubuntu-advantage", origin, apiError)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.NotNil)
+
+	// Verify supported LTS track is selected.
+	c.Check(result.origin.Platform.Channel, tc.Equals, supportedLTSTrack)
+
+	// Verify bases are sorted by track descending eg 24.04 > 28.04 > 26.04 if supported LTS is 24.04.
+	c.Assert(result.bases, tc.HasLen, 3)
+	c.Check(result.bases[0].Channel, tc.Equals, supportedLTSTrack)
+	c.Check(result.bases[1].Channel, tc.Equals, futureTrack4)
+	c.Check(result.bases[2].Channel, tc.Equals, futureTrack2)
+}
+
+func (s *retryResolveWithRespBasesSuite) setupMocks(c *tc.C) *gomock.Controller {
+	ctrl := gomock.NewController(c)
+	s.client = mocks.NewMockCharmHubClient(ctrl)
+	return ctrl
+}
+
+func (s *retryResolveWithRespBasesSuite) newClient(c *tc.C) *CharmHubRepository {
+	return &CharmHubRepository{
+		client: s.client,
+		logger: loggertesting.WrapCheckLog(c),
 	}
 }
