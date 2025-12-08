@@ -12,10 +12,10 @@ DROP VIEW v_model_state;
 -- needed to calculate a model's status.
 CREATE VIEW v_model_state AS
 SELECT
-    IIF(tmm.model_uuid IS NOT NULL, TRUE, FALSE) AS migrating,
     m.uuid,
     cc.invalid AS cloud_credential_invalid,
     cc.invalid_reason AS cloud_credential_invalid_reason,
+    IIF(tmm.model_uuid IS NOT NULL, TRUE, FALSE) AS migrating,
     IIF(l.id = 1, TRUE, FALSE) AS destroying
 FROM model AS m
 JOIN life AS l ON m.life_id = l.id

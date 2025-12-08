@@ -358,9 +358,8 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
-	// TODO (stickupkid): This is incorrect until the model info is
-	// correctly saved.
-	c.Check(activated, tc.IsTrue)
+	// The activator should not be called when the import fails and rolls back.
+	c.Check(activated, tc.IsFalse)
 }
 
 func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc.C) {
@@ -436,9 +435,8 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
-	// TODO (stickupkid): This is incorrect until the model info is
-	// correctly saved.
-	c.Check(activated, tc.IsTrue)
+	// The activator should not be called when the import fails and rolls back.
+	c.Check(activated, tc.IsFalse)
 }
 
 func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyModel(c *tc.C) {
@@ -513,9 +511,8 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
-	// TODO (stickupkid): This is incorrect until the model info is
-	// correctly saved.
-	c.Check(activated, tc.IsTrue)
+	// The activator should not be called when the import fails and rolls back.
+	c.Check(activated, tc.IsFalse)
 }
 
 // TestImportModelConstraintsNoOperations asserts that if no constraints are set
