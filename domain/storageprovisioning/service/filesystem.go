@@ -902,7 +902,6 @@ func (s *Service) GetFilesystemTemplatesForApplication(
 			fsTemplate.Count,
 		)
 
-
 		attachmentsForWorkload := make([]storageprovisioning.FilesystemAttachmentTemplate, 0)
 		for _, mount := range containerMounts[fsTemplate.StorageName] {
 			workloadAttachments := calculateFilesystemAttachmentTemplatesForWorkload(

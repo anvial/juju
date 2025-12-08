@@ -229,7 +229,7 @@ func (a *app) Ensure(config caas.ApplicationConfig) (err error) {
 		for i := range podSpec.Containers {
 			name := podSpec.Containers[i].Name
 			// Mount the storage for the charm container.
-			if name == constants.ApplicationCharmContainer {
+			if name == constants.ApplicationCharmContainer && !forWorkloadContainer {
 				podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, m)
 				continue
 			}
@@ -244,11 +244,6 @@ func (a *app) Ensure(config caas.ApplicationConfig) (err error) {
 			// Reaching here means we mount the storage for the workload container.
 			for _, mount := range config.Containers[name].Mounts {
 				if mount.StorageName == storageName {
-					volumeMountCopy := m
-					// TODO(sidecar): volumeMountCopy.MountPath was defined in `caas.ApplicationConfig.Filesystems[*].Attachment.Path`.
-					// Consolidate `caas.ApplicationConfig.Filesystems[*].Attachment.Path` and `caas.ApplicationConfig.Containers[*].Mounts[*].Path`!!!
-					volumeMountCopy.MountPath = mount.Path
-					podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, volumeMountCopy)
 					podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, m)
 				}
 			}
