@@ -78,11 +78,15 @@ type ModelService interface {
 	// GetModelUsers will retrieve basic information about users with permissions on
 	// the given model UUID.
 	GetModelUsers(ctx context.Context, modelUUID coremodel.UUID) ([]coremodel.ModelUserInfo, error)
-	// ListAllModels returns a slice of all models in the controller. If no models
+	// GetAllModels returns a slice of all models in the controller. If no models
 	// exist an empty slice is returned.
-	ListAllModels(ctx context.Context) ([]coremodel.Model, error)
-	// ListModelUUIDs returns a list of all model UUIDs in the controller.
-	ListModelUUIDs(context.Context) ([]coremodel.UUID, error)
+	GetAllModels(ctx context.Context) ([]coremodel.Model, error)
+	// GetModelUUIDs returns a list of all hosted model UUIDs in the
+	// controller. This includes the controller model UUID.
+	GetModelUUIDs(context.Context) ([]coremodel.UUID, error)
+	// GetHostedModelUUIDs returns a list of all hosted model UUIDs in the
+	// controller. This excludes the controller model UUID.
+	GetHostedModelUUIDs(context.Context) ([]coremodel.UUID, error)
 	// CheckModelExists checks if a model exists within the controller. True or
 	// false is returned indiciating of the model exists.
 	CheckModelExists(ctx context.Context, modelUUID coremodel.UUID) (bool, error)

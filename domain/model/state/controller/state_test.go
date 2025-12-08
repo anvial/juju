@@ -926,7 +926,7 @@ func (m *stateSuite) TestDeleteModel(c *tc.C) {
 	err = row.Scan(&val)
 	c.Assert(err, tc.ErrorIs, sql.ErrNoRows)
 
-	modelUUIDS, err := modelSt.ListModelUUIDs(c.Context())
+	modelUUIDS, err := modelSt.GetModelUUIDs(c.Context())
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(modelUUIDS, tc.DeepEquals, []coremodel.UUID{m.controllerModelUUID})
 
@@ -947,9 +947,9 @@ func (m *stateSuite) TestDeleteModelNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
-// TestListModelUUIDs is testing that once we have created several models calling
+// TestGetModelUUIDs is testing that once we have created several models calling
 // list returns all the models created.
-func (m *stateSuite) TestListModelUUIDs(c *tc.C) {
+func (m *stateSuite) TestGetModelUUIDs(c *tc.C) {
 	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
 	m.createModel(c, m.uuid, m.userUUID)
 
@@ -1000,11 +1000,74 @@ func (m *stateSuite) TestListModelUUIDs(c *tc.C) {
 	err = modelSt.Activate(c.Context(), uuid2)
 	c.Assert(err, tc.ErrorIsNil)
 
-	uuids, err := modelSt.ListModelUUIDs(c.Context())
+	uuids, err := modelSt.GetModelUUIDs(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(uuids, tc.HasLen, 4)
 	c.Check(uuids, tc.SameContents, []coremodel.UUID{
 		m.controllerModelUUID,
+		m.uuid,
+		uuid1,
+		uuid2,
+	})
+}
+
+// TestGetHostedModelUUIDs is testing that once we have created several models
+// calling list returns all the models created.
+func (m *stateSuite) TestGetHostedModelUUIDs(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	uuid1 := tc.Must(c, coremodel.NewUUID)
+	modelSt := NewState(m.TxnRunnerFactory())
+	err := modelSt.Create(
+		c.Context(),
+		uuid1,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "listtest1",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	err = modelSt.Activate(c.Context(), uuid1)
+	c.Assert(err, tc.ErrorIsNil)
+
+	uuid2 := tc.Must(c, coremodel.NewUUID)
+	err = modelSt.Create(
+		c.Context(),
+		uuid2,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "listtest2",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	err = modelSt.Activate(c.Context(), uuid2)
+	c.Assert(err, tc.ErrorIsNil)
+
+	uuids, err := modelSt.GetHostedModelUUIDs(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(uuids, tc.HasLen, 3)
+	c.Check(uuids, tc.SameContents, []coremodel.UUID{
 		m.uuid,
 		uuid1,
 		uuid2,
@@ -1177,12 +1240,12 @@ func (m *stateSuite) TestModelsForNonExistantUser(c *tc.C) {
 	c.Check(len(models), tc.Equals, 0)
 }
 
-func (m *stateSuite) TestAllModels(c *tc.C) {
+func (m *stateSuite) TestGetAllModels(c *tc.C) {
 	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
 	m.createModel(c, m.uuid, m.userUUID)
 
 	modelSt := NewState(m.TxnRunnerFactory())
-	models, err := modelSt.ListAllModels(c.Context())
+	models, err := modelSt.GetAllModels(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Check(models, tc.DeepEquals, []coremodel.Model{

@@ -140,13 +140,18 @@ type State interface {
 	// provided name and user a [modelerrors.NotFound] error is returned.
 	GetModelCloudInfo(context.Context, coremodel.UUID) (string, string, error)
 
-	// ListAllModels returns all models registered in the controller. If no
+	// GetAllModels returns all models registered in the controller. If no
 	// models exist a zero value slice will be returned.
-	ListAllModels(context.Context) ([]coremodel.Model, error)
+	GetAllModels(context.Context) ([]coremodel.Model, error)
 
-	// ListModelUUIDs returns a list of all model UUIDs in the controller that
+	// GetModelUUIDs returns a list of all model UUIDs in the controller that
 	// are active. If no models exist then an empty slice is returned.
-	ListModelUUIDs(context.Context) ([]coremodel.UUID, error)
+	GetModelUUIDs(context.Context) ([]coremodel.UUID, error)
+
+	// GetHostedModelUUIDs returns a list of all hosted model UUIDs in the
+	// controller that are active. This excludes the controller model UUID. If
+	// no models exist an empty slice is returned.
+	GetHostedModelUUIDs(context.Context) ([]coremodel.UUID, error)
 
 	// ListModelUUIDsForUser returns a slice of model UUIDs that the supplied
 	// user has access to. If the user has no models that they have access to
@@ -449,15 +454,28 @@ func (s *Service) Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Mod
 	return s.st.GetModel(ctx, uuid)
 }
 
-// ListModelUUIDs returns a list of all model UUIDs in the controller that are
-// active.
-func (s *Service) ListModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
+// GetModelUUIDs returns a list of all model UUIDs in the controller that are
+// active. This includes the controller model UUID.
+func (s *Service) GetModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	uuids, err := s.st.ListModelUUIDs(ctx)
+	uuids, err := s.st.GetModelUUIDs(ctx)
 	if err != nil {
-		return nil, errors.Errorf("getting list of model uuids for controller: %w", err)
+		return nil, errors.Errorf("getting model uuids for controller: %w", err)
+	}
+	return uuids, nil
+}
+
+// GetHostedModelUUIDs returns a list of all model UUIDs in the controller that
+// are active. This excludes the controller model UUID.
+func (s *Service) GetHostedModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	uuids, err := s.st.GetHostedModelUUIDs(ctx)
+	if err != nil {
+		return nil, errors.Errorf("getting hosted model uuids for controller: %w", err)
 	}
 	return uuids, nil
 }
@@ -483,13 +501,13 @@ func (s *Service) ListModelUUIDsForUser(
 	return s.st.ListModelUUIDsForUser(ctx, userUUID)
 }
 
-// ListAllModels  lists all models in the controller. If no models exist then
+// GetAllModels gets all models in the controller. If no models exist then
 // an empty slice is returned.
-func (s *Service) ListAllModels(ctx context.Context) ([]coremodel.Model, error) {
+func (s *Service) GetAllModels(ctx context.Context) ([]coremodel.Model, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	return s.st.ListAllModels(ctx)
+	return s.st.GetAllModels(ctx)
 }
 
 // ListModelsForUser lists the models that are either owned by the user or

@@ -928,7 +928,7 @@ func (s *offerSuite) TestFindApplicationOffersAllOffers(c *tc.C) {
 		Qualifier: model.QualifierFromUserTag(modelOwnerTag),
 		UUID:      modeltesting.GenModelUUID(c),
 	}
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return([]model.Model{foundModel}, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return([]model.Model{foundModel}, nil)
 	s.modelService.EXPECT().GetModelByNameAndQualifier(gomock.Any(), modelName, foundModel.Qualifier).Return(foundModel, nil)
 
 	charmLocator := charm.CharmLocator{

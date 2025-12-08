@@ -79,7 +79,7 @@ func (s *precheckBaseSuite) expectNoMachines() {
 }
 
 func (s *precheckBaseSuite) expectNoModels() {
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(nil, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(nil, nil)
 }
 
 func (s *precheckBaseSuite) expectAllAppsAndUnitsAlive() {

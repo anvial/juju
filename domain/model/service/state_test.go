@@ -225,7 +225,7 @@ func (d *dummyState) Delete(
 	return nil
 }
 
-func (d *dummyState) ListAllModels(
+func (d *dummyState) GetAllModels(
 	_ context.Context,
 ) ([]coremodel.Model, error) {
 	rval := make([]coremodel.Model, 0, len(d.models))
@@ -254,11 +254,25 @@ func (d *dummyState) ListModelsForUser(
 	return rval, nil
 }
 
-func (d *dummyState) ListModelUUIDs(
+func (d *dummyState) GetModelUUIDs(
 	_ context.Context,
 ) ([]coremodel.UUID, error) {
 	rval := make([]coremodel.UUID, 0, len(d.models))
 	for k := range d.models {
+		rval = append(rval, k)
+	}
+
+	return rval, nil
+}
+
+func (d *dummyState) GetHostedModelUUIDs(
+	_ context.Context,
+) ([]coremodel.UUID, error) {
+	rval := make([]coremodel.UUID, 0, len(d.models))
+	for k := range d.models {
+		if k == d.controllerModelUUID {
+			continue
+		}
 		rval = append(rval, k)
 	}
 

@@ -43,8 +43,8 @@ type ModelInfoService interface {
 
 // ModelService provides access to information about the models within the controller.
 type ModelService interface {
-	// ListModelUUIDs returns a list of all model UUIDs in the controller.
-	ListModelUUIDs(context.Context) ([]coremodel.UUID, error)
+	// GetModelUUIDs returns a list of all model UUIDs in the controller.
+	GetModelUUIDs(context.Context) ([]coremodel.UUID, error)
 
 	// ModelRedirection returns redirection information for the current model. If it
 	// is not redirected, [modelmigrationerrors.ModelNotRedirected] is returned.

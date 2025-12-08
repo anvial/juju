@@ -277,7 +277,7 @@ func (s *controllerSuite) TestNewAPIRefusesNonClient(c *tc.C) {
 func (s *controllerSuite) TestHostedModelConfigs_OnlyHostedModelsReturned(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	s.mockModelService.EXPECT().ListAllModels(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetAllModels(gomock.Any()).Return(
 		[]model.Model{
 			{
 				Name:      "first",
@@ -327,7 +327,7 @@ func (s *controllerSuite) TestListBlockedModels(c *tc.C) {
 			ModelType: model.IAAS,
 		},
 	}
-	s.mockModelService.EXPECT().ListAllModels(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetAllModels(gomock.Any()).Return(
 		models, nil,
 	)
 
@@ -350,7 +350,7 @@ func (s *controllerSuite) TestListBlockedModels(c *tc.C) {
 
 func (s *controllerSuite) TestListBlockedModelsNoBlocks(c *tc.C) {
 	defer s.setupMocks(c).Finish()
-	s.mockModelService.EXPECT().ListAllModels(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetAllModels(gomock.Any()).Return(
 		nil, nil,
 	)
 	list, err := s.controller.ListBlockedModels(c.Context())
@@ -410,7 +410,7 @@ func (s *controllerSuite) TestRemoveBlocks(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(otherBlocks, tc.HasLen, 2)
 
-	s.mockModelService.EXPECT().ListModelUUIDs(gomock.Any()).Return(
+	s.mockModelService.EXPECT().GetModelUUIDs(gomock.Any()).Return(
 		[]model.UUID{
 			s.DefaultModelUUID,
 		}, nil,
@@ -834,7 +834,7 @@ func (s *accessSuite) TestAllModels(c *tc.C) {
 			ModelType: model.IAAS,
 		},
 	}
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(
 		models, nil,
 	)
 

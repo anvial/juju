@@ -244,7 +244,7 @@ func (c *ControllerAPI) AllModels(ctx context.Context) (params.UserModelList, er
 		return result, errors.Trace(err)
 	}
 
-	models, err := c.modelService.ListAllModels(ctx)
+	models, err := c.modelService.GetAllModels(ctx)
 	if err != nil {
 		return result, errors.Trace(err)
 	}
@@ -291,7 +291,7 @@ func (c *ControllerAPI) ListBlockedModels(ctx context.Context) (params.ModelBloc
 		return results, errors.Trace(err)
 	}
 
-	models, err := c.modelService.ListAllModels(ctx)
+	models, err := c.modelService.GetAllModels(ctx)
 	if err != nil {
 		return results, errors.Trace(err)
 	}
@@ -332,7 +332,7 @@ func (c *ControllerAPI) HostedModelConfigs(ctx context.Context) (params.HostedMo
 		return result, errors.Trace(err)
 	}
 
-	models, err := c.modelService.ListAllModels(ctx)
+	models, err := c.modelService.GetAllModels(ctx)
 	if err != nil {
 		return result, errors.Trace(err)
 	}
@@ -401,7 +401,7 @@ func (c *ControllerAPI) RemoveBlocks(ctx context.Context, args params.RemoveBloc
 	}
 
 	// If there are blocks let the user know.
-	uuids, err := c.modelService.ListModelUUIDs(ctx)
+	uuids, err := c.modelService.GetModelUUIDs(ctx)
 	if err != nil {
 		return errors.Trace(err)
 	}

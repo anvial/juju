@@ -824,7 +824,7 @@ func (api *OffersAPI) FindApplicationOffers(ctx context.Context, filters params.
 	// any models the user can see and query across those.
 	// If there's more than one filter term, each must specify a model.
 	if len(filters.Filters) == 1 && filters.Filters[0].ModelName == "" {
-		models, err := api.modelService.ListAllModels(ctx)
+		models, err := api.modelService.GetAllModels(ctx)
 		if err != nil {
 			return result, errors.Capture(err)
 		}

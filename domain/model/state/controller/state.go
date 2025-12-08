@@ -972,9 +972,9 @@ func (s *State) GetModelTypes(ctx context.Context) ([]coremodel.ModelType, error
 	})
 }
 
-// ListAllModels returns a slice of all models in the controller. If no models
+// GetAllModels returns a slice of all models in the controller. If no models
 // exist an empty slice is returned.
-func (s *State) ListAllModels(ctx context.Context) ([]coremodel.Model, error) {
+func (s *State) GetAllModels(ctx context.Context) ([]coremodel.Model, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
 		return nil, errors.Capture(err)
@@ -1016,8 +1016,9 @@ ORDER BY name`, dbModel{})
 	return rval, nil
 }
 
-// ListModelUUIDs returns a list of all model UUIDs in the system that are active.
-func (s *State) ListModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
+// GetModelUUIDs returns a list of all model UUIDs in the system that are
+// active. This includes controller and non-controller models.
+func (s *State) GetModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
 		return nil, errors.Capture(err)
@@ -1033,6 +1034,42 @@ func (s *State) ListModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
 		err := tx.Query(ctx, stmt).GetAll(&dbResult)
 		if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
 			return errors.Errorf("getting all model UUIDs: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	modelUUIDs := make([]coremodel.UUID, 0, len(dbResult))
+	for _, r := range dbResult {
+		modelUUIDs = append(modelUUIDs, coremodel.UUID(r.UUID))
+	}
+	return modelUUIDs, nil
+}
+
+// GetHostedModelUUIDs returns a list of all model UUIDs in the system that are
+// active. This excludes the controller model.
+func (s *State) GetHostedModelUUIDs(ctx context.Context) ([]coremodel.UUID, error) {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	stmt, err := s.Prepare(`
+SELECT &dbUUID.uuid
+FROM v_model
+WHERE is_controller_model = FALSE;`, dbUUID{})
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	var dbResult []dbUUID
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err := tx.Query(ctx, stmt).GetAll(&dbResult)
+		if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
+			return errors.Errorf("getting all hosted model UUIDs: %w", err)
 		}
 		return nil
 	})

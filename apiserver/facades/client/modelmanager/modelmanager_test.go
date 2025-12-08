@@ -786,7 +786,7 @@ func (s *modelManagerSuite) TestListModelsAdminSelf(c *tc.C) {
 
 	now := time.Now()
 	s.accessService.EXPECT().GetUserUUIDByName(gomock.Any(), coreuser.NameFromTag(userTag)).Return(userUUID, nil)
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return([]coremodel.Model{
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return([]coremodel.Model{
 		{UUID: modelUUID, Qualifier: "prod"},
 		{UUID: modelUUIDNeverAccessed, Qualifier: "prod"},
 		{UUID: modelUUIDNotExist},
