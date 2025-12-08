@@ -9,8 +9,11 @@ import (
 	"path"
 	"strconv"
 
+	jujuerrors "github.com/juju/errors"
+
 	coreapplication "github.com/juju/juju/core/application"
 	corechangestream "github.com/juju/juju/core/changestream"
+	corecharm "github.com/juju/juju/core/charm"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/trace"
@@ -210,7 +213,7 @@ type FilesystemState interface {
 }
 
 type CharmState interface {
-	GetCharmIDForApplication(context.Context, coreapplication.UUID) (corecharm.ID, error)
+	GetCharmUUIDForApplication(context.Context, coreapplication.UUID) (corecharm.ID, error)
 	GetContainerMountsForCharm(
 		context.Context,
 		corecharm.ID,
@@ -877,7 +880,7 @@ func (s *Service) GetFilesystemTemplatesForApplication(
 		)
 	}
 
-	charmID, err := s.st.GetCharmIDForApplication(ctx, appUUID)
+	charmID, err := s.st.GetCharmUUIDForApplication(ctx, appUUID)
 	if err != nil {
 		return nil, errors.Errorf(
 			"getting charm id for app %q: %w", appUUID, err,

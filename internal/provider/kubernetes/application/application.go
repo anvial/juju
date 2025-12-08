@@ -221,7 +221,11 @@ func (a *app) Ensure(config caas.ApplicationConfig) (err error) {
 		}, nil
 	}
 
-	var handleVolumeMount handleVolumeMountFunc = func(storageName string, m corev1.VolumeMount) error {
+	var handleVolumeMount handleVolumeMountFunc = func(
+		storageName string,
+		m corev1.VolumeMount,
+		forWorkloadContainer bool,
+	) error {
 		for i := range podSpec.Containers {
 			name := podSpec.Containers[i].Name
 			// Mount the storage for the charm container.
@@ -229,10 +233,15 @@ func (a *app) Ensure(config caas.ApplicationConfig) (err error) {
 				podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, m)
 				continue
 			}
+
+			// There is no point going further beyond this path because the
+			// supplied [corev1.VolumeMount] isn't intended for a workload
+			// container. Skip it to avoid an incorrect mount path.
+			if !forWorkloadContainer {
+				continue
+			}
+
 			// Reaching here means we mount the storage for the workload container.
-			// The location where we mount is defined in the YAML of the charm.
-			// This location is already organized in the `Mounts.Path` field of each
-			// container.
 			for _, mount := range config.Containers[name].Mounts {
 				if mount.StorageName == storageName {
 					volumeMountCopy := m
@@ -240,6 +249,7 @@ func (a *app) Ensure(config caas.ApplicationConfig) (err error) {
 					// Consolidate `caas.ApplicationConfig.Filesystems[*].Attachment.Path` and `caas.ApplicationConfig.Containers[*].Mounts[*].Path`!!!
 					volumeMountCopy.MountPath = mount.Path
 					podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, volumeMountCopy)
+					podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, m)
 				}
 			}
 		}
@@ -2118,7 +2128,7 @@ type handlePVCFunc func(
 	jujustorage.KubernetesFilesystemAttachmentParams,
 ) (*corev1.VolumeMount, error)
 
-type handleVolumeMountFunc func(string, corev1.VolumeMount) error
+type handleVolumeMountFunc func(string, corev1.VolumeMount, bool) error
 
 type handleStorageClassFunc func(storagev1.StorageClass) error
 
@@ -2195,11 +2205,32 @@ func (a *app) configureStorage(
 	logger.Tracef(context.TODO(), "persistent volume claim name mapping = %v", pvcNames)
 
 	fsNames := set.NewStrings()
-	for _, fs := range filesystems {
+	fsNamesWorkloadContainer := set.NewStrings()
+
+	var isDuplicate = func(fs jujustorage.KubernetesFilesystemParams) bool {
+		if fs.ForWorkloadContainer {
+			if fsNamesWorkloadContainer.Contains(fs.StorageName) {
+				return true
+			}
+			fsNamesWorkloadContainer.Add(fs.StorageName)
+			return false
+		}
+
+		// TODO(@adisazhar123): How would this work for multiple attachments?
+		// Because they would have the same storage name and the below will be
+		// mistakenly treated it as a duplicate filesystem thus error-ing out.
+		// This is also the behavior in 3.6.
 		if fsNames.Contains(fs.StorageName) {
-			return errors.NotValidf("duplicated storage name %q for %q", fs.StorageName, a.name)
+			return true
 		}
 		fsNames.Add(fs.StorageName)
+		return false
+	}
+
+	for _, fs := range filesystems {
+		if isDuplicate(fs) {
+			return errors.NotValidf("duplicated storage name %q for %q", fs.StorageName, a.name)
+		}
 
 		logger.Debugf(context.TODO(), "%s has filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(fs))
 
@@ -2235,7 +2266,11 @@ func (a *app) configureStorage(
 		}
 
 		if volumeMount != nil {
-			if err = handleVolumeMount(fs.StorageName, *volumeMount); err != nil {
+			if err = handleVolumeMount(
+				fs.StorageName,
+				*volumeMount,
+				fs.ForWorkloadContainer,
+			); err != nil {
 				return errors.Trace(err)
 			}
 		}

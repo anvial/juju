@@ -27,6 +27,8 @@ type KubernetesFilesystemParams struct {
 	// Attachment identifies the mount point the filesystem should be
 	// mounted at.
 	Attachment *KubernetesFilesystemAttachmentParams
+
+	ForWorkloadContainer bool
 }
 
 // KubernetesFilesystemAttachmentParams is a set of parameters for filesystem attachment
