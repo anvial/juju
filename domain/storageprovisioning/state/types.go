@@ -440,12 +440,12 @@ type storageAttachmentInfo struct {
 	BlockDeviceUUID       string    `db:"block_device_uuid"`
 }
 
-type ContainerMount struct {
-	charmContainerKey string `db:"charm_container_key"`
-	storage           string `db:"storage"`
-	location          string `db:"location"`
+type containerMount struct {
+	CharmContainerKey string `db:"charm_container_key"`
+	Storage           string `db:"storage"`
+	Location          string `db:"location"`
 }
 
-type charmUUID struct {
-	uuid string `db:"uuid"`
+type minimalApp struct {
+	CharmUUID string `db:"charm_uuid"`
 }

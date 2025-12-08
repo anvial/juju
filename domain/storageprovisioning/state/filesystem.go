@@ -1307,24 +1307,24 @@ WHERE  uuid = $filesystemAttachmentProvisionedInfo.uuid
 	return nil
 }
 
-func (st *State) GetCharmIDForApplication(ctx context.Context, appUUID coreapplication.UUID) (corecharm.ID, error) {
+func (st *State) GetCharmUUIDForApplication(ctx context.Context, appUUID coreapplication.UUID) (corecharm.ID, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
 
 	input := entityUUID{UUID: appUUID.String()}
+	app := minimalApp{}
 	stmt, err := st.Prepare(`
-SELECT &charmUUID.*
+SELECT &minimalApp.*
 FROM   application
 WHERE  uuid = $entityUUID.uuid
-`, input)
+`, app, input)
 	if err != nil {
 		return "", errors.Capture(err)
 	}
-	charmUUID := charmUUID{}
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		err = tx.Query(ctx, stmt, input).Get(&charmUUID)
+		err = tx.Query(ctx, stmt, input).Get(&app)
 		if err != nil {
 			return err
 		}
@@ -1334,6 +1334,7 @@ WHERE  uuid = $entityUUID.uuid
 		return "", errors.Capture(err)
 	}
 	return corecharm.ParseID(charmUUID.uuid)
+	return corecharm.ParseID(app.CharmUUID)
 }
 
 func (st *State) GetContainerMountsForCharm(
@@ -1345,14 +1346,17 @@ func (st *State) GetContainerMountsForCharm(
 		return nil, errors.Capture(err)
 	}
 
-	var containerMounts []ContainerMount
+	var containerMounts []containerMount
 	input := entityUUID{charmID.String()}
 
 	stmt, err := st.Prepare(`
-SELECT &ContainerMount.*
+SELECT &containerMount.*
 FROM   charm_container_mount
 WHERE  charm_uuid = $entityUUID.uuid
-`, input)
+`, containerMount{}, input)
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		err := tx.Query(ctx, stmt, input).GetAll(&containerMounts)
@@ -1369,15 +1373,15 @@ WHERE  charm_uuid = $entityUUID.uuid
 	rvals := make(map[string][]storageprovisioning.ContainerMount)
 
 	for _, mount := range containerMounts {
-		_, ok := rvals[mount.storage]
+		_, ok := rvals[mount.Storage]
 		if !ok {
-			rvals[mount.storage] = make([]storageprovisioning.ContainerMount, 0)
+			rvals[mount.Storage] = make([]storageprovisioning.ContainerMount, 0)
 		}
-		rvals[mount.storage] = append(rvals[mount.storage],
+		rvals[mount.Storage] = append(rvals[mount.Storage],
 			storageprovisioning.ContainerMount{
-				ContainerKey: mount.charmContainerKey,
-				StorageName:  mount.storage,
-				MountPoint:   mount.location,
+				ContainerKey: mount.CharmContainerKey,
+				StorageName:  mount.Storage,
+				MountPoint:   mount.Location,
 			})
 	}
 
