@@ -609,8 +609,8 @@ func (api *ProvisionerAPI) constructImageConstraint(
 	return imagemetadata.NewImageConstraint(lookup, cons.ImageID)
 }
 
-// findImageMetadata returns all image metadata or an error fetching them.
-// It looks for cached or custom image metadata in the CloudImageMetadata service.
+// findImageMetadata returns all image metadata or an error fetching them. It
+// looks for cached or custom image metadata in the CloudImageMetadata service.
 // If none are found, we fall back on original image search in simple streams.
 func (api *ProvisionerAPI) findImageMetadata(
 	ctx context.Context,
@@ -620,8 +620,8 @@ func (api *ProvisionerAPI) findImageMetadata(
 	// Look for image metadata in the service (cached or custom metadata).
 	serviceMetadata, err := api.imageMetadataFromService(ctx, imageConstraint)
 	if err != nil {
-		// look into simple stream if for some reason metadata can't be got from the service
-		// so do not exit on error.
+		// look into simple stream if for some reason metadata can't be got from
+		// the service so do not exit on error.
 		api.logger.Infof(ctx, "could not get image metadata from controller: %v", err)
 	}
 	api.logger.Debugf(ctx, "got from controller %d metadata", len(serviceMetadata))
@@ -630,10 +630,10 @@ func (api *ProvisionerAPI) findImageMetadata(
 		return serviceMetadata, nil
 	}
 
-	// If no metadata is found through the service, fall back to original simple stream search.
-	// Currently, an image metadata worker picks up this metadata periodically (daily),
-	// and stores it. So potentially, this data could be different
-	// to what is cached.
+	// If no metadata is found through the service, fall back to original simple
+	// stream search. Currently, an image metadata worker picks up this metadata
+	// periodically (daily), and stores it. So potentially, this data could be
+	// different to what is cached.
 	dsMetadata, err := api.imageMetadataFromDataSources(ctx, imageConstraint, imageStream)
 	if err != nil {
 		if !errors.Is(err, jujuerrors.NotFound) {
@@ -645,8 +645,8 @@ func (api *ProvisionerAPI) findImageMetadata(
 	return dsMetadata, nil
 }
 
-// imageMetadataFromService returns image metadata stored in the service
-// that matches given criteria.
+// imageMetadataFromService returns image metadata stored in the service that
+// matches given criteria.
 func (api *ProvisionerAPI) imageMetadataFromService(ctx context.Context, constraint *imagemetadata.ImageConstraint) ([]params.CloudImageMetadata, error) {
 	filter := cloudimagemetadata.MetadataFilter{
 		Versions: constraint.Releases,
@@ -686,20 +686,25 @@ func (api *ProvisionerAPI) imageMetadataFromService(ctx context.Context, constra
 	return all, nil
 }
 
-// imageMetadataFromDataSources finds image metadata that match specified criteria in existing data sources.
+// imageMetadataFromDataSources finds image metadata that match specified
+// criteria in existing data sources.
 func (api *ProvisionerAPI) imageMetadataFromDataSources(
 	ctx context.Context,
 	constraint *imagemetadata.ImageConstraint,
 	defaultImageStream string,
 ) ([]params.CloudImageMetadata, error) {
-	env, err := api.machineService.GetBootstrapEnviron(ctx)
+	// TODO (stickupkid): This is inefficient as every time we call this
+	// function we re-fetch the bootstrap environ and re-create the
+	// simplestreams fetcher. We should consider if there is a better way.
+	imageBootstrapEnviron, err := api.machineService.GetBootstrapEnviron(ctx)
 	if err != nil {
-		return nil, errors.Capture(err)
+		return nil, errors.Errorf("getting bootstrap environ for model: %w", err)
 	}
+
 	fetcher := simplestreams.NewSimpleStreams(simplestreams.DefaultDataSourceFactory())
-	sources, err := environs.ImageMetadataSources(env, fetcher)
+	sources, err := environs.ImageMetadataSources(imageBootstrapEnviron, fetcher)
 	if err != nil {
-		return nil, errors.Capture(err)
+		return nil, errors.Errorf("getting image metadata sources: %w", err)
 	}
 
 	toModel := func(m *imagemetadata.ImageMetadata, source string, priority int) cloudimagemetadata.Metadata {
