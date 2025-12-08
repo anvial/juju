@@ -263,9 +263,7 @@ func (s *SecretService) importSecretRevisions(
 				return errors.Capture(err)
 			}
 		}
-		err = s.secretState.RunAtomic(ctx, func(ctx domain.AtomicContext) error {
-			return s.updateSecret(ctx, md.URI, params)
-		})
+		err = s.secretState.UpdateSecret(ctx, md.URI, params)
 		if err != nil {
 			if err := rollBack(); err != nil {
 				s.logger.Warningf(ctx, "failed to roll back secret reference count: %v", err)

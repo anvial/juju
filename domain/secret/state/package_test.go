@@ -33,16 +33,6 @@ func getUnitUUID(ctx context.Context, st *State, unitName coreunit.Name) (coreun
 	return uuid, err
 }
 
-func getSecretOwner(ctx context.Context, st *State, uri *coresecrets.URI) (domainsecret.Owner, error) {
-	var owner domainsecret.Owner
-	err := st.RunAtomic(ctx, func(ctx domain.AtomicContext) error {
-		var err error
-		owner, err = st.GetSecretOwner(ctx, uri)
-		return err
-	})
-	return owner, err
-}
-
 func checkUserSecretLabelExists(ctx context.Context, st *State, label string) (bool, error) {
 	var exists bool
 	err := st.RunAtomic(ctx, func(ctx domain.AtomicContext) error {
@@ -96,12 +86,5 @@ func createCharmUnitSecret(ctx context.Context, st *State, version int, uri *cor
 			return err
 		}
 		return st.CreateCharmUnitSecret(ctx, version, uri, unitUUID, secret)
-	})
-}
-
-func updateSecret(ctx context.Context, st *State, uri *coresecrets.URI, secret domainsecret.UpsertSecretParams,
-) error {
-	return st.RunAtomic(ctx, func(ctx domain.AtomicContext) error {
-		return st.UpdateSecret(ctx, uri, secret)
 	})
 }
