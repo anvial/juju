@@ -352,6 +352,17 @@ func (s *applicationSuite) assertEnsure(c *tc.C, app caas.Application,
 				},
 				ResourceTags: map[string]string{"foo": "bar"},
 			},
+			{
+				StorageName: "database",
+				Size:        100,
+				Provider:    "kubernetes",
+				Attributes:  map[string]interface{}{"storage-class": "workload-storage"},
+				Attachment: &storage.KubernetesFilesystemAttachmentParams{
+					Path: "path/in/workload-container",
+				},
+				ResourceTags:         map[string]string{"foo": "bar"},
+				ForWorkloadContainer: true,
+			},
 			// TODO(sidecar): fix here - all filesystems will not be mounted if it's not in `Containers[*].Mounts`
 			// {
 			// 	StorageName: "logs",
