@@ -352,17 +352,17 @@ func (c *statusHistoryCommand) getStatusHistoryClients(ctx context.Context, warn
 	// that the controller details API is not supported, so we fall back to
 	// using the address of the connected controller only.
 	if controllerClient.BestAPIVersion() < 3 {
-		client, err := getStatusHistoryClient(ctx, c)
-		if err != nil {
-			return nil, false, err
-		}
-		return []HistoryAPI{client}, true, nil
+		clients, err := c.getStatusHistoryClient(ctx)
+		return clients, true, err
 	}
 
 	// We're connected to a HA controller that supports the controller details
 	// API, so we can get the addresses of all controllers.
 	controllers, err := controllerClient.ControllerDetails(ctx)
-	if err != nil {
+	if errors.Is(err, errors.NotSupported) {
+		clients, err := c.getStatusHistoryClient(ctx)
+		return clients, true, err
+	} else if err != nil {
 		return nil, false, errors.Annotatef(err, "getting controller details")
 	}
 
@@ -378,6 +378,14 @@ func (c *statusHistoryCommand) getStatusHistoryClients(ctx context.Context, warn
 		clients = append(clients, client)
 	}
 	return clients, false, nil
+}
+
+func (c *statusHistoryCommand) getStatusHistoryClient(ctx context.Context) ([]HistoryAPI, error) {
+	client, err := getStatusHistoryClient(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return []HistoryAPI{client}, nil
 }
 
 // ControllerDetailsAPI provides access to the high availability facade.
