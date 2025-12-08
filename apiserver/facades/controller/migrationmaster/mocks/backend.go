@@ -12,7 +12,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	description "github.com/juju/description/v9"
+	description "github.com/juju/description/v10"
 	controller "github.com/juju/juju/controller"
 	network "github.com/juju/juju/core/network"
 	state "github.com/juju/juju/state"
