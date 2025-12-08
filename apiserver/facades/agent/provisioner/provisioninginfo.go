@@ -56,6 +56,20 @@ func (api *ProvisionerAPI) ProvisioningInfo(ctx context.Context, args params.Ent
 		return result, errors.Errorf("getting all space infos: %w", err)
 	}
 
+	modelInfo, err := api.modelInfoService.GetModelInfo(ctx)
+	if err != nil {
+		return result, errors.Errorf("getting model info: %w", err)
+	}
+
+	modelConfig, err := api.modelConfigService.ModelConfig(ctx)
+	if err != nil {
+		return result, errors.Errorf("getting model config: %w", err)
+	}
+
+	cloudInitUserData := modelConfig.CloudInitUserData()
+	imageStream := modelConfig.ImageStream()
+	resourceTags := makeResourceTags(modelConfig)
+
 	for i, entity := range args.Entities {
 		tag, err := names.ParseMachineTag(entity.Tag)
 		if err != nil || !canAccess(tag) {
@@ -63,7 +77,8 @@ func (api *ProvisionerAPI) ProvisioningInfo(ctx context.Context, args params.Ent
 			continue
 		}
 		machineName := coremachine.Name(tag.Id())
-		result.Results[i].Result, err = api.getProvisioningInfo(ctx, machineName, allSpaces)
+		result.Results[i].Result, err = api.getProvisioningInfo(ctx,
+			machineName, allSpaces, cloudInitUserData, imageStream, resourceTags, modelInfo.CloudType)
 
 		result.Results[i].Error = apiservererrors.ServerError(err)
 	}
@@ -74,6 +89,10 @@ func (api *ProvisionerAPI) getProvisioningInfo(
 	ctx context.Context,
 	machineName coremachine.Name,
 	allSpaces network.SpaceInfos,
+	cloudInitUserData map[string]any,
+	imageStream string,
+	resourceTags tags.ResourceTagger,
+	cloudType string,
 ) (*params.ProvisioningInfo, error) {
 	machineUUID, err := api.machineService.GetMachineUUID(ctx, machineName)
 	switch {
@@ -83,16 +102,6 @@ func (api *ProvisionerAPI) getProvisioningInfo(
 		).Add(coreerrors.NotFound)
 	case err != nil:
 		return nil, errors.Errorf("getting machine %q uuid: %w", machineName, err)
-	}
-
-	modelInfo, err := api.modelInfoService.GetModelInfo(ctx)
-	if err != nil {
-		return nil, errors.Errorf("getting model info: %w", err)
-	}
-
-	modelConfig, err := api.modelConfigService.ModelConfig(ctx)
-	if err != nil {
-		return nil, errors.Errorf("getting model config: %w", err)
 	}
 
 	unitNames, err := api.applicationService.GetUnitNamesOnMachine(ctx, machineName)
@@ -112,7 +121,7 @@ func (api *ProvisionerAPI) getProvisioningInfo(
 
 	var result params.ProvisioningInfo
 	result, err = api.getProvisioningInfoBase(
-		ctx, machineName, machineUUID, unitNames, spaceBindings, modelConfig,
+		ctx, machineName, machineUUID, unitNames, spaceBindings, cloudInitUserData, imageStream, resourceTags,
 	)
 	if err != nil {
 		return nil, errors.Capture(err)
@@ -123,7 +132,7 @@ func (api *ProvisionerAPI) getProvisioningInfo(
 		return nil, errors.Capture(err)
 	}
 
-	if result.ProvisioningNetworkTopology, err = api.machineSpaceTopology(ctx, machineName.String(), result.Constraints, machineSpaces, modelInfo.CloudType); err != nil {
+	if result.ProvisioningNetworkTopology, err = api.machineSpaceTopology(ctx, machineName.String(), result.Constraints, machineSpaces, cloudType); err != nil {
 		return nil, errors.Errorf("matching subnets to zones: %w", err)
 	}
 
@@ -136,7 +145,9 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 	machineUUID coremachine.UUID,
 	unitNames []coreunit.Name,
 	endpointBindings map[string]string,
-	modelConfig *config.Config,
+	cloudInitUserData map[string]any,
+	imageStream string,
+	resourceTags tags.ResourceTagger,
 ) (params.ProvisioningInfo, error) {
 	base, err := api.machineService.GetMachineBase(ctx, machineName)
 	if errors.Is(err, machineerrors.MachineNotFound) {
@@ -146,7 +157,7 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 	}
 	result := params.ProvisioningInfo{
 		Base:              params.Base{Name: base.OS, Channel: base.Channel.String()},
-		CloudInitUserData: modelConfig.CloudInitUserData(),
+		CloudInitUserData: cloudInitUserData,
 		// EndpointBindings are used by MAAS by the provider. Operator defined
 		// space bindings are reflected in ProvisioningNetworkTopology.
 		EndpointBindings: endpointBindings,
@@ -200,7 +211,7 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 		return result, errors.Errorf("cannot write lxd profiles: %w", err)
 	}
 
-	if result.ImageMetadata, err = api.availableImageMetadata(ctx, machineName, modelConfig.ImageStream()); err != nil {
+	if result.ImageMetadata, err = api.availableImageMetadata(ctx, machineName, imageStream); err != nil {
 		return result, errors.Errorf("cannot get available image metadata: %w", err)
 	}
 
@@ -223,7 +234,7 @@ func (api *ProvisionerAPI) getProvisioningInfoBase(
 	}
 	result.Jobs = jobs
 
-	result.Tags, err = api.machineTags(ctx, unitNames, machineName, isController, modelConfig)
+	result.Tags, err = api.machineTags(ctx, unitNames, machineName, isController, resourceTags)
 	if err != nil {
 		return result, errors.Capture(err)
 	}
@@ -315,7 +326,7 @@ func (api *ProvisionerAPI) machineTags(
 	unitNames []coreunit.Name,
 	machineName coremachine.Name,
 	isController bool,
-	modelConfig *config.Config,
+	resourceTags tags.ResourceTagger,
 ) (map[string]string, error) {
 	// Names of all units deployed to the machine.
 	//
@@ -334,7 +345,7 @@ func (api *ProvisionerAPI) machineTags(
 	}
 	sort.Strings(principalUnitNames)
 
-	machineTags := instancecfg.InstanceTags(api.modelUUID.String(), api.controllerUUID, modelConfig, isController)
+	machineTags := instancecfg.InstanceTags(api.modelUUID.String(), api.controllerUUID, resourceTags, isController)
 	if len(unitNames) > 0 {
 		machineTags[tags.JujuUnitsDeployed] = strings.Join(principalUnitNames, " ")
 	}
@@ -751,4 +762,24 @@ func (api *ProvisionerAPI) imageMetadataFromDataSources(
 	}
 
 	return all, nil
+}
+
+// resourceTags ensures that the same resource tags are used throughout the
+// provisioning info retrieval process. Otherwise, multiple calls to
+// modelConfig.ResourceTags() could return different results.
+type resourceTags struct {
+	tags  map[string]string
+	found bool
+}
+
+func makeResourceTags(modelConfig *config.Config) resourceTags {
+	tagsMap, found := modelConfig.ResourceTags()
+	return resourceTags{
+		tags:  tagsMap,
+		found: found,
+	}
+}
+
+func (a resourceTags) ResourceTags() (map[string]string, bool) {
+	return a.tags, a.found
 }
