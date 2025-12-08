@@ -49,6 +49,11 @@ func (d *dummyState) CheckModelExists(ctx context.Context, uuid coremodel.UUID) 
 	return exists, nil
 }
 
+func (d *dummyState) ClearControllerImportingStatus(ctx context.Context, uuid coremodel.UUID) error {
+	// Stub implementation for testing
+	return nil
+}
+
 type dummyDeleter struct {
 	deleted map[string]struct{}
 }

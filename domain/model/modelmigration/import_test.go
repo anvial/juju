@@ -162,7 +162,7 @@ func (i *importSuite) TestModelCreate(c *tc.C) {
 	}
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(),
 		jujuversion.Current,
 		// This is important as we want to see when no agent stream has been set
@@ -246,7 +246,7 @@ func (i *importSuite) TestModelCreateWithAgentStream(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(),
 		jujuversion.Current,
 		agentbinary.AgentStreamTesting,
@@ -322,7 +322,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 	}
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
 	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)
@@ -400,7 +400,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 	c.Assert(err, tc.ErrorIsNil)
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
 	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(modelerrors.NotFound)
@@ -477,7 +477,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 	}
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
 	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)

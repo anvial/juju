@@ -102,3 +102,35 @@ FROM   machine_cloud_instance`
 	}
 	return instanceIDs, nil
 }
+
+// ClearModelImportingStatus removes the entry from the model_migrating table
+// in the model database, indicating that the model import has completed or been aborted.
+func (s *State) ClearModelImportingStatus(ctx context.Context, modelUUID string) error {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return errors.Errorf("cannot get database to clear importing status: %w", err)
+	}
+
+	type dbModelUUID struct {
+		ModelUUID string `db:"model_uuid"`
+	}
+
+	modelUUIDArg := dbModelUUID{
+		ModelUUID: modelUUID,
+	}
+
+	stmt, err := s.Prepare(`
+DELETE FROM model_migrating
+WHERE model_uuid = $dbModelUUID.model_uuid
+	`, modelUUIDArg)
+	if err != nil {
+		return errors.Errorf("preparing clear importing status statement: %w", err)
+	}
+
+	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		if err := tx.Query(ctx, stmt, modelUUIDArg).Run(); err != nil {
+			return errors.Errorf("clearing importing status for model %q in model database: %w", modelUUID, err)
+		}
+		return nil
+	})
+}

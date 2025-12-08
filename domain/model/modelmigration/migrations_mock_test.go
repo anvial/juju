@@ -246,6 +246,44 @@ func (m *MockModelDetailService) EXPECT() *MockModelDetailServiceMockRecorder {
 	return m.recorder
 }
 
+// CreateImportingModelWithAgentVersionStream mocks base method.
+func (m *MockModelDetailService) CreateImportingModelWithAgentVersionStream(arg0 context.Context, arg1 semversion.Number, arg2 agentbinary.AgentStream) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateImportingModelWithAgentVersionStream", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateImportingModelWithAgentVersionStream indicates an expected call of CreateImportingModelWithAgentVersionStream.
+func (mr *MockModelDetailServiceMockRecorder) CreateImportingModelWithAgentVersionStream(arg0, arg1, arg2 any) *MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImportingModelWithAgentVersionStream", reflect.TypeOf((*MockModelDetailService)(nil).CreateImportingModelWithAgentVersionStream), arg0, arg1, arg2)
+	return &MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall{Call: call}
+}
+
+// MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall wrap *gomock.Call
+type MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall) Return(arg0 error) *MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall) Do(f func(context.Context, semversion.Number, agentbinary.AgentStream) error) *MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall) DoAndReturn(f func(context.Context, semversion.Number, agentbinary.AgentStream) error) *MockModelDetailServiceCreateImportingModelWithAgentVersionStreamCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CreateModelWithAgentVersionStream mocks base method.
 func (m *MockModelDetailService) CreateModelWithAgentVersionStream(arg0 context.Context, arg1 semversion.Number, arg2 agentbinary.AgentStream) error {
 	m.ctrl.T.Helper()
