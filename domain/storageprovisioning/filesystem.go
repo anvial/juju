@@ -144,6 +144,8 @@ type FilesystemTemplate struct {
 	// Attachments describes the attachment templates for this filesystem.
 	Attachments []FilesystemAttachmentTemplate
 
+	// AttachmentsForWorkload describes the attachment templates for this
+	// filesystem. The attachments are intended for a workload.
 	AttachmentsForWorkload []FilesystemAttachmentTemplate
 
 	// Attributes are a set of key value pairs that are supplied to the provider
@@ -198,6 +200,7 @@ type FilesystemAttachmentProvisionedInfo struct {
 	ReadOnly bool
 }
 
+// ContainerMount describes the mount locations defined for a workload container.
 type ContainerMount struct {
 	ContainerKey string
 	StorageName  string

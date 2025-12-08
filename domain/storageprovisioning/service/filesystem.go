@@ -210,8 +210,17 @@ type FilesystemState interface {
 	SetFilesystemAttachmentProvisionedInfo(ctx context.Context, filesystemAttachmentUUID storageprovisioning.FilesystemAttachmentUUID, info storageprovisioning.FilesystemAttachmentProvisionedInfo) error
 }
 
+// CharmState defines the methods required to fetch the mount points for charm
+// containers.
 type CharmState interface {
-	GetCharmUUIDForApplication(context.Context, coreapplication.UUID) (corecharm.ID, error)
+	// GetCharmUUIDForApplication returns the charm UUID for a given application.
+	GetCharmUUIDForApplication(
+		context.Context,
+		coreapplication.UUID,
+	) (corecharm.ID, error)
+	// GetContainerMountsForCharm returns the map of mount locations for workload
+	// containers. The map entry is keyed by the storage name.
+	// An empty map will be returned if there are no records.
 	GetContainerMountsForCharm(
 		context.Context,
 		corecharm.ID,

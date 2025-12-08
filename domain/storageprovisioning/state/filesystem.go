@@ -1307,7 +1307,11 @@ WHERE  uuid = $filesystemAttachmentProvisionedInfo.uuid
 	return nil
 }
 
-func (st *State) GetCharmUUIDForApplication(ctx context.Context, appUUID coreapplication.UUID) (corecharm.ID, error) {
+// GetCharmUUIDForApplication returns the charm UUID for a given application.
+func (st *State) GetCharmUUIDForApplication(
+	ctx context.Context,
+	appUUID coreapplication.UUID,
+) (corecharm.ID, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return "", errors.Capture(err)
@@ -1336,6 +1340,9 @@ WHERE  uuid = $entityUUID.uuid
 	return corecharm.ParseID(app.CharmUUID)
 }
 
+// GetContainerMountsForCharm returns the map of mount locations for workload
+// containers. The map entry is keyed by the storage name.
+// An empty map will be returned if there are no records.
 func (st *State) GetContainerMountsForCharm(
 	ctx context.Context,
 	charmID corecharm.ID,

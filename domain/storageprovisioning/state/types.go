@@ -440,12 +440,14 @@ type storageAttachmentInfo struct {
 	BlockDeviceUUID       string    `db:"block_device_uuid"`
 }
 
+// containerMount represents the charm container mount from the database.
 type containerMount struct {
 	CharmContainerKey string `db:"charm_container_key"`
 	Storage           string `db:"storage"`
 	Location          string `db:"location"`
 }
 
+// minimalApp represents a minimal subset of the application from the database.
 type minimalApp struct {
 	CharmUUID string `db:"charm_uuid"`
 }

@@ -1145,6 +1145,8 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMountPointSet(c *tc.C
 	})
 }
 
+// TestGetCharmUUIDForApplication tests fetching the charm UUID for a given
+// application UUID.
 func (s *filesystemSuite) TestGetCharmUUIDForApplication(c *tc.C) {
 	appUUID, expectedCharmUUID := s.newApplication(c, "foo")
 
@@ -1155,6 +1157,8 @@ func (s *filesystemSuite) TestGetCharmUUIDForApplication(c *tc.C) {
 	c.Check(charmUUID.String(), tc.Equals, expectedCharmUUID)
 }
 
+// TestGetContainerMountsForCharm tests fetching the container mounts for
+// a given charm UUID.
 func (s *filesystemSuite) TestGetContainerMountsForCharm(c *tc.C) {
 	charmUUID := s.newCharmContainer(c)
 
@@ -1376,6 +1380,8 @@ VALUES (?, ?, 0, 0)
 	return fsUUID, fsID
 }
 
+// newCharmContainer creates a new charm container and its mount locations.
+// The charm UUID is returned.
 func (s *filesystemSuite) newCharmContainer(c *tc.C) corecharm.ID {
 	_, charmUUID := s.newApplication(c, "foo")
 
