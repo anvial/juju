@@ -387,17 +387,20 @@ func createModel(
 		)
 	}
 
-	if args.SecretBackend == "" && modelType == coremodel.CAAS {
-		args.SecretBackend = kubernetessecrets.BackendName
-	} else if args.SecretBackend == "" && modelType == coremodel.IAAS {
-		args.SecretBackend = jujusecrets.BackendName
-	} else if args.SecretBackend == "" {
-		return nil, errors.Errorf(
-			"%w for model type %q when creating model with name %q",
-			secretbackenderrors.NotFound,
-			modelType,
-			args.Name,
-		)
+	if args.SecretBackend == "" {
+		switch modelType {
+		case coremodel.CAAS:
+			args.SecretBackend = kubernetessecrets.BackendName
+		case coremodel.IAAS:
+			args.SecretBackend = jujusecrets.BackendName
+		default:
+			return nil, errors.Errorf(
+				"%w for model type %q when creating model with name %q",
+				secretbackenderrors.NotFound,
+				modelType,
+				args.Name,
+			)
+		}
 	}
 
 	if args.Credential.IsZero() {
