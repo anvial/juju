@@ -259,7 +259,7 @@ func (s *ModelServices) BlockDevice() *blockdeviceservice.WatchableService {
 func (s *ModelServices) Application() *applicationservice.WatchableService {
 	logger := s.logger.Child("application")
 	state := applicationstate.NewState(
-		changestream.NewTxnRunnerFactory(s.modelDB), s.clock, logger,
+		changestream.NewTxnRunnerFactory(s.modelDB), s.modelUUID, s.clock, logger,
 	)
 
 	storageSvc := applicationstorageservice.NewService(
@@ -280,6 +280,7 @@ func (s *ModelServices) Application() *applicationservice.WatchableService {
 		providertracker.ProviderRunner[applicationservice.CAASProvider](s.providerFactory, s.modelUUID.String()),
 		charmstore.NewCharmStore(s.modelObjectStoreGetter, logger.Child("charmstore")),
 		domain.NewStatusHistory(logger, s.clock),
+		s.modelUUID,
 		s.clock,
 		logger,
 	)
@@ -401,6 +402,7 @@ func (s *ModelServices) Secret() *secretservice.WatchableService {
 // operations.
 func (s *ModelServices) ModelMigration() *modelmigrationservice.Service {
 	return modelmigrationservice.NewService(
+		s.modelUUID.String(),
 		providertracker.ProviderRunner[modelmigrationservice.InstanceProvider](s.providerFactory, s.modelUUID.String()),
 		providertracker.ProviderRunner[modelmigrationservice.ResourceProvider](s.providerFactory, s.modelUUID.String()),
 		modelmigrationstate.New(changestream.NewTxnRunnerFactory(s.modelDB)),

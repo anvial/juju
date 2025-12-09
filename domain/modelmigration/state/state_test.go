@@ -139,3 +139,182 @@ func (s *migrationSuite) TestEmptyInstanceIDs(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(instanceIDs, tc.HasLen, 0)
 }
+
+// TestClearModelImportingStatusSuccess tests that clearing an existing
+// model_migrating entry succeeds and actually removes the entry from the
+// database.
+func (s *migrationSuite) TestClearModelImportingStatusSuccess(c *tc.C) {
+	db := s.DB()
+	st := New(s.TxnRunnerFactory())
+
+	// Get the model UUID from the database.
+	var modelUUID string
+	err := db.QueryRowContext(c.Context(), "SELECT uuid FROM model").Scan(&modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Insert a model_migrating entry.
+	migratingUUID := uuid.MustNewUUID().String()
+	_, err = db.ExecContext(c.Context(),
+		"INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)",
+		migratingUUID, modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the entry exists.
+	var count int
+	err = db.QueryRowContext(c.Context(),
+		"SELECT COUNT(*) FROM model_migrating WHERE model_uuid = ?",
+		modelUUID).Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, 1)
+
+	// Clear the importing status.
+	err = st.ClearModelImportingStatus(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the entry has been deleted.
+	err = db.QueryRowContext(c.Context(),
+		"SELECT COUNT(*) FROM model_migrating WHERE model_uuid = ?",
+		modelUUID).Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, 0)
+}
+
+// TestClearModelImportingStatusNoEntry tests that clearing a non-existent
+// model_migrating entry succeeds without error (idempotent behavior).
+func (s *migrationSuite) TestClearModelImportingStatusNoEntry(c *tc.C) {
+	db := s.DB()
+	st := New(s.TxnRunnerFactory())
+
+	// Get the model UUID from the database.
+	var modelUUID string
+	err := db.QueryRowContext(c.Context(), "SELECT uuid FROM model").Scan(&modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify no entry exists.
+	var count int
+	err = db.QueryRowContext(c.Context(),
+		"SELECT COUNT(*) FROM model_migrating WHERE model_uuid = ?",
+		modelUUID).Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, 0)
+
+	// Clear should succeed even when there's nothing to delete.
+	err = st.ClearModelImportingStatus(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify still no entries.
+	err = db.QueryRowContext(c.Context(),
+		"SELECT COUNT(*) FROM model_migrating WHERE model_uuid = ?",
+		modelUUID).Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, 0)
+}
+
+// TestClearModelImportingStatusVerifyCorrectEntry tests that clearing
+// deletes the correct entry and verifies by UUID.
+func (s *migrationSuite) TestClearModelImportingStatusVerifyCorrectEntry(c *tc.C) {
+	db := s.DB()
+	st := New(s.TxnRunnerFactory())
+
+	// Get the model UUID from the database.
+	var modelUUID string
+	err := db.QueryRowContext(c.Context(), "SELECT uuid FROM model").Scan(&modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Insert a model_migrating entry with a specific UUID.
+	migratingUUID := uuid.MustNewUUID().String()
+	_, err = db.ExecContext(c.Context(),
+		"INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)",
+		migratingUUID, modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify we can query the specific entry by its UUID.
+	var retrievedModelUUID string
+	err = db.QueryRowContext(c.Context(),
+		"SELECT model_uuid FROM model_migrating WHERE uuid = ?",
+		migratingUUID).Scan(&retrievedModelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(retrievedModelUUID, tc.Equals, modelUUID)
+
+	// Clear the importing status.
+	err = st.ClearModelImportingStatus(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the entry no longer exists.
+	var count int
+	err = db.QueryRowContext(c.Context(),
+		"SELECT COUNT(*) FROM model_migrating WHERE uuid = ?",
+		migratingUUID).Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, 0)
+}
+
+// TestClearModelImportingStatusWrongModelUUID tests that clearing with a
+// non-existent model UUID succeeds without error and doesn't affect other
+// entries.
+func (s *migrationSuite) TestClearModelImportingStatusWrongModelUUID(c *tc.C) {
+	db := s.DB()
+	st := New(s.TxnRunnerFactory())
+
+	// Get the actual model UUID from the database.
+	var modelUUID string
+	err := db.QueryRowContext(c.Context(), "SELECT uuid FROM model").Scan(&modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Insert a model_migrating entry.
+	migratingUUID := uuid.MustNewUUID().String()
+	_, err = db.ExecContext(c.Context(),
+		"INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)",
+		migratingUUID, modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Try to clear with a different (non-existent) model UUID.
+	differentModelUUID := uuid.MustNewUUID().String()
+	err = st.ClearModelImportingStatus(c.Context(), differentModelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the original entry still exists.
+	var count int
+	err = db.QueryRowContext(c.Context(),
+		"SELECT COUNT(*) FROM model_migrating WHERE model_uuid = ?",
+		modelUUID).Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, 1)
+}
+
+// TestClearModelImportingStatusIdempotent tests that calling
+// ClearModelImportingStatus multiple times is safe and idempotent.
+func (s *migrationSuite) TestClearModelImportingStatusIdempotent(c *tc.C) {
+	db := s.DB()
+	st := New(s.TxnRunnerFactory())
+
+	// Get the model UUID from the database.
+	var modelUUID string
+	err := db.QueryRowContext(c.Context(), "SELECT uuid FROM model").Scan(&modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Insert a model_migrating entry.
+	migratingUUID := uuid.MustNewUUID().String()
+	_, err = db.ExecContext(c.Context(),
+		"INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)",
+		migratingUUID, modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Clear the importing status multiple times.
+	err = st.ClearModelImportingStatus(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	err = st.ClearModelImportingStatus(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	err = st.ClearModelImportingStatus(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify no entries exist.
+	var count int
+	err = db.QueryRowContext(c.Context(),
+		"SELECT COUNT(*) FROM model_migrating WHERE model_uuid = ?",
+		modelUUID).Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, 0)
+}

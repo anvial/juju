@@ -14,6 +14,7 @@ import (
 	corecharm "github.com/juju/juju/core/charm"
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/application/architecture"
@@ -26,14 +27,16 @@ import (
 
 type State struct {
 	*domain.StateBase
-	clock  clock.Clock
-	logger logger.Logger
+	modelUUID model.UUID
+	clock     clock.Clock
+	logger    logger.Logger
 }
 
 // NewState returns a new state reference.
-func NewState(factory database.TxnRunnerFactory, clock clock.Clock, logger logger.Logger) *State {
+func NewState(factory database.TxnRunnerFactory, modelUUID model.UUID, clock clock.Clock, logger logger.Logger) *State {
 	return &State{
 		StateBase: domain.NewStateBase(factory),
+		modelUUID: modelUUID,
 		clock:     clock,
 		logger:    logger,
 	}

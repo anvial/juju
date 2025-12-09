@@ -1312,3 +1312,7 @@ type unitK8sPodInfoWithName struct {
 type charmModifiedVersion struct {
 	Version uint64 `db:"charm_modified_version"`
 }
+
+type modelMigrating struct {
+	ModelUUID string `db:"model_uuid"`
+}

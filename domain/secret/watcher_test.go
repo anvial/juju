@@ -15,6 +15,7 @@ import (
 
 	"github.com/juju/juju/core/changestream"
 	corecharm "github.com/juju/juju/core/charm"
+	model "github.com/juju/juju/core/model"
 	coresecrets "github.com/juju/juju/core/secrets"
 	corestorage "github.com/juju/juju/core/storage"
 	"github.com/juju/juju/core/unit"
@@ -884,7 +885,7 @@ func (s *watcherSuite) TestWatchSecretsRevisionExpiryChanges(c *tc.C) {
 
 func (s *watcherSuite) setupUnits(c *tc.C, appName string) string {
 	logger := loggertesting.WrapCheckLog(c)
-	st := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, logger)
+	st := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, logger)
 	storageProviderRegistryGetter := corestorage.ConstModelStorageRegistry(
 		func() internalstorage.ProviderRegistry {
 			return internalstorage.NotImplementedProviderRegistry{}
@@ -911,6 +912,7 @@ func (s *watcherSuite) setupUnits(c *tc.C, appName string) string {
 		},
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		model.UUID(s.ModelUUID()),
 		clock.WallClock,
 		logger,
 	)

@@ -177,6 +177,82 @@ func (s *State) Create(
 	})
 }
 
+// ImportModel is responsible for inserting a new model, which is being
+// imported. It will register the model existence and associate all of the model
+// metadata.
+// Finally, it will set the model as an importing model, in the
+// model_migration_import table.
+//
+// The following errors can be expected:
+// - [modelerrors.AlreadyExists] when a model already exists with the same name
+// and owner
+// - [errors.NotSupported] When the new models type cannot be found.
+// - [errors.NotFound] Should the provided cloud and region not be found.
+// - [usererrors.NotFound] When the model owner does not exist.
+// - [secretbackenderrors.NotFound] When the secret backend for the model
+// cannot be found.
+func (s *State) ImportModel(
+	ctx context.Context,
+	modelID coremodel.UUID,
+	modelType coremodel.ModelType,
+	input model.GlobalModelCreationArgs,
+) error {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		// If the controller model is not alive, do not allow the creation of
+		// new models. This prevents models being created when the controller is
+		// is being destroyed.
+		if controllerModelLife, err := getControllerModelLife(ctx, s, tx); err != nil {
+			return errors.Errorf("checking controller model life state: %w", err)
+		} else if controllerModelLife != life.Alive {
+			return errors.New("cannot create new model when controller model is dying")
+		}
+
+		if err := Create(ctx, s, tx, modelID, modelType, input); err != nil {
+			return errors.Capture(err)
+		}
+
+		return markModelAsImporting(ctx, s, tx, modelID)
+	})
+}
+
+// markModelAsImporting inserts an entry to the model_migration_import table
+// to mark the model as being imported.
+func markModelAsImporting(
+	ctx context.Context,
+	preparer domain.Preparer,
+	tx *sqlair.TX,
+	modelID coremodel.UUID,
+) error {
+	migrationUUID, err := uuid.NewUUID()
+	if err != nil {
+		return errors.Errorf("generating migration uuid for model %q: %w", modelID, err)
+	}
+
+	migrationRecord := dbTargetModelMigration{
+		UUID:      migrationUUID.String(),
+		ModelUUID: modelID.String(),
+	}
+
+	stmt, err := preparer.Prepare(`
+INSERT INTO model_migration_import (uuid, model_uuid)
+VALUES ($dbTargetModelMigration.uuid, $dbTargetModelMigration.model_uuid)
+	`, migrationRecord)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	if err := tx.Query(ctx, stmt, migrationRecord).Run(); err != nil {
+		return errors.Errorf("marking model %q as importing: %w", modelID, err)
+	}
+
+	return nil
+}
+
 // Create is responsible for creating a new model from start to finish. It will
 // register the model existence and associate all of the model metadata.
 //
@@ -855,6 +931,33 @@ func (s *State) Delete(
 			return errors.Errorf("%w for uuid %q", modelerrors.NotFound, uuid)
 		}
 
+		return nil
+	})
+}
+
+// ClearControllerImportingStatus removes the entry from the
+// model_migration_import table in the controller database, indicating that the
+// model import has completed or been aborted.
+func (s *State) ClearControllerImportingStatus(ctx context.Context, modelID coremodel.UUID) error {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	mUUID := dbUUID{UUID: modelID.String()}
+
+	stmt, err := s.Prepare(`
+DELETE FROM model_migration_import
+WHERE model_uuid = $dbUUID.uuid
+	`, mUUID)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		if err := tx.Query(ctx, stmt, mUUID).Run(); err != nil {
+			return errors.Errorf("clearing importing status for model %q in controller database: %w", modelID, err)
+		}
 		return nil
 	})
 }

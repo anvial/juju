@@ -55,7 +55,8 @@ func RegisterImport(coordinator Coordinator, logger logger.Logger) {
 // another controller to this one.
 type ModelImportService interface {
 	// ImportModel is responsible for creating a new model that is being
-	// imported.
+	// imported. Returns an activator function that must be called to mark
+	// the model as alive.
 	ImportModel(context.Context, domainmodel.ModelImportArgs) (func(context.Context) error, error)
 
 	// DeleteModel is responsible for removing a model from the system.
@@ -73,6 +74,18 @@ type ModelDetailService interface {
 	// supported.
 	// - [coreerrors.NotValid] when the agent stream is not valid.
 	CreateModelWithAgentVersionStream(context.Context, semversion.Number, agentbinary.AgentStream) error
+
+	// CreateImportingModelWithAgentVersionStream is responsible for creating a new
+	// model within the model database during model import, using the input agent
+	// version and agent stream. This method creates the model and marks it as
+	// importing in a single atomic transaction.
+	//
+	// The following error types can be expected to be returned:
+	// - [modelerrors.AlreadyExists] when the model uuid is already in use.
+	// - [modelerrors.AgentVersionNotSupported] when the agent version is not
+	// supported.
+	// - [coreerrors.NotValid] when the agent stream is not valid.
+	CreateImportingModelWithAgentVersionStream(context.Context, semversion.Number, agentbinary.AgentStream) error
 
 	// SetModelConstraints sets the model constraints to the new values removing
 	// any previously set constraints.
@@ -240,20 +253,22 @@ func (i *importModelOperation) Execute(ctx context.Context, model description.Mo
 	// consider adding a rollback operation to undo the changes made by the
 	// import operation.
 
-	// activator needs to be called as the last operation to say that we are
-	// happy that the model is ready to rock and roll.
-	if err := activator(ctx); err != nil {
-		return errors.Errorf(
-			"activating imported model %q with uuid %q: %w", modelName, modelID, err,
-		)
-	}
-
 	// We need to establish the read only model information in the model database.
-	err = i.modelDetailServiceFunc(modelID).CreateModelWithAgentVersionStream(ctx, agentVersion, agentStream)
+	// This also marks the model as importing in the model_migrating table so that
+	// charm uploads during the migration can be properly handled.
+	err = i.modelDetailServiceFunc(modelID).CreateImportingModelWithAgentVersionStream(ctx, agentVersion, agentStream)
 	if err != nil {
 		return errors.Errorf(
 			"importing read only model %q with uuid %q during migration: %w",
 			modelName, args.UUID, err,
+		)
+	}
+
+	// activator needs to be called as the last operation to mark the model
+	// as alive and ready to use.
+	if err := activator(ctx); err != nil {
+		return errors.Errorf(
+			"activating imported model %q with uuid %q: %w", modelName, modelID, err,
 		)
 	}
 

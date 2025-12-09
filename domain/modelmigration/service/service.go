@@ -56,7 +56,8 @@ type Service struct {
 	// [ResourceProvider]
 	resourceProviderGettter func(context.Context) (ResourceProvider, error)
 
-	st State
+	st        State
+	modelUUID string
 }
 
 // State defines the interface required for accessing the underlying state of
@@ -66,11 +67,15 @@ type State interface {
 	// GetAllInstanceIDs returns all instance IDs from the current model as
 	// juju/collections set.
 	GetAllInstanceIDs(ctx context.Context) (set.Strings, error)
+	// ClearModelImportingStatus removes the entry from the model_migrating table
+	// in the model database, indicating that the model import has completed or been aborted.
+	ClearModelImportingStatus(ctx context.Context, modelUUID string) error
 }
 
 // NewService is responsible for constructing a new [Service] to handle model migration
 // tasks.
 func NewService(
+	modelUUID string,
 	instanceProviderGetter providertracker.ProviderGetter[InstanceProvider],
 	resourceProviderGetter providertracker.ProviderGetter[ResourceProvider],
 	st State,
@@ -79,6 +84,7 @@ func NewService(
 		instanceProviderGetter:  instanceProviderGetter,
 		resourceProviderGettter: resourceProviderGetter,
 		st:                      st,
+		modelUUID:               modelUUID,
 	}
 }
 
@@ -277,18 +283,32 @@ func (s *Service) MinionReports(ctx context.Context) (migration.MinionReports, e
 	return migration.MinionReports{}, errors.ConstError("getting minion reports is not implemented")
 }
 
-// AbortImport stops the import of the model.
+// AbortImport stops the import of the model by clearing the model_migrating
+// table entry in the model database.
+// Note: This only clears the model database. The controller database's
+// model_migration_import table must be cleared separately by the controller
+// service.
 func (s *Service) AbortImport(ctx context.Context) error {
-	_, span := trace.Start(ctx, trace.NameFromFunc())
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
-	// TODO(modelmigration): implement aborting model import.
-	return errors.ConstError("aborting the import of a model is not implemented")
+
+	if err := s.st.ClearModelImportingStatus(ctx, s.modelUUID); err != nil {
+		return errors.Errorf("clearing importing status for model %q: %w", s.modelUUID, err)
+	}
+	return nil
 }
 
-// ActivateImport finalises the import of the model.
+// ActivateImport finalises the import of the model by clearing the
+// model_migrating table entry in the model database.
+// Note: This only clears the model database. The controller database's
+// model_migration_import table must be cleared separately by the controller
+// service.
 func (s *Service) ActivateImport(ctx context.Context) error {
-	_, span := trace.Start(ctx, trace.NameFromFunc())
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
-	// TODO(modelmigration): implement activate imported model.
-	return errors.ConstError("activating an imported model is not implemented")
+
+	if err := s.st.ClearModelImportingStatus(ctx, s.modelUUID); err != nil {
+		return errors.Errorf("clearing importing status for model %q: %w", s.modelUUID, err)
+	}
+	return nil
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/juju/juju/core/leadership"
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/os/ostype"
 	"github.com/juju/juju/core/providertracker"
 	"github.com/juju/juju/core/semversion"
@@ -60,6 +61,7 @@ type State interface {
 type Service struct {
 	st            State
 	leaderEnsurer leadership.Ensurer
+	modelUUID     model.UUID
 	logger        logger.Logger
 	clock         clock.Clock
 
@@ -73,12 +75,14 @@ func NewService(
 	leaderEnsurer leadership.Ensurer,
 	charmStore CharmStore,
 	statusHistory StatusHistory,
+	modelUUID model.UUID,
 	clock clock.Clock,
 	logger logger.Logger,
 ) *Service {
 	return &Service{
 		st:            st,
 		leaderEnsurer: leaderEnsurer,
+		modelUUID:     modelUUID,
 		logger:        logger,
 		clock:         clock,
 		charmStore:    charmStore,
@@ -229,6 +233,7 @@ func NewWatchableService(
 	caasProvider providertracker.ProviderGetter[CAASProvider],
 	charmStore CharmStore,
 	statusHistory StatusHistory,
+	modelUUID model.UUID,
 	clock clock.Clock,
 	logger logger.Logger,
 ) *WatchableService {
@@ -242,6 +247,7 @@ func NewWatchableService(
 			caasProvider,
 			charmStore,
 			statusHistory,
+			modelUUID,
 			clock,
 			logger,
 		),

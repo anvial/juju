@@ -13,6 +13,7 @@ import (
 
 	coreapplication "github.com/juju/juju/core/application"
 	"github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/network"
 	coreunit "github.com/juju/juju/core/unit"
@@ -106,7 +107,7 @@ func (s *baseSuite) createApplicationWithRelations(c *tc.C, appName string, rela
 		}
 	}
 
-	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 	appUUID, _, err := applicationSt.CreateIAASApplication(c.Context(), appName, application.AddIAASApplicationArg{
 		BaseAddApplicationArg: application.BaseAddApplicationArg{
 			Charm: charm.Charm{
@@ -136,7 +137,7 @@ func (s *baseSuite) createApplicationWithRelations(c *tc.C, appName string, rela
 // to the net node with uuid `netNodeUUID` and application with name `appName`.
 func (s *baseSuite) createUnit(c *tc.C, netNodeUUID, appName string) (coreunit.UUID, coreunit.Name) {
 	ctx := c.Context()
-	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	appID, err := applicationSt.GetApplicationUUIDByName(ctx, appName)
 	c.Assert(err, tc.ErrorIsNil)

@@ -135,7 +135,7 @@ func (e *exportOperation) Name() string {
 // This will create a new service instance.
 func (e *exportOperation) Setup(scope modelmigration.Scope) error {
 	e.service = service.NewMigrationService(
-		state.NewState(scope.ModelDB(), e.clock, e.logger),
+		state.NewState(scope.ModelDB(), scope.ModelUUID(), e.clock, e.logger),
 		e.clock,
 		e.logger,
 	)

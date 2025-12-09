@@ -69,6 +69,7 @@ func (s *serviceSuite) TestAdoptResources(c *tc.C) {
 	).Return(nil)
 
 	err = NewService(
+		"test-model-uuid",
 		s.instanceProviderGetter(c),
 		s.resourceProviderGetter(c),
 		s.state,
@@ -95,6 +96,7 @@ func (s *serviceSuite) TestAdoptResourcesProviderNotSupported(c *tc.C) {
 	).AnyTimes()
 
 	err = NewService(
+		"test-model-uuid",
 		s.instanceProviderGetter(c),
 		resourceGetter,
 		s.state,
@@ -122,6 +124,7 @@ func (s *serviceSuite) TestAdoptResourcesProviderNotImplemented(c *tc.C) {
 	).Return(coreerrors.NotImplemented)
 
 	err = NewService(
+		"test-model-uuid",
 		s.instanceProviderGetter(c),
 		s.resourceProviderGetter(c),
 		s.state,
@@ -148,6 +151,7 @@ func (s *serviceSuite) TestMachinesFromProviderNotInModel(c *tc.C) {
 		Return(set.NewStrings("instance0"), nil)
 
 	_, err := NewService(
+		"test-model-uuid",
 		s.instanceProviderGetter(c),
 		s.resourceProviderGetter(c),
 		s.state,
@@ -172,6 +176,7 @@ func (s *serviceSuite) TestMachineInstanceIDsNotInProvider(c *tc.C) {
 		Return(set.NewStrings("instance0", "instance1"), nil)
 
 	_, err := NewService(
+		"test-model-uuid",
 		s.instanceProviderGetter(c),
 		s.resourceProviderGetter(c),
 		s.state,

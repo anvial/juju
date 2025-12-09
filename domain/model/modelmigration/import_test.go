@@ -162,7 +162,7 @@ func (i *importSuite) TestModelCreate(c *tc.C) {
 	}
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(),
 		jujuversion.Current,
 		// This is important as we want to see when no agent stream has been set
@@ -199,7 +199,7 @@ func (i *importSuite) TestModelCreate(c *tc.C) {
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(activated, tc.IsTrue)
 }
@@ -246,7 +246,7 @@ func (i *importSuite) TestModelCreateWithAgentStream(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(),
 		jujuversion.Current,
 		agentbinary.AgentStreamTesting,
@@ -281,7 +281,7 @@ func (i *importSuite) TestModelCreateWithAgentStream(c *tc.C) {
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(activated, tc.IsTrue)
 }
@@ -322,7 +322,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 	}
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
 	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)
@@ -355,12 +355,11 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
-	// TODO (stickupkid): This is incorrect until the model info is
-	// correctly saved.
-	c.Check(activated, tc.IsTrue)
+	// The activator should not be called when the import fails and rolls back.
+	c.Check(activated, tc.IsFalse)
 }
 
 func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc.C) {
@@ -400,7 +399,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 	c.Assert(err, tc.ErrorIsNil)
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
 	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(modelerrors.NotFound)
@@ -433,12 +432,11 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
-	// TODO (stickupkid): This is incorrect until the model info is
-	// correctly saved.
-	c.Check(activated, tc.IsTrue)
+	// The activator should not be called when the import fails and rolls back.
+	c.Check(activated, tc.IsFalse)
 }
 
 func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyModel(c *tc.C) {
@@ -477,7 +475,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 	}
 
 	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
-	i.modelDetailService.EXPECT().CreateModelWithAgentVersionStream(
+	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
 	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)
@@ -510,12 +508,11 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
-	// TODO (stickupkid): This is incorrect until the model info is
-	// correctly saved.
-	c.Check(activated, tc.IsTrue)
+	// The activator should not be called when the import fails and rolls back.
+	c.Check(activated, tc.IsFalse)
 }
 
 // TestImportModelConstraintsNoOperations asserts that if no constraints are set

@@ -87,6 +87,11 @@ type CreateModelState interface {
 
 	// Create creates a new model with all of its associated metadata.
 	Create(context.Context, coremodel.UUID, coremodel.ModelType, model.GlobalModelCreationArgs) error
+
+	// ImportModel imports an existing model with all of its associated metadata.
+	// Unlike Create, it does not check the controller model lifecycle state and
+	// does not register a DQlite namespace.
+	ImportModel(context.Context, coremodel.UUID, coremodel.ModelType, model.GlobalModelCreationArgs) error
 }
 
 // DeleteModelState represents the state required for deleting a model.
@@ -172,9 +177,10 @@ type State interface {
 	// UpdateCredential updates a model's cloud credential.
 	UpdateCredential(context.Context, coremodel.UUID, credential.Key) error
 
-	// DefaultCloudCredentialNameForOwner returns the owner's default cloud credential name for a given
-	// cloud. If user has multiple (or no) credentials for the specified cloud a NotFound error is returned as
-	// we cannot determine the default credential.
+	// DefaultCloudCredentialNameForOwner returns the owner's default cloud
+	// credential name for a given cloud. If user has multiple (or no)
+	// credentials for the specified cloud a NotFound error is returned as we
+	// cannot determine the default credential.
 	DefaultCloudCredentialNameForOwner(ctx context.Context, owner coreuser.Name, cloudName string) (string, error)
 
 	// GetActivatedModelUUIDs returns the subset of model UUIDS from the
@@ -198,6 +204,11 @@ type State interface {
 	// InitialWatchModelTableName returns the name of the model table to be used
 	// for the initial watch statement.
 	InitialWatchModelTableName() string
+
+	// ClearControllerImportingStatus removes the entry from the
+	// model_migration_import table in the controller database, indicating that
+	// the model import has completed or been aborted.
+	ClearControllerImportingStatus(context.Context, coremodel.UUID) error
 }
 
 // Service defines a service for interacting with the underlying state based
@@ -317,7 +328,7 @@ func (s *Service) CreateModel(
 		)
 	}
 
-	activator, err := CreateModel(ctx, s.st, modelID, args)
+	activator, err := createModel(ctx, s.st, modelID, args)
 	if err != nil {
 		return "", nil, errors.Errorf("creating model %q: %w", args.Name, err)
 	}
@@ -364,7 +375,7 @@ func (s *Service) CreateModel(
 // - [modelerrors.CredentialNotValid]: When the cloud credential for the model
 // is not valid. This means that either the credential is not supported with
 // the cloud or the cloud doesn't support having an empty credential.
-func CreateModel(
+func createModel(
 	ctx context.Context,
 	st CreateModelState,
 	id coremodel.UUID,
@@ -378,17 +389,20 @@ func CreateModel(
 		)
 	}
 
-	if args.SecretBackend == "" && modelType == coremodel.CAAS {
-		args.SecretBackend = kubernetessecrets.BackendName
-	} else if args.SecretBackend == "" && modelType == coremodel.IAAS {
-		args.SecretBackend = jujusecrets.BackendName
-	} else if args.SecretBackend == "" {
-		return nil, errors.Errorf(
-			"%w for model type %q when creating model with name %q",
-			secretbackenderrors.NotFound,
-			modelType,
-			args.Name,
-		)
+	if args.SecretBackend == "" {
+		switch modelType {
+		case coremodel.CAAS:
+			args.SecretBackend = kubernetessecrets.BackendName
+		case coremodel.IAAS:
+			args.SecretBackend = jujusecrets.BackendName
+		default:
+			return nil, errors.Errorf(
+				"%w for model type %q when creating model with name %q",
+				secretbackenderrors.NotFound,
+				modelType,
+				args.Name,
+			)
+		}
 	}
 
 	if args.Credential.IsZero() {
@@ -452,6 +466,16 @@ func (s *Service) Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Mod
 	}
 
 	return s.st.GetModel(ctx, uuid)
+}
+
+// ClearControllerImportingStatus removes the entry from the
+// model_migration_import table in the controller database, indicating that the
+// model import has completed or been aborted.
+func (s *Service) ClearControllerImportingStatus(ctx context.Context, uuid coremodel.UUID) error {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	return s.st.ClearControllerImportingStatus(ctx, uuid)
 }
 
 // GetModelUUIDs returns a list of all model UUIDs in the controller that are

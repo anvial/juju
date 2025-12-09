@@ -12,7 +12,10 @@ import (
 	"github.com/juju/juju/domain/model"
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	"github.com/juju/juju/domain/model/service"
+	secretbackenderrors "github.com/juju/juju/domain/secretbackend/errors"
 	"github.com/juju/juju/internal/errors"
+	jujusecrets "github.com/juju/juju/internal/secrets/provider/juju"
+	kubernetessecrets "github.com/juju/juju/internal/secrets/provider/kubernetes"
 )
 
 // ModelDeleter is an interface for deleting models.
@@ -50,11 +53,8 @@ func NewMigrationService(
 }
 
 // ImportModel is responsible for importing an existing model into this Juju
-// controller. The caller must explicitly specify the agent version that is in
-// use for the imported model.
-//
-// Models created by this function must be activated using the returned
-// ModelActivator.
+// controller by creating the model record in the controller database and marking
+// it as importing.
 //
 // The following error types can be expected to be returned:
 // - [modelerrors.AlreadyExists]: When the model uuid is already in use or a
@@ -78,7 +78,42 @@ func (s *MigrationService) ImportModel(
 		)
 	}
 
-	return service.CreateModel(ctx, s.st, args.UUID, args.GlobalModelCreationArgs)
+	modelType, err := service.ModelTypeForCloud(ctx, s.st, args.Cloud)
+	if err != nil {
+		return nil, errors.Errorf(
+			"determining model type when importing model %q: %w",
+			args.Name, err,
+		)
+	}
+
+	if args.SecretBackend == "" {
+		switch modelType {
+		case coremodel.CAAS:
+			args.SecretBackend = kubernetessecrets.BackendName
+		case coremodel.IAAS:
+			args.SecretBackend = jujusecrets.BackendName
+		default:
+			return nil, errors.Errorf(
+				"%w for model type %q when creating model with name %q",
+				secretbackenderrors.NotFound,
+				modelType,
+				args.Name,
+			)
+		}
+	}
+
+	if err := s.st.ImportModel(ctx, args.UUID, modelType, args.GlobalModelCreationArgs); err != nil {
+		return nil, err
+	}
+
+	// Return an activator function that marks the model as alive/active.
+	// This is separate from the importing/migrating status which is tracked
+	// in the migration tables.
+	activator := func(ctx context.Context) error {
+		return s.st.Activate(ctx, args.UUID)
+	}
+
+	return activator, nil
 }
 
 // DeleteModel is responsible for removing a model from Juju and all of it's

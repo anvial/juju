@@ -14,6 +14,7 @@ import (
 
 	"github.com/juju/juju/core/changestream"
 	coreerrors "github.com/juju/juju/core/errors"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/application/charm"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -84,6 +85,8 @@ func (s *baseSuite) setupMocksWithProvider(
 	s.charmStore = NewMockCharmStore(ctrl)
 	s.validator = NewMockValidator(ctrl)
 
+	modelUUID := tc.Must(c, model.NewUUID)
+
 	s.clock = testclock.NewClock(time.Time{})
 	s.service = NewProviderService(
 		s.state,
@@ -104,6 +107,7 @@ func (s *baseSuite) setupMocksWithProvider(
 		},
 		s.charmStore,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		modelUUID,
 		s.clock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -143,6 +147,8 @@ func (s *baseSuite) setupMocksWithStatusHistory(c *tc.C, fn func(*gomock.Control
 	s.charmStore = NewMockCharmStore(ctrl)
 	s.validator = NewMockValidator(ctrl)
 
+	modelUUID := tc.Must(c, model.NewUUID)
+
 	s.clock = testclock.NewClock(time.Time{})
 	s.service = NewProviderService(
 		s.state,
@@ -157,6 +163,7 @@ func (s *baseSuite) setupMocksWithStatusHistory(c *tc.C, fn func(*gomock.Control
 		},
 		s.charmStore,
 		fn(ctrl),
+		modelUUID,
 		s.clock,
 		loggertesting.WrapCheckLog(c),
 	)

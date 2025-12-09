@@ -895,8 +895,34 @@ WHERE charm.uuid = $charmID.uuid;
 
 // IsImportingModel returns true if the model is being imported.
 func (s *State) IsImportingModel(ctx context.Context) (bool, error) {
-	// TODO(modelmigration): check if this model is being imported.
-	return false, nil
+	db, err := s.DB(ctx)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	var count count
+	var migrationCheck modelMigrating
+	migrationStmt, err := s.Prepare(`
+SELECT COUNT(*) AS &count.count
+FROM model_migrating 
+WHERE model_uuid = $modelMigrating.model_uuid
+	`, count, migrationCheck)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		// Query the model_migrating table to check if this model has an entry.
+		migrationCheck.ModelUUID = s.modelUUID.String()
+		err = tx.Query(ctx, migrationStmt, migrationCheck).Get(&count)
+		if err != nil {
+			return errors.Errorf("checking if model is importing: %w", err)
+		}
+
+		return nil
+	})
+
+	return count.Count > 0, err
 }
 
 // ResolveMigratingUploadedCharm resolves the charm that is migrating from

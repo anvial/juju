@@ -58,7 +58,7 @@ func TestApplicationStateSuite(t *stdtesting.T) {
 func (s *applicationStateSuite) SetUpTest(c *tc.C) {
 	s.baseSuite.SetUpTest(c)
 
-	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	s.state = NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 }
 
 func (s *applicationStateSuite) TestCreateIAASApplication(c *tc.C) {

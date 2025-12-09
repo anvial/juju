@@ -56,6 +56,7 @@ func (u *unitStorageSuite) newCharmWithStorage(
 
 	st := NewState(
 		u.TxnRunnerFactory(),
+		u.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -123,6 +124,7 @@ func (u *unitStorageSuite) TestGetUnitOwnedStorageInstancesUnitNotFound(c *tc.C)
 
 	st := NewState(
 		u.TxnRunnerFactory(),
+		u.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -140,6 +142,7 @@ func (u *unitStorageSuite) TestGetUnitOwnedStorageInstancesNoStorage(c *tc.C) {
 
 	st := NewState(
 		u.TxnRunnerFactory(),
+		u.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -160,6 +163,7 @@ func (u *unitStorageSuite) TestGetUnitOwnedStorageInstances(c *tc.C) {
 
 	st := NewState(
 		u.TxnRunnerFactory(),
+		u.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -261,6 +265,7 @@ func (u *unitStorageSuite) TestGetUnitStorageDirectives(c *tc.C) {
 
 	st := NewState(
 		u.TxnRunnerFactory(),
+		u.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -304,6 +309,7 @@ func (u *unitStorageSuite) TestGetUnitStorageDirectivesEmpty(c *tc.C) {
 
 	st := NewState(
 		u.TxnRunnerFactory(),
+		u.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -319,6 +325,7 @@ func (u *unitStorageSuite) TestGetUnitStorageDirectivesUnitNotFound(c *tc.C) {
 	unitUUID := tc.Must(c, coreunit.NewUUID)
 	st := NewState(
 		u.TxnRunnerFactory(),
+		u.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

@@ -14,6 +14,7 @@ import (
 	coreapplication "github.com/juju/juju/core/application"
 	"github.com/juju/juju/core/machine"
 	machinetesting "github.com/juju/juju/core/machine/testing"
+	"github.com/juju/juju/core/model"
 	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/agentpassword"
@@ -584,7 +585,7 @@ func (s *modelStateSuite) genPasswordHash(c *tc.C) agentpassword.PasswordHash {
 }
 
 func (s *modelStateSuite) createApplication(c *tc.C, controller bool) coreapplication.UUID {
-	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 	appID, _, err := applicationSt.CreateIAASApplication(c.Context(), "foo", application.AddIAASApplicationArg{
 		BaseAddApplicationArg: application.BaseAddApplicationArg{
 			Charm: charm.Charm{
@@ -640,7 +641,7 @@ INSERT INTO model_agent (model_uuid) VALUES (?)
 
 func (s *modelStateSuite) createUnit(c *tc.C) unit.Name {
 	ctx := c.Context()
-	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	appID, err := applicationSt.GetApplicationUUIDByName(ctx, "foo")
 	c.Assert(err, tc.ErrorIsNil)
