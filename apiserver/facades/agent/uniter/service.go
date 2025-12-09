@@ -169,10 +169,6 @@ type ApplicationService interface {
 	// not available, [applicationerrors.CharmNotResolved] is returned.
 	GetAvailableCharmArchiveSHA256(context.Context, charm.CharmLocator) (string, error)
 
-	// GetCharmLXDProfile returns the LXD profile along with the revision of the
-	// charm using the charm name, source and revision.
-	GetCharmLXDProfile(context.Context, charm.CharmLocator) (internalcharm.LXDProfile, charm.Revision, error)
-
 	// GetApplicationTrustSetting returns the application trust setting.
 	GetApplicationTrustSetting(ctx context.Context, appName string) (bool, error)
 
