@@ -160,9 +160,9 @@ html_context = {
 html_extra_path = ['.sphinx/_extra']
 
 # Allow opt-in build of the OpenAPI "Hello" example so docs stay clean by default.
-if os.getenv("OPENAPI", ""):
-    tags.add("openapi")
-    html_extra_path.append("how-to/assets/openapi.yaml")
+# if os.getenv("OPENAPI", ""):
+#     tags.add("openapi")
+#     html_extra_path.append("how-to/assets/openapi.yaml")
 
 # TODO: To enable the edit button on pages, uncomment and change the link to a
 # public repository on GitHub or Launchpad. Any of the following link domains
@@ -358,13 +358,8 @@ rst_epilog = """
 # NOTE: If set, adding ':manpage:' to an .rst file
 #       adds a link to the corresponding man section at the bottom of the page.
 
-stable_distro = "plucky"
-
-manpages_url = (
-    "https://manpages.ubuntu.com/manpages/"
-    + stable_distro
-    + "/en/man{section}/{page}.{section}.html"
-)
+# manpages_url = 'https://manpages.ubuntu.com/manpages/{codename}/en/' + \
+#     'man{section}/{page}.{section}.html'
 
 
 # Specifies a reST snippet to be prepended to each .rst file
