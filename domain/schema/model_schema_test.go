@@ -51,7 +51,7 @@ func (s *modelSchemaSuite) TestCheckNoUnusedPostPatchFiles(c *tc.C) {
 	}
 
 	unused := embeddedPatches.Difference(encodedPatches)
-	c.Assert(unused.Size(), tc.Equals, 0, tc.Commentf("unused post-patch files: %v", unused.SortedValues()))
+	c.Assert(unused.Size(), tc.Equals, 0, tc.Commentf("update modelPostPatchFilesByVersion, unused post-patch files: %v", unused.SortedValues()))
 }
 
 func (s *modelSchemaSuite) TestApplyDDLIdempotent(c *tc.C) {

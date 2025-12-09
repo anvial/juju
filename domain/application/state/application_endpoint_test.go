@@ -170,7 +170,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationEndpointsNoCharmRel
 	// Act: noop, no error
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: nil,
 		})
 	})
@@ -193,7 +193,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationNoBindings(c *tc.C)
 	// Act: Charm relation will create application endpoint bounded to the default space (alpha)
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: nil,
 		})
 	})
@@ -231,7 +231,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationEndpointDefaultedSp
 	// Act: Charm relation will create application endpoint bounded to the default space (beta)
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: bindings,
 		})
 	})
@@ -273,7 +273,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationEndpointBindOneToBe
 	// Act: Charm relation will create application endpoint bounded to the specified space (beta)
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: bindings,
 		})
 	})
@@ -327,7 +327,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationEndpointBindOneToBe
 	// or the specified one
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: bindings,
 		})
 	})
@@ -379,7 +379,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationEndpointRestoreDefa
 	// Act:
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: bindings,
 		})
 	})
@@ -422,7 +422,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationEndpointUnknownSpac
 	// Act: Charm relation will create application endpoint bounded to the default space (alpha)
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: bindings,
 		})
 	})
@@ -449,7 +449,7 @@ func (s *applicationEndpointStateSuite) TestInsertApplicationEndpointUnknownRela
 	// Act
 	err = db.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		return s.state.insertApplicationEndpointBindings(c.Context(), tx, insertApplicationEndpointsParams{
-			appID:    s.appID,
+			appID:    s.appID.String(),
 			bindings: bindings,
 		})
 	})

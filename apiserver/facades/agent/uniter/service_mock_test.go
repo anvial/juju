@@ -62,44 +62,6 @@ func (m *MockApplicationService) EXPECT() *MockApplicationServiceMockRecorder {
 	return m.recorder
 }
 
-// AddIAASSubordinateUnit mocks base method.
-func (m *MockApplicationService) AddIAASSubordinateUnit(arg0 context.Context, arg1 application.UUID, arg2 unit.Name) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddIAASSubordinateUnit", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddIAASSubordinateUnit indicates an expected call of AddIAASSubordinateUnit.
-func (mr *MockApplicationServiceMockRecorder) AddIAASSubordinateUnit(arg0, arg1, arg2 any) *MockApplicationServiceAddIAASSubordinateUnitCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddIAASSubordinateUnit", reflect.TypeOf((*MockApplicationService)(nil).AddIAASSubordinateUnit), arg0, arg1, arg2)
-	return &MockApplicationServiceAddIAASSubordinateUnitCall{Call: call}
-}
-
-// MockApplicationServiceAddIAASSubordinateUnitCall wrap *gomock.Call
-type MockApplicationServiceAddIAASSubordinateUnitCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockApplicationServiceAddIAASSubordinateUnitCall) Return(arg0 error) *MockApplicationServiceAddIAASSubordinateUnitCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockApplicationServiceAddIAASSubordinateUnitCall) Do(f func(context.Context, application.UUID, unit.Name) error) *MockApplicationServiceAddIAASSubordinateUnitCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockApplicationServiceAddIAASSubordinateUnitCall) DoAndReturn(f func(context.Context, application.UUID, unit.Name) error) *MockApplicationServiceAddIAASSubordinateUnitCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // GetApplicationConfigWithDefaults mocks base method.
 func (m *MockApplicationService) GetApplicationConfigWithDefaults(arg0 context.Context, arg1 application.UUID) (charm0.Config, error) {
 	m.ctrl.T.Helper()
@@ -1531,17 +1493,17 @@ func (m *MockRelationService) EXPECT() *MockRelationServiceMockRecorder {
 }
 
 // EnterScope mocks base method.
-func (m *MockRelationService) EnterScope(arg0 context.Context, arg1 relation.UUID, arg2 unit.Name, arg3 map[string]string, arg4 relation0.SubordinateCreator) error {
+func (m *MockRelationService) EnterScope(arg0 context.Context, arg1 relation.UUID, arg2 unit.Name, arg3 map[string]string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnterScope", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "EnterScope", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // EnterScope indicates an expected call of EnterScope.
-func (mr *MockRelationServiceMockRecorder) EnterScope(arg0, arg1, arg2, arg3, arg4 any) *MockRelationServiceEnterScopeCall {
+func (mr *MockRelationServiceMockRecorder) EnterScope(arg0, arg1, arg2, arg3 any) *MockRelationServiceEnterScopeCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnterScope", reflect.TypeOf((*MockRelationService)(nil).EnterScope), arg0, arg1, arg2, arg3, arg4)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnterScope", reflect.TypeOf((*MockRelationService)(nil).EnterScope), arg0, arg1, arg2, arg3)
 	return &MockRelationServiceEnterScopeCall{Call: call}
 }
 
@@ -1557,13 +1519,13 @@ func (c *MockRelationServiceEnterScopeCall) Return(arg0 error) *MockRelationServ
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockRelationServiceEnterScopeCall) Do(f func(context.Context, relation.UUID, unit.Name, map[string]string, relation0.SubordinateCreator) error) *MockRelationServiceEnterScopeCall {
+func (c *MockRelationServiceEnterScopeCall) Do(f func(context.Context, relation.UUID, unit.Name, map[string]string) error) *MockRelationServiceEnterScopeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockRelationServiceEnterScopeCall) DoAndReturn(f func(context.Context, relation.UUID, unit.Name, map[string]string, relation0.SubordinateCreator) error) *MockRelationServiceEnterScopeCall {
+func (c *MockRelationServiceEnterScopeCall) DoAndReturn(f func(context.Context, relation.UUID, unit.Name, map[string]string) error) *MockRelationServiceEnterScopeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -30,26 +30,33 @@ type State struct {
 	modelUUID model.UUID
 	clock     clock.Clock
 	logger    logger.Logger
+	unitState *InsertIAASUnitState
 }
 
 // NewState returns a new state reference.
 func NewState(factory database.TxnRunnerFactory, modelUUID model.UUID, clock clock.Clock, logger logger.Logger) *State {
+	base := domain.NewStateBase(factory)
 	return &State{
-		StateBase: domain.NewStateBase(factory),
+		StateBase: base,
 		modelUUID: modelUUID,
 		clock:     clock,
 		logger:    logger,
+		unitState: &InsertIAASUnitState{
+			StateBase: base,
+			clock:     clock,
+			logger:    logger,
+		},
 	}
 }
 
-func (s *State) checkCharmExists(ctx context.Context, tx *sqlair.TX, id charmID) error {
+func (s *State) checkCharmExists(ctx context.Context, tx *sqlair.TX, id entityUUID) error {
 	selectQuery := `
-SELECT &charmID.*
+SELECT &entityUUID.*
 FROM charm
-WHERE uuid = $charmID.uuid;
+WHERE uuid = $entityUUID.uuid;
 	`
 
-	result := charmID{UUID: id.UUID}
+	result := entityUUID{UUID: id.UUID}
 	selectStmt, err := s.Prepare(selectQuery, result)
 	if err != nil {
 		return errors.Errorf("preparing query: %w", err)
@@ -71,9 +78,9 @@ WHERE uuid = $charmID.uuid;
 //   - If the charm exists, it returns the id and the error
 //     [applicationerrors.CharmAlreadyExists]
 //   - Any other error are returned if the check fails
-func (s *State) checkCharmReferenceExists(ctx context.Context, tx *sqlair.TX, referenceName string, revision int) (corecharm.ID, error) {
+func (s *State) checkCharmReferenceExists(ctx context.Context, tx *sqlair.TX, referenceName string, revision int) (string, error) {
 	selectQuery := `
-SELECT &charmID.*
+SELECT &entityUUID.*
 FROM charm
 WHERE reference_name = $charmReferenceNameRevisionSource.reference_name
 AND revision = $charmReferenceNameRevisionSource.revision
@@ -83,7 +90,7 @@ AND revision = $charmReferenceNameRevisionSource.revision
 		Revision:      revision,
 	}
 
-	var result charmID
+	var result entityUUID
 	selectStmt, err := s.Prepare(selectQuery, result, ref)
 	if err != nil {
 		return "", errors.Errorf("preparing query: %w", err)
@@ -600,7 +607,7 @@ func (s *State) addCharmManifest(ctx context.Context, tx *sqlair.TX, id corechar
 // getCharm returns the charm for the given charm ID.
 // This will delegate to the various get methods to get the charm metadata,
 // config, manifest, actions and LXD profile.
-func (s *State) getCharm(ctx context.Context, tx *sqlair.TX, ident charmID) (charm.Charm, *charm.DownloadInfo, error) {
+func (s *State) getCharm(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charm.Charm, *charm.DownloadInfo, error) {
 	ch, err := s.getCharmState(ctx, tx, ident)
 	if err != nil {
 		return ch, nil, errors.Capture(err)
@@ -639,11 +646,11 @@ func (s *State) getCharm(ctx context.Context, tx *sqlair.TX, ident charmID) (cha
 	return ch, downloadInfo, nil
 }
 
-func (s *State) getCharmState(ctx context.Context, tx *sqlair.TX, ident charmID) (charm.Charm, error) {
+func (s *State) getCharmState(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charm.Charm, error) {
 	charmQuery := `
 SELECT &charmState.*
 FROM charm
-WHERE uuid = $charmID.uuid;
+WHERE uuid = $entityUUID.uuid;
 `
 
 	charmStmt, err := s.Prepare(charmQuery, charmState{}, ident)
@@ -654,7 +661,7 @@ WHERE uuid = $charmID.uuid;
 	hashQuery := `
 SELECT &charmHash.*
 FROM charm_hash
-WHERE charm_uuid = $charmID.uuid;
+WHERE charm_uuid = $entityUUID.uuid;
 `
 	hashStmt, err := s.Prepare(hashQuery, charmHash{}, ident)
 	if err != nil {
@@ -687,13 +694,13 @@ WHERE charm_uuid = $charmID.uuid;
 	return result, nil
 }
 
-func (s *State) getCharmDownloadInfo(ctx context.Context, tx *sqlair.TX, ident charmID) (charm.DownloadInfo, error) {
+func (s *State) getCharmDownloadInfo(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charm.DownloadInfo, error) {
 	query := `
 SELECT &charmDownloadInfo.*
 FROM charm AS c
 JOIN charm_download_info AS cdi ON c.uuid = cdi.charm_uuid
 JOIN charm_provenance AS cp ON cp.id = cdi.provenance_id
-WHERE c.uuid = $charmID.uuid
+WHERE c.uuid = $entityUUID.uuid
 AND c.source_id = 1;
 `
 
@@ -725,7 +732,7 @@ AND c.source_id = 1;
 // It's safe to do this in the transaction loop, the query will cached against
 // the state base, and if the decode fails, the retry logic won't be triggered,
 // as it doesn't satisfy the retry error types.
-func (s *State) getMetadata(ctx context.Context, tx *sqlair.TX, ident charmID) (charm.Metadata, error) {
+func (s *State) getMetadata(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charm.Metadata, error) {
 	// Unlike other domain methods, we're not constructing a row struct here.
 	// Attempting to get the metadata as a series of rows will yield potentially
 	// hundreds of rows, which is not what we want. This is because of all the
@@ -807,11 +814,11 @@ func (s *State) getMetadata(ctx context.Context, tx *sqlair.TX, ident charmID) (
 // It's safe to do this in the transaction loop, the query will cached against
 // the state base, and if the decode fails, the retry logic won't be triggered,
 // as it doesn't satisfy the retry error types.
-func (s *State) getCharmManifest(ctx context.Context, tx *sqlair.TX, ident charmID) (charm.Manifest, error) {
+func (s *State) getCharmManifest(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charm.Manifest, error) {
 	query := `
 SELECT &charmManifest.*
 FROM v_charm_manifest
-WHERE charm_uuid = $charmID.uuid
+WHERE charm_uuid = $entityUUID.uuid
 ORDER BY array_index ASC, nested_array_index ASC;
 `
 
@@ -837,18 +844,18 @@ ORDER BY array_index ASC, nested_array_index ASC;
 // It's safe to do this in the transaction loop, the query will cached against
 // the state base, and if the decode fails, the retry logic won't be triggered,
 // as it doesn't satisfy the retry error types.
-func (s *State) getCharmLXDProfile(ctx context.Context, tx *sqlair.TX, ident charmID) ([]byte, charm.Revision, error) {
+func (s *State) getCharmLXDProfile(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]byte, charm.Revision, error) {
 	charmQuery := `
-SELECT &charmID.*
+SELECT &entityUUID.*
 FROM charm
-WHERE uuid = $charmID.uuid;
+WHERE uuid = $entityUUID.uuid;
 	`
 
 	lxdProfileQuery := `
 SELECT &charmLXDProfile.*
 FROM charm
 JOIN charm_metadata AS cm ON charm.uuid = cm.charm_uuid
-WHERE uuid = $charmID.uuid;
+WHERE uuid = $entityUUID.uuid;
 	`
 
 	charmStmt, err := s.Prepare(charmQuery, ident)
@@ -889,16 +896,16 @@ WHERE uuid = $charmID.uuid;
 // It's safe to do this in the transaction loop, the query will cached against
 // the state base, and if the decode fails, the retry logic won't be triggered,
 // as it doesn't satisfy the retry error types.
-func (s *State) getCharmConfig(ctx context.Context, tx *sqlair.TX, ident charmID) (charm.Config, error) {
+func (s *State) getCharmConfig(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charm.Config, error) {
 	charmQuery := `
-SELECT &charmID.*
+SELECT &entityUUID.*
 FROM charm
-WHERE uuid = $charmID.uuid;
+WHERE uuid = $entityUUID.uuid;
 `
 	configQuery := `
 SELECT &charmConfig.*
 FROM v_charm_config
-WHERE charm_uuid = $charmID.uuid;
+WHERE charm_uuid = $entityUUID.uuid;
 `
 
 	charmStmt, err := s.Prepare(charmQuery, ident)
@@ -933,16 +940,16 @@ WHERE charm_uuid = $charmID.uuid;
 // It's safe to do this in the transaction loop, the query will cached against
 // the state base, and if the decode fails, the retry logic won't be triggered,
 // as it doesn't satisfy the retry error types.
-func (s *State) getCharmActions(ctx context.Context, tx *sqlair.TX, ident charmID) (charm.Actions, error) {
+func (s *State) getCharmActions(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charm.Actions, error) {
 	charmQuery := `
-SELECT &charmID.*
+SELECT &entityUUID.*
 FROM charm
-WHERE uuid = $charmID.uuid;
+WHERE uuid = $entityUUID.uuid;
 	`
 	actionQuery := `
 SELECT &charmAction.*
 FROM charm_action
-WHERE charm_uuid = $charmID.uuid;
+WHERE charm_uuid = $entityUUID.uuid;
 	`
 
 	charmStmt, err := s.Prepare(charmQuery, ident)
@@ -974,11 +981,11 @@ WHERE charm_uuid = $charmID.uuid;
 
 // getCharmMetadata returns the metadata for the charm using the charm ID.
 // This is the core metadata for the charm.
-func (s *State) getCharmMetadata(ctx context.Context, tx *sqlair.TX, ident charmID) (charmMetadata, error) {
+func (s *State) getCharmMetadata(ctx context.Context, tx *sqlair.TX, ident entityUUID) (charmMetadata, error) {
 	query := `
 SELECT &charmMetadata.*
 FROM v_charm_metadata
-WHERE uuid = $charmID.uuid;
+WHERE uuid = $entityUUID.uuid;
 `
 	var metadata charmMetadata
 	stmt, err := s.Prepare(query, metadata, ident)
@@ -1003,11 +1010,11 @@ WHERE uuid = $charmID.uuid;
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
 // Tags are expected to be unique, no duplicates are expected.
-func (s *State) getCharmTags(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmTag, error) {
+func (s *State) getCharmTags(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmTag, error) {
 	query := `
 SELECT &charmTag.*
 FROM charm_tag
-WHERE charm_uuid = $charmID.uuid
+WHERE charm_uuid = $entityUUID.uuid
 ORDER BY array_index ASC;
 `
 	stmt, err := s.Prepare(query, charmTag{}, ident)
@@ -1033,11 +1040,11 @@ ORDER BY array_index ASC;
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
 // Categories are expected to be unique, no duplicates are expected.
-func (s *State) getCharmCategories(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmCategory, error) {
+func (s *State) getCharmCategories(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmCategory, error) {
 	query := `
 SELECT &charmCategory.*
 FROM charm_category
-WHERE charm_uuid = $charmID.uuid
+WHERE charm_uuid = $entityUUID.uuid
 ORDER BY array_index ASC;
 `
 	stmt, err := s.Prepare(query, charmCategory{}, ident)
@@ -1063,11 +1070,11 @@ ORDER BY array_index ASC;
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
 // Terms are expected to be unique, no duplicates are expected.
-func (s *State) getCharmTerms(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmTerm, error) {
+func (s *State) getCharmTerms(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmTerm, error) {
 	query := `
 SELECT &charmTerm.*
 FROM charm_term
-WHERE charm_uuid = $charmID.uuid
+WHERE charm_uuid = $entityUUID.uuid
 ORDER BY array_index ASC;
 `
 	stmt, err := s.Prepare(query, charmTerm{}, ident)
@@ -1091,11 +1098,11 @@ ORDER BY array_index ASC;
 // is required to separate the relations into provides, requires and peers.
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
-func (s *State) getCharmRelations(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmRelation, error) {
+func (s *State) getCharmRelations(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmRelation, error) {
 	query := `
 SELECT &charmRelation.*
 FROM v_charm_relation
-WHERE charm_uuid = $charmID.uuid;
+WHERE charm_uuid = $entityUUID.uuid;
 	`
 	stmt, err := s.Prepare(query, charmRelation{}, ident)
 	if err != nil {
@@ -1119,11 +1126,11 @@ WHERE charm_uuid = $charmID.uuid;
 // gains support for scalar types, this can be changed.
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
-func (s *State) getCharmExtraBindings(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmExtraBinding, error) {
+func (s *State) getCharmExtraBindings(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmExtraBinding, error) {
 	query := `
 SELECT &charmExtraBinding.*
 FROM charm_extra_binding
-WHERE charm_uuid = $charmID.uuid;
+WHERE charm_uuid = $entityUUID.uuid;
 `
 
 	stmt, err := s.Prepare(query, charmExtraBinding{}, ident)
@@ -1146,11 +1153,11 @@ WHERE charm_uuid = $charmID.uuid;
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
 // Charm properties are expected to be unique, no duplicates are expected.
-func (s *State) getCharmStorage(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmStorage, error) {
+func (s *State) getCharmStorage(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmStorage, error) {
 	query := `
 SELECT &charmStorage.*
 FROM v_charm_storage
-WHERE charm_uuid = $charmID.uuid
+WHERE charm_uuid = $entityUUID.uuid
 ORDER BY property_index ASC;
 `
 
@@ -1173,11 +1180,11 @@ ORDER BY property_index ASC;
 // getCharmDevices returns the devices for the charm using the charm ID.
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
-func (s *State) getCharmDevices(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmDevice, error) {
+func (s *State) getCharmDevices(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmDevice, error) {
 	query := `
 SELECT &charmDevice.*
 FROM charm_device
-WHERE charm_uuid = $charmID.uuid;
+WHERE charm_uuid = $entityUUID.uuid;
 `
 
 	stmt, err := s.Prepare(query, charmDevice{}, ident)
@@ -1199,11 +1206,11 @@ WHERE charm_uuid = $charmID.uuid;
 // getCharmResources returns the resources for the charm using the charm ID.
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
-func (s *State) getCharmResources(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmResource, error) {
+func (s *State) getCharmResources(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmResource, error) {
 	query := `
 SELECT &charmResource.*
 FROM v_charm_resource
-WHERE charm_uuid = $charmID.uuid;
+WHERE charm_uuid = $entityUUID.uuid;
 `
 
 	stmt, err := s.Prepare(query, charmResource{}, ident)
@@ -1225,11 +1232,11 @@ WHERE charm_uuid = $charmID.uuid;
 // getCharmContainers returns the containers for the charm using the charm ID.
 // If the charm does not exist, no error is returned. It is expected that
 // the caller will handle this case.
-func (s *State) getCharmContainers(ctx context.Context, tx *sqlair.TX, ident charmID) ([]charmContainer, error) {
+func (s *State) getCharmContainers(ctx context.Context, tx *sqlair.TX, ident entityUUID) ([]charmContainer, error) {
 	query := `
 SELECT &charmContainer.*
 FROM v_charm_container
-WHERE charm_uuid = $charmID.uuid
+WHERE charm_uuid = $entityUUID.uuid
 ORDER BY array_index ASC;
 `
 
@@ -1384,7 +1391,7 @@ func (st *State) checkApplicationNotDead(ctx context.Context, tx *sqlair.TX, app
 
 // checkApplicationLife checks if the application exists and its life has not
 // advanced beyond the specified allowed life.
-// Note: this is a helper method and should be called directly.
+// Note: this is a helper method and should not be called directly.
 // Instead use one of:
 //   - checkApplicationAlive
 //   - checkApplicationNotDead

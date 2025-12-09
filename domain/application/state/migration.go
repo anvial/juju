@@ -157,20 +157,22 @@ func (st *State) InsertMigratingApplication(ctx context.Context, name string, ar
 		return "", errors.Capture(err)
 	}
 
-	appUUID, err := coreapplication.NewUUID()
+	a, err := coreapplication.NewUUID()
 	if err != nil {
 		return "", errors.Capture(err)
 	}
+	appUUID := a.String()
 
 	charmID, err := corecharm.NewID()
 	if err != nil {
 		return "", errors.Capture(err)
 	}
+	charmIDStr := charmID.String()
 
 	appDetails := setApplicationDetails{
 		UUID:      appUUID,
 		Name:      name,
-		CharmUUID: charmID,
+		CharmUUID: charmIDStr,
 		LifeID:    life.Alive,
 
 		// The space is defaulted to Alpha, which is guaranteed to exist.
@@ -300,10 +302,10 @@ func (st *State) InsertMigratingApplication(ctx context.Context, name string, ar
 		if err := st.insertApplicationSettings(ctx, tx, appDetails.UUID, args.Settings); err != nil {
 			return errors.Errorf("inserting settings for application %q: %w", name, err)
 		}
-		if err := st.updateConfigHash(ctx, tx, entityUUID{UUID: appUUID.String()}); err != nil {
+		if err := st.updateConfigHash(ctx, tx, entityUUID{UUID: appUUID}); err != nil {
 			return errors.Errorf("refreshing config hash for application %q: %w", name, err)
 		}
-		if err := st.updateDefaultSpace(ctx, tx, appDetails.UUID.String(), args.EndpointBindings); err != nil {
+		if err := st.updateDefaultSpace(ctx, tx, appDetails.UUID, args.EndpointBindings); err != nil {
 			return errors.Errorf("updating default space: %w", err)
 		}
 		if err := st.insertApplicationEndpointBindings(ctx, tx, insertApplicationEndpointsParams{
@@ -328,7 +330,7 @@ func (st *State) InsertMigratingApplication(ctx context.Context, name string, ar
 	if err != nil {
 		return "", errors.Errorf("creating application %q: %w", name, err)
 	}
-	return appUUID, nil
+	return coreapplication.UUID(appUUID), nil
 }
 
 // InsertIAASUnits imports the fully formed units for the specified IAAS
@@ -343,7 +345,7 @@ func (st *State) InsertMigratingIAASUnits(ctx context.Context, appUUID coreappli
 	}
 	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		for _, arg := range units {
-			if err := st.importIAASUnit(ctx, tx, appUUID, arg); err != nil {
+			if err := st.importIAASUnit(ctx, tx, appUUID.String(), arg); err != nil {
 				return errors.Errorf("importing IAAS unit %q: %w", arg.UnitName, err)
 			}
 		}
@@ -363,7 +365,7 @@ func (st *State) InsertMigratingCAASUnits(ctx context.Context, appUUID coreappli
 	}
 	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		for _, arg := range units {
-			if err := st.importCAASUnit(ctx, tx, appUUID, arg); err != nil {
+			if err := st.importCAASUnit(ctx, tx, appUUID.String(), arg); err != nil {
 				return errors.Errorf("importing CAAS unit %q: %w", arg.UnitName, err)
 			}
 		}
@@ -374,7 +376,7 @@ func (st *State) InsertMigratingCAASUnits(ctx context.Context, appUUID coreappli
 func (st *State) importCAASUnit(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appUUID coreapplication.UUID,
+	appUUID string,
 	args application.ImportUnitArg,
 ) error {
 	err := st.checkUnitExistsByName(ctx, tx, args.UnitName.String())
@@ -384,10 +386,11 @@ func (st *State) importCAASUnit(
 		return errors.Errorf("looking up unit %q: %w", args.UnitName, err)
 	}
 
-	unitUUID, err := coreunit.NewUUID()
+	u, err := coreunit.NewUUID()
 	if err != nil {
 		return errors.Capture(err)
 	}
+	unitUUID := u.String()
 
 	charmUUID, err := st.getCharmIDByApplicationUUID(ctx, tx, appUUID)
 	if err != nil {
@@ -399,11 +402,11 @@ func (st *State) importCAASUnit(
 		return errors.Errorf("generating new net node uuid for imported unit: %w", err)
 	}
 
-	err = st.insertUnit(
+	err = st.unitState.insertUnit(
 		ctx, tx, appUUID, unitUUID, netNodeUUID.String(),
 		insertUnitArg{
 			CharmUUID:      charmUUID,
-			UnitName:       args.UnitName,
+			UnitName:       args.UnitName.String(),
 			CloudContainer: args.CloudContainer,
 			Password:       args.Password,
 			Constraints:    args.Constraints,
@@ -421,7 +424,7 @@ func (st *State) importCAASUnit(
 				"getting unit uuid for principal unit: %w", err,
 			)
 		}
-		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID.String()); err != nil {
+		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID); err != nil {
 			return errors.Errorf("importing subordinate info for unit %q: %w", args.UnitName, err)
 		}
 	}
@@ -444,10 +447,44 @@ func (st *State) importCAASUnit(
 	return nil
 }
 
+// recordUnitPrincipal records a subordinate-principal relationship between
+// units.
+//
+// It is expected that the caller has already verified that both unit uuids
+// exist in the model.
+func (st *State) recordUnitPrincipal(
+	ctx context.Context,
+	tx *sqlair.TX,
+	principalUnitUUID, subordinateUnitUUID string,
+) error {
+	type unitPrincipal struct {
+		PrincipalUUID   string `db:"principal_uuid"`
+		SubordinateUUID string `db:"unit_uuid"`
+	}
+	arg := unitPrincipal{
+		PrincipalUUID:   principalUnitUUID,
+		SubordinateUUID: subordinateUnitUUID,
+	}
+	stmt, err := st.Prepare(`
+INSERT INTO unit_principal (*)
+VALUES ($unitPrincipal.*)
+`, arg)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	err = tx.Query(ctx, stmt, arg).Run()
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	return nil
+}
+
 func (st *State) importIAASUnit(
 	ctx context.Context,
 	tx *sqlair.TX,
-	appUUID coreapplication.UUID,
+	appUUID string,
 	args application.ImportUnitArg,
 ) error {
 	err := st.checkUnitExistsByName(ctx, tx, args.UnitName.String())
@@ -457,10 +494,11 @@ func (st *State) importIAASUnit(
 		return errors.Errorf("looking up unit %q: %w", args.UnitName, err)
 	}
 
-	unitUUID, err := coreunit.NewUUID()
+	u, err := coreunit.NewUUID()
 	if err != nil {
 		return errors.Capture(err)
 	}
+	unitUUID := u.String()
 
 	netNodeUUID, err := st.getMachineNetNodeUUIDFromName(ctx, tx, args.Machine)
 	if err != nil {
@@ -472,9 +510,9 @@ func (st *State) importIAASUnit(
 		return errors.Errorf("getting charm for application %q: %w", appUUID, err)
 	}
 
-	if err := st.insertUnit(ctx, tx, appUUID, unitUUID, netNodeUUID, insertUnitArg{
+	if err := st.unitState.insertUnit(ctx, tx, appUUID, unitUUID, netNodeUUID, insertUnitArg{
 		CharmUUID:      charmUUID,
-		UnitName:       args.UnitName,
+		UnitName:       args.UnitName.String(),
 		CloudContainer: args.CloudContainer,
 		Password:       args.Password,
 		Constraints:    args.Constraints,
@@ -490,7 +528,8 @@ func (st *State) importIAASUnit(
 				"getting unit uuid for principal unit: %w", err,
 			)
 		}
-		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID.String()); err != nil {
+
+		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID); err != nil {
 			return errors.Errorf("importing subordinate info for unit %q: %w", args.UnitName, err)
 		}
 	}

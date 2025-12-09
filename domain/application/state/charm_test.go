@@ -139,7 +139,7 @@ INSERT INTO object_store_metadata (uuid, sha_256, sha_384, size) VALUES (?, 'foo
 
 	var resultObjectStoreUUID objectstore.UUID
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		ch, err := st.getCharmState(ctx, tx, charmID{UUID: id})
+		ch, err := st.getCharmState(ctx, tx, entityUUID{UUID: id.String()})
 		if err != nil {
 			return errors.Capture(err)
 		}
@@ -179,7 +179,7 @@ func (s *charmStateSuite) TestAddCharmWithoutObjectStoreUUID(c *tc.C) {
 
 	var resultObjectStoreUUID objectstore.UUID
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		ch, err := st.getCharmState(ctx, tx, charmID{UUID: id})
+		ch, err := st.getCharmState(ctx, tx, entityUUID{UUID: id.String()})
 		if err != nil {
 			return errors.Capture(err)
 		}
@@ -3524,7 +3524,7 @@ func (s *charmStateSuite) TestGetCharmIDByApplicationIDNotFound(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	err := s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		_, err := st.getCharmIDByApplicationUUID(c.Context(), tx, tc.Must(c, coreapplication.NewUUID))
+		_, err := st.getCharmIDByApplicationUUID(c.Context(), tx, tc.Must(c, coreapplication.NewUUID).String())
 		return err
 	})
 	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotFound)
@@ -3538,14 +3538,14 @@ func (s *charmStateSuite) TestGetCharmIDByApplicationID(c *tc.C) {
 	charmUUID, err := st.GetCharmIDByApplicationName(c.Context(), "foo")
 	c.Assert(err, tc.ErrorIsNil)
 
-	var result corecharm.ID
+	var result string
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
-		result, err = st.getCharmIDByApplicationUUID(c.Context(), tx, uuid)
+		result, err = st.getCharmIDByApplicationUUID(c.Context(), tx, uuid.String())
 		return err
 	})
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(result, tc.DeepEquals, charmUUID)
+	c.Check(result, tc.Equals, charmUUID.String())
 }
 
 func insertCharmState(ctx context.Context, c *tc.C, tx *sql.Tx, uuid string) error {
