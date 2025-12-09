@@ -49,9 +49,9 @@ func (e *exportOperation) Name() string {
 
 // Setup implements Operation.
 func (e *exportOperation) Setup(scope modelmigration.Scope) error {
-	us := applicationstate.NewInsertIAASUnitState(scope.ModelDB(), e.clock, e.logger)
+	unitState := applicationstate.NewInsertIAASUnitState(scope.ModelDB(), e.clock, e.logger)
 	e.exportService = service.NewMigrationService(
-		state.NewState(scope.ModelDB(), e.clock, e.logger, us),
+		state.NewState(scope.ModelDB(), e.clock, e.logger, unitState),
 	)
 	return nil
 }

@@ -30,7 +30,7 @@ type State struct {
 	modelUUID model.UUID
 	clock     clock.Clock
 	logger    logger.Logger
-	us        *InsertIAASUnitState
+	unitState *InsertIAASUnitState
 }
 
 // NewState returns a new state reference.
@@ -41,7 +41,7 @@ func NewState(factory database.TxnRunnerFactory, modelUUID model.UUID, clock clo
 		modelUUID: modelUUID,
 		clock:     clock,
 		logger:    logger,
-		us: &InsertIAASUnitState{
+		unitState: &InsertIAASUnitState{
 			StateBase: base,
 			clock:     clock,
 			logger:    logger,

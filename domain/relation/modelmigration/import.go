@@ -61,13 +61,13 @@ func (i *importOperation) Name() string {
 
 // Setup implements Operation.
 func (i *importOperation) Setup(scope modelmigration.Scope) error {
-	us := applicationstate.NewInsertIAASUnitState(scope.ModelDB(), i.clock, i.logger)
+	unitState := applicationstate.NewInsertIAASUnitState(scope.ModelDB(), i.clock, i.logger)
 	i.service = service.NewMigrationService(
 		state.NewState(
 			scope.ModelDB(),
 			i.clock,
 			i.logger,
-			us,
+			unitState,
 		),
 	)
 	return nil
