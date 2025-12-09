@@ -396,9 +396,15 @@ func (c *CharmHubRepository) retryResolveWithRespBases(ctx context.Context, char
 	if err != nil {
 		return nil, errors.Annotatef(err, "selecting next bases")
 	}
+	if len(bases) == 0 {
+		ch := origin.Channel.String()
+		if ch == "" {
+			ch = "stable"
+		}
+		return nil, errors.Wrap(resErr, errors.Errorf("no releases found for channel %q", ch))
+	}
 
 	c.sortBasesByPriority(ctx, bases)
-
 	base := bases[0]
 	origin.Platform.OS = base.OS
 	origin.Platform.Channel = base.Channel
