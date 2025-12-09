@@ -12,7 +12,7 @@ Refresh an application's charm.
 | Flag | Default | Usage |
 | --- | --- | --- |
 | `-B`, `--no-browser-login` | false | Do not use web browser for authentication |
-| `--base` |  | Specifies the base to match when picking the revision. |
+| `--base` |  | Specifies the base to match when picking the charm. |
 | `--bind` |  | Configure application endpoint bindings to spaces |
 | `--channel` |  | Channel to use when getting the charm from Charmhub |
 | `--config` |  | Either a path to yaml-formatted application config file or a key=value pair  |
@@ -46,7 +46,6 @@ To refresh the resources for application `foo`:
 
 When no options are set, the application's charm will be refreshed to the latest revision 
 in its current channel. An explicit revision can be chosen with the --revision option. 
-The other repository was removed in juju 3.2 or so.
 
 Refreshing a local packaged charm will require a path to be supplied to allow an
 updated copy of the charm.

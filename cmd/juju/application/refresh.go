@@ -177,7 +177,6 @@ type refreshCommand struct {
 const refreshDoc = `
 When no options are set, the application's charm will be refreshed to the latest revision 
 in its current channel. An explicit revision can be chosen with the --revision option. 
-The other repository was removed in juju 3.2 or so.
 
 Refreshing a local packaged charm will require a path to be supplied to allow an
 updated copy of the charm.
@@ -301,7 +300,7 @@ func (c *refreshCommand) SetFlags(f *gnuflag.FlagSet) {
 	f.BoolVar(&c.ForceBase, "force-base", false, "Refresh even if the base of the deployed application is not supported by the new charm")
 	f.StringVar(&c.SwitchURL, "switch", "", "Crossgrade to a different charm")
 	f.StringVar(&c.CharmPath, "path", "", "Refresh to a charm located at path")
-	f.StringVar(&c.Base, "base", "", "Specifies the base to match when picking the revision.")
+	f.StringVar(&c.Base, "base", "", "Specifies the base to match when picking the charm.")
 	f.IntVar(&c.Revision, "revision", -1, "Explicit revision of current charm")
 	f.Var(stringMap{mapping: &c.Resources}, "resource", "Resource to be uploaded to the controller")
 	f.Var(storageFlag{stores: &c.Storage, bundleStores: nil}, "storage", "Charm storage directives")

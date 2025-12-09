@@ -360,24 +360,9 @@ type retryResolveResult struct {
 	bases           []corecharm.Platform
 }
 
-// retryResolveWithRespBases handles invalid charm base errors by
-// selecting the most appropriate base from the API error's DefaultBases list.
-// It filters bases by architecture, sorts them by track (version) descending
-// and risk stability (stable > candidate > beta > edge), then retries the
-// charm resolution with the highest priority base.
-func (c *CharmHubRepository) retryResolveWithRespBases(ctx context.Context, charmName string, origin corecharm.Origin, resErr *transport.APIError) (*retryResolveResult, error) {
-	c.logger.Tracef(ctx, "Invalid charm base %q %v - Default Base: %v", charmName, origin, resErr.Extra.DefaultBases)
-
-	if len(resErr.Extra.DefaultBases) == 0 {
-		return nil, errors.Errorf("no bases available")
-	}
-	bases, err := c.selectNextBases(resErr.Extra.DefaultBases, origin)
-	if err != nil {
-		return nil, errors.Annotatef(err, "selecting next bases")
-	}
-
-	// Sort the bases with LTS priority, then descending order of track,
-	// and then descending order of risk stability.
+// sortBasesByPriority sorts bases with LTS priority, then descending order of track,
+// and then descending order of risk stability.
+func (c *CharmHubRepository) sortBasesByPriority(ctx context.Context, bases []corecharm.Platform) {
 	sort.Slice(bases, func(i, j int) bool {
 		// Parse the channels for both bases to sort.
 		iCh, iErr := corebase.ParseChannel(bases[i].Channel)
@@ -394,6 +379,25 @@ func (c *CharmHubRepository) retryResolveWithRespBases(ctx context.Context, char
 
 		return iCh.HasHigherPriorityThan(jCh)
 	})
+}
+
+// retryResolveWithRespBases handles invalid charm base errors by
+// selecting the most appropriate base from the API error's DefaultBases list.
+// It filters bases by architecture, sorts them by track (version) descending
+// and risk stability (stable > candidate > beta > edge), then retries the
+// charm resolution with the highest priority base.
+func (c *CharmHubRepository) retryResolveWithRespBases(ctx context.Context, charmName string, origin corecharm.Origin, resErr *transport.APIError) (*retryResolveResult, error) {
+	c.logger.Tracef(ctx, "Invalid charm base %q %v - Default Base: %v", charmName, origin, resErr.Extra.DefaultBases)
+
+	if len(resErr.Extra.DefaultBases) == 0 {
+		return nil, errors.Errorf("no bases available")
+	}
+	bases, err := c.selectNextBases(resErr.Extra.DefaultBases, origin)
+	if err != nil {
+		return nil, errors.Annotatef(err, "selecting next bases")
+	}
+
+	c.sortBasesByPriority(ctx, bases)
 
 	base := bases[0]
 	origin.Platform.OS = base.OS
