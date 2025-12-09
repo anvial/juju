@@ -16,7 +16,6 @@ import (
 	"github.com/juju/juju/core/crossmodel"
 	corelife "github.com/juju/juju/core/life"
 	coremachine "github.com/juju/juju/core/machine"
-	"github.com/juju/juju/core/model"
 	coremodel "github.com/juju/juju/core/model"
 	corerelation "github.com/juju/juju/core/relation"
 	corerelationtesting "github.com/juju/juju/core/relation/testing"
@@ -221,7 +220,7 @@ func (s *baseSuite) createIAASApplicationWithCharm(
 	units ...application.AddIAASUnitArg,
 ) (coreapplication.UUID, []coreunit.UUID) {
 	appState := applicationstate.NewState(
-		s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), testclock.NewClock(s.now), loggertesting.WrapCheckLog(c),
+		s.TxnRunnerFactory(), coremodel.UUID(s.ModelUUID()), testclock.NewClock(s.now), loggertesting.WrapCheckLog(c),
 	)
 
 	platform := deployment.Platform{
@@ -294,7 +293,7 @@ func (s *baseSuite) createCAASApplication(
 	units ...application.AddCAASUnitArg,
 ) (coreapplication.UUID, []coreunit.UUID) {
 	appState := applicationstate.NewState(
-		s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), testclock.NewClock(s.now), loggertesting.WrapCheckLog(c),
+		s.TxnRunnerFactory(), coremodel.UUID(s.ModelUUID()), testclock.NewClock(s.now), loggertesting.WrapCheckLog(c),
 	)
 
 	platform := deployment.Platform{
