@@ -233,6 +233,7 @@ func (s *baseSuite) setupApplicationService(c *tc.C) *applicationservice.Provide
 		caasProviderGetter,
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		coremodel.UUID(s.ModelUUID()),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

@@ -286,7 +286,7 @@ func (s *Service) MinionReports(ctx context.Context) (migration.MinionReports, e
 // AbortImport stops the import of the model by clearing the model_migrating
 // table entry in the model database.
 // Note: This only clears the model database. The controller database's
-// target_model_migration table must be cleared separately by the controller
+// model_migration_import table must be cleared separately by the controller
 // service.
 func (s *Service) AbortImport(ctx context.Context) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
@@ -301,7 +301,7 @@ func (s *Service) AbortImport(ctx context.Context) error {
 // ActivateImport finalises the import of the model by clearing the
 // model_migrating table entry in the model database.
 // Note: This only clears the model database. The controller database's
-// target_model_migration table must be cleared separately by the controller
+// model_migration_import table must be cleared separately by the controller
 // service.
 func (s *Service) ActivateImport(ctx context.Context) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())

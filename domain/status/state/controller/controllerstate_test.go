@@ -78,10 +78,10 @@ func (s *controllerStateSuite) TestGetModelStatusContextMigrating(c *tc.C) {
 	modelUUID := modeltesting.CreateTestModel(c, s.TxnRunnerFactory(), "test-model")
 	st := NewControllerState(s.TxnRunnerFactory(), modelUUID)
 
-	// Insert a row into target_model_migration to mark the model as migrating.
+	// Insert a row into model_migration_import to mark the model as migrating.
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-INSERT INTO target_model_migration (uuid, model_uuid) VALUES (?, ?)
+INSERT INTO model_migration_import (uuid, model_uuid) VALUES (?, ?)
 		`, "migration-uuid-123", modelUUID)
 		return err
 	})

@@ -22,6 +22,7 @@ import (
 	"github.com/juju/juju/core/leadership"
 	"github.com/juju/juju/core/logger"
 	coremachine "github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/providertracker"
 	"github.com/juju/juju/core/trace"
 	coreunit "github.com/juju/juju/core/unit"
@@ -77,6 +78,7 @@ func NewProviderService(
 	caasApplicationProvider providertracker.ProviderGetter[CAASProvider],
 	charmStore CharmStore,
 	statusHistory StatusHistory,
+	modelUUID model.UUID,
 	clock clock.Clock,
 	logger logger.Logger,
 ) *ProviderService {
@@ -86,6 +88,7 @@ func NewProviderService(
 			leaderEnsurer,
 			charmStore,
 			statusHistory,
+			modelUUID,
 			clock,
 			logger,
 		),

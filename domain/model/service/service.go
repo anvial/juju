@@ -204,7 +204,7 @@ type State interface {
 	// for the initial watch statement.
 	InitialWatchModelTableName() string
 
-	// ClearControllerImportingStatus removes the entry from the target_model_migration table
+	// ClearControllerImportingStatus removes the entry from the model_migration_import table
 	// in the controller database, indicating that the model import has completed or been aborted.
 	ClearControllerImportingStatus(context.Context, coremodel.UUID) error
 }
@@ -463,7 +463,7 @@ func (s *Service) Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Mod
 	return s.st.GetModel(ctx, uuid)
 }
 
-// ClearControllerImportingStatus removes the entry from the target_model_migration table
+// ClearControllerImportingStatus removes the entry from the model_migration_import table
 // in the controller database, indicating that the model import has completed or been aborted.
 func (s *Service) ClearControllerImportingStatus(ctx context.Context, uuid coremodel.UUID) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())

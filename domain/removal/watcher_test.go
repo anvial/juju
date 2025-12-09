@@ -224,6 +224,7 @@ func (s *watcherSuite) setupApplicationService(c *tc.C, factory domain.Watchable
 		caasProviderGetter,
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		model.UUID(s.ModelUUID()),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

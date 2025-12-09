@@ -104,7 +104,8 @@ FROM   machine_cloud_instance`
 }
 
 // ClearModelImportingStatus removes the entry from the model_migrating table
-// in the model database, indicating that the model import has completed or been aborted.
+// in the model database, indicating that the model import has completed or been
+// aborted.
 func (s *State) ClearModelImportingStatus(ctx context.Context, modelUUID string) error {
 	db, err := s.DB(ctx)
 	if err != nil {

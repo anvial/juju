@@ -1313,6 +1313,6 @@ type charmModifiedVersion struct {
 	Version uint64 `db:"charm_modified_version"`
 }
 
-type dbModelMigrating struct {
+type modelMigrating struct {
 	ModelUUID string `db:"model_uuid"`
 }

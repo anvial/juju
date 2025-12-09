@@ -280,6 +280,7 @@ func (s *ModelServices) Application() *applicationservice.WatchableService {
 		providertracker.ProviderRunner[applicationservice.CAASProvider](s.providerFactory, s.modelUUID.String()),
 		charmstore.NewCharmStore(s.modelObjectStoreGetter, logger.Child("charmstore")),
 		domain.NewStatusHistory(logger, s.clock),
+		s.modelUUID,
 		s.clock,
 		logger,
 	)

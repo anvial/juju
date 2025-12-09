@@ -2404,10 +2404,10 @@ func (m *stateSuite) TestImportModel(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(modelUUID, tc.Equals, testUUID.String())
 
-	// Verify an entry was added to target_model_migration table
+	// Verify an entry was added to model_migration_import table
 	var migrationUUID string
 	err = runner.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		stmt, err := sqlair.Prepare(`SELECT &M.uuid FROM target_model_migration WHERE model_uuid = $M.model_uuid`, sqlair.M{})
+		stmt, err := sqlair.Prepare(`SELECT &M.uuid FROM model_migration_import WHERE model_uuid = $M.model_uuid`, sqlair.M{})
 		if err != nil {
 			return err
 		}

@@ -3678,9 +3678,9 @@ VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
 	}
 	st := NewState(factory, clock.WallClock, loggertesting.WrapCheckLog(c))
 
-	isImporting, err := st.IsImportingModel(c.Context())
+	isImporting, err := st.IsImportingModel(c.Context(), s.modelUUID)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(isImporting, tc.Equals, false)
+	c.Check(isImporting, tc.Equals, false)
 }
 
 func (s *charmStateIsImportingSuite) TestIsImportingModelImporting(c *tc.C) {
@@ -3708,7 +3708,7 @@ INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)
 	}
 	st := NewState(factory, clock.WallClock, loggertesting.WrapCheckLog(c))
 
-	isImporting, err := st.IsImportingModel(c.Context())
+	isImporting, err := st.IsImportingModel(c.Context(), s.modelUUID)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(isImporting, tc.Equals, true)
+	c.Check(isImporting, tc.Equals, true)
 }

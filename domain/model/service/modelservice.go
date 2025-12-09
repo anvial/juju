@@ -92,7 +92,7 @@ type ControllerState interface {
 	// - [modelerrors.NotFound] when the model no longer exists.
 	HasValidCredential(context.Context, coremodel.UUID) (bool, error)
 
-	// ClearControllerImportingStatus removes the entry from the target_model_migration table
+	// ClearControllerImportingStatus removes the entry from the model_migration_import table
 	// in the controller database, indicating that the model import has completed or been aborted.
 	ClearControllerImportingStatus(context.Context, coremodel.UUID) error
 }
@@ -202,10 +202,6 @@ type ModelState interface {
 	// The following errors may be returned:
 	// - [modelerrors.NotFound] when the model does not exist.
 	IsControllerModel(context.Context) (bool, error)
-
-	// ClearModelImportingStatus removes the entry from the model_migrating table
-	// in the model database, indicating that the model import has completed or been aborted.
-	ClearModelImportingStatus(context.Context, coremodel.UUID) error
 }
 
 // RegionProvider instances provide a means to get the CloudSpec for this
@@ -569,15 +565,6 @@ func (s *ModelService) CreateImportingModelWithAgentVersionStream(
 		LatestAgentVersion: agentVersion,
 	}
 	return s.modelSt.CreateImportingModel(ctx, args)
-}
-
-// ClearModelImportingStatus removes the entry from the model_migrating table
-// in the model database, indicating that the model import has completed or been aborted.
-func (s *ModelService) ClearModelImportingStatus(ctx context.Context, modelUUID coremodel.UUID) error {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	return s.modelSt.ClearModelImportingStatus(ctx, modelUUID)
 }
 
 // getRecommendedStoragePools returns the recommended storage pools to use for

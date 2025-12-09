@@ -181,7 +181,7 @@ func (s *State) Create(
 // imported. It will register the model existence and associate all of the model
 // metadata.
 // Finally, it will set the model as an importing model, in the
-// target_model_migration table.
+// model_migration_import table.
 //
 // The following errors can be expected:
 // - [modelerrors.AlreadyExists] when a model already exists with the same name
@@ -220,7 +220,7 @@ func (s *State) ImportModel(
 	})
 }
 
-// markModelAsImporting inserts an entry to the target_model_migration table
+// markModelAsImporting inserts an entry to the model_migration_import table
 // to mark the model as being imported.
 func markModelAsImporting(
 	ctx context.Context,
@@ -239,7 +239,7 @@ func markModelAsImporting(
 	}
 
 	stmt, err := preparer.Prepare(`
-INSERT INTO target_model_migration (uuid, model_uuid)
+INSERT INTO model_migration_import (uuid, model_uuid)
 VALUES ($dbTargetModelMigration.uuid, $dbTargetModelMigration.model_uuid)
 	`, migrationRecord)
 	if err != nil {
@@ -935,7 +935,7 @@ func (s *State) Delete(
 	})
 }
 
-// ClearControllerImportingStatus removes the entry from the target_model_migration table
+// ClearControllerImportingStatus removes the entry from the model_migration_import table
 // in the controller database, indicating that the model import has completed or been aborted.
 func (s *State) ClearControllerImportingStatus(ctx context.Context, modelID coremodel.UUID) error {
 	db, err := s.DB(ctx)
@@ -946,7 +946,7 @@ func (s *State) ClearControllerImportingStatus(ctx context.Context, modelID core
 	mUUID := dbUUID{UUID: modelID.String()}
 
 	stmt, err := s.Prepare(`
-DELETE FROM target_model_migration
+DELETE FROM model_migration_import
 WHERE model_uuid = $dbUUID.uuid
 	`, mUUID)
 	if err != nil {

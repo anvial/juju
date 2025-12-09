@@ -152,6 +152,7 @@ func (s *serviceSuite) createSecret(c *tc.C, data map[string]string, valueRef *c
 		},
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

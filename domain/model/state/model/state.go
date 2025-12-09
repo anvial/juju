@@ -108,38 +108,6 @@ VALUES ($dbModelMigrating.uuid, $dbModelMigrating.model_uuid)
 	})
 }
 
-// ClearModelImportingStatus removes the entry from the model_migrating table
-// in the model database, indicating that the model import has completed or been aborted.
-func (s *ModelState) ClearModelImportingStatus(ctx context.Context, modelUUID coremodel.UUID) error {
-	db, err := s.DB(ctx)
-	if err != nil {
-		return errors.Capture(err)
-	}
-
-	type dbModelUUID struct {
-		ModelUUID string `db:"model_uuid"`
-	}
-
-	modelUUIDArg := dbModelUUID{
-		ModelUUID: modelUUID.String(),
-	}
-
-	stmt, err := s.Prepare(`
-DELETE FROM model_migrating
-WHERE model_uuid = $dbModelUUID.model_uuid
-	`, modelUUIDArg)
-	if err != nil {
-		return errors.Capture(err)
-	}
-
-	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		if err := tx.Query(ctx, stmt, modelUUIDArg).Run(); err != nil {
-			return errors.Errorf("clearing importing status for model %q in model database: %w", modelUUID, err)
-		}
-		return nil
-	})
-}
-
 // EnsureDefaultStoragePools is responsible for making sure that the set of
 // default storage pools provided exist in the model. If a storage pool already
 // exists in the model no change is performed to the pool.
