@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Add new MongoDB collections to Juju's state package, define entity structures, and implement proper document validation patterns."
+---
+
 # Create a new MongoDB collection
 Sometimes developers need to store some new entities in Juju DB. This document provides key points for adding a new
 collection to MongoDB.

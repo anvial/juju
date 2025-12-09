@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Set up Canonical Kubernetes cloud with Juju, including required services like DNS, ingress, local storage, and bootstrap configuration."
+---
+
 (cloud-canonical-k8s)=
 # The Canonical Kubernetes cloud and Juju
 

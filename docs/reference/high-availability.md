@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "High availability in Juju: multi-replica controllers, database replication, and resilient application deployment on machines and Kubernetes."
+---
+
 (high-availability)=
 # High availability (HA)
 

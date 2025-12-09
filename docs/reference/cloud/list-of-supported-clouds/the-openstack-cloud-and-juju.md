@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Deploy on OpenStack cloud using Juju, including supported versions, novarc file configuration, and authentication with Keystone."
+---
+
 (cloud-openstack)=
 # The OpenStack cloud and Juju
 

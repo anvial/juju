@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Master unit testing in Juju with gocheck package, including test suites, checkers, and util suite composition patterns."
+---
+
 (unit-testing)=
 # Unit testing
 

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju client reference: CLI, JAAS JIMM, Terraform Provider, Jubilant, and other clients that communicate with Juju controllers."
+---
+
 (client)=
 # Client
 

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Security best practices for Juju: harden your deployment with private clouds, network isolation, access controls, and audit logging."
+---
+
 (harden-your-deployment)=
 # Harden your Juju deployment
 

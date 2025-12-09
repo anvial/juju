@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju controller reference: control plane architecture, database, high availability, and multi-cloud management capabilities."
+---
+
 (controller)=
 # Controller
 

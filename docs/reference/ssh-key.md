@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "SSH key reference: secure machine access in Juju with per-model public key management and ubuntu user account configuration."
+---
+
 (ssh-key)=
 # SSH key
 

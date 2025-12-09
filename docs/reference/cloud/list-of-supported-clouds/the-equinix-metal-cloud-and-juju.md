@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Deploy on Equinix Metal cloud using Juju, including authentication, cloud credentials, and machine cloud-specific configuration."
+---
+
 (cloud-equinix)=
 # The Equinix Metal cloud and Juju
 

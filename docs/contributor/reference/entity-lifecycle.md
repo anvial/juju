@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Understand entity lifecycle states (Alive, Dying, Dead) for machines, units, applications, and relations in Juju's state management."
+---
+
 # Entity lifecycle
 
 In Juju, certain fundamental state entities have "lifecycles". These entities

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Use LXD cloud with Juju for local development, rapid prototyping, and testing. Learn localhost cloud setup, configuration, and use cases."
+---
+
 (cloud-lxd)=
 # The LXD cloud and Juju
 

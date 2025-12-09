@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Complete guide to managing Juju machines: add, remove, upgrade, SSH access, and manual provisioning for cloud and bare metal infrastructure."
+---
+
 (manage-machines)=
 # How to manage machines
 

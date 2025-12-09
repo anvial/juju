@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Upgrade your Juju deployment: update clients, controllers, models, and charms. Learn version compatibility and upgrade strategies."
+---
+
 (upgrade-your-deployment)=
 # Upgrade your Juju deployment
 

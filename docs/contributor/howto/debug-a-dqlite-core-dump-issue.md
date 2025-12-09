@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Diagnose and debug Dqlite core dump issues in Juju 3.2+, including validation checks and backtrace collection for issue resolution."
+---
+
 (debug-a-dqlite-core-dump-issue)=
 # Debug a Dqlite core dump issue
 

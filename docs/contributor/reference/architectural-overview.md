@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Explore Juju's architecture including agents, workers, models, and distributed system design for new and experienced contributors."
+---
+
 (architectural-overview)=
 # Juju architectural overview
 

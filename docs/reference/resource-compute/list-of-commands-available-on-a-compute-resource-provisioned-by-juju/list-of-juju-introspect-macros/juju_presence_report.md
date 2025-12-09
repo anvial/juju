@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "View Juju agent connection status and liveness using juju_presence_report on controller machines to monitor API connections."
+---
+
 (juju_presence_report)=
 # `juju_presence_report`
 

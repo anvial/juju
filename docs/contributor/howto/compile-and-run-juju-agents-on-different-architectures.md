@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Build and deploy Juju agents across multiple architectures using local simplestreams repositories for cross-platform testing."
+---
+
 (compile-and-run-juju-agents-on-different-architectures)=
 # Compile and run Juju agents on different architectures
 

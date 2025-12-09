@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Comprehensive Juju security guide: threat modeling, access controls, encryption, authentication, audit logging, and secure operations."
+---
+
 (juju-security)=
 # Juju security
 

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "View pubsub connections and message queue details from Juju controllers using juju_pubsub_report for diagnostics."
+---
+
 (juju_pubsub_report)=
 # `juju_pubsub_report`
 
@@ -12,7 +18,7 @@ juju_presence_report
 
 ## Example output
 ```text
-$ juju_pubsub_report 
+$ juju_pubsub_report
 PubSub Report:
 
 Source: machine-2

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Understand how to use fan networking with Juju to enable IPv4 connectivity between LXD containers across separate hosts."
+---
+
 (fan-container-networking)=
 # Fan container networking
 

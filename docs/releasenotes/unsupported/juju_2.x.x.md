@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju 2.x release notes archive: versions before 2.9 that are end-of-life, including Juju 2.8 and earlier releases."
+---
+
 (juju2xx)=
 # **Before Juju 2.9 (all EOL)**
 
