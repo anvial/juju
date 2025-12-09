@@ -92,7 +92,7 @@ run: install convert-excalidraw-to-svg
 	 "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 
 # Does not depend on $(BUILDDIR) to rebuild properly at every run.
-html: install
+html: install convert-excalidraw-to-svg
 	. $(VENV); $(SPHINXBUILD) --keep-going -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" -w $(SPHINXDIR)/warnings.txt $(SPHINXOPTS)
 
 epub: install
