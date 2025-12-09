@@ -1,7 +1,7 @@
 // Copyright 2020 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package common_test
+package uniter
 
 import (
 	"context"
@@ -25,10 +25,10 @@ type unitStateSuite struct {
 	testing.BaseSuite
 
 	unitTag1 names.UnitTag
-	api      *common.UnitStateAPI
+	uniter   *UniterAPI
 
-	controllerConfigGetter *mocks.MockControllerConfigService
-	unitStateService       *mocks.MockUnitStateService
+	controllerConfigService *mocks.MockControllerConfigService
+	unitStateService        *MockUnitStateService
 }
 
 func TestUnitStateSuite(t *stdtesting.T) {
@@ -37,12 +37,15 @@ func TestUnitStateSuite(t *stdtesting.T) {
 
 func (s *unitStateSuite) SetUpTest(c *tc.C) {
 	s.unitTag1 = names.NewUnitTag("wordpress/0")
+	c.Cleanup(func() {
+		s.unitTag1 = names.UnitTag{}
+	})
 }
 
-func (s *unitStateSuite) assertBackendApi(c *tc.C) *gomock.Controller {
+func (s *unitStateSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
-	s.controllerConfigGetter = mocks.NewMockControllerConfigService(ctrl)
-	s.unitStateService = mocks.NewMockUnitStateService(ctrl)
+	s.controllerConfigService = mocks.NewMockControllerConfigService(ctrl)
+	s.unitStateService = NewMockUnitStateService(ctrl)
 
 	unitAuthFunc := func(ctx context.Context) (common.AuthFunc, error) {
 		return func(tag names.Tag) bool {
@@ -53,12 +56,18 @@ func (s *unitStateSuite) assertBackendApi(c *tc.C) *gomock.Controller {
 		}, nil
 	}
 
-	s.api = common.NewUnitStateAPI(
-		s.controllerConfigGetter,
-		s.unitStateService,
-		unitAuthFunc,
-		loggertesting.WrapCheckLog(c),
-	)
+	s.uniter = &UniterAPI{
+		controllerConfigService: s.controllerConfigService,
+		unitStateService:        s.unitStateService,
+		accessUnit:              unitAuthFunc,
+		logger:                  loggertesting.WrapCheckLog(c),
+	}
+
+	c.Cleanup(func() {
+		s.controllerConfigService = nil
+		s.unitStateService = nil
+		s.uniter = nil
+	})
 	return ctrl
 }
 
@@ -89,7 +98,7 @@ func (s *unitStateSuite) expectGetState(c *tc.C, name string) (map[string]string
 }
 
 func (s *unitStateSuite) TestState(c *tc.C) {
-	defer s.assertBackendApi(c).Finish()
+	defer s.setupMocks(c).Finish()
 	expCharmState, expUniterState, expRelationState, expStorageState, expSecretState := s.expectGetState(c, "wordpress/0")
 
 	args := params.Entities{
@@ -100,7 +109,7 @@ func (s *unitStateSuite) TestState(c *tc.C) {
 			{Tag: "unit-notfound-0"},
 		},
 	}
-	result, err := s.api.State(c.Context(), args)
+	result, err := s.uniter.State(c.Context(), args)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(result, tc.DeepEquals, params.UnitStateResults{
 		Results: []params.UnitStateResult{
@@ -120,7 +129,7 @@ func (s *unitStateSuite) TestState(c *tc.C) {
 }
 
 func (s *unitStateSuite) TestSetStateUniterState(c *tc.C) {
-	defer s.assertBackendApi(c).Finish()
+	defer s.setupMocks(c).Finish()
 	expUniterState := "testing"
 
 	args := params.SetUnitStateArgs{
@@ -138,7 +147,7 @@ func (s *unitStateSuite) TestSetStateUniterState(c *tc.C) {
 	}
 	s.unitStateService.EXPECT().SetState(gomock.Any(), expectedState).Return(nil)
 
-	result, err := s.api.SetState(c.Context(), args)
+	result, err := s.uniter.SetState(c.Context(), args)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(result, tc.DeepEquals, params.ErrorResults{
 		Results: []params.ErrorResult{

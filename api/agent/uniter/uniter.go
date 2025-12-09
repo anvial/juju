@@ -37,7 +37,6 @@ const uniterFacade = "Uniter"
 type Client struct {
 	*common.ModelConfigWatcher
 	*common.APIAddresser
-	*common.UnitStateAPI
 	*StorageAccessor
 
 	facade base.FacadeCaller
@@ -59,7 +58,6 @@ func NewClient(
 	return &Client{
 		ModelConfigWatcher: common.NewModelConfigWatcher(facadeCaller),
 		APIAddresser:       common.NewAPIAddresser(facadeCaller),
-		UnitStateAPI:       common.NewUniterStateAPI(facadeCaller, authTag),
 		StorageAccessor:    NewStorageAccessor(facadeCaller),
 		facade:             facadeCaller,
 		unitTag:            authTag,
