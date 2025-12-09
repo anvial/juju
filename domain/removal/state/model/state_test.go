@@ -22,6 +22,7 @@ import (
 	"github.com/juju/juju/core/crossmodel"
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/network"
 	coreobjectstore "github.com/juju/juju/core/objectstore"
@@ -215,7 +216,7 @@ func (s *baseSuite) setupApplicationService(c *tc.C) *applicationservice.Provide
 			return internalstorage.NotImplementedProviderRegistry{}
 		},
 	)
-	state := applicationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := applicationstate.NewState(modelDB, model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 	storageSvc := applicationstorageservice.NewService(
 		state,
 		applicationstorageservice.NewStoragePoolProvider(
@@ -225,7 +226,7 @@ func (s *baseSuite) setupApplicationService(c *tc.C) *applicationservice.Provide
 	)
 
 	return applicationservice.NewProviderService(
-		applicationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c)),
+		applicationstate.NewState(modelDB, model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c)),
 		storageSvc,
 		domaintesting.NoopLeaderEnsurer(),
 		nil,

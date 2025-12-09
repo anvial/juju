@@ -156,7 +156,7 @@ type CharmState interface {
 	NamespaceForWatchCharm() string
 
 	// IsImportingModel returns true if this model is being imported.
-	IsImportingModel(ctx context.Context, modelUUID string) (bool, error)
+	IsImportingModel(ctx context.Context) (bool, error)
 }
 
 // CharmStore defines the interface for storing and retrieving charms archive
@@ -756,7 +756,7 @@ func (s *Service) ResolveUploadCharm(ctx context.Context, args charm.ResolveUplo
 
 	var localUploadCharm bool
 
-	importing, err := s.st.IsImportingModel(ctx, s.modelUUID.String())
+	importing, err := s.st.IsImportingModel(ctx)
 	if err != nil {
 		return charm.CharmLocator{}, errors.Capture(err)
 	}

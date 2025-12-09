@@ -187,7 +187,7 @@ func (s *leadershipSuite) setupMocks(c *tc.C) *gomock.Controller {
 }
 
 func (s *leadershipSuite) createApplication(c *tc.C, name string, units ...application.AddIAASUnitArg) coreapplication.UUID {
-	appState := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	appState := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",

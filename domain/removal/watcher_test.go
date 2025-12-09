@@ -204,7 +204,7 @@ func (s *watcherSuite) setupApplicationService(c *tc.C, factory domain.Watchable
 		},
 	)
 	state := applicationstate.NewState(
-		modelDB, clock.WallClock, loggertesting.WrapCheckLog(c),
+		modelDB, model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c),
 	)
 	storageSvc := applicationstorageservice.NewService(
 		state,
@@ -215,7 +215,7 @@ func (s *watcherSuite) setupApplicationService(c *tc.C, factory domain.Watchable
 	)
 
 	return applicationservice.NewWatchableService(
-		applicationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c)),
+		applicationstate.NewState(modelDB, model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c)),
 		storageSvc,
 		domaintesting.NoopLeaderEnsurer(),
 		domain.NewWatcherFactory(factory, loggertesting.WrapCheckLog(c)),

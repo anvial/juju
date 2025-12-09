@@ -1006,6 +1006,7 @@ func (ctx *facadeContext) migrationScope(modelUUID model.UUID) coremodelmigratio
 			return ctx.modelDB(c, modelUUID)
 		}),
 		ctx.r.shared.dbDeleter,
+		modelUUID,
 	)
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/juju/clock"
 	"github.com/juju/tc"
 
+	"github.com/juju/juju/core/model"
 	modeltesting "github.com/juju/juju/core/model/testing"
 	coreunit "github.com/juju/juju/core/unit"
 	unittesting "github.com/juju/juju/core/unit/testing"
@@ -50,7 +51,7 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
-	appState := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	appState := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	appArg := application.AddIAASApplicationArg{
 		BaseAddApplicationArg: application.BaseAddApplicationArg{

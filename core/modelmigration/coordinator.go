@@ -69,17 +69,19 @@ type Scope struct {
 	controllerDB database.TxnRunnerFactory
 	modelDB      database.TxnRunnerFactory
 	modelDeleter database.DBDeleter
+	modelUUID    model.UUID
 }
 
 // ScopeForModel returns a Scope for the given model UUID.
 type ScopeForModel func(modelUUID model.UUID) Scope
 
 // NewScope creates a new scope with the given database txn runners.
-func NewScope(controllerDB, modelDB database.TxnRunnerFactory, modelDeleter database.DBDeleter) Scope {
+func NewScope(controllerDB database.TxnRunnerFactory, modelDB database.TxnRunnerFactory, modelDeleter database.DBDeleter, modelUUID model.UUID) Scope {
 	return Scope{
 		controllerDB: controllerDB,
 		modelDB:      modelDB,
 		modelDeleter: modelDeleter,
+		modelUUID:    modelUUID,
 	}
 }
 
@@ -96,6 +98,11 @@ func (s Scope) ModelDB() database.TxnRunnerFactory {
 // ModelDeleter returns the database deleter for the model.
 func (s Scope) ModelDeleter() database.DBDeleter {
 	return s.modelDeleter
+}
+
+// ModelUUID returns the UUID of the model being migrated.
+func (s Scope) ModelUUID() model.UUID {
+	return s.modelUUID
 }
 
 // Hook is a callback that is called after the operation is executed.

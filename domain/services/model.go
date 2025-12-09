@@ -259,7 +259,7 @@ func (s *ModelServices) BlockDevice() *blockdeviceservice.WatchableService {
 func (s *ModelServices) Application() *applicationservice.WatchableService {
 	logger := s.logger.Child("application")
 	state := applicationstate.NewState(
-		changestream.NewTxnRunnerFactory(s.modelDB), s.clock, logger,
+		changestream.NewTxnRunnerFactory(s.modelDB), s.modelUUID, s.clock, logger,
 	)
 
 	storageSvc := applicationstorageservice.NewService(

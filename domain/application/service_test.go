@@ -381,9 +381,11 @@ func (s *serviceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 
 	s.caasProvider = NewMockCAASProvider(ctrl)
+	modelUUID := tc.Must(c, model.NewUUID)
 
 	state := state.NewState(
 		func(context.Context) (database.TxnRunner, error) { return s.ModelTxnRunner(), nil },
+		modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -391,7 +393,6 @@ func (s *serviceSuite) setupMocks(c *tc.C) *gomock.Controller {
 		return internalstorage.NotImplementedProviderRegistry{}
 	})
 	poolProvider := applicationservicestorage.NewStoragePoolProvider(registryGetter, state)
-	modelUUID := tc.Must(c, model.NewUUID)
 
 	s.svc = service.NewProviderService(
 		state,

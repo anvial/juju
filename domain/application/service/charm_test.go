@@ -1401,7 +1401,7 @@ func (s *charmServiceSuite) TestGetAvailableCharmArchiveSHA256(c *tc.C) {
 func (s *charmServiceSuite) TestResolveUploadCharmInvalid(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(false, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(false, nil)
 	_, err := s.service.ResolveUploadCharm(c.Context(), charm.ResolveUploadCharm{
 		Source: "",
 	})
@@ -1413,7 +1413,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmCharmhubNotDuringNotImport(c *
 
 	// Charmhub charms are not allowed to be uploaded whilst the model is
 	// not importing.
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(false, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(false, nil)
 
 	_, err := s.service.ResolveUploadCharm(c.Context(), charm.ResolveUploadCharm{
 		Source: corecharm.CharmHub,
@@ -1441,7 +1441,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmLocalCharmNotImporting(c *tc.C
 		Provenance: charm.ProvenanceUpload,
 	}
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(false, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(false, nil)
 	s.charmStore.EXPECT().StoreFromReader(gomock.Any(), gomock.Not(gomock.Nil()), "abc").
 		DoAndReturn(func(ctx context.Context, r io.Reader, s string) (store.StoreFromReaderResult, store.Digest, error) {
 			_, err := file.Seek(0, io.SeekStart)
@@ -1489,7 +1489,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmLocalCharmNotImportingFailedRe
 
 	objectStoreUUID := objectstoretesting.GenObjectStoreUUID(c)
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(false, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(false, nil)
 	s.charmStore.EXPECT().StoreFromReader(gomock.Any(), gomock.Not(gomock.Nil()), "abc").Return(store.StoreFromReaderResult{
 		ObjectStoreUUID: objectStoreUUID,
 		UniqueName:      "unique-name",
@@ -1527,7 +1527,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmLocalCharmNotImportingFailedAd
 		Provenance: charm.ProvenanceUpload,
 	}
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(false, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(false, nil)
 	s.charmStore.EXPECT().StoreFromReader(gomock.Any(), gomock.Not(gomock.Nil()), "abc").
 		DoAndReturn(func(ctx context.Context, r io.Reader, s string) (store.StoreFromReaderResult, store.Digest, error) {
 			_, err := file.Seek(0, io.SeekStart)
@@ -1578,7 +1578,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmLocalCharmImporting(c *tc.C) {
 		Provenance: charm.ProvenanceMigration,
 	}
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(true, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(true, nil)
 
 	s.state.EXPECT().GetCharmID(gomock.Any(), "test", 1, charm.LocalSource).Return(charmID, nil)
 	s.charmStore.EXPECT().StoreFromReader(gomock.Any(), gomock.Not(gomock.Nil()), "abc").
@@ -1635,7 +1635,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmLocalCharmImportingCharmNotFou
 
 	charmID := charmtesting.GenCharmID(c)
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(true, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(true, nil)
 	s.state.EXPECT().GetCharmID(gomock.Any(), "test", 1, charm.LocalSource).Return(charmID, applicationerrors.CharmNotFound)
 
 	_, err = s.service.ResolveUploadCharm(c.Context(), charm.ResolveUploadCharm{
@@ -1662,7 +1662,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmLocalCharmImportingFailedStore
 	charmID := charmtesting.GenCharmID(c)
 	objectStoreUUID := objectstoretesting.GenObjectStoreUUID(c)
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(true, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(true, nil)
 	s.state.EXPECT().GetCharmID(gomock.Any(), "test", 1, charm.LocalSource).Return(charmID, nil)
 	s.charmStore.EXPECT().StoreFromReader(gomock.Any(), gomock.Not(gomock.Nil()), "abc").Return(store.StoreFromReaderResult{
 		ObjectStoreUUID: objectStoreUUID,
@@ -1701,7 +1701,7 @@ func (s *charmServiceSuite) TestResolveUploadCharmLocalCharmImportingFailedResol
 		Provenance: charm.ProvenanceMigration,
 	}
 
-	s.state.EXPECT().IsImportingModel(gomock.Any(), gomock.Any()).Return(true, nil)
+	s.state.EXPECT().IsImportingModel(gomock.Any()).Return(true, nil)
 	s.state.EXPECT().GetCharmID(gomock.Any(), "test", 1, charm.LocalSource).Return(charmID, nil)
 	s.charmStore.EXPECT().StoreFromReader(gomock.Any(), gomock.Not(gomock.Nil()), "abc").
 		DoAndReturn(func(ctx context.Context, r io.Reader, s string) (store.StoreFromReaderResult, store.Digest, error) {

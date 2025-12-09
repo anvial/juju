@@ -18,6 +18,7 @@ import (
 	corecharm "github.com/juju/juju/core/charm"
 	charmtesting "github.com/juju/juju/core/charm/testing"
 	coredatabase "github.com/juju/juju/core/database"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/objectstore"
 	objectstoretesting "github.com/juju/juju/core/objectstore/testing"
@@ -42,7 +43,7 @@ func TestCharmStateSuite(t *testing.T) {
 }
 
 func (s *charmStateSuite) TestGetCharmIDCharmhubCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -72,7 +73,7 @@ VALUES (?, 'foo')
 }
 
 func (s *charmStateSuite) TestGetCharmIDLocalCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -101,7 +102,7 @@ VALUES (?, 'foo')`, id.String())
 }
 
 func (s *charmStateSuite) TestAddCharmObjectStoreUUID(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock,
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock,
 		loggertesting.WrapCheckLog(c))
 
 	objectStoreUUID := objectstoretesting.GenObjectStoreUUID(c)
@@ -150,7 +151,7 @@ INSERT INTO object_store_metadata (uuid, sha_256, sha_384, size) VALUES (?, 'foo
 }
 
 func (s *charmStateSuite) TestAddCharmWithoutObjectStoreUUID(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock,
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock,
 		loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
@@ -190,7 +191,7 @@ func (s *charmStateSuite) TestAddCharmWithoutObjectStoreUUID(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmNotAvailable(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock,
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock,
 		loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
@@ -233,7 +234,7 @@ func (s *charmStateSuite) TestAddCharmNotAvailable(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmGetCharmID(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	// The archive path is not empty because setStateArgs sets it to a
 	// value, which means that the charm is available.
@@ -266,14 +267,14 @@ func (s *charmStateSuite) TestAddCharmGetCharmID(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmIDWithNoCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	_, err := st.GetCharmID(c.Context(), "foo", 0, charm.CharmHubSource) // default source
 	c.Assert(err, tc.ErrorIs, applicationerrors.CharmNotFound)
 }
 
 func (s *charmStateSuite) TestIsControllerCharmWithNoCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -282,7 +283,7 @@ func (s *charmStateSuite) TestIsControllerCharmWithNoCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsControllerCharmWithControllerCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -306,7 +307,7 @@ func (s *charmStateSuite) TestIsControllerCharmWithControllerCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsControllerCharmWithNoControllerCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -330,7 +331,7 @@ func (s *charmStateSuite) TestIsControllerCharmWithNoControllerCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsSubordinateCharmWithNoCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -339,7 +340,7 @@ func (s *charmStateSuite) TestIsSubordinateCharmWithNoCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsSubordinateCharmWithSubordinateCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -363,7 +364,7 @@ func (s *charmStateSuite) TestIsSubordinateCharmWithSubordinateCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsSubordinateCharmWithNoSubordinateCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -388,7 +389,7 @@ func (s *charmStateSuite) TestIsSubordinateCharmWithNoSubordinateCharm(c *tc.C) 
 }
 
 func (s *charmStateSuite) TestSupportsContainersWithNoCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -397,7 +398,7 @@ func (s *charmStateSuite) TestSupportsContainersWithNoCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestSupportsContainersWithContainers(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -431,7 +432,7 @@ func (s *charmStateSuite) TestSupportsContainersWithContainers(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestSupportsContainersWithNoContainers(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -455,7 +456,7 @@ func (s *charmStateSuite) TestSupportsContainersWithNoContainers(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsCharmAvailableWithNoCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -464,7 +465,7 @@ func (s *charmStateSuite) TestIsCharmAvailableWithNoCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsCharmAvailableWithAvailable(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -488,7 +489,7 @@ func (s *charmStateSuite) TestIsCharmAvailableWithAvailable(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestIsCharmAvailableWithNotAvailable(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -512,7 +513,7 @@ func (s *charmStateSuite) TestIsCharmAvailableWithNotAvailable(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestSetCharmAvailableWithNoCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -521,7 +522,7 @@ func (s *charmStateSuite) TestSetCharmAvailableWithNoCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestSetCharmAvailable(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -552,7 +553,7 @@ func (s *charmStateSuite) TestSetCharmAvailable(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithNoCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -561,7 +562,7 @@ func (s *charmStateSuite) TestGetCharmMetadataWithNoCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmMetadata(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -586,7 +587,7 @@ func (s *charmStateSuite) TestGetCharmMetadata(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataName(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -603,7 +604,7 @@ func (s *charmStateSuite) TestGetCharmMetadataName(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataNameNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -612,7 +613,7 @@ func (s *charmStateSuite) TestGetCharmMetadataNameNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataDescription(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -629,7 +630,7 @@ func (s *charmStateSuite) TestGetCharmMetadataDescription(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataDescriptionNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -638,7 +639,7 @@ func (s *charmStateSuite) TestGetCharmMetadataDescriptionNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithTagsAndCategories(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -684,7 +685,7 @@ VALUES (?, 0, 'foo'), (?, 1, 'foo'), (?, 2,'bar')
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithTerms(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -720,7 +721,7 @@ VALUES (?, 0, 'alpha'), (?, 1, 'beta'), (?, 2, 'beta')
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithRelation(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	charmUUID := id.String()
@@ -789,7 +790,7 @@ VALUES
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithExtraBindings(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -834,7 +835,7 @@ VALUES
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithStorageWithNoProperties(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -911,7 +912,7 @@ INSERT INTO charm_storage (
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithStorageWithProperties(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -1004,7 +1005,7 @@ INSERT INTO charm_storage_property (
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithDevices(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -1062,7 +1063,7 @@ INSERT INTO charm_device (
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithResources(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -1122,7 +1123,7 @@ INSERT INTO charm_resource (
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithContainersWithNoMounts(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -1172,7 +1173,7 @@ INSERT INTO charm_container (
 }
 
 func (s *charmStateSuite) TestGetCharmMetadataWithContainersWithMounts(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -1253,7 +1254,7 @@ INSERT INTO charm_container_mount (
 }
 
 func (s *charmStateSuite) TestAddCharmDownloadInfoForCharmhub(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		Provenance:         charm.ProvenanceDownload,
@@ -1305,7 +1306,7 @@ func (s *charmStateSuite) TestAddCharmDownloadInfoForCharmhub(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmDownloadInfoForCharmhubWithoutDownloadInfo(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id, _, err := st.AddCharm(c.Context(), charm.Charm{
 		Metadata: charm.Metadata{
@@ -1342,7 +1343,7 @@ func (s *charmStateSuite) TestAddCharmDownloadInfoForCharmhubWithoutDownloadInfo
 }
 
 func (s *charmStateSuite) TestAddCharmDownloadInfoForLocal(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		CharmhubIdentifier: "ident-1",
@@ -1390,7 +1391,7 @@ func (s *charmStateSuite) TestAddCharmDownloadInfoForLocal(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmCharmSequencingInvalidRevision(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		CharmhubIdentifier: "ident-1",
@@ -1430,7 +1431,7 @@ func (s *charmStateSuite) TestAddCharmCharmSequencingInvalidRevision(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmLocalCharmSequencing(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		CharmhubIdentifier: "ident-1",
@@ -1482,7 +1483,7 @@ func (s *charmStateSuite) TestAddCharmLocalCharmSequencing(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmDownloadInfoForLocalWithoutInfo(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id, _, err := st.AddCharm(c.Context(), charm.Charm{
 		Metadata: charm.Metadata{
@@ -1520,7 +1521,7 @@ func (s *charmStateSuite) TestAddCharmDownloadInfoForLocalWithoutInfo(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmTwice(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -1565,7 +1566,7 @@ func (s *charmStateSuite) TestAddCharmTwice(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expectedMetadata := charm.Metadata{
 		Name:           "ubuntu",
@@ -1647,7 +1648,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharm(c *tc.C) {
 // TestAddCharmThenGetCharmProvidesJujuInfo checks that if the juju-info
 // provides relation is in the metadata, there is no error.
 func (s *charmStateSuite) TestAddCharmThenGetCharmProvidesJujuInfo(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expectedMetadata := charm.Metadata{
 		Name:           "ubuntu",
@@ -1699,7 +1700,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmProvidesJujuInfo(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmWithDifferentReferenceName(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	// Notice that the charm name is "foo" but the reference name is "baz".
 	// This means that you can only look up the charm by its reference name.
@@ -1785,7 +1786,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmWithDifferentReferenceName(c *
 }
 
 func (s *charmStateSuite) TestAddCharmAllowsSameNameButDifferentRevision(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -1849,7 +1850,7 @@ func (s *charmStateSuite) TestAddCharmAllowsSameNameButDifferentRevision(c *tc.C
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadata(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -1882,7 +1883,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadata(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithTagsAndCategories(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -1917,7 +1918,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithTagsAndCategories(
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithTerms(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -1951,7 +1952,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithTerms(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithRelations(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2011,7 +2012,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithRelations(c *tc.C)
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithExtraBindings(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2052,7 +2053,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithExtraBindings(c *t
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithStorageWithNoProperties(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2109,7 +2110,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithStorageWithNoPrope
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithStorageWithProperties(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2168,7 +2169,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithStorageWithPropert
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithDevices(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2217,7 +2218,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithDevices(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithResources(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2264,7 +2265,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithResources(c *tc.C)
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithContainersWithNoMounts(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2307,7 +2308,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithContainersWithNoMo
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithContainersWithMounts(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Metadata{
 		Name:           "ubuntu",
@@ -2370,7 +2371,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmMetadataWithContainersWithMoun
 }
 
 func (s *charmStateSuite) TestGetCharmManifest(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -2440,7 +2441,7 @@ INSERT INTO charm_manifest_base (
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmManifest(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Manifest{
 		Bases: []charm.Base{
@@ -2496,7 +2497,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmManifest(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmManifestCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -2505,7 +2506,7 @@ func (s *charmStateSuite) TestGetCharmManifestCharmNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmLXDProfile(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -2534,7 +2535,7 @@ WHERE uuid = ?
 }
 
 func (s *charmStateSuite) TestGetCharmLXDProfileCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -2543,7 +2544,7 @@ func (s *charmStateSuite) TestGetCharmLXDProfileCharmNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmLXDProfileLXDProfileNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -2564,7 +2565,7 @@ VALUES (?, false, 'ubuntu', 0)`, uuid)
 }
 
 func (s *charmStateSuite) TestGetCharmConfig(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -2635,7 +2636,7 @@ INSERT INTO charm_config (
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmConfig(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Config{
 		Options: map[string]charm.Option{
@@ -2693,7 +2694,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmConfig(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmConfigCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -2702,7 +2703,7 @@ func (s *charmStateSuite) TestGetCharmConfigCharmNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmConfigEmpty(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -2723,7 +2724,7 @@ func (s *charmStateSuite) TestGetCharmConfigEmpty(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmActions(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -2772,7 +2773,7 @@ INSERT INTO charm_action (
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmActions(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	expected := charm.Actions{
 		Actions: map[string]charm.Action{
@@ -2812,7 +2813,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmActions(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmActionsCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -2821,7 +2822,7 @@ func (s *charmStateSuite) TestGetCharmActionsCharmNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmActionsEmpty(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -2842,7 +2843,7 @@ func (s *charmStateSuite) TestGetCharmActionsEmpty(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmThenGetCharmArchivePath(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id, _, err := st.AddCharm(c.Context(), charm.Charm{
 		Metadata: charm.Metadata{
@@ -2864,7 +2865,7 @@ func (s *charmStateSuite) TestAddCharmThenGetCharmArchivePath(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestAddCharmWithDuplicatedEndpointNames(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	_, _, err := st.AddCharm(c.Context(), charm.Charm{
 		Metadata: charm.Metadata{
@@ -2896,7 +2897,7 @@ func (s *charmStateSuite) TestAddCharmWithDuplicatedEndpointNames(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmArchivePathCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -2905,7 +2906,7 @@ func (s *charmStateSuite) TestGetCharmArchivePathCharmNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmArchiveMetadata(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id, _, err := st.AddCharm(c.Context(), charm.Charm{
 		Metadata: charm.Metadata{
@@ -2928,7 +2929,7 @@ func (s *charmStateSuite) TestGetCharmArchiveMetadata(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmArchiveMetadataInsertAdditionalHashKind(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock,
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock,
 		loggertesting.WrapCheckLog(c))
 
 	id, _, err := st.AddCharm(c.Context(), charm.Charm{
@@ -2955,7 +2956,7 @@ func (s *charmStateSuite) TestGetCharmArchiveMetadataInsertAdditionalHashKind(c 
 }
 
 func (s *charmStateSuite) TestGetCharmArchiveMetadataCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -2964,7 +2965,7 @@ func (s *charmStateSuite) TestGetCharmArchiveMetadataCharmNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestListCharmLocatorsWithNoEntries(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	results, err := st.ListCharmLocators(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
@@ -2972,7 +2973,7 @@ func (s *charmStateSuite) TestListCharmLocatorsWithNoEntries(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestListCharmLocators(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	_, _, err := st.AddCharm(c.Context(), charm.Charm{
 		Metadata: charm.Metadata{
@@ -2999,7 +3000,7 @@ func (s *charmStateSuite) TestListCharmLocators(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestListCharmLocatorsMultipleEntries(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	var expected []charm.CharmLocator
 	for i := 0; i < 3; i++ {
@@ -3033,7 +3034,7 @@ func (s *charmStateSuite) TestListCharmLocatorsMultipleEntries(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestListCharmLocatorsByNamesNoEntries(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	results, err := st.ListCharmLocatorsByNames(c.Context(), []string{"ubuntu-0", "ubuntu-2"})
 	c.Assert(err, tc.ErrorIsNil)
@@ -3041,7 +3042,7 @@ func (s *charmStateSuite) TestListCharmLocatorsByNamesNoEntries(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestListCharmLocatorsByNamesMultipleEntries(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	var expected []charm.CharmLocator
 	for i := 0; i < 3; i++ {
@@ -3080,7 +3081,7 @@ func (s *charmStateSuite) TestListCharmLocatorsByNamesMultipleEntries(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestListCharmLocatorsByNamesInvalidEntries(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("ubuntu-%d", i)
@@ -3106,7 +3107,7 @@ func (s *charmStateSuite) TestListCharmLocatorsByNamesInvalidEntries(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmDownloadInfoWithNoInfo(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id, _, err := st.AddCharm(c.Context(), charm.Charm{
 		Metadata: charm.Metadata{
@@ -3128,7 +3129,7 @@ func (s *charmStateSuite) TestGetCharmDownloadInfoWithNoInfo(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmDownloadInfoWithInfoForLocal(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		Provenance:         charm.ProvenanceDownload,
@@ -3157,7 +3158,7 @@ func (s *charmStateSuite) TestGetCharmDownloadInfoWithInfoForLocal(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmDownloadInfoWithInfoForCharmhub(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		Provenance:         charm.ProvenanceDownload,
@@ -3186,7 +3187,7 @@ func (s *charmStateSuite) TestGetCharmDownloadInfoWithInfoForCharmhub(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetAvailableCharmArchiveSHA256(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		Provenance:         charm.ProvenanceDownload,
@@ -3216,7 +3217,7 @@ func (s *charmStateSuite) TestGetAvailableCharmArchiveSHA256(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetAvailableCharmArchiveSHA256NotAvailable(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	info := &charm.DownloadInfo{
 		Provenance:         charm.ProvenanceDownload,
@@ -3243,7 +3244,7 @@ func (s *charmStateSuite) TestGetAvailableCharmArchiveSHA256NotAvailable(c *tc.C
 }
 
 func (s *charmStateSuite) TestGetAvailableCharmArchiveSHA256NotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -3252,7 +3253,7 @@ func (s *charmStateSuite) TestGetAvailableCharmArchiveSHA256NotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestResolveMigratingUploadedCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	objectStoreUUID := objectstoretesting.GenObjectStoreUUID(c)
 
@@ -3263,7 +3264,7 @@ func (s *charmStateSuite) TestResolveMigratingUploadedCharmNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestResolveMigratingUploadedCharmAlreadyAvailable(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	objectStoreUUID := objectstoretesting.GenObjectStoreUUID(c)
 
@@ -3294,7 +3295,7 @@ func (s *charmStateSuite) TestResolveMigratingUploadedCharmAlreadyAvailable(c *t
 }
 
 func (s *charmStateSuite) TestResolveMigratingUploaded(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	objectStoreUUID := s.createObjectStoreBlob(c, "archive")
 
@@ -3336,14 +3337,14 @@ func (s *charmStateSuite) TestResolveMigratingUploaded(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetLatestPendingCharmhubCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	_, err := st.GetLatestPendingCharmhubCharm(c.Context(), "foo", architecture.AMD64)
 	c.Assert(err, tc.ErrorIs, applicationerrors.CharmNotFound)
 }
 
 func (s *charmStateSuite) TestGetLatestPendingCharmhubCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -3368,7 +3369,7 @@ func (s *charmStateSuite) TestGetLatestPendingCharmhubCharm(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetLatestPendingCharmhubCharmForAnotherArch(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -3386,7 +3387,7 @@ func (s *charmStateSuite) TestGetLatestPendingCharmhubCharmForAnotherArch(c *tc.
 }
 
 func (s *charmStateSuite) TestGetLatestPendingCharmhubCharmWithMultipleCharms(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	// Revision doesn't matter here, we only care about the latest insertion
 	// time.
@@ -3420,7 +3421,7 @@ func (s *charmStateSuite) TestGetLatestPendingCharmhubCharmWithMultipleCharms(c 
 }
 
 func (s *charmStateSuite) TestGetLatestPendingCharmhubCharmWithAssignedApplication(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	// Ensure it's not already assigned to an application.
 
@@ -3461,7 +3462,7 @@ func (s *charmStateSuite) TestGetLatestPendingCharmhubCharmWithAssignedApplicati
 }
 
 func (s *charmStateSuite) TestGetCharmLocatorForLatestPendingCharmhubCharm(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -3487,7 +3488,7 @@ func (s *charmStateSuite) TestGetCharmLocatorForLatestPendingCharmhubCharm(c *tc
 }
 
 func (s *charmStateSuite) TestGetCharmLocatorByIDNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 
@@ -3496,7 +3497,7 @@ func (s *charmStateSuite) TestGetCharmLocatorByIDNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmLocatorByID(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := charmtesting.GenCharmID(c)
 	uuid := id.String()
@@ -3520,7 +3521,7 @@ func (s *charmStateSuite) TestGetCharmLocatorByID(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmIDByApplicationIDNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	err := s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		_, err := st.getCharmIDByApplicationUUID(c.Context(), tx, tc.Must(c, coreapplication.NewUUID))
@@ -3530,7 +3531,7 @@ func (s *charmStateSuite) TestGetCharmIDByApplicationIDNotFound(c *tc.C) {
 }
 
 func (s *charmStateSuite) TestGetCharmIDByApplicationID(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	uuid := s.createIAASApplication(c, "foo", life.Alive)
 
@@ -3648,7 +3649,7 @@ func jujuInfoRelation() map[string]charm.Relation {
 type charmStateIsImportingSuite struct {
 	schematesting.ControllerModelSuite
 
-	modelUUID   string
+	modelUUID   model.UUID
 	modelRunner coredatabase.TxnRunner
 }
 
@@ -3658,8 +3659,8 @@ func TestCharmStateIsImportingSuite(t *testing.T) {
 
 func (s *charmStateIsImportingSuite) SetUpTest(c *tc.C) {
 	s.ControllerModelSuite.SetUpTest(c)
-	s.modelUUID = utils.MustNewUUID().String()
-	s.modelRunner = s.ModelTxnRunner(c, s.modelUUID)
+	s.modelUUID = tc.Must0(c, model.NewUUID)
+	s.modelRunner = s.ModelTxnRunner(c, s.modelUUID.String())
 }
 
 func (s *charmStateIsImportingSuite) TestIsImportingModelNotImporting(c *tc.C) {
@@ -3676,9 +3677,9 @@ VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
 	factory := func(context.Context) (coredatabase.TxnRunner, error) {
 		return s.modelRunner, nil
 	}
-	st := NewState(factory, clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(factory, s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
-	isImporting, err := st.IsImportingModel(c.Context(), s.modelUUID)
+	isImporting, err := st.IsImportingModel(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(isImporting, tc.Equals, false)
 }
@@ -3706,9 +3707,9 @@ INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)
 	factory := func(context.Context) (coredatabase.TxnRunner, error) {
 		return s.modelRunner, nil
 	}
-	st := NewState(factory, clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(factory, s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
-	isImporting, err := st.IsImportingModel(c.Context(), s.modelUUID)
+	isImporting, err := st.IsImportingModel(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(isImporting, tc.Equals, true)
 }

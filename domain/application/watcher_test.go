@@ -54,6 +54,8 @@ import (
 
 type watcherSuite struct {
 	changestreamtesting.ModelSuite
+
+	modelUUID model.UUID
 }
 
 func TestWatcherSuite(t *stdtesting.T) {
@@ -63,12 +65,12 @@ func TestWatcherSuite(t *stdtesting.T) {
 func (s *watcherSuite) SetUpTest(c *tc.C) {
 	s.ModelSuite.SetUpTest(c)
 
-	modelUUID := uuid.MustNewUUID()
+	s.modelUUID = tc.Must0(c, model.NewUUID)
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type)
 			VALUES (?, ?, "test", "prod",  "iaas", "test-model", "ec2")
-		`, modelUUID.String(), testing.ControllerTag.Id())
+		`, s.modelUUID.String(), testing.ControllerTag.Id())
 		return err
 	})
 	c.Assert(err, tc.ErrorIsNil)
@@ -84,7 +86,7 @@ func (s *watcherSuite) TestWatchCharm(c *tc.C) {
 	modelDB := func(ctx context.Context) (database.TxnRunner, error) {
 		return s.ModelTxnRunner(), nil
 	}
-	st := state.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := state.NewState(modelDB, s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	harness := watchertest.NewHarness(s, watchertest.NewWatcherC(c, watcher))
 
@@ -1055,7 +1057,7 @@ func (s *watcherSuite) TestWatchUnitAddRemoveOnMachine(c *tc.C) {
 		return s.ModelTxnRunner(), nil
 	}
 	svc := s.setupService(c, factory)
-	st := state.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := state.NewState(modelDB, s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	machineSvc := machineservice.NewProviderService(
 		machinestate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c)),
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
@@ -1155,7 +1157,7 @@ func (s *watcherSuite) TestWatchUnitAddRemoveOnMachineSubordinates(c *tc.C) {
 		return s.ModelTxnRunner(), nil
 	}
 	svc := s.setupService(c, factory)
-	st := state.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := state.NewState(modelDB, s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	machineSvc := machineservice.NewProviderService(
 		machinestate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c)),
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
@@ -1695,7 +1697,7 @@ func (s *watcherSuite) setupService(c *tc.C, factory domain.WatchableDBFactory) 
 			return internalstorage.NotImplementedProviderRegistry{}
 		},
 	)
-	state := state.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := state.NewState(modelDB, s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	storageSvc := applicationstorageservice.NewService(
 		state,
 		applicationstorageservice.NewStoragePoolProvider(

@@ -65,6 +65,7 @@ VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -76,6 +77,7 @@ VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
 func (s *storageSuite) TestGetStorageUUIDByIDNotFound(c *tc.C) {
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -289,6 +291,7 @@ func (s *storageSuite) TestGetProviderTypeForPoolNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -303,6 +306,7 @@ func (s *storageSuite) TestGetProviderTypeForPool(c *tc.C) {
 	poolUUID := s.newStoragePool(c, "test-pool", "ptype")
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -319,6 +323,7 @@ func (s *storageSuite) TestGetModelStoragePoolsWithModelConfig(c *tc.C) {
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -374,6 +379,7 @@ func (s *storageSuite) TestGetModelStoragePoolsWithModelDefaults(c *tc.C) {
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -434,7 +440,8 @@ func (s *storageSuite) TestGetModelStoragePoolsMix(c *tc.C) {
 	poolUUID2 := s.storageHelper.newStoragePool(c, "test-pool2", "ptype")
 
 	st := NewState(
-		s.ModelSuite.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c),
+		s.ModelSuite.TxnRunnerFactory(), s.modelUUID,
+		clock.WallClock, loggertesting.WrapCheckLog(c),
 	)
 	db := s.ModelSuite.DB()
 	_, err := db.Exec(
@@ -480,6 +487,7 @@ VALUES (?, ?)
 func (s *storageSuite) TestGetStorageInstancesForProviderIDsNotFound(c *tc.C) {
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -498,6 +506,7 @@ func (s *storageSuite) TestGetStorageInstancesForProviderIDsNotFound(c *tc.C) {
 func (s *storageSuite) TestGetStorageInstancesForNoProviderIDs(c *tc.C) {
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -520,6 +529,7 @@ func (s *storageSuite) TestGetStorageInstancesForProviderIDsNotUsingProviderIDs(
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -564,6 +574,7 @@ func (s *storageSuite) TestGetStorageInstancesForProviderIDs(c *tc.C) {
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -634,6 +645,7 @@ func (s *storageSuite) TestGetStorageInstancesForProviderIDSomeStorageOwned(c *t
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -695,6 +707,7 @@ func (s *storageSuite) TestGetStorageInstancesForProviderIDsVolumeBackedFilesyst
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		s.modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

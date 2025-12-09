@@ -118,13 +118,14 @@ func (s *charmSuite) setupService(c *tc.C) *service.Service {
 	modelDB := func(context.Context) (database.TxnRunner, error) {
 		return s.ModelTxnRunner(), nil
 	}
+	modelUUID := model.UUID(s.ModelUUID())
 
 	return service.NewService(
-		state.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c)),
+		state.NewState(modelDB, modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c)),
 		domaintesting.NoopLeaderEnsurer(),
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
-		model.UUID(s.ModelUUID()),
+		modelUUID,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

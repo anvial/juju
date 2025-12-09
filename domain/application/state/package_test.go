@@ -15,6 +15,7 @@ import (
 	"github.com/juju/juju/core/devices"
 	coremachine "github.com/juju/juju/core/machine"
 	coremachinetesting "github.com/juju/juju/core/machine/testing"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/network"
 	networktesting "github.com/juju/juju/core/network/testing"
 	"github.com/juju/juju/core/objectstore"
@@ -38,6 +39,14 @@ import (
 
 type baseSuite struct {
 	schematesting.ModelSuite
+
+	modelUUID model.UUID
+}
+
+func (s *baseSuite) SetUpTest(c *tc.C) {
+	s.ModelSuite.SetUpTest(c)
+
+	s.modelUUID = tc.Must(c, model.NewUUID)
 }
 
 func (s *baseSuite) minimalMetadata(c *tc.C, name string) charm.Metadata {
@@ -186,7 +195,7 @@ func (s *baseSuite) createNamedIAASUnit(c *tc.C) (coreunit.Name, coreunit.UUID) 
 }
 
 func (s *baseSuite) createNNamedIAASUnit(c *tc.C, n int) ([]coreunit.Name, []coreunit.UUID) {
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	_, unitUUIDS := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, n)
 	names := make([]coreunit.Name, 0, n)
 	for _, unitUUID := range unitUUIDS {
@@ -198,7 +207,7 @@ func (s *baseSuite) createNNamedIAASUnit(c *tc.C, n int) ([]coreunit.Name, []cor
 }
 
 func (s *baseSuite) createNamedCAASUnit(c *tc.C) (coreunit.Name, coreunit.UUID) {
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	_, unitUUIDS := s.createCAASApplicationWithNUnits(c, "foo", life.Alive, 1)
 	name, err := state.GetUnitNameForUUID(c.Context(), unitUUIDS[0])
 	c.Assert(err, tc.ErrorIsNil)
@@ -215,7 +224,7 @@ func (s *baseSuite) createIAASApplicationWithNUnits(
 	l life.Life,
 	unitCount int,
 ) (coreapplication.UUID, []coreunit.UUID) {
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",
 		OSType:       deployment.Ubuntu,
@@ -311,7 +320,7 @@ func (s *baseSuite) createIAASApplicationWithNUnits(
 // createIAASApplicationWithReferenceName creates an IAAS application with the given
 // reference name. In this way two applications can be created with the same charm config.
 func (s *baseSuite) createIAASApplicationWithReferenceName(c *tc.C, name string, l life.Life, referenceName string, units ...application.AddIAASUnitArg) coreapplication.UUID {
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",
 		OSType:       deployment.Ubuntu,
@@ -403,7 +412,7 @@ func (s *baseSuite) createIAASApplicationWithEndpointBindings(
 	bindings map[string]network.SpaceName,
 	units ...application.AddIAASUnitArg,
 ) coreapplication.UUID {
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",
 		OSType:       deployment.Ubuntu,
@@ -531,7 +540,7 @@ func (s *baseSuite) createCAASApplicationWithNUnits(
 
 func (s *baseSuite) createCAASApplication(c *tc.C, name string, l life.Life, units ...application.AddCAASUnitArg) coreapplication.UUID {
 	s.createSubnetForCAASModel(c)
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",
@@ -619,7 +628,7 @@ func (s *baseSuite) createCAASApplication(c *tc.C, name string, l life.Life, uni
 
 func (s *baseSuite) createCAASScalingApplication(c *tc.C, name string, l life.Life, scale int) coreapplication.UUID {
 	s.createSubnetForCAASModel(c)
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",

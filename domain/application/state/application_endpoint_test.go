@@ -48,7 +48,7 @@ func TestApplicationEndpointStateSuite(t *testing.T) {
 func (s *applicationEndpointStateSuite) SetUpTest(c *tc.C) {
 	s.baseSuite.SetUpTest(c)
 
-	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	s.state = NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	// Arrange suite context, same for all tests:
 	s.appID = tc.Must(c, coreapplication.NewUUID)

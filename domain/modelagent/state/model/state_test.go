@@ -23,6 +23,7 @@ import (
 	corebase "github.com/juju/juju/core/base"
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/core/semversion"
 	coreunit "github.com/juju/juju/core/unit"
@@ -329,7 +330,7 @@ func (s *modelStateSuite) createTestingUnitForApplication(
 	c *tc.C,
 	appName string,
 ) coreunit.UUID {
-	appState := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	appState := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 	appID, err := appState.GetApplicationUUIDByName(c.Context(), appName)
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -355,7 +356,7 @@ func (s *modelStateSuite) createTestingApplicationWithName(
 	c *tc.C,
 	appName string,
 ) coreapplication.UUID {
-	appState := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	appState := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",

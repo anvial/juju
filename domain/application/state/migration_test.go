@@ -41,7 +41,7 @@ func TestMigrationStateSuite(t *testing.T) {
 }
 
 func (s *migrationStateSuite) TestGetApplicationsForExport(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := s.createIAASApplication(c, "foo", life.Alive)
 	charmID, err := st.GetCharmIDByApplicationName(c.Context(), "foo")
@@ -73,7 +73,7 @@ func (s *migrationStateSuite) TestGetApplicationsForExport(c *tc.C) {
 }
 
 func (s *migrationStateSuite) TestGetApplicationsForExportMany(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	var want []application.ExportApplication
 
@@ -110,7 +110,7 @@ func (s *migrationStateSuite) TestGetApplicationsForExportMany(c *tc.C) {
 }
 
 func (s *migrationStateSuite) TestGetApplicationsForExportDeadOrDying(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	// The prior state implementation allows for applications to be in the
 	// Dying or Dead state. This test ensures that these states are exported
@@ -172,7 +172,7 @@ func (s *migrationStateSuite) TestGetApplicationsForExportDeadOrDying(c *tc.C) {
 }
 
 func (s *migrationStateSuite) TestGetApplicationsForExportWithNoApplications(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	apps, err := st.GetApplicationsForExport(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
@@ -180,7 +180,7 @@ func (s *migrationStateSuite) TestGetApplicationsForExportWithNoApplications(c *
 }
 
 func (s *migrationStateSuite) TestGetApplicationUnitsForExport(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	appUUID, unitUUIDs := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
 	unitName, err := st.GetUnitNameForUUID(c.Context(), unitUUIDs[0])
 	c.Assert(err, tc.ErrorIsNil)
@@ -197,7 +197,7 @@ func (s *migrationStateSuite) TestGetApplicationUnitsForExport(c *tc.C) {
 }
 
 func (s *migrationStateSuite) TestGetApplicationUnitsForExportMultipleApplications(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	appUUID, unitUUIDs := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
 	s.createIAASApplicationWithNUnits(c, "bar", life.Alive, 1)
@@ -217,7 +217,7 @@ func (s *migrationStateSuite) TestGetApplicationUnitsForExportMultipleApplicatio
 
 func (s *migrationStateSuite) TestGetApplicationUnitsForExportSubordinate(c *tc.C) {
 	// Arrange:
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	subAppUUID, subUnits := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
 	_, principalUnits := s.createIAASApplicationWithNUnits(c, "principal", life.Alive, 1)
 
@@ -255,7 +255,7 @@ INSERT INTO unit_principal (principal_uuid, unit_uuid) VALUES (?,?)`, pUUID, sUU
 }
 
 func (s *migrationStateSuite) TestGetApplicationUnitsForExportNoUnits(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := s.createIAASApplication(c, "foo", life.Alive)
 
@@ -268,7 +268,7 @@ func (s *migrationStateSuite) TestGetApplicationUnitsForExportDying(c *tc.C) {
 	// We shouldn't export units that are in the dying state, but the old code
 	// doesn't prohibit this.
 
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	appUUID, unitUUIDs := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
 	s.setUnitLife(c, unitUUIDs[0], life.Dying)
@@ -287,7 +287,7 @@ func (s *migrationStateSuite) TestGetApplicationUnitsForExportDying(c *tc.C) {
 func (s *migrationStateSuite) TestGetApplicationUnitsForExportDead(c *tc.C) {
 	// We shouldn't export units that are in the dead state, but the old code
 	// doesn't prohibit this.
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	appUUID, unitUUIDs := s.createIAASApplicationWithNUnits(c, "foo", life.Alive, 1)
 	s.setUnitLife(c, unitUUIDs[0], life.Dead)
@@ -304,7 +304,7 @@ func (s *migrationStateSuite) TestGetApplicationUnitsForExportDead(c *tc.C) {
 }
 
 func (s *migrationStateSuite) TestGetApplicationsForExportEndpointBindings(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	id := s.createIAASApplication(c, "foo", life.Alive)
 	charmID, err := st.GetCharmIDByApplicationName(c.Context(), "foo")
@@ -341,7 +341,7 @@ func (s *migrationStateSuite) TestGetApplicationsForExportEndpointBindings(c *tc
 }
 
 func (s *migrationStateSuite) TestInsertMigratingApplication(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	platform := deployment.Platform{
 		Channel:      "666",
@@ -395,7 +395,7 @@ func (s *migrationStateSuite) TestInsertMigratingApplication(c *tc.C) {
 }
 
 func (s *migrationStateSuite) TestInsertMigratingApplicationPeerRelations(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	platform := deployment.Platform{
 		Channel:      "666",

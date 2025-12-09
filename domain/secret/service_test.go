@@ -125,7 +125,7 @@ func (s *serviceSuite) createSecret(c *tc.C, data map[string]string, valueRef *c
 	ctx := c.Context()
 	st := applicationstate.NewState(func(ctx context.Context) (database.TxnRunner, error) {
 		return s.ModelTxnRunner(c, s.modelUUID.String()), nil
-	}, clock.WallClock, loggertesting.WrapCheckLog(c))
+	}, s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 	storageProviderRegistryGetter := corestorage.ConstModelStorageRegistry(
 		func() internalstorage.ProviderRegistry {
 			return internalstorage.NotImplementedProviderRegistry{}
