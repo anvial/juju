@@ -508,19 +508,6 @@ func (m *testMachine) InstanceStatus(context.Context) (status.Status, string, er
 	return m.instStatus, m.instStatusMsg, nil
 }
 
-func (m *testMachine) SetModificationStatus(_ context.Context, _ status.Status, message string, _ map[string]interface{}) error {
-	m.mu.Lock()
-	m.modStatusMsg = message
-	m.mu.Unlock()
-	return nil
-}
-
-func (m *testMachine) ModificationStatus() (status.Status, string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return "", m.modStatusMsg, nil
-}
-
 func (m *testMachine) SetStatus(_ context.Context, status status.Status, _ string, _ map[string]interface{}) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
