@@ -13,6 +13,7 @@ import (
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
 	"github.com/juju/juju/core/secrets"
+	"github.com/juju/juju/domain/secret"
 	"github.com/juju/juju/domain/secret/service"
 	"github.com/juju/juju/domain/secret/state"
 	secretbackendstate "github.com/juju/juju/domain/secretbackend/state"
@@ -68,27 +69,27 @@ func ownerTagFromOwner(owner secrets.Owner) (names.Tag, error) {
 	return nil, errors.Errorf("owner kind %q %w", owner.Kind, coreerrors.NotValid)
 }
 
-func scopeTagFromAccessScope(scope service.SecretAccessScope) (names.Tag, error) {
+func scopeTagFromAccessScope(scope secret.SecretAccessScope) (names.Tag, error) {
 	switch scope.Kind {
-	case service.ApplicationAccessScope:
+	case secret.ApplicationAccessScope:
 		return names.NewApplicationTag(scope.ID), nil
-	case service.UnitAccessScope:
+	case secret.UnitAccessScope:
 		return names.NewUnitTag(scope.ID), nil
-	case service.RelationAccessScope:
+	case secret.RelationAccessScope:
 		return names.NewRelationTag(scope.ID), nil
-	case service.ModelAccessScope:
+	case secret.ModelAccessScope:
 		return names.NewModelTag(scope.ID), nil
 	}
 	return nil, errors.Errorf("scope kind %q %w", scope.Kind, coreerrors.NotValid)
 }
 
-func accessorTagFromAccessor(subject service.SecretAccessor) (names.Tag, error) {
+func accessorTagFromAccessor(subject secret.SecretAccessor) (names.Tag, error) {
 	switch subject.Kind {
-	case service.ApplicationAccessor:
+	case secret.ApplicationAccessor:
 		return names.NewApplicationTag(subject.ID), nil
-	case service.UnitAccessor:
+	case secret.UnitAccessor:
 		return names.NewUnitTag(subject.ID), nil
-	case service.ModelAccessor:
+	case secret.ModelAccessor:
 		return names.NewModelTag(subject.ID), nil
 	}
 	return nil, errors.Errorf("subject kind %q %w", subject.Kind, coreerrors.NotValid)

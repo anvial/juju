@@ -14,7 +14,7 @@ import (
 	"github.com/juju/juju/apiserver/facades/controller/usersecretsdrain/mocks"
 	"github.com/juju/juju/core/model"
 	coresecrets "github.com/juju/juju/core/secrets"
-	secretservice "github.com/juju/juju/domain/secret/service"
+	"github.com/juju/juju/domain/secret"
 	secretbackendservice "github.com/juju/juju/domain/secretbackend/service"
 	"github.com/juju/juju/internal/secrets/provider"
 	"github.com/juju/juju/internal/testhelpers"
@@ -81,8 +81,8 @@ func (s *drainSuite) TestGetSecretBackendConfigs(c *tc.C) {
 
 	s.secretBackendService.EXPECT().DrainBackendConfigInfo(gomock.Any(), backendConfigParamsMatcher{c: c,
 		expected: secretbackendservice.DrainBackendConfigParams{
-			Accessor: secretservice.SecretAccessor{
-				Kind: secretservice.ModelAccessor,
+			Accessor: secret.SecretAccessor{
+				Kind: secret.ModelAccessor,
 				ID:   coretesting.ModelTag.Id(),
 			},
 			ModelUUID: model.UUID(coretesting.ModelTag.Id()),
@@ -140,8 +140,8 @@ func (s *drainSuite) TestGetSecretContentInternal(c *tc.C) {
 	val := coresecrets.NewSecretValue(data)
 	uri := coresecrets.NewURI()
 	s.secretService.EXPECT().GetSecret(gomock.Any(), uri).Return(&coresecrets.SecretMetadata{URI: uri, LatestRevision: 668}, nil)
-	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 668, secretservice.SecretAccessor{
-		Kind: secretservice.ModelAccessor,
+	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 668, secret.SecretAccessor{
+		Kind: secret.ModelAccessor,
 		ID:   coretesting.ModelTag.Id(),
 	}).Return(
 		val, nil, nil,
@@ -165,8 +165,8 @@ func (s *drainSuite) TestGetSecretContentExternal(c *tc.C) {
 
 	uri := coresecrets.NewURI()
 	s.secretService.EXPECT().GetSecret(gomock.Any(), uri).Return(&coresecrets.SecretMetadata{URI: uri, LatestRevision: 668}, nil)
-	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 668, secretservice.SecretAccessor{
-		Kind: secretservice.ModelAccessor,
+	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 668, secret.SecretAccessor{
+		Kind: secret.ModelAccessor,
 		ID:   coretesting.ModelTag.Id(),
 	}).Return(
 		nil, &coresecrets.ValueRef{
@@ -176,8 +176,8 @@ func (s *drainSuite) TestGetSecretContentExternal(c *tc.C) {
 	)
 	s.secretBackendService.EXPECT().BackendConfigInfo(gomock.Any(), backendConfigParamsMatcher{c: c,
 		expected: secretbackendservice.BackendConfigParams{
-			Accessor: secretservice.SecretAccessor{
-				Kind: secretservice.ModelAccessor,
+			Accessor: secret.SecretAccessor{
+				Kind: secret.ModelAccessor,
 				ID:   coretesting.ModelTag.Id(),
 			},
 			ModelUUID:      model.UUID(coretesting.ModelTag.Id()),
@@ -232,8 +232,8 @@ func (s *drainSuite) TestGetSecretRevisionContentInfoInternal(c *tc.C) {
 	uri := coresecrets.NewURI()
 	data := map[string]string{"foo": "bar"}
 	val := coresecrets.NewSecretValue(data)
-	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 666, secretservice.SecretAccessor{
-		Kind: secretservice.ModelAccessor,
+	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 666, secret.SecretAccessor{
+		Kind: secret.ModelAccessor,
 		ID:   coretesting.ModelTag.Id(),
 	}).Return(
 		val, nil, nil,
@@ -255,8 +255,8 @@ func (s *drainSuite) TestGetSecretRevisionContentInfoExternal(c *tc.C) {
 	defer s.setup(c).Finish()
 
 	uri := coresecrets.NewURI()
-	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 666, secretservice.SecretAccessor{
-		Kind: secretservice.ModelAccessor,
+	s.secretService.EXPECT().GetSecretValue(gomock.Any(), uri, 666, secret.SecretAccessor{
+		Kind: secret.ModelAccessor,
 		ID:   coretesting.ModelTag.Id(),
 	}).Return(
 		nil, &coresecrets.ValueRef{
@@ -266,8 +266,8 @@ func (s *drainSuite) TestGetSecretRevisionContentInfoExternal(c *tc.C) {
 	)
 	s.secretBackendService.EXPECT().BackendConfigInfo(gomock.Any(), backendConfigParamsMatcher{c: c,
 		expected: secretbackendservice.BackendConfigParams{
-			Accessor: secretservice.SecretAccessor{
-				Kind: secretservice.ModelAccessor,
+			Accessor: secret.SecretAccessor{
+				Kind: secret.ModelAccessor,
 				ID:   coretesting.ModelTag.Id(),
 			},
 			ModelUUID:      model.UUID(coretesting.ModelTag.Id()),

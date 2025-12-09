@@ -16,6 +16,7 @@ import (
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
 	"github.com/juju/juju/core/secrets"
+	"github.com/juju/juju/domain/secret"
 	secreterrors "github.com/juju/juju/domain/secret/errors"
 	"github.com/juju/juju/domain/secret/service"
 	"github.com/juju/juju/domain/secret/state"
@@ -91,42 +92,42 @@ func ownerFromTag(owner names.Tag) (secrets.Owner, error) {
 	return secrets.Owner{}, errors.Errorf("tag kind %q %w", owner.Kind(), coreerrors.NotValid)
 }
 
-func accessorFromTag(tag names.Tag) (service.SecretAccessor, error) {
-	result := service.SecretAccessor{
+func accessorFromTag(tag names.Tag) (secret.SecretAccessor, error) {
+	result := secret.SecretAccessor{
 		ID: tag.Id(),
 	}
 	switch kind := tag.Kind(); kind {
 	case names.ApplicationTagKind:
-		result.Kind = service.ApplicationAccessor
+		result.Kind = secret.ApplicationAccessor
 	case names.UnitTagKind:
-		result.Kind = service.UnitAccessor
+		result.Kind = secret.UnitAccessor
 	case names.ModelTagKind:
-		result.Kind = service.ModelAccessor
+		result.Kind = secret.ModelAccessor
 	default:
-		return service.SecretAccessor{}, errors.Errorf("tag kind %q not valid", kind)
+		return secret.SecretAccessor{}, errors.Errorf("tag kind %q not valid", kind)
 	}
 	return result, nil
 }
 
-func scopeFromTag(scope string) (service.SecretAccessScope, error) {
+func scopeFromTag(scope string) (secret.SecretAccessScope, error) {
 	tag, err := names.ParseTag(scope)
 	if err != nil {
-		return service.SecretAccessScope{}, errors.Capture(err)
+		return secret.SecretAccessScope{}, errors.Capture(err)
 	}
-	result := service.SecretAccessScope{
+	result := secret.SecretAccessScope{
 		ID: tag.Id(),
 	}
 	switch kind := tag.Kind(); kind {
 	case names.ApplicationTagKind:
-		result.Kind = service.ApplicationAccessScope
+		result.Kind = secret.ApplicationAccessScope
 	case names.UnitTagKind:
-		result.Kind = service.UnitAccessScope
+		result.Kind = secret.UnitAccessScope
 	case names.RelationTagKind:
-		result.Kind = service.RelationAccessScope
+		result.Kind = secret.RelationAccessScope
 	case names.ModelTagKind:
-		result.Kind = service.ModelAccessScope
+		result.Kind = secret.ModelAccessScope
 	default:
-		return service.SecretAccessScope{}, errors.Errorf("tag kind %q not valid", kind)
+		return secret.SecretAccessScope{}, errors.Errorf("tag kind %q not valid", kind)
 	}
 	return result, nil
 }

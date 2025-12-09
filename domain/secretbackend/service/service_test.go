@@ -24,7 +24,7 @@ import (
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/watchertest"
 	modelerrors "github.com/juju/juju/domain/model/errors"
-	secretservice "github.com/juju/juju/domain/secret/service"
+	"github.com/juju/juju/domain/secret"
 	"github.com/juju/juju/domain/secretbackend"
 	secretbackenderrors "github.com/juju/juju/domain/secretbackend/errors"
 	"github.com/juju/juju/internal/configschema"
@@ -725,24 +725,24 @@ func (s *serviceSuite) assertBackendConfigInfoLeaderUnit(c *tc.C, wanted []strin
 	s.mockRegistry.EXPECT().RestrictedConfig(gomock.Any(), &adminCfg, false, false, accessor, ownedRevs, readRevs).Return(&adminCfg.BackendConfig, nil)
 
 	listGranted := func(
-		ctx context.Context, backendID string, role coresecrets.SecretRole, consumers ...secretservice.SecretAccessor,
+		ctx context.Context, backendID string, role coresecrets.SecretRole, consumers ...secret.SecretAccessor,
 	) ([]*coresecrets.SecretRevisionRef, error) {
 		c.Assert(backendID, tc.Equals, "backend-id")
 		if role == coresecrets.RoleManage {
-			c.Assert(consumers, tc.DeepEquals, []secretservice.SecretAccessor{{
-				Kind: secretservice.UnitAccessor,
+			c.Assert(consumers, tc.DeepEquals, []secret.SecretAccessor{{
+				Kind: secret.UnitAccessor,
 				ID:   "gitlab/0",
 			}, {
-				Kind: secretservice.ApplicationAccessor,
+				Kind: secret.ApplicationAccessor,
 				ID:   "gitlab",
 			}})
 			return owned, nil
 		}
-		c.Assert(consumers, tc.DeepEquals, []secretservice.SecretAccessor{{
-			Kind: secretservice.UnitAccessor,
+		c.Assert(consumers, tc.DeepEquals, []secret.SecretAccessor{{
+			Kind: secret.UnitAccessor,
 			ID:   "gitlab/0",
 		}, {
-			Kind: secretservice.ApplicationAccessor,
+			Kind: secret.ApplicationAccessor,
 			ID:   "gitlab",
 		}})
 		return read, nil
@@ -750,8 +750,8 @@ func (s *serviceSuite) assertBackendConfigInfoLeaderUnit(c *tc.C, wanted []strin
 	info, err := svc.BackendConfigInfo(c.Context(), BackendConfigParams{
 		GrantedSecretsGetter: listGranted,
 		LeaderToken:          token,
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   accessor.ID,
 		},
 		ModelUUID:      coremodel.UUID(jujutesting.ModelTag.Id()),
@@ -842,24 +842,24 @@ func (s *serviceSuite) TestBackendConfigInfoNonLeaderUnit(c *tc.C) {
 	s.mockRegistry.EXPECT().RestrictedConfig(gomock.Any(), &adminCfg, true, false, accessor, ownedRevs, readRevs).Return(&adminCfg.BackendConfig, nil)
 
 	listGranted := func(
-		ctx context.Context, backendID string, role coresecrets.SecretRole, consumers ...secretservice.SecretAccessor,
+		ctx context.Context, backendID string, role coresecrets.SecretRole, consumers ...secret.SecretAccessor,
 	) ([]*coresecrets.SecretRevisionRef, error) {
 		c.Assert(backendID, tc.Equals, "backend-id")
 		if role == coresecrets.RoleManage {
-			c.Assert(consumers, tc.DeepEquals, []secretservice.SecretAccessor{{
-				Kind: secretservice.UnitAccessor,
+			c.Assert(consumers, tc.DeepEquals, []secret.SecretAccessor{{
+				Kind: secret.UnitAccessor,
 				ID:   "gitlab/0",
 			}})
 			return unitOwned, nil
 		}
-		if len(consumers) == 1 && consumers[0].Kind == secretservice.ApplicationAccessor && consumers[0].ID == "gitlab" {
+		if len(consumers) == 1 && consumers[0].Kind == secret.ApplicationAccessor && consumers[0].ID == "gitlab" {
 			return appOwned, nil
 		}
-		c.Assert(consumers, tc.DeepEquals, []secretservice.SecretAccessor{{
-			Kind: secretservice.UnitAccessor,
+		c.Assert(consumers, tc.DeepEquals, []secret.SecretAccessor{{
+			Kind: secret.UnitAccessor,
 			ID:   "gitlab/0",
 		}, {
-			Kind: secretservice.ApplicationAccessor,
+			Kind: secret.ApplicationAccessor,
 			ID:   "gitlab",
 		}})
 		return read, nil
@@ -867,8 +867,8 @@ func (s *serviceSuite) TestBackendConfigInfoNonLeaderUnit(c *tc.C) {
 	info, err := svc.BackendConfigInfo(c.Context(), BackendConfigParams{
 		GrantedSecretsGetter: listGranted,
 		LeaderToken:          token,
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "gitlab/0",
 		},
 		ModelUUID:      coremodel.UUID(jujutesting.ModelTag.Id()),
@@ -959,24 +959,24 @@ func (s *serviceSuite) TestDrainBackendConfigInfo(c *tc.C) {
 	s.mockRegistry.EXPECT().RestrictedConfig(gomock.Any(), &adminCfg, true, true, accessor, ownedRevs, readRevs).Return(&adminCfg.BackendConfig, nil)
 
 	listGranted := func(
-		ctx context.Context, backendID string, role coresecrets.SecretRole, consumers ...secretservice.SecretAccessor,
+		ctx context.Context, backendID string, role coresecrets.SecretRole, consumers ...secret.SecretAccessor,
 	) ([]*coresecrets.SecretRevisionRef, error) {
 		c.Assert(backendID, tc.Equals, "backend-id")
 		if role == coresecrets.RoleManage {
-			c.Assert(consumers, tc.DeepEquals, []secretservice.SecretAccessor{{
-				Kind: secretservice.UnitAccessor,
+			c.Assert(consumers, tc.DeepEquals, []secret.SecretAccessor{{
+				Kind: secret.UnitAccessor,
 				ID:   "gitlab/0",
 			}})
 			return unitOwned, nil
 		}
-		if len(consumers) == 1 && consumers[0].Kind == secretservice.ApplicationAccessor && consumers[0].ID == "gitlab" {
+		if len(consumers) == 1 && consumers[0].Kind == secret.ApplicationAccessor && consumers[0].ID == "gitlab" {
 			return appOwned, nil
 		}
-		c.Assert(consumers, tc.DeepEquals, []secretservice.SecretAccessor{{
-			Kind: secretservice.UnitAccessor,
+		c.Assert(consumers, tc.DeepEquals, []secret.SecretAccessor{{
+			Kind: secret.UnitAccessor,
 			ID:   "gitlab/0",
 		}, {
-			Kind: secretservice.ApplicationAccessor,
+			Kind: secret.ApplicationAccessor,
 			ID:   "gitlab",
 		}})
 		return read, nil
@@ -984,8 +984,8 @@ func (s *serviceSuite) TestDrainBackendConfigInfo(c *tc.C) {
 	info, err := svc.DrainBackendConfigInfo(c.Context(), DrainBackendConfigParams{
 		GrantedSecretsGetter: listGranted,
 		LeaderToken:          token,
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "gitlab/0",
 		},
 		ModelUUID: coremodel.UUID(jujutesting.ModelTag.Id()),
@@ -1024,8 +1024,8 @@ func (s *serviceSuite) TestBackendConfigInfoFailedInvalidAccessor(c *tc.C) {
 	)
 
 	_, err := svc.BackendConfigInfo(c.Context(), BackendConfigParams{
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.ApplicationAccessor,
+		Accessor: secret.SecretAccessor{
+			Kind: secret.ApplicationAccessor,
 			ID:   "someapp",
 		},
 		ModelUUID:  coremodel.UUID(jujutesting.ModelTag.Id()),

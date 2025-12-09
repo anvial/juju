@@ -121,12 +121,12 @@ func (s *SecretsSuite) assertListSecrets(c *tc.C, reveal bool) {
 	)
 	s.secretService.EXPECT().GetSecretGrants(gomock.Any(), uri, coresecrets.RoleView).Return([]secretservice.SecretAccess{
 		{
-			Scope: secretservice.SecretAccessScope{
-				Kind: secretservice.RelationAccessScope,
+			Scope: secret.SecretAccessScope{
+				Kind: secret.RelationAccessScope,
 				ID:   "gitlab:server mysql:db",
 			},
-			Subject: secretservice.SecretAccessor{
-				Kind: secretservice.ApplicationAccessor,
+			Subject: secret.SecretAccessor{
+				Kind: secret.ApplicationAccessor,
 				ID:   "gitlab",
 			},
 			Role: coresecrets.RoleView,
@@ -350,8 +350,8 @@ func (s *SecretsSuite) TestRemoveSecrets(c *tc.C) {
 	uri := coresecrets.NewURI()
 	expectURI := *uri
 	s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.WriteAccess, coretesting.ModelTag).Return(nil)
-	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secretservice.DeleteSecretParams{
-		Accessor:  secretservice.SecretAccessor{Kind: secretservice.ModelAccessor, ID: coretesting.ModelTag.Id()},
+	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secret.DeleteSecretParams{
+		Accessor:  secret.SecretAccessor{Kind: secret.ModelAccessor, ID: coretesting.ModelTag.Id()},
 		Revisions: []int{666},
 	}).Return(nil)
 
@@ -395,8 +395,8 @@ func (s *SecretsSuite) TestRemoveSecretRevision(c *tc.C) {
 	uri := coresecrets.NewURI()
 	expectURI := *uri
 	s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.WriteAccess, coretesting.ModelTag).Return(nil)
-	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secretservice.DeleteSecretParams{
-		Accessor:  secretservice.SecretAccessor{Kind: secretservice.ModelAccessor, ID: coretesting.ModelTag.Id()},
+	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secret.DeleteSecretParams{
+		Accessor:  secret.SecretAccessor{Kind: secret.ModelAccessor, ID: coretesting.ModelTag.Id()},
 		Revisions: []int{666},
 	}).Return(nil)
 
@@ -421,8 +421,8 @@ func (s *SecretsSuite) TestRemoveSecretNotFound(c *tc.C) {
 
 	uri := coresecrets.NewURI()
 	expectURI := *uri
-	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secretservice.DeleteSecretParams{
-		Accessor:  secretservice.SecretAccessor{Kind: secretservice.ModelAccessor, ID: coretesting.ModelTag.Id()},
+	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secret.DeleteSecretParams{
+		Accessor:  secret.SecretAccessor{Kind: secret.ModelAccessor, ID: coretesting.ModelTag.Id()},
 		Revisions: []int{666},
 	}).Return(secreterrors.SecretNotFound)
 
@@ -446,23 +446,23 @@ func (s *SecretsSuite) TestGrantSecret(c *tc.C) {
 
 	uri := coresecrets.NewURI()
 	s.secretService.EXPECT().GrantSecretAccess(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, arg *coresecrets.URI, params secretservice.SecretAccessParams) error {
+		func(_ context.Context, arg *coresecrets.URI, params secret.SecretAccessParams) error {
 			c.Assert(arg, tc.DeepEquals, uri)
 			c.Assert(params.Scope, tc.DeepEquals,
-				secretservice.SecretAccessScope{Kind: secretservice.ModelAccessScope, ID: coretesting.ModelTag.Id()})
+				secret.SecretAccessScope{Kind: secret.ModelAccessScope, ID: coretesting.ModelTag.Id()})
 			c.Assert(params.Subject, tc.DeepEquals,
-				secretservice.SecretAccessor{Kind: secretservice.ApplicationAccessor, ID: "gitlab"})
+				secret.SecretAccessor{Kind: secret.ApplicationAccessor, ID: "gitlab"})
 			c.Assert(params.Role, tc.Equals, coresecrets.RoleView)
 			return nil
 		},
 	)
 	s.secretService.EXPECT().GrantSecretAccess(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, arg *coresecrets.URI, params secretservice.SecretAccessParams) error {
+		func(_ context.Context, arg *coresecrets.URI, params secret.SecretAccessParams) error {
 			c.Assert(arg, tc.DeepEquals, uri)
 			c.Assert(params.Scope, tc.DeepEquals,
-				secretservice.SecretAccessScope{Kind: secretservice.ModelAccessScope, ID: coretesting.ModelTag.Id()})
+				secret.SecretAccessScope{Kind: secret.ModelAccessScope, ID: coretesting.ModelTag.Id()})
 			c.Assert(params.Subject, tc.DeepEquals,
-				secretservice.SecretAccessor{Kind: secretservice.ApplicationAccessor, ID: "mysql"})
+				secret.SecretAccessor{Kind: secret.ApplicationAccessor, ID: "mysql"})
 			c.Assert(params.Role, tc.Equals, coresecrets.RoleView)
 			return nil
 		},
@@ -490,23 +490,23 @@ func (s *SecretsSuite) TestGrantSecretByName(c *tc.C) {
 	uri := coresecrets.NewURI()
 	s.secretService.EXPECT().GetUserSecretURIByLabel(gomock.Any(), "my-secret").Return(uri, nil)
 	s.secretService.EXPECT().GrantSecretAccess(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, arg *coresecrets.URI, params secretservice.SecretAccessParams) error {
+		func(_ context.Context, arg *coresecrets.URI, params secret.SecretAccessParams) error {
 			c.Assert(arg, tc.DeepEquals, uri)
 			c.Assert(params.Scope, tc.DeepEquals,
-				secretservice.SecretAccessScope{Kind: secretservice.ModelAccessScope, ID: coretesting.ModelTag.Id()})
+				secret.SecretAccessScope{Kind: secret.ModelAccessScope, ID: coretesting.ModelTag.Id()})
 			c.Assert(params.Subject, tc.DeepEquals,
-				secretservice.SecretAccessor{Kind: secretservice.ApplicationAccessor, ID: "gitlab"})
+				secret.SecretAccessor{Kind: secret.ApplicationAccessor, ID: "gitlab"})
 			c.Assert(params.Role, tc.Equals, coresecrets.RoleView)
 			return nil
 		},
 	)
 	s.secretService.EXPECT().GrantSecretAccess(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, arg *coresecrets.URI, params secretservice.SecretAccessParams) error {
+		func(_ context.Context, arg *coresecrets.URI, params secret.SecretAccessParams) error {
 			c.Assert(arg, tc.DeepEquals, uri)
 			c.Assert(params.Scope, tc.DeepEquals,
-				secretservice.SecretAccessScope{Kind: secretservice.ModelAccessScope, ID: coretesting.ModelTag.Id()})
+				secret.SecretAccessScope{Kind: secret.ModelAccessScope, ID: coretesting.ModelTag.Id()})
 			c.Assert(params.Subject, tc.DeepEquals,
-				secretservice.SecretAccessor{Kind: secretservice.ApplicationAccessor, ID: "mysql"})
+				secret.SecretAccessor{Kind: secret.ApplicationAccessor, ID: "mysql"})
 			c.Assert(params.Role, tc.Equals, coresecrets.RoleView)
 			return nil
 		},
@@ -548,23 +548,23 @@ func (s *SecretsSuite) TestRevokeSecret(c *tc.C) {
 
 	uri := coresecrets.NewURI()
 	s.secretService.EXPECT().RevokeSecretAccess(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, arg *coresecrets.URI, params secretservice.SecretAccessParams) error {
+		func(_ context.Context, arg *coresecrets.URI, params secret.SecretAccessParams) error {
 			c.Assert(arg, tc.DeepEquals, uri)
 			c.Assert(params.Scope, tc.DeepEquals,
-				secretservice.SecretAccessScope{Kind: secretservice.ModelAccessScope, ID: coretesting.ModelTag.Id()})
+				secret.SecretAccessScope{Kind: secret.ModelAccessScope, ID: coretesting.ModelTag.Id()})
 			c.Assert(params.Subject, tc.DeepEquals,
-				secretservice.SecretAccessor{Kind: secretservice.ApplicationAccessor, ID: "gitlab"})
+				secret.SecretAccessor{Kind: secret.ApplicationAccessor, ID: "gitlab"})
 			c.Assert(params.Role, tc.Equals, coresecrets.RoleView)
 			return nil
 		},
 	)
 	s.secretService.EXPECT().RevokeSecretAccess(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, arg *coresecrets.URI, params secretservice.SecretAccessParams) error {
+		func(_ context.Context, arg *coresecrets.URI, params secret.SecretAccessParams) error {
 			c.Assert(arg, tc.DeepEquals, uri)
 			c.Assert(params.Scope, tc.DeepEquals,
-				secretservice.SecretAccessScope{Kind: secretservice.ModelAccessScope, ID: coretesting.ModelTag.Id()})
+				secret.SecretAccessScope{Kind: secret.ModelAccessScope, ID: coretesting.ModelTag.Id()})
 			c.Assert(params.Subject, tc.DeepEquals,
-				secretservice.SecretAccessor{Kind: secretservice.ApplicationAccessor, ID: "mysql"})
+				secret.SecretAccessor{Kind: secret.ApplicationAccessor, ID: "mysql"})
 			c.Assert(params.Role, tc.Equals, coresecrets.RoleView)
 			return nil
 		},

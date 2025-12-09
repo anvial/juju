@@ -10,7 +10,7 @@ import (
 	corerelation "github.com/juju/juju/core/relation"
 	"github.com/juju/juju/core/secrets"
 	"github.com/juju/juju/core/unit"
-	secretservice "github.com/juju/juju/domain/secret/service"
+	"github.com/juju/juju/domain/secret"
 	secretbackendservice "github.com/juju/juju/domain/secretbackend/service"
 	"github.com/juju/juju/internal/secrets/provider"
 )
@@ -19,9 +19,9 @@ import (
 
 // SecretService provides access to the secret service,
 type SecretService interface {
-	GetSecretAccessRelationScope(ctx context.Context, uri *secrets.URI, accessor secretservice.SecretAccessor) (corerelation.UUID, error)
+	GetSecretAccessRelationScope(ctx context.Context, uri *secrets.URI, accessor secret.SecretAccessor) (corerelation.UUID, error)
 	ListGrantedSecretsForBackend(
-		ctx context.Context, backendID string, role secrets.SecretRole, consumers ...secretservice.SecretAccessor,
+		ctx context.Context, backendID string, role secrets.SecretRole, consumers ...secret.SecretAccessor,
 	) ([]*secrets.SecretRevisionRef, error)
 }
 

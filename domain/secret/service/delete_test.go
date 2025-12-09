@@ -46,9 +46,9 @@ func (s *serviceSuite) TestDeleteSecret(c *tc.C) {
 	revs.Add(uri, "rev-id1")
 	revs.Add(uri, "rev-id2")
 
-	err := s.service.DeleteSecret(c.Context(), uri, DeleteSecretParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.DeleteSecret(c.Context(), uri, domainsecret.DeleteSecretParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Revisions: []int{1, 2},

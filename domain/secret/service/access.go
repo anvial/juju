@@ -35,11 +35,11 @@ func (s *SecretService) GetSecretGrants(ctx context.Context, uri *secrets.URI, r
 		sa.Subject.ID = accessor.SubjectID
 		switch accessor.SubjectTypeID {
 		case domainsecret.SubjectUnit:
-			sa.Subject.Kind = UnitAccessor
+			sa.Subject.Kind = domainsecret.UnitAccessor
 		case domainsecret.SubjectApplication:
-			sa.Subject.Kind = ApplicationAccessor
+			sa.Subject.Kind = domainsecret.ApplicationAccessor
 		case domainsecret.SubjectModel:
-			sa.Subject.Kind = ModelAccessor
+			sa.Subject.Kind = domainsecret.ModelAccessor
 		default:
 			// Should never happen.
 			return nil, errors.Errorf("unexpected accessor subject type: %#v", accessor.SubjectTypeID)
@@ -48,13 +48,13 @@ func (s *SecretService) GetSecretGrants(ctx context.Context, uri *secrets.URI, r
 		sa.Scope.ID = accessor.ScopeID
 		switch accessor.ScopeTypeID {
 		case domainsecret.ScopeUnit:
-			sa.Scope.Kind = UnitAccessScope
+			sa.Scope.Kind = domainsecret.UnitAccessScope
 		case domainsecret.ScopeApplication:
-			sa.Scope.Kind = ApplicationAccessScope
+			sa.Scope.Kind = domainsecret.ApplicationAccessScope
 		case domainsecret.ScopeModel:
-			sa.Scope.Kind = ModelAccessScope
+			sa.Scope.Kind = domainsecret.ModelAccessScope
 		case domainsecret.ScopeRelation:
-			sa.Scope.Kind = RelationAccessScope
+			sa.Scope.Kind = domainsecret.RelationAccessScope
 			// For relation scoped secrets, we need to look up the key from the UUID.
 			// TODO - make this a bulk call.
 			key, err := s.getRelationKeyByUUID(ctx, accessor.ScopeUUID)
@@ -89,7 +89,7 @@ func (s *SecretService) getRelationKeyByUUID(ctx context.Context, relUUID string
 // It returns an error satisfying:
 // - [secreterrors.SecretNotFound] if the secret is not found.
 // - [secreterrors.SecretAccessScopeNotFound] if the access scope is not found.
-func (s *SecretService) GetSecretAccessRelationScope(ctx context.Context, uri *secrets.URI, accessor SecretAccessor) (corerelation.UUID, error) {
+func (s *SecretService) GetSecretAccessRelationScope(ctx context.Context, uri *secrets.URI, accessor domainsecret.SecretAccessor) (corerelation.UUID, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -97,11 +97,11 @@ func (s *SecretService) GetSecretAccessRelationScope(ctx context.Context, uri *s
 		SubjectID: accessor.ID,
 	}
 	switch accessor.Kind {
-	case UnitAccessor:
+	case domainsecret.UnitAccessor:
 		ap.SubjectTypeID = domainsecret.SubjectUnit
-	case ApplicationAccessor:
+	case domainsecret.ApplicationAccessor:
 		ap.SubjectTypeID = domainsecret.SubjectApplication
-	case ModelAccessor:
+	case domainsecret.ModelAccessor:
 		// Should never happen.
 		return "", errors.Errorf("getting relation access scope for kind %q not supported", accessor.Kind).Add(coreerrors.NotSupported)
 	}
@@ -114,16 +114,16 @@ func (s *SecretService) GetSecretAccessRelationScope(ctx context.Context, uri *s
 
 // getSecretAccess returns the access to the secret for the specified accessor.
 // It returns an error satisfying [secreterrors.SecretNotFound] if the secret is not found.
-func (s *SecretService) getSecretAccess(ctx context.Context, uri *secrets.URI, accessor SecretAccessor) (secrets.SecretRole, error) {
+func (s *SecretService) getSecretAccess(ctx context.Context, uri *secrets.URI, accessor domainsecret.SecretAccessor) (secrets.SecretRole, error) {
 	ap := domainsecret.AccessParams{
 		SubjectID: accessor.ID,
 	}
 	switch accessor.Kind {
-	case UnitAccessor:
+	case domainsecret.UnitAccessor:
 		ap.SubjectTypeID = domainsecret.SubjectUnit
-	case ApplicationAccessor:
+	case domainsecret.ApplicationAccessor:
 		ap.SubjectTypeID = domainsecret.SubjectApplication
-	case ModelAccessor:
+	case domainsecret.ModelAccessor:
 		ap.SubjectTypeID = domainsecret.SubjectModel
 	}
 	role, err := s.secretState.GetSecretAccess(ctx, uri, ap)
@@ -142,7 +142,7 @@ func (s *SecretService) getSecretAccess(ctx context.Context, uri *secrets.URI, a
 // If an attempt is made to change an existing permission's scope or subject type, an error
 // satisfying [secreterrors.InvalidSecretPermissionChange] is returned.
 // It returns [secreterrors.PermissionDenied] if the secret cannot be managed by the accessor.
-func (s *SecretService) GrantSecretAccess(ctx context.Context, uri *secrets.URI, params SecretAccessParams) error {
+func (s *SecretService) GrantSecretAccess(ctx context.Context, uri *secrets.URI, params domainsecret.SecretAccessParams) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -211,14 +211,14 @@ func (s *SecretService) getRelationUUIDByKey(ctx context.Context, relationKey co
 }
 
 func (s *SecretService) lookupSubjectUUID(
-	ctx context.Context, subjectID string, subjectKind SecretAccessorKind,
+	ctx context.Context, subjectID string, subjectKind domainsecret.SecretAccessorKind,
 ) (string, error) {
 	switch subjectKind {
-	case UnitAccessor:
+	case domainsecret.UnitAccessor:
 		return s.getUnitUUIDByName(ctx, subjectID)
-	case ApplicationAccessor:
+	case domainsecret.ApplicationAccessor:
 		return s.getApplicationUUIDByName(ctx, subjectID)
-	case ModelAccessor:
+	case domainsecret.ModelAccessor:
 		// The model ID is the UUID.
 		return subjectID, nil
 	}
@@ -226,17 +226,17 @@ func (s *SecretService) lookupSubjectUUID(
 }
 
 func (s *SecretService) lookupScopeUUID(
-	ctx context.Context, scopeID string, scopeKind SecretAccessScopeKind,
+	ctx context.Context, scopeID string, scopeKind domainsecret.SecretAccessScopeKind,
 ) (string, error) {
 	switch scopeKind {
-	case UnitAccessScope:
+	case domainsecret.UnitAccessScope:
 		return s.getUnitUUIDByName(ctx, scopeID)
-	case ApplicationAccessScope:
+	case domainsecret.ApplicationAccessScope:
 		return s.getApplicationUUIDByName(ctx, scopeID)
-	case ModelAccessScope:
+	case domainsecret.ModelAccessScope:
 		// The model ID is the UUID.
 		return scopeID, nil
-	case RelationAccessScope:
+	case domainsecret.RelationAccessScope:
 		key, err := corerelation.NewKeyFromString(scopeID)
 		if err != nil {
 			return "", errors.Capture(err)
@@ -246,7 +246,7 @@ func (s *SecretService) lookupScopeUUID(
 	return "", errors.Errorf("unexpected secret access scope: %s", scopeKind)
 }
 
-func (s *SecretService) grantParams(ctx context.Context, in SecretAccessParams) (domainsecret.GrantParams, error) {
+func (s *SecretService) grantParams(ctx context.Context, in domainsecret.SecretAccessParams) (domainsecret.GrantParams, error) {
 	scopeUUID, err := s.lookupScopeUUID(ctx, in.Scope.ID, in.Scope.Kind)
 	if err != nil {
 		return domainsecret.GrantParams{}, errors.Capture(err)
@@ -264,22 +264,22 @@ func (s *SecretService) grantParams(ctx context.Context, in SecretAccessParams) 
 		RoleID:      domainsecret.MarshallRole(in.Role),
 	}
 	switch in.Subject.Kind {
-	case UnitAccessor:
+	case domainsecret.UnitAccessor:
 		p.SubjectTypeID = domainsecret.SubjectUnit
-	case ApplicationAccessor:
+	case domainsecret.ApplicationAccessor:
 		p.SubjectTypeID = domainsecret.SubjectApplication
-	case ModelAccessor:
+	case domainsecret.ModelAccessor:
 		p.SubjectTypeID = domainsecret.SubjectModel
 	}
 
 	switch in.Scope.Kind {
-	case UnitAccessScope:
+	case domainsecret.UnitAccessScope:
 		p.ScopeTypeID = domainsecret.ScopeUnit
-	case ApplicationAccessScope:
+	case domainsecret.ApplicationAccessScope:
 		p.ScopeTypeID = domainsecret.ScopeApplication
-	case ModelAccessScope:
+	case domainsecret.ModelAccessScope:
 		p.ScopeTypeID = domainsecret.ScopeModel
-	case RelationAccessScope:
+	case domainsecret.RelationAccessScope:
 		p.ScopeTypeID = domainsecret.ScopeRelation
 	}
 	return p, nil
@@ -287,7 +287,7 @@ func (s *SecretService) grantParams(ctx context.Context, in SecretAccessParams) 
 
 // RevokeSecretAccess revokes access to the secret for the specified subject.
 // It returns an error satisfying [secreterrors.SecretNotFound] if the secret is not found.
-func (s *SecretService) RevokeSecretAccess(ctx context.Context, uri *secrets.URI, params SecretAccessParams) error {
+func (s *SecretService) RevokeSecretAccess(ctx context.Context, uri *secrets.URI, params domainsecret.SecretAccessParams) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -304,11 +304,11 @@ func (s *SecretService) RevokeSecretAccess(ctx context.Context, uri *secrets.URI
 		SubjectUUID: subjectUUID,
 	}
 	switch params.Subject.Kind {
-	case UnitAccessor:
+	case domainsecret.UnitAccessor:
 		p.SubjectTypeID = domainsecret.SubjectUnit
-	case ApplicationAccessor:
+	case domainsecret.ApplicationAccessor:
 		p.SubjectTypeID = domainsecret.SubjectApplication
-	case ModelAccessor:
+	case domainsecret.ModelAccessor:
 		p.SubjectTypeID = domainsecret.SubjectModel
 	}
 
@@ -326,7 +326,7 @@ func (s *SecretService) RevokeSecretAccess(ctx context.Context, uri *secrets.URI
 // If the caveat can never be satisfied, an error is returned - the input
 // accessor can never manage the input secret.
 func (s *SecretService) getManagementCaveat(
-	ctx context.Context, uri *secrets.URI, accessor SecretAccessor,
+	ctx context.Context, uri *secrets.URI, accessor domainsecret.SecretAccessor,
 ) (func(context.Context, func(context.Context) error) error, error) {
 	hasRole, err := s.getSecretAccess(ctx, uri, accessor)
 	if err != nil {
@@ -339,15 +339,15 @@ func (s *SecretService) getManagementCaveat(
 		}, nil
 	}
 	// Units can manage app owned secrets if they are the leader.
-	if accessor.Kind == UnitAccessor {
+	if accessor.Kind == domainsecret.UnitAccessor {
 		unitName, err := unit.NewName(accessor.ID)
 		if err != nil {
 			return nil, errors.Capture(err)
 		}
 		appName := unitName.Application()
 		if err := s.leaderEnsurer.LeadershipCheck(appName, accessor.ID).Check(); err == nil {
-			hasRole, err = s.getSecretAccess(ctx, uri, SecretAccessor{
-				Kind: ApplicationAccessor,
+			hasRole, err = s.getSecretAccess(ctx, uri, domainsecret.SecretAccessor{
+				Kind: domainsecret.ApplicationAccessor,
 				ID:   appName,
 			})
 			if err != nil {
@@ -368,7 +368,7 @@ func (s *SecretService) getManagementCaveat(
 }
 
 // canRead checks that the accessor can read the secret.
-func (s *SecretService) canRead(ctx context.Context, uri *secrets.URI, accessor SecretAccessor) error {
+func (s *SecretService) canRead(ctx context.Context, uri *secrets.URI, accessor domainsecret.SecretAccessor) error {
 	// First try looking up unit access.
 	hasRole, err := s.getSecretAccess(ctx, uri, accessor)
 	if err != nil {
@@ -381,7 +381,7 @@ func (s *SecretService) canRead(ctx context.Context, uri *secrets.URI, accessor 
 
 	notAllowedErr := errors.Errorf("%q is not allowed to read this secret", accessor.ID).Add(secreterrors.PermissionDenied)
 
-	if accessor.Kind != UnitAccessor {
+	if accessor.Kind != domainsecret.UnitAccessor {
 		return notAllowedErr
 	}
 	// All units can read secrets owned by application.
@@ -390,9 +390,9 @@ func (s *SecretService) canRead(ctx context.Context, uri *secrets.URI, accessor 
 		return errors.Capture(err)
 	}
 	appName := unitName.Application()
-	kind := ApplicationAccessor
+	kind := domainsecret.ApplicationAccessor
 
-	hasRole, err = s.getSecretAccess(ctx, uri, SecretAccessor{
+	hasRole, err = s.getSecretAccess(ctx, uri, domainsecret.SecretAccessor{
 		Kind: kind,
 		ID:   appName,
 	})
