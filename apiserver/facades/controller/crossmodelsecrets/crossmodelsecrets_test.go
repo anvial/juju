@@ -23,8 +23,8 @@ import (
 	"github.com/juju/juju/core/relation"
 	coresecrets "github.com/juju/juju/core/secrets"
 	"github.com/juju/juju/core/unit"
+	"github.com/juju/juju/domain/secret"
 	secreterrors "github.com/juju/juju/domain/secret/errors"
-	"github.com/juju/juju/domain/secret/service"
 	secretbackendservice "github.com/juju/juju/domain/secretbackend/service"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/secrets/provider"
@@ -194,8 +194,8 @@ func (s *CrossModelSecretsSuite) TestGetSecretContentInfo(c *tc.C) {
 			c.Assert(params.GrantedSecretsGetter, tc.NotNil)
 			params.GrantedSecretsGetter = nil
 			c.Assert(params, tc.DeepEquals, secretbackendservice.BackendConfigParams{
-				Accessor: service.SecretAccessor{
-					Kind: service.UnitAccessor,
+				Accessor: secret.SecretAccessor{
+					Kind: secret.UnitAccessor,
 					ID:   "mediawiki/666",
 				},
 				ModelUUID:      model.UUID(uri.SourceUUID),

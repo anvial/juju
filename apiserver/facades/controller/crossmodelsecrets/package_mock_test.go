@@ -17,8 +17,8 @@ import (
 	relation "github.com/juju/juju/core/relation"
 	secrets "github.com/juju/juju/core/secrets"
 	unit "github.com/juju/juju/core/unit"
-	service "github.com/juju/juju/domain/secret/service"
-	service0 "github.com/juju/juju/domain/secretbackend/service"
+	secret "github.com/juju/juju/domain/secret"
+	service "github.com/juju/juju/domain/secretbackend/service"
 	provider "github.com/juju/juju/internal/secrets/provider"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -47,7 +47,7 @@ func (m *MockSecretService) EXPECT() *MockSecretServiceMockRecorder {
 }
 
 // GetSecretAccessRelationScope mocks base method.
-func (m *MockSecretService) GetSecretAccessRelationScope(arg0 context.Context, arg1 *secrets.URI, arg2 service.SecretAccessor) (relation.UUID, error) {
+func (m *MockSecretService) GetSecretAccessRelationScope(arg0 context.Context, arg1 *secrets.URI, arg2 secret.SecretAccessor) (relation.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSecretAccessRelationScope", arg0, arg1, arg2)
 	ret0, _ := ret[0].(relation.UUID)
@@ -62,7 +62,7 @@ func (mr *MockSecretServiceMockRecorder) GetSecretAccessRelationScope(arg0, arg1
 }
 
 // ListGrantedSecretsForBackend mocks base method.
-func (m *MockSecretService) ListGrantedSecretsForBackend(arg0 context.Context, arg1 string, arg2 secrets.SecretRole, arg3 ...service.SecretAccessor) ([]*secrets.SecretRevisionRef, error) {
+func (m *MockSecretService) ListGrantedSecretsForBackend(arg0 context.Context, arg1 string, arg2 secrets.SecretRole, arg3 ...secret.SecretAccessor) ([]*secrets.SecretRevisionRef, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1, arg2}
 	for _, a := range arg3 {
@@ -105,7 +105,7 @@ func (m *MockSecretBackendService) EXPECT() *MockSecretBackendServiceMockRecorde
 }
 
 // BackendConfigInfo mocks base method.
-func (m *MockSecretBackendService) BackendConfigInfo(arg0 context.Context, arg1 service0.BackendConfigParams) (*provider.ModelBackendConfigInfo, error) {
+func (m *MockSecretBackendService) BackendConfigInfo(arg0 context.Context, arg1 service.BackendConfigParams) (*provider.ModelBackendConfigInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BackendConfigInfo", arg0, arg1)
 	ret0, _ := ret[0].(*provider.ModelBackendConfigInfo)

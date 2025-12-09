@@ -104,7 +104,7 @@ func (s *serviceSuite) TestGetSecretsForExport(c *tc.C) {
 					Label:           "my label",
 					CurrentRevision: 666,
 				},
-				Accessor: SecretAccessor{
+				Accessor: domainsecret.SecretAccessor{
 					Kind: "unit",
 					ID:   "mysql/0",
 				},
@@ -115,7 +115,7 @@ func (s *serviceSuite) TestGetSecretsForExport(c *tc.C) {
 				SecretConsumerMetadata: coresecrets.SecretConsumerMetadata{
 					CurrentRevision: 668,
 				},
-				Accessor: SecretAccessor{
+				Accessor: domainsecret.SecretAccessor{
 					Kind: "unit",
 					ID:   "remote-app/0",
 				},
@@ -123,11 +123,11 @@ func (s *serviceSuite) TestGetSecretsForExport(c *tc.C) {
 		},
 		Access: map[string][]SecretAccess{
 			uri.ID: {{
-				Scope: SecretAccessScope{
+				Scope: domainsecret.SecretAccessScope{
 					Kind: "application",
 					ID:   "wordpress",
 				},
-				Subject: SecretAccessor{
+				Subject: domainsecret.SecretAccessor{
 					Kind: "application",
 					ID:   "wordpress",
 				},
@@ -297,7 +297,7 @@ func (s *serviceSuite) TestImportSecrets(c *tc.C) {
 					Label:           "my label",
 					CurrentRevision: 666,
 				},
-				Accessor: SecretAccessor{
+				Accessor: domainsecret.SecretAccessor{
 					Kind: "unit",
 					ID:   "mysql/0",
 				},
@@ -308,7 +308,7 @@ func (s *serviceSuite) TestImportSecrets(c *tc.C) {
 				SecretConsumerMetadata: coresecrets.SecretConsumerMetadata{
 					CurrentRevision: 668,
 				},
-				Accessor: SecretAccessor{
+				Accessor: domainsecret.SecretAccessor{
 					Kind: "unit",
 					ID:   "remote-app/0",
 				},
@@ -316,22 +316,22 @@ func (s *serviceSuite) TestImportSecrets(c *tc.C) {
 		},
 		Access: map[string][]SecretAccess{
 			uri.ID: {{
-				Scope: SecretAccessScope{
+				Scope: domainsecret.SecretAccessScope{
 					Kind: "relation",
 					ID:   "wordpress:db mysql:server",
 				},
-				Subject: SecretAccessor{
+				Subject: domainsecret.SecretAccessor{
 					Kind: "unit",
 					ID:   "wordpress/0",
 				},
 				Role: "view",
 			}},
 			uri3.ID: {{
-				Scope: SecretAccessScope{
+				Scope: domainsecret.SecretAccessScope{
 					Kind: "application",
 					ID:   "mysql",
 				},
-				Subject: SecretAccessor{
+				Subject: domainsecret.SecretAccessor{
 					Kind: "application",
 					ID:   "mysql",
 				},
@@ -343,7 +343,7 @@ func (s *serviceSuite) TestImportSecrets(c *tc.C) {
 			Label:           "remote label",
 			CurrentRevision: 666,
 			LatestRevision:  668,
-			Accessor: SecretAccessor{
+			Accessor: domainsecret.SecretAccessor{
 				Kind: "unit",
 				ID:   "mysql/0",
 			},

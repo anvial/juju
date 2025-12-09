@@ -84,21 +84,21 @@ func (s *watcherSuite) TestWatchObsoleteForAppsAndUnitsOwned(c *tc.C) {
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchObsoleteSecrets(ctx,
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mysql/0",
 		},
 
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mediawiki",
 		},
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mediawiki/0",
 		},
 	)
@@ -150,8 +150,8 @@ func (s *watcherSuite) TestWatchObsoleteForAppsOwned(c *tc.C) {
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchObsoleteSecrets(ctx,
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
 	)
@@ -200,8 +200,8 @@ func (s *watcherSuite) TestWatchObsoleteForUnitsOwned(c *tc.C) {
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchObsoleteSecrets(ctx,
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mysql/0",
 		},
 	)
@@ -320,8 +320,8 @@ func (s *watcherSuite) TestWatchDeletedForAppOwnedSecret(c *tc.C) {
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchDeletedSecrets(ctx,
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
 	)
@@ -377,8 +377,8 @@ func (s *watcherSuite) TestWatchDeletedSecretRemovesRevisionFromChangeSet(c *tc.
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchDeletedSecrets(ctx,
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
 	)
@@ -437,8 +437,8 @@ func (s *watcherSuite) TestWatchDeletedForUnitsOwnedSecret(c *tc.C) {
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchDeletedSecrets(ctx,
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mysql/0",
 		},
 	)
@@ -678,12 +678,12 @@ func (s *watcherSuite) TestWatchSecretsRotationChanges(c *tc.C) {
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchSecretsRotationChanges(c.Context(),
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mediawiki/0",
 		},
 	)
@@ -736,12 +736,12 @@ func (s *watcherSuite) TestWatchSecretsRotationChanges(c *tc.C) {
 
 	// Pretend that the agent restarted and the watcher is re-created.
 	w1, err := svc.WatchSecretsRotationChanges(c.Context(),
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mediawiki/0",
 		},
 	)
@@ -789,12 +789,12 @@ func (s *watcherSuite) TestWatchSecretsRevisionExpiryChanges(c *tc.C) {
 	s.AssertChangeStreamIdle(c)
 
 	w, err := svc.WatchSecretRevisionsExpiryChanges(c.Context(),
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mediawiki/0",
 		},
 	)
@@ -849,12 +849,12 @@ func (s *watcherSuite) TestWatchSecretsRevisionExpiryChanges(c *tc.C) {
 
 	// Pretend that the agent restarted and the watcher is re-created.
 	w1, err := svc.WatchSecretRevisionsExpiryChanges(c.Context(),
-		service.CharmSecretOwner{
-			Kind: service.ApplicationOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
-		service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mediawiki/0",
 		},
 	)
