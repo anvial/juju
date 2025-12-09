@@ -434,44 +434,6 @@ func (m *MockModelState) EXPECT() *MockModelStateMockRecorder {
 	return m.recorder
 }
 
-// ClearModelImportingStatus mocks base method.
-func (m *MockModelState) ClearModelImportingStatus(arg0 context.Context, arg1 model.UUID) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ClearModelImportingStatus", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ClearModelImportingStatus indicates an expected call of ClearModelImportingStatus.
-func (mr *MockModelStateMockRecorder) ClearModelImportingStatus(arg0, arg1 any) *MockModelStateClearModelImportingStatusCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearModelImportingStatus", reflect.TypeOf((*MockModelState)(nil).ClearModelImportingStatus), arg0, arg1)
-	return &MockModelStateClearModelImportingStatusCall{Call: call}
-}
-
-// MockModelStateClearModelImportingStatusCall wrap *gomock.Call
-type MockModelStateClearModelImportingStatusCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockModelStateClearModelImportingStatusCall) Return(arg0 error) *MockModelStateClearModelImportingStatusCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockModelStateClearModelImportingStatusCall) Do(f func(context.Context, model.UUID) error) *MockModelStateClearModelImportingStatusCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateClearModelImportingStatusCall) DoAndReturn(f func(context.Context, model.UUID) error) *MockModelStateClearModelImportingStatusCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // Create mocks base method.
 func (m *MockModelState) Create(arg0 context.Context, arg1 model0.ModelDetailArgs) error {
 	m.ctrl.T.Helper()
@@ -513,37 +475,37 @@ func (c *MockModelStateCreateCall) DoAndReturn(f func(context.Context, model0.Mo
 // CreateImportingModel mocks base method.
 func (m *MockModelState) CreateImportingModel(arg0 context.Context, arg1 model0.ModelDetailArgs) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateImporting", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateImportingModel", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateImporting indicates an expected call of CreateImporting.
-func (mr *MockModelStateMockRecorder) CreateImportingModel(arg0, arg1 any) *MockModelStateCreateImportingCall {
+// CreateImportingModel indicates an expected call of CreateImportingModel.
+func (mr *MockModelStateMockRecorder) CreateImportingModel(arg0, arg1 any) *MockModelStateCreateImportingModelCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImporting", reflect.TypeOf((*MockModelState)(nil).CreateImportingModel), arg0, arg1)
-	return &MockModelStateCreateImportingCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImportingModel", reflect.TypeOf((*MockModelState)(nil).CreateImportingModel), arg0, arg1)
+	return &MockModelStateCreateImportingModelCall{Call: call}
 }
 
-// MockModelStateCreateImportingCall wrap *gomock.Call
-type MockModelStateCreateImportingCall struct {
+// MockModelStateCreateImportingModelCall wrap *gomock.Call
+type MockModelStateCreateImportingModelCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockModelStateCreateImportingCall) Return(arg0 error) *MockModelStateCreateImportingCall {
+func (c *MockModelStateCreateImportingModelCall) Return(arg0 error) *MockModelStateCreateImportingModelCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelStateCreateImportingCall) Do(f func(context.Context, model0.ModelDetailArgs) error) *MockModelStateCreateImportingCall {
+func (c *MockModelStateCreateImportingModelCall) Do(f func(context.Context, model0.ModelDetailArgs) error) *MockModelStateCreateImportingModelCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateCreateImportingCall) DoAndReturn(f func(context.Context, model0.ModelDetailArgs) error) *MockModelStateCreateImportingCall {
+func (c *MockModelStateCreateImportingModelCall) DoAndReturn(f func(context.Context, model0.ModelDetailArgs) error) *MockModelStateCreateImportingModelCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
