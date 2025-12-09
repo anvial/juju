@@ -47,7 +47,8 @@ help:
 .PHONY: help full‑help html epub pdf linkcheck spelling spellcheck woke \
         vale pa11y run serve install pa11y‑install   \
         vale‑install pdf‑prep pdf‑prep‑force clean clean‑doc allmetrics \
-        update lint-md
+        update lint-md \
+		convert-excalidraw-to-svg
 
 full-help: $(VENVDIR)
 	@. $(VENV); $(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -73,13 +74,22 @@ pa11y-install:
 			npm install --prefix $(SPHINXDIR) pa11y; \
 		}
 
+convert-excalidraw-to-svg:
+	bash scripts/convert-excalidraw-to-svg-recursively.sh
+
+autogenerate-docs:
+	python3 scripts/autogenerate-docs.py
+
 pymarkdownlnt-install:
 	@. $(VENV); test -d $(SPHINXDIR)/venv/lib/python*/site-packages/pymarkdown || pip install pymarkdownlnt
 
 install: $(VENVDIR)
 
-run: install
-	. $(VENV); $(VENVDIR)/bin/sphinx-autobuild -b dirhtml --host $(SPHINX_HOST) --port $(SPHINX_PORT) "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
+run: install convert-excalidraw-to-svg
+	. $(VENV); $(VENVDIR)/bin/sphinx-autobuild -b dirhtml --host $(SPHINX_HOST) --port $(SPHINX_PORT) \
+	 --pre-build "bash scripts/convert-excalidraw-to-svg-recursively.sh" \
+	 --pre-build "python3 scripts/autogenerate-docs.py" \
+	 "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 
 # Does not depend on $(BUILDDIR) to rebuild properly at every run.
 html: install
