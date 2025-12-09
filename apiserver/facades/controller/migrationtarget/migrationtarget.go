@@ -146,9 +146,9 @@ type ModelService interface {
 	GetAllModels(ctx context.Context) ([]coremodel.Model, error)
 	// Model returns the model associated with the provided uuid.
 	Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Model, error)
-	// ClearControllerImportingStatus removes the entry from the model_migration_import table
-	// in the controller database, indicating that the model import has completed
-	// or been aborted.
+	// ClearControllerImportingStatus removes the entry from the
+	// model_migration_import table in the controller database, indicating that
+	// the model import has completed or been aborted.
 	ClearControllerImportingStatus(ctx context.Context, uuid coremodel.UUID) error
 }
 

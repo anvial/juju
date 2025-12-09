@@ -935,8 +935,9 @@ func (s *State) Delete(
 	})
 }
 
-// ClearControllerImportingStatus removes the entry from the model_migration_import table
-// in the controller database, indicating that the model import has completed or been aborted.
+// ClearControllerImportingStatus removes the entry from the
+// model_migration_import table in the controller database, indicating that the
+// model import has completed or been aborted.
 func (s *State) ClearControllerImportingStatus(ctx context.Context, modelID coremodel.UUID) error {
 	db, err := s.DB(ctx)
 	if err != nil {

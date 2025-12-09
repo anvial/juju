@@ -177,9 +177,10 @@ type State interface {
 	// UpdateCredential updates a model's cloud credential.
 	UpdateCredential(context.Context, coremodel.UUID, credential.Key) error
 
-	// DefaultCloudCredentialNameForOwner returns the owner's default cloud credential name for a given
-	// cloud. If user has multiple (or no) credentials for the specified cloud a NotFound error is returned as
-	// we cannot determine the default credential.
+	// DefaultCloudCredentialNameForOwner returns the owner's default cloud
+	// credential name for a given cloud. If user has multiple (or no)
+	// credentials for the specified cloud a NotFound error is returned as we
+	// cannot determine the default credential.
 	DefaultCloudCredentialNameForOwner(ctx context.Context, owner coreuser.Name, cloudName string) (string, error)
 
 	// GetActivatedModelUUIDs returns the subset of model UUIDS from the
@@ -204,8 +205,9 @@ type State interface {
 	// for the initial watch statement.
 	InitialWatchModelTableName() string
 
-	// ClearControllerImportingStatus removes the entry from the model_migration_import table
-	// in the controller database, indicating that the model import has completed or been aborted.
+	// ClearControllerImportingStatus removes the entry from the
+	// model_migration_import table in the controller database, indicating that
+	// the model import has completed or been aborted.
 	ClearControllerImportingStatus(context.Context, coremodel.UUID) error
 }
 
@@ -466,8 +468,9 @@ func (s *Service) Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Mod
 	return s.st.GetModel(ctx, uuid)
 }
 
-// ClearControllerImportingStatus removes the entry from the model_migration_import table
-// in the controller database, indicating that the model import has completed or been aborted.
+// ClearControllerImportingStatus removes the entry from the
+// model_migration_import table in the controller database, indicating that the
+// model import has completed or been aborted.
 func (s *Service) ClearControllerImportingStatus(ctx context.Context, uuid coremodel.UUID) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()

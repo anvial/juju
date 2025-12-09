@@ -3,7 +3,7 @@ CREATE TABLE model_migration_import (
     model_uuid TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX model_migration_import
+CREATE UNIQUE INDEX idx_model_migration_import
 ON model_migration_import (model_uuid);
 
 DROP VIEW v_model_state;
