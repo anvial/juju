@@ -905,7 +905,7 @@ func (s *State) IsImportingModel(ctx context.Context) (bool, error) {
 	migrationStmt, err := s.Prepare(`
 SELECT COUNT(*) AS &count.count
 FROM model_migrating 
-WHERE model_uuid = $dbModelMigrating.model_uuid
+WHERE model_uuid = $modelMigrating.model_uuid
 	`, count, migrationCheck)
 	if err != nil {
 		return false, errors.Capture(err)
