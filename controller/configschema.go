@@ -22,8 +22,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	APIPort:                          schema.ForceInt(),
 	APIPortOpenDelay:                 schema.TimeDuration(),
 	IdleConnectionTimeout:            schema.TimeDuration(),
-	ReadTimeout:                      schema.TimeDuration(),
-	WriteTimeout:                     schema.TimeDuration(),
+	HTTPServerReadTimeout:            schema.TimeDuration(),
+	HTTPServerWriteTimeout:           schema.TimeDuration(),
 	ControllerAPIPort:                schema.ForceInt(),
 	ControllerName:                   schema.NonEmptyString(ControllerName),
 	StatePort:                        schema.ForceInt(),
@@ -72,8 +72,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	APIPort:                          DefaultAPIPort,
 	APIPortOpenDelay:                 DefaultAPIPortOpenDelay,
 	IdleConnectionTimeout:            DefaultIdleConnectionTimeout,
-	ReadTimeout:                      DefaultReadTimeout,
-	WriteTimeout:                     DefaultWriteTimeout,
+	HTTPServerReadTimeout:            DefaultHTTPServerReadTimeout,
+	HTTPServerWriteTimeout:           DefaultHTTPServerWriteTimeout,
 	ControllerAPIPort:                schema.Omit,
 	ControllerName:                   schema.Omit,
 	AuditingEnabled:                  DefaultAuditingEnabled,
@@ -176,19 +176,17 @@ resets of all idle connections. By default, every 10 minutes
 the controller will close all idle connections.
 `,
 	},
-	ReadTimeout: {
+	HTTPServerReadTimeout: {
 		Type: environschema.Tstring,
 		Description: `The maximum duration for reading the entire HTTP request, including the body.
-A zero value means no timeout. The default is 60 seconds, which works well for
-most operations. Set to 0 to disable the timeout if you have operations that require more
-than 60 seconds to upload data.`,
+A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value 
+(e.g., 60s) if you need to prevent indefinite reads.`,
 	},
-	WriteTimeout: {
+	HTTPServerWriteTimeout: {
 		Type: environschema.Tstring,
 		Description: `The maximum duration before timing out writes of the HTTP response.
-A zero value means no timeout. The default is 60 seconds, which works well for
-most operations. Set to 0 to disable the timeout if you have operations that require more
-than 60 seconds to download data.`,
+A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value 
+(e.g., 60s) if you need to prevent indefinite writes.`,
 	},
 	ControllerAPIPort: {
 		Type: environschema.Tint,

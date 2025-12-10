@@ -282,13 +282,14 @@ const (
 	// IdleConnectionTimeout is the time between the controller resetting all idle connections.
 	IdleConnectionTimeout = "idle-connection-timeout"
 
-	// ReadTimeout is the maximum duration for reading the entire HTTP request, including the body.
+	// HTTPServerReadTimeout is the maximum duration for reading the entire HTTP request,
+	// including the body.
 	// A zero value means no timeout.
-	ReadTimeout = "read-timeout"
+	HTTPServerReadTimeout = "http-server-read-timeout"
 
-	// WriteTimeout is the maximum duration before timing out writes of the HTTP response.
+	// HTTPServerWriteTimeout is the maximum duration before timing out writes of the HTTP response.
 	// A zero value means no timeout.
-	WriteTimeout = "write-timeout"
+	HTTPServerWriteTimeout = "http-server-write-timeout"
 )
 
 // Attribute Defaults
@@ -431,13 +432,11 @@ const (
 	// aggressive 5s timeout.
 	DefaultIdleConnectionTimeout = 30 * time.Second
 
-	// DefaultReadTimeout is set to 60 seconds to prevent indefinite reads
-	// while still allowing most operations to complete.
-	DefaultReadTimeout = 60 * time.Second
+	// DefaultHTTPServerReadTimeout is set to 0 (no timeout).
+	DefaultHTTPServerReadTimeout = 0 * time.Second
 
-	// DefaultWriteTimeout is set to 60 seconds to prevent indefinite writes
-	// while still allowing most operations to complete.
-	DefaultWriteTimeout = 60 * time.Second
+	// DefaultHTTPServerWriteTimeout is set to 0 (no timeout).
+	DefaultHTTPServerWriteTimeout = 0 * time.Second
 )
 
 var (
@@ -450,8 +449,8 @@ var (
 		APIPort,
 		APIPortOpenDelay,
 		IdleConnectionTimeout,
-		ReadTimeout,
-		WriteTimeout,
+		HTTPServerReadTimeout,
+		HTTPServerWriteTimeout,
 		AutocertDNSNameKey,
 		AutocertURLKey,
 		CACertKey,
@@ -521,9 +520,8 @@ var (
 		AgentRateLimitMax,
 		AgentRateLimitRate,
 		APIPortOpenDelay,
-		IdleConnectionTimeout,
-		ReadTimeout,
-		WriteTimeout,
+		HTTPServerReadTimeout,
+		HTTPServerWriteTimeout,
 		ApplicationResourceDownloadLimit,
 		AuditingEnabled,
 		AuditLogCaptureArgs,
@@ -717,16 +715,16 @@ func (c Config) IdleConnectionTimeout() time.Duration {
 	return c.durationOrDefault(IdleConnectionTimeout, DefaultIdleConnectionTimeout)
 }
 
-// ReadTimeout returns the maximum duration for reading the entire HTTP request, including the body.
+// HTTPServerReadTimeout returns the maximum duration for reading the entire HTTP request, including the body.
 // A zero value means no timeout.
-func (c Config) ReadTimeout() time.Duration {
-	return c.durationOrDefault(ReadTimeout, DefaultReadTimeout)
+func (c Config) HTTPServerReadTimeout() time.Duration {
+	return c.durationOrDefault(HTTPServerReadTimeout, DefaultHTTPServerReadTimeout)
 }
 
-// WriteTimeout returns the maximum duration before timing out writes of the HTTP response.
+// HTTPServerWriteTimeout returns the maximum duration before timing out writes of the HTTP response.
 // A zero value means no timeout.
-func (c Config) WriteTimeout() time.Duration {
-	return c.durationOrDefault(WriteTimeout, DefaultWriteTimeout)
+func (c Config) HTTPServerWriteTimeout() time.Duration {
+	return c.durationOrDefault(HTTPServerWriteTimeout, DefaultHTTPServerWriteTimeout)
 }
 
 // ControllerAPIPort returns the optional API port to be used for
