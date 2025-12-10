@@ -116,13 +116,6 @@ func newUniterAPIWithServices(
 	)
 	logger := context.Logger().Child("uniter")
 
-	unitState := common.NewUnitStateAPI(
-		services.ControllerConfigService,
-		services.UnitStateService,
-		accessUnit,
-		logger,
-	)
-
 	extLXDProfile := NewExternalLXDProfileAPI(
 		services.MachineService,
 		watcherRegistry,
@@ -143,7 +136,6 @@ func newUniterAPIWithServices(
 		APIAddresser:       common.NewAPIAddresser(services.ControllerNodeService, watcherRegistry),
 		ModelConfigWatcher: modelConfigWatcher,
 		RebootRequester:    common.NewRebootRequester(services.MachineService, accessMachine),
-		UnitStateAPI:       unitState,
 		lxdProfileAPI:      extLXDProfile,
 		StatusAPI:          statusAPI,
 

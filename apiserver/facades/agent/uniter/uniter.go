@@ -59,7 +59,6 @@ type UniterAPI struct {
 	*common.APIAddresser
 	*commonmodel.ModelConfigWatcher
 	*common.RebootRequester
-	*common.UnitStateAPI
 
 	modelUUID model.UUID
 	modelType model.ModelType
