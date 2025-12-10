@@ -466,6 +466,7 @@ func (s *applicationSuite) TestDeleteIAASApplication(c *tc.C) {
 	svc := s.setupApplicationService(c)
 	appUUID := s.createIAASApplication(c, svc, "some-app")
 
+	s.checkApplicationSequence(c, "some-app", 0)
 	s.advanceApplicationLife(c, appUUID, life.Dead)
 
 	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
@@ -477,6 +478,8 @@ func (s *applicationSuite) TestDeleteIAASApplication(c *tc.C) {
 	exists, err := st.ApplicationExists(c.Context(), appUUID.String())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(exists, tc.Equals, false)
+
+	s.checkNoApplicationSequence(c, "some-app")
 }
 
 func (s *applicationSuite) TestDeleteIAASApplicationWithUnits(c *tc.C) {
@@ -488,6 +491,7 @@ func (s *applicationSuite) TestDeleteIAASApplicationWithUnits(c *tc.C) {
 	unitUUIDs := s.getAllUnitUUIDs(c, appUUID)
 	c.Assert(unitUUIDs, tc.HasLen, 1)
 
+	s.checkApplicationSequence(c, "some-app", 1)
 	s.advanceUnitLife(c, unitUUIDs[0], life.Dead)
 	s.advanceApplicationLife(c, appUUID, life.Dead)
 
@@ -514,6 +518,7 @@ func (s *applicationSuite) TestDeleteIAASApplicationWithUnits(c *tc.C) {
 	c.Check(exists, tc.Equals, false)
 
 	s.checkNoCharmsExist(c)
+	s.checkNoApplicationSequence(c, "some-app")
 }
 
 func (s *applicationSuite) TestDeleteIAASApplicationWithForce(c *tc.C) {
@@ -1058,6 +1063,30 @@ func (s *applicationSuite) checkApplicationDyingState(c *tc.C, appUUID coreappli
 	err := row.Scan(&lifeID)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(lifeID, tc.Equals, 1)
+}
+
+func (s *applicationSuite) checkNoApplicationSequence(c *tc.C, appName string) {
+	c.Helper()
+
+	// Ensure that there are no sequences left for the application.
+	row := s.DB().QueryRow(`
+SELECT EXISTS(SELECT 1 FROM sequence WHERE namespace = CONCAT('application_', ?))`, appName)
+	var exists bool
+	err := row.Scan(&exists)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(exists, tc.IsFalse)
+}
+
+func (s *applicationSuite) checkApplicationSequence(c *tc.C, appName string, amount int) {
+	c.Helper()
+
+	// Ensure that there are no sequences left for the application.
+	row := s.DB().QueryRow(`
+SELECT COUNT(*) FROM sequence WHERE namespace = CONCAT('application_', ?)`, appName)
+	var count int
+	err := row.Scan(&count)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(count, tc.Equals, amount)
 }
 
 func (s *applicationSuite) checkUnitDyingState(c *tc.C, unitUUIDs []unit.UUID) {

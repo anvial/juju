@@ -10,11 +10,13 @@ import (
 	"github.com/canonical/sqlair"
 	"github.com/juju/collections/transform"
 
+	"github.com/juju/juju/domain/application"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/life"
 	"github.com/juju/juju/domain/removal"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
 	"github.com/juju/juju/domain/removal/internal"
+	domainsequence "github.com/juju/juju/domain/sequence"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -258,7 +260,7 @@ func (st *State) GetApplicationLife(ctx context.Context, aUUID string) (life.Lif
 	var l life.Life
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
-		l, err = st.getApplicationLife(ctx, tx, aUUID)
+		_, l, err = st.getApplicationNameLife(ctx, tx, aUUID)
 		return err
 	})
 	if err != nil {
@@ -315,7 +317,7 @@ WHERE  uuid = $entityUUID.uuid;`, applicationUUID)
 		// in a dying state, but nothing calls MarkApplicationAsDead. It is
 		// assumed that, as long as all units are removed then we can
 		// delete the application.
-		aLife, err := st.getApplicationLife(ctx, tx, aUUID)
+		aName, aLife, err := st.getApplicationNameLife(ctx, tx, aUUID)
 		if err != nil {
 			return errors.Errorf("getting application life: %w", err)
 		} else if aLife == life.Alive {
@@ -389,6 +391,10 @@ WHERE  uuid = $entityUUID.uuid;`, applicationUUID)
 
 		if err := st.deleteSimpleApplicationReferences(ctx, tx, aUUID); err != nil {
 			return errors.Errorf("deleting simple application references: %w", err)
+		}
+
+		if err := st.deleteSequencesForApplication(ctx, tx, aName); err != nil {
+			return errors.Errorf("deleting application sequences: %w", err)
 		}
 
 		if force {
@@ -465,6 +471,23 @@ func (st *State) deleteSimpleApplicationReferences(ctx context.Context, tx *sqla
 		if err := tx.Query(ctx, deleteApplicationReferenceStmt, app).Run(); err != nil {
 			return errors.Errorf("deleting reference to application in %s: %w", table, err)
 		}
+	}
+	return nil
+}
+
+func (st *State) deleteSequencesForApplication(ctx context.Context, tx *sqlair.TX, appName string) error {
+	appNamespace := domainsequence.MakePrefixNamespace(application.ApplicationSequenceNamespace, appName)
+	app := namespace{Value: appNamespace.String()}
+
+	deleteSequenceStmt, err := st.Prepare(`
+DELETE FROM sequence
+WHERE namespace = $namespace.value
+`, app)
+	if err != nil {
+		return errors.Capture(err)
+	}
+	if err := tx.Query(ctx, deleteSequenceStmt, app).Run(); err != nil {
+		return errors.Errorf("deleting application sequences: %w", err)
 	}
 	return nil
 }
@@ -937,24 +960,24 @@ WHERE uuid = $entityUUID.uuid
 	return nil
 }
 
-func (st *State) getApplicationLife(ctx context.Context, tx *sqlair.TX, aUUID string) (life.Life, error) {
-	var applicationLife entityLife
+func (st *State) getApplicationNameLife(ctx context.Context, tx *sqlair.TX, aUUID string) (string, life.Life, error) {
+	var applicationNameLife entityNameLife
 	applicationUUID := entityUUID{UUID: aUUID}
 
 	stmt, err := st.Prepare(`
-SELECT &entityLife.life_id
+SELECT &entityNameLife.*
 FROM   application
-WHERE  uuid = $entityUUID.uuid;`, applicationLife, applicationUUID)
+WHERE  uuid = $entityUUID.uuid;`, applicationNameLife, applicationUUID)
 	if err != nil {
-		return -1, errors.Errorf("preparing application life query: %w", err)
+		return "", -1, errors.Errorf("preparing application life query: %w", err)
 	}
 
-	err = tx.Query(ctx, stmt, applicationUUID).Get(&applicationLife)
+	err = tx.Query(ctx, stmt, applicationUUID).Get(&applicationNameLife)
 	if errors.Is(err, sqlair.ErrNoRows) {
-		return -1, applicationerrors.ApplicationNotFound
+		return "", -1, applicationerrors.ApplicationNotFound
 	} else if err != nil {
-		return -1, errors.Errorf("running application life query: %w", err)
+		return "", -1, errors.Errorf("running application life query: %w", err)
 	}
 
-	return life.Life(applicationLife.Life), nil
+	return applicationNameLife.Name, life.Life(applicationNameLife.Life), nil
 }
