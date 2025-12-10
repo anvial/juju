@@ -150,7 +150,7 @@ func migratingAgentBinaryStoreForHTTPContext(httpCtx httpContext) AgentBinarySto
 // agent binary store.
 func modelAgentBinaryStoreForHTTPContext(httpCtx httpContext) AgentBinaryStoreGetter {
 	return func(r *http.Request) (AgentBinaryStore, error) {
-		services, err := httpCtx.domainServicesForRequest(r.Context())
+		services, err := httpCtx.domainServicesForRequest(r)
 		if err != nil {
 			return nil, internalerrors.Capture(err)
 		}
@@ -281,7 +281,7 @@ func (h *toolsDownloadHandler) getToolsForRequest(r *http.Request) (_ io.ReadClo
 	}
 	logger.Debugf(r.Context(), "request for agent binaries: %s", vers)
 
-	ds, err := h.ctxt.domainServicesForRequest(r.Context())
+	ds, err := h.ctxt.domainServicesForRequest(r)
 	if err != nil {
 		return nil, 0, errors.Trace(err)
 	}

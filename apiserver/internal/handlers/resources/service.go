@@ -92,3 +92,15 @@ type ApplicationServiceGetter interface {
 	// operations.
 	Application(*http.Request) (ApplicationService, error)
 }
+
+// ModelService defines operations related to models.
+type ModelService interface {
+	// IsImportingModel returns true if this model is being imported.
+	IsImportingModel(ctx context.Context) (bool, error)
+}
+
+// ModelServiceGetter is an interface for retrieving a ModelService instance.
+type ModelServiceGetter interface {
+	// Model retrieves a ModelService for handling model-related operations.
+	Model(*http.Request) (ModelService, error)
+}

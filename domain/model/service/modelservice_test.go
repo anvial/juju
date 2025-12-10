@@ -33,6 +33,7 @@ import (
 	networkerrors "github.com/juju/juju/domain/network/errors"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/simplestreams"
+	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	internalstorage "github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/internal/uuid"
@@ -886,6 +887,66 @@ func (s *modelServiceSuite) TestGetUserModelSummary(c *tc.C) {
 			UnitCount:    10,
 		},
 	})
+}
+
+func (s *modelServiceSuite) TestIsImportingModelFalse(c *tc.C) {
+	ctrl := s.setupMocks(c)
+	defer ctrl.Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	svc := NewModelService(
+		modelUUID,
+		s.mockControllerState,
+		s.mockModelState,
+		s.environVersionProviderGetter(),
+		DefaultAgentBinaryFinder(),
+	)
+
+	s.mockModelState.EXPECT().IsImportingModel(gomock.Any()).Return(false, nil)
+
+	importing, err := svc.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(importing, tc.Equals, false)
+}
+
+func (s *modelServiceSuite) TestIsImportingModelTrue(c *tc.C) {
+	ctrl := s.setupMocks(c)
+	defer ctrl.Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	svc := NewModelService(
+		modelUUID,
+		s.mockControllerState,
+		s.mockModelState,
+		s.environVersionProviderGetter(),
+		DefaultAgentBinaryFinder(),
+	)
+
+	s.mockModelState.EXPECT().IsImportingModel(gomock.Any()).Return(true, nil)
+
+	importing, err := svc.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(importing, tc.Equals, true)
+}
+
+func (s *modelServiceSuite) TestIsImportingModelError(c *tc.C) {
+	ctrl := s.setupMocks(c)
+	defer ctrl.Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	svc := NewModelService(
+		modelUUID,
+		s.mockControllerState,
+		s.mockModelState,
+		s.environVersionProviderGetter(),
+		DefaultAgentBinaryFinder(),
+	)
+
+	boom := errors.New("boom")
+	s.mockModelState.EXPECT().IsImportingModel(gomock.Any()).Return(false, boom)
+
+	_, err := svc.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIs, boom)
 }
 
 type providerModelServiceSuite struct {

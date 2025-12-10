@@ -203,6 +203,9 @@ type ModelState interface {
 	// The following errors may be returned:
 	// - [modelerrors.NotFound] when the model does not exist.
 	IsControllerModel(context.Context) (bool, error)
+
+	// IsImportingModel returns true if this model is being imported.
+	IsImportingModel(ctx context.Context) (bool, error)
 }
 
 // RegionProvider instances provide a means to get the CloudSpec for this
@@ -841,6 +844,14 @@ func (s *ModelService) IsControllerModel(ctx context.Context) (bool, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 	return s.modelSt.IsControllerModel(ctx)
+}
+
+// IsImportingModel returns true if this model is being imported.
+func (s *ModelService) IsImportingModel(ctx context.Context) (bool, error) {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	return s.modelSt.IsImportingModel(ctx)
 }
 
 // HasValidCredential returns true if the model has a valid credential.
