@@ -11,7 +11,6 @@ import (
 	"github.com/canonical/sqlair"
 
 	coreapplication "github.com/juju/juju/core/application"
-	corecharm "github.com/juju/juju/core/charm"
 	"github.com/juju/juju/core/database"
 	coremachine "github.com/juju/juju/core/machine"
 	coreunit "github.com/juju/juju/core/unit"
@@ -1307,45 +1306,13 @@ WHERE  uuid = $filesystemAttachmentProvisionedInfo.uuid
 	return nil
 }
 
-// GetCharmUUIDForApplication returns the charm UUID for a given application.
-func (st *State) GetCharmUUIDForApplication(
+// GetContainerMountsForApplication returns the map of mount locations for an
+// application. The map entry is keyed by the storage name.
+// An empty map will be returned if there are no records because it is perfectly
+// valid for a workload container to not have a mount point defined.
+func (st *State) GetContainerMountsForApplication(
 	ctx context.Context,
 	appUUID coreapplication.UUID,
-) (corecharm.ID, error) {
-	db, err := st.DB(ctx)
-	if err != nil {
-		return "", errors.Capture(err)
-	}
-
-	input := entityUUID{UUID: appUUID.String()}
-	app := minimalApp{}
-	stmt, err := st.Prepare(`
-SELECT &minimalApp.*
-FROM   application
-WHERE  uuid = $entityUUID.uuid
-`, app, input)
-	if err != nil {
-		return "", errors.Capture(err)
-	}
-	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		err = tx.Query(ctx, stmt, input).Get(&app)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return "", errors.Capture(err)
-	}
-	return corecharm.ParseID(app.CharmUUID)
-}
-
-// GetContainerMountsForCharm returns the map of mount locations for workload
-// containers. The map entry is keyed by the storage name.
-// An empty map will be returned if there are no records.
-func (st *State) GetContainerMountsForCharm(
-	ctx context.Context,
-	charmID corecharm.ID,
 ) (map[string][]storageprovisioning.ContainerMount, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
@@ -1353,12 +1320,15 @@ func (st *State) GetContainerMountsForCharm(
 	}
 
 	var containerMounts []containerMount
-	input := entityUUID{charmID.String()}
+	input := entityUUID{appUUID.String()}
 
 	stmt, err := st.Prepare(`
-SELECT &containerMount.*
-FROM   charm_container_mount
-WHERE  charm_uuid = $entityUUID.uuid
+SELECT (ccm.charm_container_key,
+       ccm.storage,
+       ccm.location) AS (&containerMount.*)
+FROM   application a
+INNER  JOIN charm_container_mount ccm ON a.charm_uuid = ccm.charm_uuid
+WHERE  a.uuid = $entityUUID.uuid
 `, containerMount{}, input)
 	if err != nil {
 		return nil, errors.Capture(err)

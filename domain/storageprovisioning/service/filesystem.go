@@ -11,7 +11,6 @@ import (
 
 	coreapplication "github.com/juju/juju/core/application"
 	corechangestream "github.com/juju/juju/core/changestream"
-	corecharm "github.com/juju/juju/core/charm"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/trace"
@@ -213,17 +212,12 @@ type FilesystemState interface {
 // CharmState defines the methods required to fetch the mount points for charm
 // containers.
 type CharmState interface {
-	// GetCharmUUIDForApplication returns the charm UUID for a given application.
-	GetCharmUUIDForApplication(
+	// GetContainerMountsForApplication returns the map of mount locations for
+	// an application. The map entry is keyed by the storage name.
+	// An empty map will be returned if there are no records.
+	GetContainerMountsForApplication(
 		context.Context,
 		coreapplication.UUID,
-	) (corecharm.ID, error)
-	// GetContainerMountsForCharm returns the map of mount locations for workload
-	// containers. The map entry is keyed by the storage name.
-	// An empty map will be returned if there are no records.
-	GetContainerMountsForCharm(
-		context.Context,
-		corecharm.ID,
 	) (map[string][]storageprovisioning.ContainerMount, error)
 }
 
@@ -887,17 +881,10 @@ func (s *Service) GetFilesystemTemplatesForApplication(
 		)
 	}
 
-	charmID, err := s.st.GetCharmUUIDForApplication(ctx, appUUID)
+	containerMounts, err := s.st.GetContainerMountsForApplication(ctx, appUUID)
 	if err != nil {
 		return nil, errors.Errorf(
-			"getting charm id for app %q: %w", appUUID, err,
-		)
-	}
-
-	containerMounts, err := s.st.GetContainerMountsForCharm(ctx, charmID)
-	if err != nil {
-		return nil, errors.Errorf(
-			"getting container mounts id for charm %q: %w", charmID, err,
+			"getting container mounts id for app %q: %w", appUUID, err,
 		)
 	}
 

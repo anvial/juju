@@ -11,7 +11,6 @@ import (
 
 	coreapplication "github.com/juju/juju/core/application"
 	"github.com/juju/juju/core/changestream"
-	corecharm "github.com/juju/juju/core/charm"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremachine "github.com/juju/juju/core/machine"
 	machinetesting "github.com/juju/juju/core/machine/testing"
@@ -27,7 +26,6 @@ import (
 	domaintesting "github.com/juju/juju/domain/storageprovisioning/testing"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
-	"github.com/juju/juju/internal/uuid"
 )
 
 // filesystemSuite provides a test suite for asserting the [Service] interface
@@ -462,8 +460,6 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
-	id := tc.Must(c, uuid.NewUUID)
-	charmID := corecharm.ID(id.String())
 	stateTemplates := []internal.FilesystemTemplate{{
 		StorageName:       "config",
 		Count:             2,
@@ -478,9 +474,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
-	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
-		Return(charmID, nil)
-	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
 		Return(map[string][]storageprovisioning.ContainerMount{
 			"config": {{
 				ContainerKey: "web-server",
@@ -531,8 +525,6 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
-	id := tc.Must(c, uuid.NewUUID)
-	charmID := corecharm.ID(id.String())
 	stateTemplates := []internal.FilesystemTemplate{{
 		StorageName:       "config",
 		Count:             1,
@@ -547,9 +539,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
-	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
-		Return(charmID, nil)
-	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
 		Return(map[string][]storageprovisioning.ContainerMount{
 			"config": {{
 				ContainerKey: "web-server",
@@ -592,8 +582,6 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyWorkloadC
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
-	id := tc.Must(c, uuid.NewUUID)
-	charmID := corecharm.ID(id.String())
 	stateTemplates := []internal.FilesystemTemplate{{
 		StorageName:       "config",
 		Count:             1,
@@ -608,9 +596,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyWorkloadC
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
-	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
-		Return(charmID, nil)
-	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
 		Return(nil, nil)
 
 	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
@@ -644,8 +630,6 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
-	id := tc.Must(c, uuid.NewUUID)
-	charmID := corecharm.ID(id.String())
 	stateTemplates := []internal.FilesystemTemplate{{
 		StorageName:  "config",
 		Count:        1,
@@ -659,9 +643,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
-	s.state.EXPECT().GetCharmUUIDForApplication(gomock.Any(), appUUID).
-		Return(charmID, nil)
-	s.state.EXPECT().GetContainerMountsForCharm(gomock.Any(), charmID).
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
 		Return(map[string][]storageprovisioning.ContainerMount{
 			"config": {{
 				ContainerKey: "web-server",

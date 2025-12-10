@@ -1145,26 +1145,14 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMountPointSet(c *tc.C
 	})
 }
 
-// TestGetCharmUUIDForApplication tests fetching the charm UUID for a given
-// application UUID.
-func (s *filesystemSuite) TestGetCharmUUIDForApplication(c *tc.C) {
-	appUUID, expectedCharmUUID := s.newApplication(c, "foo")
-
-	st := NewState(s.TxnRunnerFactory())
-
-	charmUUID, err := st.GetCharmUUIDForApplication(c.Context(), application.UUID(appUUID))
-	c.Check(err, tc.ErrorIsNil)
-	c.Check(charmUUID.String(), tc.Equals, expectedCharmUUID)
-}
-
 // TestGetContainerMountsForCharm tests fetching the container mounts for
 // a given charm UUID.
-func (s *filesystemSuite) TestGetContainerMountsForCharm(c *tc.C) {
-	charmUUID := s.newCharmContainer(c)
+func (s *filesystemSuite) TestGetContainerMountsForApplication(c *tc.C) {
+	appUUID, _ := s.newApplicationContainer(c)
 
 	st := NewState(s.TxnRunnerFactory())
 
-	mounts, err := st.GetContainerMountsForCharm(c.Context(), charmUUID)
+	mounts, err := st.GetContainerMountsForApplication(c.Context(), appUUID)
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(mounts, tc.DeepEquals, map[string][]storageprovisioning.ContainerMount{
 		"config": {{
@@ -1381,9 +1369,9 @@ VALUES (?, ?, 0, 0)
 }
 
 // newCharmContainer creates a new charm container and its mount locations.
-// The charm UUID is returned.
-func (s *filesystemSuite) newCharmContainer(c *tc.C) corecharm.ID {
-	_, charmUUID := s.newApplication(c, "foo")
+// The application and charm UUID is returned.
+func (s *filesystemSuite) newApplicationContainer(c *tc.C) (application.UUID, corecharm.ID) {
+	applicationUUID, charmUUID := s.newApplication(c, "foo")
 
 	_, err := s.DB().Exec(`
 INSERT INTO charm_container (charm_uuid, "key", resource)
@@ -1397,5 +1385,5 @@ VALUES (1, ?, 'web-server', 'config', '/data/config'), (0, ?, 'web-server', 'cer
 `, charmUUID, charmUUID)
 	c.Check(err, tc.ErrorIsNil)
 
-	return corecharm.ID(charmUUID)
+	return application.UUID(applicationUUID), corecharm.ID(charmUUID)
 }
