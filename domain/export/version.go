@@ -9,7 +9,7 @@ package export
 // and model formats.
 // To add a new format, add the next version sequence integer mapped to the
 // current Juju version in string form, then run `go generate` in the
-// [generate] directory.
+// generate/export directory.
 var ExportVersions = map[uint64]string{
 	0: "4.0.1",
 }

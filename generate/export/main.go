@@ -235,8 +235,9 @@ func writeTypesFile(version uint64, structs []string, structNames []string, impo
 	_, filename, _, _ := runtime.Caller(0)
 	currentDir := filepath.Dir(filename)
 
-	// Go up one level to domain/export, then go into types/<version>.
-	dir := filepath.Join(filepath.Dir(currentDir), "types", fmt.Sprintf("v%d", version))
+	// Target directory is always under the repository's domain/export path.
+	repoRoot := filepath.Dir(filepath.Dir(currentDir)) // generate/export -> generate -> repo root
+	dir := filepath.Join(repoRoot, "domain", "export", "types", fmt.Sprintf("v%d", version))
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
@@ -287,7 +288,8 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 	_, filename, _, _ := runtime.Caller(0)
 	currentDir := filepath.Dir(filename)
 
-	dir := filepath.Join(filepath.Dir(currentDir), "state", "model")
+	repoRoot := filepath.Dir(filepath.Dir(currentDir))
+	dir := filepath.Join(repoRoot, "domain", "export", "state", "model")
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
@@ -321,14 +323,16 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 		formatted = out.Bytes()
 	}
 
-	filePath := filepath.Join(dir, fmt.Sprintf("v%d.go", version))
+	// Write to stable filenames export.go and export_test.go so the state package
+	// always contains the latest export logic.
+	filePath := filepath.Join(dir, "export.go")
 	fmt.Printf("writing to %s\n", filePath)
 	if err := os.WriteFile(filePath, formatted, 0644); err != nil {
 		return err
 	}
 
-	// Also generate a basic test that runs the ExportV<version>
-	// method against the real model DB.
+	// Also generate a basic test that runs the ExportV<version> method against
+	// the real model DB, written to export_test.go.
 	testTmplPath := filepath.Join(filepath.Dir(filename), "state_test.tmpl")
 	testTmplBytes, err := os.ReadFile(testTmplPath)
 	if err != nil {
@@ -351,7 +355,7 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 		return err
 	}
 
-	testFilePath := filepath.Join(dir, fmt.Sprintf("v%d_test.go", version))
+	testFilePath := filepath.Join(dir, "export_test.go")
 	fmt.Printf("writing to %s\n", testFilePath)
 	if err := os.WriteFile(testFilePath, testFormatted, 0644); err != nil {
 		return err
