@@ -13,7 +13,7 @@ import (
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/core/model"
-	coreunit "github.com/juju/juju/core/unit"
+
 	unittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/application/architecture"
@@ -29,8 +29,8 @@ import (
 type stateSuite struct {
 	testing.ModelSuite
 
-	unitUUID coreunit.UUID
-	unitName coreunit.Name
+	unitUUID string
+	unitName string
 }
 
 func TestStateSuite(t *stdtesting.T) {
@@ -72,7 +72,7 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 		},
 	}
 
-	s.unitName = unittesting.GenNewName(c, "app/0")
+	s.unitName = unittesting.GenNewName(c, "app/0").String()
 	unitArgs := []application.AddIAASUnitArg{{}}
 
 	ctx := c.Context()
@@ -145,7 +145,7 @@ func (s *stateSuite) TestEnsureUnitStateRecord(c *tc.C) {
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
-	var uuid coreunit.UUID
+	var uuid string
 	err = s.TxnRunner().StdTxn(ctx, func(ctx context.Context, tx *sql.Tx) error {
 		return tx.QueryRowContext(ctx, "SELECT uuid FROM unit").Scan(&uuid)
 	})

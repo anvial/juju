@@ -99,7 +99,7 @@ func (u *UniterAPI) SetState(ctx context.Context, args params.SetUnitStateArgs) 
 		}
 
 		if err := u.unitStateService.SetState(ctx, unitstate.UnitState{
-			Name:          unitName,
+			Name:          unitName.String(),
 			CharmState:    arg.CharmState,
 			UniterState:   arg.UniterState,
 			RelationState: arg.RelationState,

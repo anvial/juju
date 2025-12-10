@@ -9,7 +9,6 @@ import (
 	"github.com/canonical/sqlair"
 
 	"github.com/juju/juju/core/database"
-	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/unitstate"
 	uniterrors "github.com/juju/juju/domain/unitstate/errors"
@@ -31,7 +30,7 @@ func NewState(factory database.TxnRunnerFactory) *State {
 // GetUnitState returns the full unit state. The state may be
 // empty.
 // If no unit with the namw exists, a [errors.UnitNotFound] error is returned.
-func (st *State) GetUnitState(ctx context.Context, name coreunit.Name) (unitstate.RetrievedUnitState, error) {
+func (st *State) GetUnitState(ctx context.Context, name string) (unitstate.RetrievedUnitState, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return unitstate.RetrievedUnitState{}, errors.Capture(err)
@@ -107,9 +106,6 @@ WHERE unit_uuid = $unitUUID.uuid`
 }
 
 func (st *State) SetUnitState(ctx context.Context, as unitstate.UnitState) error {
-	if as.Name.Validate() != nil {
-		return errors.Errorf("invalid unit name: %q", as.Name)
-	}
 
 	db, err := st.DB(ctx)
 	if err != nil {
@@ -288,7 +284,7 @@ func (st *State) setUnitStateRelation(ctx context.Context, tx *sqlair.TX, id uni
 	return nil
 }
 
-func (st *State) getUnitUUIDForName(ctx context.Context, tx *sqlair.TX, name coreunit.Name) (unitUUID, error) {
+func (st *State) getUnitUUIDForName(ctx context.Context, tx *sqlair.TX, name string) (unitUUID, error) {
 	uName := unitName{Name: name}
 	uuid := unitUUID{}
 

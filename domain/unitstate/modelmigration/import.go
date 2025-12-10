@@ -69,7 +69,7 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 			uniterState := unit.UniterState()
 			storageState := unit.StorageState()
 			args := unitstate.UnitState{
-				Name:         unitName,
+				Name:         unitName.String(),
 				UniterState:  &uniterState,
 				StorageState: &storageState,
 			}

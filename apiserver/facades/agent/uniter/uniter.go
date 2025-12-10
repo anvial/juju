@@ -2920,6 +2920,8 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 		if err != nil {
 			return internalerrors.Errorf("getting UUID of unit %q: %w", unitName, err)
 		}
+		// This can go down in the domain - only used here - in this facade - check.
+		// HEATHER
 		err = u.portService.UpdateUnitPorts(ctx, unitUUID, openPorts, closePorts)
 		if err != nil {
 			return internalerrors.Errorf("updating unit ports of unit %q: %w", unitName, err)
@@ -2951,7 +2953,7 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 		// We also need to factor ctrlCfg.MaxCharmStateSize() into the service
 		// call.
 		if err := u.unitStateService.SetState(ctx, unitstate.UnitState{
-			Name:       unitName,
+			Name:       unitName.String(),
 			CharmState: changes.SetUnitState.CharmState,
 		}); err != nil {
 			return errors.Trace(err)

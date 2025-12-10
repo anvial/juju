@@ -22,7 +22,7 @@ type State interface {
 	// is returned.
 	// If the units state is empty [unitstateerrors.EmptyUnitState] error is
 	// returned.
-	GetUnitState(context.Context, coreunit.Name) (unitstate.RetrievedUnitState, error)
+	GetUnitState(context.Context, string) (unitstate.RetrievedUnitState, error)
 }
 
 // Service defines a service for interacting with the underlying state.
@@ -51,7 +51,11 @@ func (s *Service) GetState(ctx context.Context, name coreunit.Name) (unitstate.R
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	state, err := s.st.GetUnitState(ctx, name)
+	if err := name.Validate(); err != nil {
+		return unitstate.RetrievedUnitState{}, err
+	}
+
+	state, err := s.st.GetUnitState(ctx, name.String())
 	if err != nil {
 		return unitstate.RetrievedUnitState{}, err
 	}

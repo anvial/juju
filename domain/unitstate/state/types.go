@@ -3,19 +3,17 @@
 
 package state
 
-import "github.com/juju/juju/core/unit"
-
 // unitUUID identifies a unit.
 type unitUUID struct {
 	// UUID is the universally unique identifier for a unit.
-	UUID unit.UUID `db:"uuid"`
+	UUID string `db:"uuid"`
 }
 
 // unitName identifies a unit.
 type unitName struct {
 	// Name uniquely identifies a unit and indicates its application.
 	// For example, postgresql/3.
-	Name unit.Name `db:"name"`
+	Name string `db:"name"`
 }
 
 // unitState contains a YAML string representing the
@@ -32,9 +30,9 @@ type unitState struct {
 // unitStateVal is a type for holding a key/value pair that is
 // a constituent in unit state for charm and relation.
 type unitStateKeyVal[T comparable] struct {
-	UUID  unit.UUID `db:"unit_uuid"`
-	Key   T         `db:"key"`
-	Value string    `db:"value"`
+	UUID  string `db:"unit_uuid"`
+	Key   T      `db:"key"`
+	Value string `db:"value"`
 }
 
 type unitCharmStateKeyVal unitStateKeyVal[string]

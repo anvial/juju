@@ -13,7 +13,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	unit "github.com/juju/juju/core/unit"
 	unitstate "github.com/juju/juju/domain/unitstate"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -42,7 +41,7 @@ func (m *MockState) EXPECT() *MockStateMockRecorder {
 }
 
 // GetUnitState mocks base method.
-func (m *MockState) GetUnitState(arg0 context.Context, arg1 unit.Name) (unitstate.RetrievedUnitState, error) {
+func (m *MockState) GetUnitState(arg0 context.Context, arg1 string) (unitstate.RetrievedUnitState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUnitState", arg0, arg1)
 	ret0, _ := ret[0].(unitstate.RetrievedUnitState)
@@ -69,13 +68,13 @@ func (c *MockStateGetUnitStateCall) Return(arg0 unitstate.RetrievedUnitState, ar
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateGetUnitStateCall) Do(f func(context.Context, unit.Name) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
+func (c *MockStateGetUnitStateCall) Do(f func(context.Context, string) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateGetUnitStateCall) DoAndReturn(f func(context.Context, unit.Name) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
+func (c *MockStateGetUnitStateCall) DoAndReturn(f func(context.Context, string) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

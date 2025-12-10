@@ -26,7 +26,7 @@ func TestServiceSuite(t *testing.T) {
 func (s *serviceSuite) TestSetState(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	name := unittesting.GenNewName(c, "unit/0")
+	name := unittesting.GenNewName(c, "unit/0").String()
 
 	as := unitstate.UnitState{
 		Name:          name,
@@ -47,7 +47,7 @@ func (s *serviceSuite) TestSetState(c *tc.C) {
 func (s *serviceSuite) TestSetStateUnitNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	name := unittesting.GenNewName(c, "unit/0")
+	name := unittesting.GenNewName(c, "unit/0").String()
 
 	as := unitstate.UnitState{
 		Name:        name,
@@ -65,7 +65,7 @@ func (s *serviceSuite) TestGetState(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	name := unittesting.GenNewName(c, "unit/0")
-	s.st.EXPECT().GetUnitState(gomock.Any(), name)
+	s.st.EXPECT().GetUnitState(gomock.Any(), name.String())
 
 	_, err := NewService(s.st).GetState(c.Context(), name)
 	c.Assert(err, tc.ErrorIsNil)
@@ -75,7 +75,7 @@ func (s *serviceSuite) TestGetStateUnitNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	name := unittesting.GenNewName(c, "unit/0")
-	s.st.EXPECT().GetUnitState(gomock.Any(), name).Return(unitstate.RetrievedUnitState{}, unitstateerrors.UnitNotFound)
+	s.st.EXPECT().GetUnitState(gomock.Any(), name.String()).Return(unitstate.RetrievedUnitState{}, unitstateerrors.UnitNotFound)
 
 	_, err := NewService(s.st).GetState(c.Context(), name)
 	c.Assert(err, tc.ErrorIs, unitstateerrors.UnitNotFound)
@@ -85,6 +85,8 @@ func (s *serviceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 
 	s.st = NewMockState(ctrl)
+
+	c.Cleanup(func() { s.st = nil })
 
 	return ctrl
 }
