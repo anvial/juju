@@ -221,7 +221,6 @@ sitemap_excludes = [
 html_static_path = [".sphinx/_static"]
 templates_path = [".sphinx/_templates"]
 
-
 #############
 # Redirects #
 #############
@@ -240,7 +239,6 @@ redirects = {
 'reference/charm/charm-naming-guidelines/': 'https://canonical-charmcraft.readthedocs-hosted.com/en/stable/'
 }
 
-
 ###########################
 # Link checker exceptions #
 ###########################
@@ -253,7 +251,6 @@ linkcheck_ignore = [
     "http://127.0.0.1:8000",
     "https://github.com/canonical/ACME/*"
     ]
-
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 
@@ -280,7 +277,6 @@ linkcheck_retries = 3
 #       substitution, deflist, linkify
 
 myst_enable_extensions = set(["colon_fence",])
-
 
 # Custom Sphinx extensions; see
 # https://www.sphinx-doc.org/en/master/usage/extensions/index.html
@@ -327,13 +323,11 @@ html_css_files = [
     "css/ibnote.css",
 ]
 
-
 # Adds custom JavaScript files, located under 'html_static_path'
 
 html_js_files = [
     "js/bundle.js",
 ]
-
 
 # Specifies a reST snippet to be appended to each .rst file
 
@@ -347,7 +341,6 @@ rst_epilog = """
 # TODO: To disable the button, uncomment this.
 
 # disable_feedback_button = True
-
 
 # Your manpage URL
 #
