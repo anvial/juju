@@ -47,8 +47,8 @@ func (s *SecretService) GetSecretsForExport(ctx context.Context) (*SecretExport,
 			Label:           info.Label,
 			CurrentRevision: info.CurrentRevision,
 			LatestRevision:  info.LatestRevision,
-			Accessor: SecretAccessor{
-				Kind: SecretAccessorKind(info.SubjectTypeID.String()),
+			Accessor: secret.SecretAccessor{
+				Kind: secret.SecretAccessorKind(info.SubjectTypeID.String()),
 				ID:   info.SubjectID,
 			},
 		}
@@ -84,12 +84,12 @@ func (s *SecretService) GetSecretsForExport(ctx context.Context) (*SecretExport,
 		secretAccess := make([]SecretAccess, len(grants))
 		for i, grant := range grants {
 			access := SecretAccess{
-				Scope: SecretAccessScope{
-					Kind: SecretAccessScopeKind(grant.ScopeTypeID.String()),
+				Scope: secret.SecretAccessScope{
+					Kind: secret.SecretAccessScopeKind(grant.ScopeTypeID.String()),
 					ID:   grant.ScopeID,
 				},
-				Subject: SecretAccessor{
-					Kind: SecretAccessorKind(grant.SubjectTypeID.String()),
+				Subject: secret.SecretAccessor{
+					Kind: secret.SecretAccessorKind(grant.SubjectTypeID.String()),
 					ID:   grant.SubjectID,
 				},
 				Role: coresecrets.SecretRole(grant.RoleID.String()),
@@ -111,8 +111,8 @@ func (s *SecretService) GetSecretsForExport(ctx context.Context) (*SecretExport,
 					Label:           consumer.Label,
 					CurrentRevision: consumer.CurrentRevision,
 				},
-				Accessor: SecretAccessor{
-					Kind: SecretAccessorKind(consumer.SubjectTypeID.String()),
+				Accessor: secret.SecretAccessor{
+					Kind: secret.SecretAccessorKind(consumer.SubjectTypeID.String()),
 					ID:   consumer.SubjectID,
 				},
 			}
@@ -133,8 +133,8 @@ func (s *SecretService) GetSecretsForExport(ctx context.Context) (*SecretExport,
 					Label:           consumer.Label,
 					CurrentRevision: consumer.CurrentRevision,
 				},
-				Accessor: SecretAccessor{
-					Kind: SecretAccessorKind(consumer.SubjectTypeID.String()),
+				Accessor: secret.SecretAccessor{
+					Kind: secret.SecretAccessorKind(consumer.SubjectTypeID.String()),
 					ID:   consumer.SubjectID,
 				},
 			}
@@ -194,12 +194,12 @@ func (s *SecretService) ImportSecrets(ctx context.Context, modelSecrets *SecretE
 		//}
 
 		for _, access := range modelSecrets.Access[md.URI.ID] {
-			p, err := s.grantParams(ctx, SecretAccessParams{
-				Scope: SecretAccessScope{
+			p, err := s.grantParams(ctx, secret.SecretAccessParams{
+				Scope: secret.SecretAccessScope{
 					Kind: access.Scope.Kind,
 					ID:   access.Scope.ID,
 				},
-				Subject: SecretAccessor{
+				Subject: secret.SecretAccessor{
 					Kind: access.Subject.Kind,
 					ID:   access.Subject.ID,
 				},

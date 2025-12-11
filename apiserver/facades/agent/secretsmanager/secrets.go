@@ -26,6 +26,7 @@ import (
 	corewatcher "github.com/juju/juju/core/watcher"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	crossmodelrelationerrors "github.com/juju/juju/domain/crossmodelrelation/errors"
+	"github.com/juju/juju/domain/secret"
 	secreterrors "github.com/juju/juju/domain/secret/errors"
 	secretservice "github.com/juju/juju/domain/secret/service"
 	secretbackendservice "github.com/juju/juju/domain/secretbackend/service"
@@ -100,8 +101,8 @@ func (s *SecretsManagerAPI) getBackendConfigForDrain(ctx context.Context, arg pa
 	cfgInfo, err := s.secretBackendService.DrainBackendConfigInfo(ctx, secretbackendservice.DrainBackendConfigParams{
 		GrantedSecretsGetter: s.secretService.ListGrantedSecretsForBackend,
 		LeaderToken:          token,
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   s.authTag.Id(),
 		},
 		ModelUUID: model.UUID(s.modelUUID),
@@ -136,8 +137,8 @@ func (s *SecretsManagerAPI) getSecretBackendConfig(ctx context.Context, backendI
 	cfgInfo, err := s.secretBackendService.BackendConfigInfo(ctx, secretbackendservice.BackendConfigParams{
 		GrantedSecretsGetter: s.secretService.ListGrantedSecretsForBackend,
 		LeaderToken:          token,
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   s.authTag.Id(),
 		},
 		ModelUUID:      model.UUID(s.modelUUID),
@@ -171,7 +172,7 @@ func (s *SecretsManagerAPI) getSecretBackendConfig(ctx context.Context, backendI
 	return result, cfgInfo.ActiveID, nil
 }
 
-func (s *SecretsManagerAPI) getBackend(ctx context.Context, backendID string, accessor secretservice.SecretAccessor, token leadership.Token) (*secretsprovider.ModelBackendConfig, bool, error) {
+func (s *SecretsManagerAPI) getBackend(ctx context.Context, backendID string, accessor secret.SecretAccessor, token leadership.Token) (*secretsprovider.ModelBackendConfig, bool, error) {
 	cfgInfo, err := s.secretBackendService.BackendConfigInfo(ctx, secretbackendservice.BackendConfigParams{
 		GrantedSecretsGetter: s.secretService.ListGrantedSecretsForBackend,
 		LeaderToken:          token,
@@ -256,9 +257,9 @@ func (s *SecretsManagerAPI) getSecretConsumerInfo(ctx context.Context, unitTag n
 	return s.secretsConsumer.GetSecretConsumerAndLatest(ctx, uri, unitName)
 }
 
-func secretOwnersFromAuthTag(authTag names.Tag, leadershipChecker leadership.Checker) ([]secretservice.CharmSecretOwner, error) {
-	owners := []secretservice.CharmSecretOwner{{
-		Kind: secretservice.UnitOwner,
+func secretOwnersFromAuthTag(authTag names.Tag, leadershipChecker leadership.Checker) ([]secret.CharmSecretOwner, error) {
+	owners := []secret.CharmSecretOwner{{
+		Kind: secret.UnitCharmSecretOwner,
 		ID:   authTag.Id(),
 	}}
 	// Unit leaders can also get metadata for secrets owned by the app.
@@ -270,8 +271,8 @@ func secretOwnersFromAuthTag(authTag names.Tag, leadershipChecker leadership.Che
 	}
 	if err == nil {
 		appName, _ := names.UnitApplication(authTag.Id())
-		owners = append(owners, secretservice.CharmSecretOwner{
-			Kind: secretservice.ApplicationOwner,
+		owners = append(owners, secret.CharmSecretOwner{
+			Kind: secret.ApplicationCharmSecretOwner,
 			ID:   appName,
 		})
 	}
@@ -333,28 +334,28 @@ func (s *SecretsManagerAPI) GetSecretMetadata(ctx context.Context) (params.ListS
 	return result, nil
 }
 
-func tagFromSubject(access secretservice.SecretAccessor) (names.Tag, error) {
+func tagFromSubject(access secret.SecretAccessor) (names.Tag, error) {
 	switch kind := access.Kind; kind {
-	case secretservice.UnitAccessor:
+	case secret.UnitAccessor:
 		return names.NewUnitTag(access.ID), nil
-	case secretservice.ApplicationAccessor:
+	case secret.ApplicationAccessor:
 		return names.NewApplicationTag(access.ID), nil
-	case secretservice.ModelAccessor:
+	case secret.ModelAccessor:
 		return names.NewModelTag(access.ID), nil
 	default:
 		return nil, errors.NotValidf("subject kind %q", kind)
 	}
 }
 
-func tagFromAccessScope(access secretservice.SecretAccessScope) (names.Tag, error) {
+func tagFromAccessScope(access secret.SecretAccessScope) (names.Tag, error) {
 	switch kind := access.Kind; kind {
-	case secretservice.UnitAccessScope:
+	case secret.UnitAccessScope:
 		return names.NewUnitTag(access.ID), nil
-	case secretservice.ApplicationAccessScope:
+	case secret.ApplicationAccessScope:
 		return names.NewApplicationTag(access.ID), nil
-	case secretservice.ModelAccessScope:
+	case secret.ModelAccessScope:
 		return names.NewModelTag(access.ID), nil
-	case secretservice.RelationAccessScope:
+	case secret.RelationAccessScope:
 		return names.NewRelationTag(access.ID), nil
 	default:
 		return nil, errors.NotValidf("access scope kind %q", kind)
@@ -496,8 +497,8 @@ func (s *SecretsManagerAPI) GetSecretRevisionContentInfo(ctx context.Context, ar
 	if err != nil {
 		return params.SecretContentResults{}, errors.Trace(err)
 	}
-	accessor := secretservice.SecretAccessor{
-		Kind: secretservice.UnitAccessor,
+	accessor := secret.SecretAccessor{
+		Kind: secret.UnitAccessor,
 		ID:   s.authTag.Id(),
 	}
 	appName, _ := names.UnitApplication(s.authTag.Id())
@@ -582,8 +583,8 @@ func (s *SecretsManagerAPI) getSecretContent(ctx context.Context, arg params.Get
 		return nil, nil, false, errors.Annotate(err, "getting latest secret revision")
 	}
 
-	accessor := secretservice.SecretAccessor{
-		Kind: secretservice.UnitAccessor,
+	accessor := secret.SecretAccessor{
+		Kind: secret.UnitAccessor,
 		ID:   s.authTag.Id(),
 	}
 	val, valueRef, err := s.secretService.GetSecretValue(ctx, uri, consumedRevision, accessor)
@@ -614,8 +615,8 @@ func appFromTag(tag names.Tag) string {
 	return ""
 }
 
-func (s *SecretsManagerAPI) charmSecretOwnersFromArgs(authTag names.Tag, args params.Entities) ([]secretservice.CharmSecretOwner, error) {
-	var result []secretservice.CharmSecretOwner
+func (s *SecretsManagerAPI) charmSecretOwnersFromArgs(authTag names.Tag, args params.Entities) ([]secret.CharmSecretOwner, error) {
+	var result []secret.CharmSecretOwner
 	for _, arg := range args.Entities {
 		ownerTag, err := names.ParseTag(arg.Tag)
 		if err != nil {
@@ -624,8 +625,8 @@ func (s *SecretsManagerAPI) charmSecretOwnersFromArgs(authTag names.Tag, args pa
 		if !isSameApplication(authTag, ownerTag) {
 			return result, apiservererrors.ErrPerm
 		}
-		owner := secretservice.CharmSecretOwner{
-			Kind: secretservice.UnitOwner,
+		owner := secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   ownerTag.Id(),
 		}
 		// Only unit leaders can watch application secrets.
@@ -635,7 +636,7 @@ func (s *SecretsManagerAPI) charmSecretOwnersFromArgs(authTag names.Tag, args pa
 			if err := token.Check(); err != nil {
 				return result, errors.Trace(err)
 			}
-			owner.Kind = secretservice.ApplicationOwner
+			owner.Kind = secret.ApplicationCharmSecretOwner
 		}
 		result = append(result, owner)
 	}
@@ -782,8 +783,8 @@ func (s *SecretsManagerAPI) SecretsRotated(ctx context.Context, args params.Secr
 		if err != nil {
 			return errors.Trace(err)
 		}
-		accessor := secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+		accessor := secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   s.authTag.Id(),
 		}
 		return s.secretsTriggers.SecretRotated(ctx, uri, secretservice.SecretRotatedParams{

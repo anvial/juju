@@ -21,6 +21,7 @@ import (
 	"github.com/juju/juju/core/unit"
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
+	"github.com/juju/juju/domain/secret"
 	secretservice "github.com/juju/juju/domain/secret/service"
 	"github.com/juju/juju/domain/secretbackend"
 	secretbackenderrors "github.com/juju/juju/domain/secretbackend/errors"
@@ -112,7 +113,7 @@ func (s *Service) DrainBackendConfigInfo(
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	if p.Accessor.Kind != secretservice.UnitAccessor && p.Accessor.Kind != secretservice.ModelAccessor {
+	if p.Accessor.Kind != secret.UnitAccessor && p.Accessor.Kind != secret.ModelAccessor {
 		return nil, errors.Errorf("secret accessor kind %q %w", p.Accessor.Kind, coreerrors.NotSupported)
 	}
 
@@ -155,7 +156,7 @@ func (s *Service) BackendConfigInfo(
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	if p.Accessor.Kind != secretservice.UnitAccessor && p.Accessor.Kind != secretservice.ModelAccessor {
+	if p.Accessor.Kind != secret.UnitAccessor && p.Accessor.Kind != secret.ModelAccessor {
 		return nil, errors.Errorf("secret accessor kind %q %w", p.Accessor.Kind, coreerrors.NotSupported)
 	}
 
@@ -189,7 +190,7 @@ func (s *Service) backendConfigInfo(
 	ctx context.Context,
 	grantedSecretsGetter secretservice.GrantedSecretsGetter,
 	backendID string, cfg *provider.ModelBackendConfig,
-	accessor secretservice.SecretAccessor, token leadership.Token, sameController, forDrain bool,
+	accessor secret.SecretAccessor, token leadership.Token, sameController, forDrain bool,
 ) (*provider.ModelBackendConfig, error) {
 	if grantedSecretsGetter == nil {
 		return nil, errors.Errorf("unexpected nil value for GrantedSecretsGetter")
@@ -210,7 +211,7 @@ func (s *Service) backendConfigInfo(
 	var coreAccessor coresecrets.Accessor
 
 	switch accessor.Kind {
-	case secretservice.UnitAccessor:
+	case secret.UnitAccessor:
 		// Find secretService owned by the agent
 		// (or its app if the agent is a leader).
 		unitName, err := unit.NewName(accessor.ID)
@@ -221,7 +222,7 @@ func (s *Service) backendConfigInfo(
 			Kind: coresecrets.UnitAccessor,
 			ID:   unitName.String(),
 		}
-		owners := []secretservice.SecretAccessor{accessor}
+		owners := []secret.SecretAccessor{accessor}
 		appName := unitName.Application()
 		isLeader := false
 		if token != nil {
@@ -233,15 +234,15 @@ func (s *Service) backendConfigInfo(
 		}
 		if isLeader {
 			// Leader unit owns application level secretService.
-			owners = append(owners, secretservice.SecretAccessor{
-				Kind: secretservice.ApplicationAccessor,
+			owners = append(owners, secret.SecretAccessor{
+				Kind: secret.ApplicationAccessor,
 				ID:   appName,
 			})
 		} else {
 			// Non leader units can read application level secretService.
 			// Find secretService owned by the application.
-			readOnlyOwner := secretservice.SecretAccessor{
-				Kind: secretservice.ApplicationAccessor,
+			readOnlyOwner := secret.SecretAccessor{
+				Kind: secret.ApplicationAccessor,
 				ID:   appName,
 			}
 			revInfo, err := grantedSecretsGetter(ctx, backendID, coresecrets.RoleView, readOnlyOwner)
@@ -262,11 +263,11 @@ func (s *Service) backendConfigInfo(
 
 		// Granted secretService can be consumed in application level for all units.
 		// We include secretService shared with the app or just the specified unit.
-		consumers := []secretservice.SecretAccessor{{
-			Kind: secretservice.UnitAccessor,
+		consumers := []secret.SecretAccessor{{
+			Kind: secret.UnitAccessor,
 			ID:   unitName.String(),
 		}, {
-			Kind: secretservice.ApplicationAccessor,
+			Kind: secret.ApplicationAccessor,
 			ID:   appName,
 		}}
 		revInfo, err = grantedSecretsGetter(ctx, backendID, coresecrets.RoleView, consumers...)
@@ -276,7 +277,7 @@ func (s *Service) backendConfigInfo(
 		for _, r := range revInfo {
 			readRevisions.Add(r.URI, r.RevisionID)
 		}
-	case secretservice.ModelAccessor:
+	case secret.ModelAccessor:
 		coreAccessor = coresecrets.Accessor{
 			Kind: coresecrets.ModelAccessor,
 			ID:   accessor.ID,

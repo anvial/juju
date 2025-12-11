@@ -19,8 +19,8 @@ import (
 	facademocks "github.com/juju/juju/apiserver/facade/mocks"
 	coresecrets "github.com/juju/juju/core/secrets"
 	unittesting "github.com/juju/juju/core/unit/testing"
+	"github.com/juju/juju/domain/secret"
 	secreterrors "github.com/juju/juju/domain/secret/errors"
-	secretservice "github.com/juju/juju/domain/secret/service"
 	"github.com/juju/juju/internal/secrets"
 	"github.com/juju/juju/internal/testhelpers"
 	"github.com/juju/juju/rpc/params"
@@ -77,12 +77,12 @@ func (s *UniterSecretsSuite) TestCreateCharmSecrets(c *tc.C) {
 	checksum, err := coresecrets.NewSecretValue(data).Checksum()
 	c.Assert(err, tc.ErrorIsNil)
 
-	p := secretservice.CreateCharmSecretParams{
+	p := secret.CreateCharmSecretParams{
 		Version:    secrets.Version,
-		CharmOwner: secretservice.CharmSecretOwner{Kind: secretservice.ApplicationOwner, ID: "mariadb"},
-		UpdateCharmSecretParams: secretservice.UpdateCharmSecretParams{
-			Accessor: secretservice.SecretAccessor{
-				Kind: secretservice.UnitAccessor,
+		CharmOwner: secret.CharmSecretOwner{Kind: secret.ApplicationCharmSecretOwner, ID: "mariadb"},
+		UpdateCharmSecretParams: secret.UpdateCharmSecretParams{
+			Accessor: secret.SecretAccessor{
+				Kind: secret.UnitAccessor,
 				ID:   "mariadb/0",
 			},
 			RotatePolicy: ptr(coresecrets.RotateDaily),
@@ -96,7 +96,7 @@ func (s *UniterSecretsSuite) TestCreateCharmSecrets(c *tc.C) {
 	}
 	var gotURI *coresecrets.URI
 	s.secretService.EXPECT().CreateCharmSecret(gomock.Any(), gomock.Any(), p).DoAndReturn(
-		func(ctx context.Context, uri *coresecrets.URI, p secretservice.CreateCharmSecretParams) error {
+		func(ctx context.Context, uri *coresecrets.URI, p secret.CreateCharmSecretParams) error {
 			gotURI = uri
 			return nil
 		},
@@ -137,12 +137,12 @@ func (s *UniterSecretsSuite) TestCreateCharmSecrets(c *tc.C) {
 func (s *UniterSecretsSuite) TestCreateCharmSecretDuplicateLabel(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	p := secretservice.CreateCharmSecretParams{
+	p := secret.CreateCharmSecretParams{
 		Version:    secrets.Version,
-		CharmOwner: secretservice.CharmSecretOwner{Kind: secretservice.ApplicationOwner, ID: "mariadb"},
-		UpdateCharmSecretParams: secretservice.UpdateCharmSecretParams{
-			Accessor: secretservice.SecretAccessor{
-				Kind: secretservice.UnitAccessor,
+		CharmOwner: secret.CharmSecretOwner{Kind: secret.ApplicationCharmSecretOwner, ID: "mariadb"},
+		UpdateCharmSecretParams: secret.UpdateCharmSecretParams{
+			Accessor: secret.SecretAccessor{
+				Kind: secret.UnitAccessor,
 				ID:   "mariadb/0",
 			},
 			Label: ptr("foobar"),
@@ -177,9 +177,9 @@ func (s *UniterSecretsSuite) TestUpdateSecrets(c *tc.C) {
 	checksum, err := coresecrets.NewSecretValue(data).Checksum()
 	c.Assert(err, tc.ErrorIsNil)
 
-	p := secretservice.UpdateCharmSecretParams{
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+	p := secret.UpdateCharmSecretParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		RotatePolicy: ptr(coresecrets.RotateDaily),
@@ -243,9 +243,9 @@ func (s *UniterSecretsSuite) TestRemoveSecrets(c *tc.C) {
 
 	uri := coresecrets.NewURI()
 	expectURI := *uri
-	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secretservice.DeleteSecretParams{
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secret.DeleteSecretParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 	}).Return(nil)
@@ -266,9 +266,9 @@ func (s *UniterSecretsSuite) TestRemoveSecretRevision(c *tc.C) {
 
 	uri := coresecrets.NewURI()
 	expectURI := *uri
-	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secretservice.DeleteSecretParams{
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secret.DeleteSecretParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Revisions: []int{666},
@@ -291,9 +291,9 @@ func (s *UniterSecretsSuite) TestRemoveSecretNotFound(c *tc.C) {
 
 	uri := coresecrets.NewURI()
 	expectURI := *uri
-	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secretservice.DeleteSecretParams{
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+	s.secretService.EXPECT().DeleteSecret(gomock.Any(), &expectURI, secret.DeleteSecretParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Revisions: []int{666},
@@ -313,13 +313,13 @@ func (s *UniterSecretsSuite) TestSecretsGrant(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	uri := coresecrets.NewURI()
-	s.secretService.EXPECT().GrantSecretAccess(gomock.Any(), uri, secretservice.SecretAccessParams{
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+	s.secretService.EXPECT().GrantSecretAccess(gomock.Any(), uri, secret.SecretAccessParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
-		Scope:   secretservice.SecretAccessScope{Kind: secretservice.RelationAccessScope, ID: "wordpress:db mysql:server"},
-		Subject: secretservice.SecretAccessor{Kind: secretservice.UnitAccessor, ID: "wordpress/0"},
+		Scope:   secret.SecretAccessScope{Kind: secret.RelationAccessScope, ID: "wordpress:db mysql:server"},
+		Subject: secret.SecretAccessor{Kind: secret.UnitAccessor, ID: "wordpress/0"},
 		Role:    coresecrets.RoleView,
 	}).Return(errors.New("boom"))
 
@@ -354,13 +354,13 @@ func (s *UniterSecretsSuite) TestSecretsRevoke(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	uri := coresecrets.NewURI()
-	s.secretService.EXPECT().RevokeSecretAccess(gomock.Any(), uri, secretservice.SecretAccessParams{
-		Accessor: secretservice.SecretAccessor{
-			Kind: secretservice.UnitAccessor,
+	s.secretService.EXPECT().RevokeSecretAccess(gomock.Any(), uri, secret.SecretAccessParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
-		Scope:   secretservice.SecretAccessScope{Kind: secretservice.RelationAccessScope, ID: "wordpress:db mysql:server"},
-		Subject: secretservice.SecretAccessor{Kind: secretservice.UnitAccessor, ID: "wordpress/0"},
+		Scope:   secret.SecretAccessScope{Kind: secret.RelationAccessScope, ID: "wordpress:db mysql:server"},
+		Subject: secret.SecretAccessor{Kind: secret.UnitAccessor, ID: "wordpress/0"},
 		Role:    coresecrets.RoleView,
 	}).Return(errors.New("boom"))
 

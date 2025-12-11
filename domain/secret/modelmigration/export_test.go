@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/juju/juju/core/secrets"
+	"github.com/juju/juju/domain/secret"
 	"github.com/juju/juju/domain/secret/service"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/testing"
@@ -132,7 +133,7 @@ func backendSecrets(uri1, uri2, uri3, uri4 *secrets.URI, nextRotate, expire, tim
 					Label:           "mysecret",
 					CurrentRevision: 2,
 				},
-				Accessor: service.SecretAccessor{
+				Accessor: secret.SecretAccessor{
 					Kind: "unit",
 					ID:   "mariadb/0",
 				},
@@ -142,7 +143,7 @@ func backendSecrets(uri1, uri2, uri3, uri4 *secrets.URI, nextRotate, expire, tim
 					Label:           "",
 					CurrentRevision: 1,
 				},
-				Accessor: service.SecretAccessor{
+				Accessor: secret.SecretAccessor{
 					Kind: "unit",
 					ID:   "mariadb/0",
 				},
@@ -154,7 +155,7 @@ func backendSecrets(uri1, uri2, uri3, uri4 *secrets.URI, nextRotate, expire, tim
 				SecretConsumerMetadata: secrets.SecretConsumerMetadata{
 					CurrentRevision: 1,
 				},
-				Accessor: service.SecretAccessor{
+				Accessor: secret.SecretAccessor{
 					Kind: "unit",
 					ID:   "remote-deadbeef/0",
 				},
@@ -164,32 +165,32 @@ func backendSecrets(uri1, uri2, uri3, uri4 *secrets.URI, nextRotate, expire, tim
 		},
 		Access: map[string][]service.SecretAccess{
 			uri1.ID: {{
-				Scope: service.SecretAccessScope{
+				Scope: secret.SecretAccessScope{
 					Kind: "relation",
 					ID:   "mysql:server mariadb:db",
 				},
-				Subject: service.SecretAccessor{
+				Subject: secret.SecretAccessor{
 					Kind: "application",
 					ID:   "mariadb",
 				},
 				Role: "view",
 			}, {
-				Scope: service.SecretAccessScope{
+				Scope: secret.SecretAccessScope{
 					Kind: "relation",
 					ID:   "mysql:server remote-deadbeef:db",
 				},
-				Subject: service.SecretAccessor{
+				Subject: secret.SecretAccessor{
 					Kind: "application",
 					ID:   "remote-deadbeef",
 				},
 				Role: "view",
 			}},
 			uri2.ID: {{
-				Scope: service.SecretAccessScope{
+				Scope: secret.SecretAccessScope{
 					Kind: "model",
 					ID:   testing.ModelTag.Id(),
 				},
-				Subject: service.SecretAccessor{
+				Subject: secret.SecretAccessor{
 					Kind: "model",
 					ID:   testing.ModelTag.Id(),
 				},
@@ -202,7 +203,7 @@ func backendSecrets(uri1, uri2, uri3, uri4 *secrets.URI, nextRotate, expire, tim
 			Label:           "mylabel",
 			CurrentRevision: 1,
 			LatestRevision:  666,
-			Accessor: service.SecretAccessor{
+			Accessor: secret.SecretAccessor{
 				Kind: "unit",
 				ID:   "mariadb/0",
 			},

@@ -175,7 +175,7 @@ func (s *WatchableService) WatchConsumedSecretsChanges(ctx context.Context, unit
 //     has any consumers
 //
 // Obsolete revisions results are "uri/revno".
-func (s *WatchableService) WatchObsoleteSecrets(ctx context.Context, owners ...CharmSecretOwner) (watcher.StringsWatcher, error) {
+func (s *WatchableService) WatchObsoleteSecrets(ctx context.Context, owners ...secret.CharmSecretOwner) (watcher.StringsWatcher, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -235,7 +235,7 @@ func (s *SecretService) obsoleteWatcherMapperFunc(
 //
 // Deleted revisions results are "uri/revno" and deleted
 // secret results are "uri".
-func (s *WatchableService) WatchDeletedSecrets(ctx context.Context, owners ...CharmSecretOwner) (watcher.StringsWatcher, error) {
+func (s *WatchableService) WatchDeletedSecrets(ctx context.Context, owners ...secret.CharmSecretOwner) (watcher.StringsWatcher, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -415,7 +415,7 @@ func splitSecretRevision(s string) (string, int) {
 }
 
 // WatchSecretRevisionsExpiryChanges returns a watcher that notifies when the expiry time of a secret revision changes.
-func (s *WatchableService) WatchSecretRevisionsExpiryChanges(ctx context.Context, owners ...CharmSecretOwner) (watcher.SecretTriggerWatcher, error) {
+func (s *WatchableService) WatchSecretRevisionsExpiryChanges(ctx context.Context, owners ...secret.CharmSecretOwner) (watcher.SecretTriggerWatcher, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -453,7 +453,7 @@ func (s *WatchableService) WatchSecretRevisionsExpiryChanges(ctx context.Context
 }
 
 // WatchSecretsRotationChanges returns a watcher that notifies when the rotation time of a secret changes.
-func (s *WatchableService) WatchSecretsRotationChanges(ctx context.Context, owners ...CharmSecretOwner) (watcher.SecretTriggerWatcher, error) {
+func (s *WatchableService) WatchSecretsRotationChanges(ctx context.Context, owners ...secret.CharmSecretOwner) (watcher.SecretTriggerWatcher, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
