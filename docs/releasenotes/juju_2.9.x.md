@@ -7,7 +7,22 @@
 ```{note}
 Juju 2.9 series is LTS
 ```
-### 🔸 **Juju 2.9.52** - 07 July 2025
+### 🔸 **Juju 2.9.53**
+🗓️ 11 Dec 2025
+
+This release is primarily to provide a migration fix to allow 2.9 models
+to be migrated to 3.6 controllers. It also includes upstream dependency updates.
+
+🛠️ Fixes:
+- fix: issue preventing model migration to 3.x @wallyworld in https://github.com/juju/juju/pull/21329
+- fix: speed up status with lots of subordinates by @jameinel in https://github.com/juju/juju/pull/19964
+- fix: avoid rereading controller config for every Charm by @jameinel in https://github.com/juju/juju/pull/19963
+- fix: only include resource ID in error message when applying changes by @wallyworld in https://github.com/juju/juju/pull/20295
+
+See the full list on the [Github release](https://github.com/juju/juju/releases/tag/v2.9.53).
+
+### 🔸 **Juju 2.9.52**
+🗓️ 07 Jul 2025
 
 🛠️ Fixes:
 
