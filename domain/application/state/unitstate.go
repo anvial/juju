@@ -24,7 +24,6 @@ import (
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/application/internal"
 	"github.com/juju/juju/domain/constraints"
-	"github.com/juju/juju/domain/deployment"
 	"github.com/juju/juju/domain/ipaddress"
 	"github.com/juju/juju/domain/life"
 	domainmachine "github.com/juju/juju/domain/machine"
@@ -630,12 +629,6 @@ func (st *InsertIAASUnitState) placeIAASUnitMachine(
 	tx *sqlair.TX,
 	args application.AddIAASUnitArg,
 ) ([]coremachine.Name, error) {
-	// If the placement is on to an already existing machine in the model we do
-	// nothing.
-	if args.Placement.Type == deployment.PlacementTypeMachine {
-		return []coremachine.Name{coremachine.Name(args.Placement.Directive)}, nil
-	}
-
 	// Handle the placement of the net node and machines accompanying the unit.
 	placeMachineArgs := domainmachine.PlaceMachineArgs{
 		Constraints: args.Constraints,
