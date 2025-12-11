@@ -59,6 +59,7 @@ func PlaceMachine(
 			return nil, errors.Errorf("validating machine placement: %w", err)
 		}
 		return []coremachine.Name{machineName}, nil
+
 	case deployment.PlacementTypeContainer:
 		// The placement is container scoped (example: lxd or lxd:0). If there
 		// is no directive, we need to create a parent machine (the next in the

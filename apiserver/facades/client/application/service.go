@@ -31,6 +31,7 @@ import (
 	"github.com/juju/juju/domain/application"
 	applicationcharm "github.com/juju/juju/domain/application/charm"
 	applicationservice "github.com/juju/juju/domain/application/service"
+	domainconstraints "github.com/juju/juju/domain/constraints"
 	crossmodelrelationservice "github.com/juju/juju/domain/crossmodelrelation/service"
 	"github.com/juju/juju/domain/relation"
 	"github.com/juju/juju/domain/removal"
@@ -394,7 +395,7 @@ type ApplicationService interface {
 
 	// ResolveApplicationConstraints resolves given application constraints, taking
 	// into account the model constraints.
-	ResolveApplicationConstraints(ctx context.Context, appCons constraints.Value) (constraints.Value, error)
+	ResolveApplicationConstraints(ctx context.Context, appCons constraints.Value) (domainconstraints.Constraints, error)
 }
 
 type ResolveService interface {

@@ -2912,7 +2912,7 @@ func (s *providerServiceSuite) TestResolveApplicationConstraintsNilValidator(c *
 	cons, err := s.service.ResolveApplicationConstraints(c.Context(), coreconstraints.Value{})
 	c.Assert(err, tc.ErrorIsNil)
 	// We should always fill in the arch, even if it's not in the model constraints.
-	c.Check(cons, tc.DeepEquals, coreconstraints.Value{})
+	c.Check(cons, tc.DeepEquals, constraints.Constraints{})
 }
 
 func (s *providerServiceSuite) TestResolveApplicationConstraintsConstraintsNotFound(c *tc.C) {
