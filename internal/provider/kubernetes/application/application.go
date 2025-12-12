@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -224,30 +225,15 @@ func (a *app) Ensure(config caas.ApplicationConfig) (err error) {
 	var handleVolumeMount handleVolumeMountFunc = func(
 		storageName string,
 		m corev1.VolumeMount,
-		forWorkloadContainer bool,
+		containerName string,
 	) error {
-		for i := range podSpec.Containers {
-			name := podSpec.Containers[i].Name
-			// Mount the storage for the charm container.
-			if name == constants.ApplicationCharmContainer && !forWorkloadContainer {
-				podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, m)
-				continue
-			}
-
-			// There is no point going further beyond this path because the
-			// supplied [corev1.VolumeMount] isn't intended for a workload
-			// container. Skip it to avoid an incorrect mount path.
-			if !forWorkloadContainer {
-				continue
-			}
-
-			// Reaching here means we mount the storage for the workload container.
-			for _, mount := range config.Containers[name].Mounts {
-				if mount.StorageName == storageName {
-					podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, m)
-				}
-			}
+		idx := slices.IndexFunc(podSpec.Containers, func(container corev1.Container) bool {
+			return container.Name == containerName
+		})
+		if idx == -1 {
+			return errors.Errorf("cannot find container %q to mount %q", containerName, m.MountPath)
 		}
+		storage.PushUniqueVolumeMount(&podSpec.Containers[idx], m)
 		return nil
 	}
 
@@ -2123,7 +2109,7 @@ type handlePVCFunc func(
 	jujustorage.KubernetesFilesystemAttachmentParams,
 ) (*corev1.VolumeMount, error)
 
-type handleVolumeMountFunc func(string, corev1.VolumeMount, bool) error
+type handleVolumeMountFunc func(string, corev1.VolumeMount, string) error
 
 type handleStorageClassFunc func(storagev1.StorageClass) error
 
@@ -2200,32 +2186,12 @@ func (a *app) configureStorage(
 	logger.Tracef(context.TODO(), "persistent volume claim name mapping = %v", pvcNames)
 
 	fsNames := set.NewStrings()
-	fsNamesWorkloadContainer := set.NewStrings()
-
-	var isDuplicate = func(fs jujustorage.KubernetesFilesystemParams) bool {
-		if fs.ForWorkloadContainer {
-			if fsNamesWorkloadContainer.Contains(fs.StorageName) {
-				return true
-			}
-			fsNamesWorkloadContainer.Add(fs.StorageName)
-			return false
-		}
-
-		// TODO(@adisazhar123): How would this work for multiple attachments?
-		// Because they would have the same storage name and the below will be
-		// mistakenly treated it as a duplicate filesystem thus error-ing out.
-		// This is also the behavior in 3.6.
-		if fsNames.Contains(fs.StorageName) {
-			return true
-		}
-		fsNames.Add(fs.StorageName)
-		return false
-	}
 
 	for _, fs := range filesystems {
-		if isDuplicate(fs) {
+		if fsNames.Contains(fs.StorageName) {
 			return errors.NotValidf("duplicated storage name %q for %q", fs.StorageName, a.name)
 		}
+		fsNames.Add(fs.StorageName)
 
 		logger.Debugf(context.TODO(), "%s has filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(fs))
 
@@ -2237,36 +2203,38 @@ func (a *app) configureStorage(
 			return errors.Trace(err)
 		}
 
-		var volumeMount *corev1.VolumeMount
-		if vol != nil && handleVolume != nil {
-			logger.Debugf(context.TODO(), "using volume for %s filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(*vol))
-			volumeMount, err = handleVolume(*vol, *fs.Attachment)
-			if err != nil {
-				return errors.Trace(err)
+		for _, attachment := range fs.Attachments {
+			var volumeMount *corev1.VolumeMount
+			if vol != nil && handleVolume != nil {
+				logger.Debugf(context.TODO(), "using volume for %s filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(*vol))
+				volumeMount, err = handleVolume(*vol, attachment)
+				if err != nil {
+					return errors.Trace(err)
+				}
 			}
-		}
-		if sc != nil && handleStorageClass != nil {
-			logger.Debugf(context.TODO(), "creating storage class for %s filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(*sc))
-			if err = handleStorageClass(*sc); err != nil {
-				return errors.Trace(err)
+			if sc != nil && handleStorageClass != nil {
+				logger.Debugf(context.TODO(), "creating storage class for %s filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(*sc))
+				if err = handleStorageClass(*sc); err != nil {
+					return errors.Trace(err)
+				}
+				storageClassMap[sc.Name] = resources.StorageClass{StorageClass: *sc}
 			}
-			storageClassMap[sc.Name] = resources.StorageClass{StorageClass: *sc}
-		}
-		if pvc != nil && handlePVC != nil {
-			logger.Debugf(context.TODO(), "using persistent volume claim for %s filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(*pvc))
-			volumeMount, err = handlePVC(*pvc, *fs.Attachment)
-			if err != nil {
-				return errors.Trace(err)
+			if pvc != nil && handlePVC != nil {
+				logger.Debugf(context.TODO(), "using persistent volume claim for %s filesystem %s: %s", a.name, fs.StorageName, pretty.Sprint(*pvc))
+				volumeMount, err = handlePVC(*pvc, attachment)
+				if err != nil {
+					return errors.Trace(err)
+				}
 			}
-		}
 
-		if volumeMount != nil {
-			if err = handleVolumeMount(
-				fs.StorageName,
-				*volumeMount,
-				fs.ForWorkloadContainer,
-			); err != nil {
-				return errors.Trace(err)
+			if volumeMount != nil {
+				if err = handleVolumeMount(
+					fs.StorageName,
+					*volumeMount,
+					attachment.ContainerName,
+				); err != nil {
+					return errors.Trace(err)
+				}
 			}
 		}
 	}

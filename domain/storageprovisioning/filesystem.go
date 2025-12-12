@@ -144,10 +144,6 @@ type FilesystemTemplate struct {
 	// Attachments describes the attachment templates for this filesystem.
 	Attachments []FilesystemAttachmentTemplate
 
-	// AttachmentsForWorkload describes the attachment templates for this
-	// filesystem. The attachments are intended for a workload.
-	AttachmentsForWorkload []FilesystemAttachmentTemplate
-
 	// Attributes are a set of key value pairs that are supplied to the provider
 	// or provisioner to facilitate this filesystem(s).
 	Attributes map[string]string
@@ -178,6 +174,9 @@ type FilesystemAttachmentTemplate struct {
 	// MountPoint is the location where the filesystem attachment should be
 	// made.
 	MountPoint string
+
+	// AttachTo is the identifier of where this attachment should be mounted to.
+	AttachTo string
 }
 
 // FilesystemProvisionedInfo is information set by the storage provisioner for

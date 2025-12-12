@@ -280,9 +280,23 @@ func appAlive(ctx context.Context, appName string, appUUID coreapplication.UUID,
 
 	makeKubernetesFilesystemParams := func(
 		fst storageprovisioning.FilesystemTemplate,
-		attachment storageprovisioning.FilesystemAttachmentTemplate,
+		attachments []storageprovisioning.FilesystemAttachmentTemplate,
 		forWorkload bool,
 	) internalstorage.KubernetesFilesystemParams {
+		k8sFileSystemParamAttachments := make(
+			[]internalstorage.KubernetesFilesystemAttachmentParams,
+			len(attachments),
+		)
+
+		for i := 0; i < len(attachments); i++ {
+			attachment := attachments[i]
+			k8sFileSystemParamAttachments[i] = internalstorage.KubernetesFilesystemAttachmentParams{
+				ReadOnly:      attachment.ReadOnly,
+				Path:          attachment.MountPoint,
+				ContainerName: attachment.AttachTo,
+			}
+		}
+
 		return internalstorage.KubernetesFilesystemParams{
 			StorageName: fst.StorageName,
 			Size:        fst.SizeMiB,
@@ -290,23 +304,18 @@ func appAlive(ctx context.Context, appName string, appUUID coreapplication.UUID,
 			Attributes: transform.Map(fst.Attributes, func(k, v string) (string, any) {
 				return k, v
 			}),
-			Attachment: &internalstorage.KubernetesFilesystemAttachmentParams{
-				ReadOnly: attachment.ReadOnly,
-				Path:     attachment.MountPoint,
-			},
-			ResourceTags:         pi.StorageResourceTags,
-			ForWorkloadContainer: forWorkload,
+			Attachments:  k8sFileSystemParamAttachments,
+			ResourceTags: pi.StorageResourceTags,
 		}
 	}
 
 	filesystems := []internalstorage.KubernetesFilesystemParams{}
 	for _, fst := range pi.FilesystemTemplates {
-		for _, att := range fst.Attachments {
-			filesystems = append(filesystems, makeKubernetesFilesystemParams(fst, att, false))
-		}
-		for _, att := range fst.AttachmentsForWorkload {
-			filesystems = append(filesystems, makeKubernetesFilesystemParams(fst, att, true))
-		}
+		filesystems = append(filesystems, makeKubernetesFilesystemParams(
+			fst,
+			fst.Attachments,
+			false,
+		))
 	}
 
 	config := caas.ApplicationConfig{

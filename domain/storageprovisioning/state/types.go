@@ -446,8 +446,3 @@ type containerMount struct {
 	Storage           string `db:"storage"`
 	Location          string `db:"location"`
 }
-
-// minimalApp represents a minimal subset of the application from the database.
-type minimalApp struct {
-	CharmUUID string `db:"charm_uuid"`
-}

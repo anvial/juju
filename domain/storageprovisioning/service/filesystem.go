@@ -431,6 +431,7 @@ func calculateFilesystemAttachmentTemplates(
 	isSingleton bool,
 	readOnly bool,
 	count int,
+	attachTo string,
 ) []storageprovisioning.FilesystemAttachmentTemplate {
 	retVal := make([]storageprovisioning.FilesystemAttachmentTemplate, 0, count)
 	for i := range count {
@@ -447,6 +448,7 @@ func calculateFilesystemAttachmentTemplates(
 		retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
 			MountPoint: mountPoint,
 			ReadOnly:   readOnly,
+			AttachTo:   attachTo,
 		})
 	}
 	return retVal
@@ -457,43 +459,28 @@ func calculateFilesystemAttachmentTemplates(
 // This is specifically used for a workload container that has specified mount
 // points.
 func calculateFilesystemAttachmentTemplatesForWorkload(
-	storageName,
-	charmStorageLocation string,
-	isSingleton bool,
+	location string,
 	readOnly bool,
 	count int,
+	attachTo string,
 ) []storageprovisioning.FilesystemAttachmentTemplate {
 	retVal := make([]storageprovisioning.FilesystemAttachmentTemplate, 0, count)
 
-	// If it's a singleton we don't have to worry about uniquely identifying each
-	// mount point. Just use the one defined in the charms yaml.
-	if isSingleton {
-		mountPoint := calculateFilesystemAttachmentMountPoint(
-			charmStorageLocation, isSingleton, "",
-		)
-		retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
-			MountPoint: mountPoint,
-			ReadOnly:   readOnly,
-		})
-		return retVal
-	}
-
-	for i := range count {
-		id := strconv.Itoa(i)
-		if charmStorageLocation == "" {
-			// If the charmStorageLocation is zero we need to make sure the id
-			// value is unique across all storage names.
-			id = storageName + "-" + id
-		}
-		mountPoint := calculateFilesystemAttachmentMountPoint(
-			charmStorageLocation, isSingleton, id,
-		)
-
-		retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
-			MountPoint: mountPoint,
-			ReadOnly:   readOnly,
-		})
-	}
+	// We are strongly assuming it's a singleton storage so we use the location
+	// what's defined by the charm. At the moment, the behaviour for when it's a
+	// non-singleton instance is undefined. We don't have a pre-defined contract
+	// with charm authors on how this work.
+	// In theory, we can follow what
+	// [calculateFilesystemAttachmentTemplates] does but will require a future
+	// effort. See https://github.com/juju/juju/issues/21465.
+	mountPoint := calculateFilesystemAttachmentMountPoint(
+		location, true, "",
+	)
+	retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
+		MountPoint: mountPoint,
+		ReadOnly:   readOnly,
+		AttachTo:   attachTo,
+	})
 	return retVal
 }
 
@@ -896,28 +883,26 @@ func (s *Service) GetFilesystemTemplatesForApplication(
 			fsTemplate.MaxCount == 1,
 			fsTemplate.ReadOnly,
 			fsTemplate.Count,
+			"charm",
 		)
 
-		attachmentsForWorkload := make([]storageprovisioning.FilesystemAttachmentTemplate, 0)
 		for _, mount := range containerMounts[fsTemplate.StorageName] {
 			workloadAttachments := calculateFilesystemAttachmentTemplatesForWorkload(
-				fsTemplate.StorageName,
 				mount.MountPoint,
-				fsTemplate.MaxCount == 1,
 				fsTemplate.ReadOnly,
 				fsTemplate.Count,
+				mount.ContainerKey,
 			)
-			attachmentsForWorkload = append(attachmentsForWorkload, workloadAttachments...)
+			attachments = append(attachments, workloadAttachments...)
 		}
 
 		mountTemplate := storageprovisioning.FilesystemTemplate{
-			Attachments:            attachments,
-			AttachmentsForWorkload: attachmentsForWorkload,
-			Attributes:             fsTemplate.Attributes,
-			Count:                  fsTemplate.Count,
-			ProviderType:           fsTemplate.ProviderType,
-			SizeMiB:                fsTemplate.SizeMiB,
-			StorageName:            fsTemplate.StorageName,
+			Attachments:  attachments,
+			Attributes:   fsTemplate.Attributes,
+			Count:        fsTemplate.Count,
+			ProviderType: fsTemplate.ProviderType,
+			SizeMiB:      fsTemplate.SizeMiB,
+			StorageName:  fsTemplate.StorageName,
 		}
 		retVal = append(retVal, mountTemplate)
 	}
