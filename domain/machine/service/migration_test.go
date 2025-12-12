@@ -106,6 +106,7 @@ func (s *migrationServiceSuite) TestCreateMachine(c *tc.C) {
 	s.state.EXPECT().InsertMigratingMachine(gomock.Any(), "666", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, machineName string, args machine.CreateMachineArgs) error {
 			expectedUUID = args.MachineUUID
+			c.Check(args.NetNodeUUID, tc.Not(tc.Equals), "")
 			return nil
 		})
 
@@ -124,6 +125,7 @@ func (s *migrationServiceSuite) TestCreateMachineSuccessNonce(c *tc.C) {
 		DoAndReturn(func(ctx context.Context, machineName string, args machine.CreateMachineArgs) error {
 			expectedUUID = args.MachineUUID
 			c.Check(*args.Nonce, tc.Equals, "foo")
+			c.Check(args.NetNodeUUID, tc.Not(tc.Equals), "")
 			return nil
 		})
 

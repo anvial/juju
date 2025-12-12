@@ -119,6 +119,7 @@ func (st *State) InsertMigratingMachine(ctx context.Context, machineName string,
 		}
 		return CreateMachineWithName(ctx, tx, st, st.clock, machineName, CreateMachineArgs{
 			MachineUUID: args.MachineUUID.String(),
+			NetNodeUUID: args.NetNodeUUID.String(),
 			Platform:    args.Platform,
 			Nonce:       args.Nonce,
 		})

@@ -40,6 +40,10 @@ type CreateMachineArgs struct {
 	// Platform is the deployment platform for the machine being created.
 	Platform deployment.Platform
 
+	// NetNodeUUID represents the uuid of the new machines net node that is
+	// created.
+	NetNodeUUID network.NetNodeUUID
+
 	// Nonce is an optional nonce to associate with the machine being created.
 	Nonce *string
 }
