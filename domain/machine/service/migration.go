@@ -13,6 +13,7 @@ import (
 	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/domain/machine"
+	"github.com/juju/juju/domain/network"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -72,10 +73,15 @@ func (s *MigrationService) CreateMachine(ctx context.Context, machineName corema
 	// the state layer we don't keep regenerating.
 	machineUUID, err := createUUIDs()
 	if err != nil {
-		return "", errors.Errorf("creating machine %q: %w", machineName, err)
+		return "", errors.Errorf("creating UUID for machine %q: %w", machineName, err)
+	}
+	netNodeUUID, err := network.NewNetNodeUUID()
+	if err != nil {
+		return "", errors.Errorf("creating net node UUID for machine %q: %w", machineName, err)
 	}
 	err = s.st.InsertMigratingMachine(ctx, machineName.String(), machine.CreateMachineArgs{
 		MachineUUID: machineUUID,
+		NetNodeUUID: netNodeUUID,
 		Nonce:       nonce,
 	})
 	if err != nil {
