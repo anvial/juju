@@ -108,6 +108,34 @@ VALUES ($dbModelMigrating.uuid, $dbModelMigrating.model_uuid)
 	})
 }
 
+// IsImportingModel returns true if the model is being imported.
+func (s *ModelState) IsImportingModel(ctx context.Context) (bool, error) {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	var count count
+	migrationStmt, err := s.Prepare(`
+SELECT COUNT(*) AS &count.count
+FROM model_migrating
+JOIN model ON model.uuid = model_migrating.model_uuid`, count)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err = tx.Query(ctx, migrationStmt).Get(&count)
+		if err != nil {
+			return errors.Errorf("checking if model is importing: %w", err)
+		}
+
+		return nil
+	})
+
+	return count.Count > 0, err
+}
+
 // EnsureDefaultStoragePools is responsible for making sure that the set of
 // default storage pools provided exist in the model. If a storage pool already
 // exists in the model no change is performed to the pool.

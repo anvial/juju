@@ -1196,3 +1196,44 @@ func (s *modelSuite) TestSetModelStoragePoolsPoolNotFound(c *tc.C) {
 	err := st.SetModelStoragePools(c.Context(), setArgs)
 	c.Check(err, tc.ErrorIs, storageerrors.PoolNotFoundError)
 }
+
+func (s *modelSuite) TestIsImportingModelNotImporting(c *tc.C) {
+	// Populate the model table in the model database
+	modelUUID := uuid.MustNewUUID().String()
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+	err := s.ModelTxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type) 
+VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
+		`, modelUUID, "controller-uuid")
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	isImporting, err := st.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(isImporting, tc.Equals, false)
+}
+
+func (s *modelSuite) TestIsImportingModelImporting(c *tc.C) {
+	// Populate the model table in the model database
+	modelUUID := uuid.MustNewUUID().String()
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+	err := s.ModelTxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type) 
+VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
+		`, modelUUID, "controller-uuid"); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)
+		`, uuid.MustNewUUID().String(), modelUUID)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	isImporting, err := st.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(isImporting, tc.Equals, true)
+}

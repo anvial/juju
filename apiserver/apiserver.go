@@ -810,7 +810,7 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 	), "objects")
 
 	modelToolsUploadHandler := srv.monitoredHandler(newToolsUploadHandler(
-		BlockCheckerGetterForServices(httpCtxt.domainServicesForRequest),
+		BlockCheckerGetterForServices(httpCtxt.domainServicesForRequestContext),
 		modelAgentBinaryStoreForHTTPContext(httpCtxt),
 	), "tools")
 
@@ -836,7 +836,7 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 		return httpCtxt.authenticatedTagFromRequest(req, tagKinds...)
 	}
 	resourceChangeAllowedFunc := func(ctx context.Context) error {
-		serviceFactory, err := httpCtxt.domainServicesForRequest(ctx)
+		serviceFactory, err := httpCtxt.domainServicesForRequestContext(ctx)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -850,8 +850,8 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 	resourcesHandler := srv.monitoredHandler(handlersresources.NewResourceHandler(
 		resourceAuthFunc,
 		resourceChangeAllowedFunc,
-		&resourceServiceGetter{ctxt: httpCtxt},
-		&resourcesApplicationServiceGetter{ctxt: httpCtxt},
+		&resourcesResourceServiceGetter{domainServiceForRequest: httpCtxt.domainServicesForRequest},
+		&resourcesApplicationServiceGetter{domainServiceForRequest: httpCtxt.domainServicesForRequest},
 		resourcesdownload.NewDownloader(logger.Child("resourcedownloader"), resourcesdownload.DefaultFileSystem()),
 		logger,
 	), "applications")
@@ -866,7 +866,7 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 			return nil, errors.Trace(err)
 		}
 
-		domainServices, err := httpCtxt.domainServicesForRequest(req.Context())
+		domainServices, err := httpCtxt.domainServicesForRequest(req)
 		if err != nil {
 			return nil, errors.Trace(errors.Annotate(err, "cannot get domain services for unit resource request"))
 		}
@@ -899,11 +899,12 @@ func (srv *Server) endpoints() ([]apihttp.Endpoint, error) {
 		objects.CharmURLFromLocatorDuringMigration,
 	), "charms")
 	migrateToolsUploadHandler := srv.monitoredHandler(newToolsUploadHandler(
-		BlockCheckerGetterForServices(httpCtxt.domainServicesForRequest),
+		BlockCheckerGetterForServices(httpCtxt.domainServicesForRequestContext),
 		migratingAgentBinaryStoreForHTTPContext(httpCtxt),
 	), "tools")
 	resourcesMigrationUploadHandler := srv.monitoredHandler(handlersresources.NewResourceMigrationUploadHandler(
-		&migratingResourceServiceGetter{ctxt: httpCtxt},
+		&resourcesModelServiceGetter{domainServiceForRequest: httpCtxt.domainServicesDuringMigrationForRequest},
+		&resourcesResourceServiceGetter{domainServiceForRequest: httpCtxt.domainServicesDuringMigrationForRequest},
 		logger,
 	), "applications")
 	registerHandler := srv.monitoredHandler(&registerUserHandler{
@@ -1373,7 +1374,7 @@ type applicationServiceGetter struct {
 }
 
 func (a *applicationServiceGetter) Application(r *http.Request) (objects.ApplicationService, error) {
-	domainServices, err := a.ctxt.domainServicesForRequest(r.Context())
+	domainServices, err := a.ctxt.domainServicesForRequest(r)
 	if err != nil {
 		return nil, internalerrors.Capture(err)
 	}
@@ -1406,25 +1407,26 @@ func (a *objectStoreServiceGetter) ObjectStore(r *http.Request) (objects.ObjectS
 	return objectStore, nil
 }
 
-type resourceServiceGetter struct {
-	ctxt httpContext
+type domainServiceGetter func(r *http.Request) (services.DomainServices, error)
+
+type resourcesModelServiceGetter struct {
+	domainServiceForRequest domainServiceGetter
 }
 
-func (a *resourceServiceGetter) Resource(r *http.Request) (handlersresources.ResourceService, error) {
-	domainServices, err := a.ctxt.domainServicesForRequest(r.Context())
+func (m *resourcesModelServiceGetter) Model(r *http.Request) (handlersresources.ModelService, error) {
+	domainServices, err := m.domainServiceForRequest(r)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-
-	return domainServices.Resource(), nil
+	return domainServices.ModelInfo(), nil
 }
 
 type resourcesApplicationServiceGetter struct {
-	ctxt httpContext
+	domainServiceForRequest domainServiceGetter
 }
 
 func (a *resourcesApplicationServiceGetter) Application(r *http.Request) (handlersresources.ApplicationService, error) {
-	domainServices, err := a.ctxt.domainServicesForRequest(r.Context())
+	domainServices, err := a.domainServiceForRequest(r)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -1432,12 +1434,12 @@ func (a *resourcesApplicationServiceGetter) Application(r *http.Request) (handle
 	return domainServices.Application(), nil
 }
 
-type migratingResourceServiceGetter struct {
-	ctxt httpContext
+type resourcesResourceServiceGetter struct {
+	domainServiceForRequest domainServiceGetter
 }
 
-func (a *migratingResourceServiceGetter) Resource(r *http.Request) (handlersresources.ResourceService, error) {
-	domainServices, err := a.ctxt.domainServicesDuringMigrationForRequest(r)
+func (a *resourcesResourceServiceGetter) Resource(r *http.Request) (handlersresources.ResourceService, error) {
+	domainServices, err := a.domainServiceForRequest(r)
 	if err != nil {
 		return nil, internalerrors.Capture(err)
 	}

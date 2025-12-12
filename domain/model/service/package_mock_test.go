@@ -860,6 +860,45 @@ func (c *MockModelStateIsControllerModelCall) DoAndReturn(f func(context.Context
 	return c
 }
 
+// IsImportingModel mocks base method.
+func (m *MockModelState) IsImportingModel(arg0 context.Context) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsImportingModel", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsImportingModel indicates an expected call of IsImportingModel.
+func (mr *MockModelStateMockRecorder) IsImportingModel(arg0 any) *MockModelStateIsImportingModelCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsImportingModel", reflect.TypeOf((*MockModelState)(nil).IsImportingModel), arg0)
+	return &MockModelStateIsImportingModelCall{Call: call}
+}
+
+// MockModelStateIsImportingModelCall wrap *gomock.Call
+type MockModelStateIsImportingModelCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockModelStateIsImportingModelCall) Return(arg0 bool, arg1 error) *MockModelStateIsImportingModelCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockModelStateIsImportingModelCall) Do(f func(context.Context) (bool, error)) *MockModelStateIsImportingModelCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockModelStateIsImportingModelCall) DoAndReturn(f func(context.Context) (bool, error)) *MockModelStateIsImportingModelCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetModelConstraints mocks base method.
 func (m *MockModelState) SetModelConstraints(arg0 context.Context, arg1 constraints0.Constraints) error {
 	m.ctrl.T.Helper()
