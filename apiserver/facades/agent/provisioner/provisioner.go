@@ -72,9 +72,10 @@ type ProvisionerAPI struct {
 
 	// Hold on to the controller UUID, as we'll reuse it for a lot of
 	// calls.
-	controllerUUID string
-	modelName      string
-	modelUUID      coremodel.UUID
+	controllerUUID    string
+	modelName         string
+	modelUUID         coremodel.UUID
+	isControllerModel bool
 }
 
 // MakeProvisionerAPI creates a new server-side ProvisionerAPI facade.
@@ -163,6 +164,7 @@ func MakeProvisionerAPI(stdCtx context.Context, ctx facade.ModelContext) (*Provi
 			externalControllerService,
 			modelService,
 		),
+		isControllerModel:          ctx.IsControllerModelScoped(),
 		networkService:             networkService,
 		controllerConfigService:    controllerConfigService,
 		agentProvisionerService:    agentProvisionerService,

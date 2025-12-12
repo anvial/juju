@@ -12,6 +12,8 @@ import (
 	"github.com/juju/tc"
 
 	coreapplication "github.com/juju/juju/core/application"
+	"github.com/juju/juju/core/arch"
+	"github.com/juju/juju/core/instance"
 	"github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/model"
 	modeltesting "github.com/juju/juju/core/model/testing"
@@ -21,6 +23,7 @@ import (
 	"github.com/juju/juju/domain/application/architecture"
 	"github.com/juju/juju/domain/application/charm"
 	applicationstate "github.com/juju/juju/domain/application/state"
+	"github.com/juju/juju/domain/constraints"
 	"github.com/juju/juju/domain/deployment"
 	domainmachine "github.com/juju/juju/domain/machine"
 	machinestate "github.com/juju/juju/domain/machine/state"
@@ -62,8 +65,8 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 	modelUUID := modeltesting.GenModelUUID(c)
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type)
-			VALUES (?, ?, "test", "prod", "iaas", "test-model", "ec2")
+INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type)
+VALUES (?, ?, "test", "prod", "iaas", "test-model", "ec2")
 		`, modelUUID.String(), coretesting.ControllerTag.Id())
 		return err
 	})
@@ -76,6 +79,13 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 			Channel: "24.04",
 			OSType:  deployment.Ubuntu,
 		},
+		Constraints: constraints.Constraints{
+			Arch: ptr(arch.AMD64),
+		},
+		InstanceID: ptr(instance.Id("foo")),
+		HardwareCharacteristics: instance.HardwareCharacteristics{
+			Arch: ptr(arch.AMD64),
+		},
 	})
 	c.Assert(err, tc.ErrorIsNil)
 	machineUUID0, err := machineSt.GetMachineUUID(c.Context(), machineNames0[0])
@@ -84,6 +94,13 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 		Platform: deployment.Platform{
 			Channel: "24.04",
 			OSType:  deployment.Ubuntu,
+		},
+		Constraints: constraints.Constraints{
+			Arch: ptr(arch.AMD64),
+		},
+		InstanceID: ptr(instance.Id("bar")),
+		HardwareCharacteristics: instance.HardwareCharacteristics{
+			Arch: ptr(arch.AMD64),
 		},
 	})
 	c.Assert(err, tc.ErrorIsNil)
@@ -95,6 +112,12 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 
 	s.appUUID = s.createApplicationWithRelations(c, appNames[0], "ep0", "ep1", "ep2")
 	s.unitUUID, s.unitName = s.createUnit(c, netNodeUUIDs[0], appNames[0])
+}
+
+func (s *stateSuite) TearDownTest(c *tc.C) {
+	s.ModelSuite.TearDownTest(c)
+
+	s.unitCount = 0
 }
 
 func (s *baseSuite) createApplicationWithRelations(c *tc.C, appName string, relations ...string) coreapplication.UUID {
@@ -127,6 +150,9 @@ func (s *baseSuite) createApplicationWithRelations(c *tc.C, appName string, rela
 				Revision:      1,
 				Source:        charm.LocalSource,
 			},
+			Constraints: constraints.Constraints{
+				Arch: ptr(arch.AMD64),
+			},
 		},
 	}, nil)
 	c.Assert(err, tc.ErrorIsNil)
@@ -136,23 +162,27 @@ func (s *baseSuite) createApplicationWithRelations(c *tc.C, appName string, rela
 // createUnit creates a new unit in state and returns its UUID. The unit is assigned
 // to the net node with uuid `netNodeUUID` and application with name `appName`.
 func (s *baseSuite) createUnit(c *tc.C, netNodeUUID, appName string) (coreunit.UUID, coreunit.Name) {
-	ctx := c.Context()
 	applicationSt := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 
-	appID, err := applicationSt.GetApplicationUUIDByName(ctx, appName)
+	appID, err := applicationSt.GetApplicationUUIDByName(c.Context(), appName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	// Ensure that we place the unit on the same machine as the net node.
-	var machineName machine.Name
+	var (
+		machineUUID machine.UUID
+		machineName machine.Name
+	)
 	err = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		err := tx.QueryRowContext(ctx, "SELECT name FROM machine WHERE net_node_uuid = ?", netNodeUUID).Scan(&machineName)
+		err := tx.QueryRowContext(ctx, `
+SELECT uuid, name FROM machine WHERE net_node_uuid = ?
+`, netNodeUUID).Scan(&machineUUID, &machineName)
 		return err
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
-	unitNames, _, err := applicationSt.AddIAASUnits(ctx, appID, application.AddIAASUnitArg{
+	unitNames, _, err := applicationSt.AddIAASUnits(c.Context(), appID, application.AddIAASUnitArg{
 		MachineNetNodeUUID: domainnetwork.NetNodeUUID(netNodeUUID),
-		MachineUUID:        tc.Must(c, machine.NewUUID),
+		MachineUUID:        machineUUID,
 		AddUnitArg: application.AddUnitArg{
 			NetNodeUUID: domainnetwork.NetNodeUUID(netNodeUUID),
 			Placement: deployment.Placement{
@@ -487,4 +517,8 @@ func (s *stateSuite) TestGetUnitUUIDNotFound(c *tc.C) {
 
 	_, err := st.GetUnitUUID(ctx, "blah")
 	c.Assert(err, tc.ErrorIs, porterrors.UnitNotFound)
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
