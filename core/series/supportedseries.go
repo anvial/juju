@@ -42,7 +42,9 @@ func WorkloadSeries(now time.Time, requestedSeries, imageStream string) (set.Str
 	// Noble is opt in for 2.9 so remove it
 	// from the default choices. The user can
 	// still use --force if they want noble.
+	seriesVersionsMutex.Lock()
 	delete(supported, Noble)
+	seriesVersionsMutex.Unlock()
 	return set.NewStrings(workloadSeries(supported, false)...), nil
 }
 
