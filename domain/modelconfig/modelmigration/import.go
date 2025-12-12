@@ -14,6 +14,7 @@ import (
 	"github.com/juju/juju/core/modelmigration"
 	"github.com/juju/juju/domain/modelconfig/service"
 	"github.com/juju/juju/domain/modelconfig/state"
+	modeldefaultsservice "github.com/juju/juju/domain/modeldefaults/service"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
 )
@@ -66,6 +67,7 @@ func (i *importOperation) Setup(scope modelmigration.Scope) error {
 	i.service = service.NewService(
 		i.defaultsProvider,
 		config.NoControllerAttributesValidator(),
+		modeldefaultsservice.ProviderModelConfigGetter(),
 		state.NewState(scope.ModelDB()))
 	return nil
 }

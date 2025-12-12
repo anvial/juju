@@ -6,8 +6,16 @@ package modeldefaults
 import (
 	"reflect"
 
+	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/config"
 )
+
+// ModelConfigProviderFunc describes a type that is able to return a
+// [environs.ModelConfigProvider] for the specified cloud type. If no
+// model config provider exists for the supplied cloud type then an error
+// is returned. If the cloud type provider does not support model config
+// then an error is returned.
+type ModelConfigProviderFunc func(string) (environs.ModelConfigProvider, error)
 
 // ModelDefaultAttributes represents a set of default values for
 // a given attribute. The values contain the schema default value,

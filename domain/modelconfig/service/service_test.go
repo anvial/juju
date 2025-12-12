@@ -63,7 +63,7 @@ func (s *serviceSuite) TestGetModelConfigContainsAgentInformation(c *tc.C) {
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), s.mockState)
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
 	cfg, err := svc.ModelConfig(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(cfg.AgentStream(), tc.Equals, coreagentbinary.AgentStreamReleased.String())
@@ -84,7 +84,7 @@ func (s *serviceSuite) TestUpdateModelConfigAgentStream(c *tc.C) {
 	)
 	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return("1.2.3", "released", nil)
 
-	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), s.mockState)
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
 	err := svc.UpdateModelConfig(
 		c.Context(),
 		map[string]any{
@@ -118,7 +118,7 @@ func (s *serviceSuite) TestUpdateModelConfigNoAgentStreamChange(c *tc.C) {
 		gomock.Any(),
 	)
 
-	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), s.mockState)
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
 	err := svc.UpdateModelConfig(
 		c.Context(),
 		map[string]any{
@@ -155,7 +155,7 @@ func (s *serviceSuite) TestSetModelConfig(c *tc.C) {
 		"logging-config": "<root>=INFO",
 	})
 
-	svc := NewService(defaults, config.ModelValidator(), s.mockState)
+	svc := NewService(defaults, config.ModelValidator(), nil, s.mockState)
 	err := svc.SetModelConfig(c.Context(), attrs)
 	c.Assert(err, tc.ErrorIsNil)
 }

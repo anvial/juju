@@ -81,21 +81,24 @@ type WatcherFactory interface {
 
 // Service defines the service for interacting with ModelConfig.
 type Service struct {
-	defaultsProvider ModelDefaultsProvider
-	modelValidator   config.Validator
-	st               State
+	defaultsProvider              ModelDefaultsProvider
+	modelValidator                config.Validator
+	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc
+	st                            State
 }
 
 // NewService creates a new ModelConfig service.
 func NewService(
 	defaultsProvider ModelDefaultsProvider,
 	modelValidator config.Validator,
+	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc,
 	st State,
 ) *Service {
 	return &Service{
-		defaultsProvider: defaultsProvider,
-		modelValidator:   modelValidator,
-		st:               st,
+		defaultsProvider:              defaultsProvider,
+		modelValidator:                modelValidator,
+		modelConfigProviderGetterFunc: modelConfigProviderGetterFunc,
+		st:                            st,
 	}
 }
 
@@ -114,7 +117,11 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 		return nil, errors.Errorf("getting agent version and stream for model config: %w", err)
 	}
 
-	altConfig := transform.Map(stConfig, func(k, v string) (string, any) { return k, v })
+	// Coerce provider-specific attributes from string to their proper types.
+	altConfig, err := s.deserializeMap(stConfig)
+	if err != nil {
+		return nil, errors.Errorf("coercing provider config attributes: %w", err)
+	}
 
 	// We add the agent version and stream to model config here. Over time we need
 	// to remove uses of agent version and stream from model config. We prefer
@@ -123,6 +130,59 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 	altConfig[config.AgentVersionKey] = agentVersion
 	altConfig[config.AgentStreamKey] = agentStream
 	return config.New(config.NoDefaults, altConfig)
+}
+
+// deserializeMap converts a map[string]string to map[string]any and coerces
+// any provider-specific values that are found in the provider's schema.
+func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
+	result := make(map[string]any, len(m))
+
+	// If we don't have a model config provider getter, just do basic string->any conversion
+	if s.modelConfigProviderGetterFunc == nil {
+		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+	}
+
+	// Get the cloud type from the config
+	cloudType, ok := m[config.TypeKey]
+	if !ok || cloudType == "" {
+		// No cloud type - just convert without coercion
+		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+	}
+
+	// Get the provider for this cloud type
+	provider, err := s.modelConfigProviderGetterFunc(cloudType)
+	if err != nil {
+		// Provider not found or doesn't support schema - graceful degradation
+		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+	}
+
+	if provider == nil {
+		// No provider available - just convert without coercion
+		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+	}
+
+	// Get the schema from the provider
+	fields := provider.ConfigSchema()
+	if fields == nil {
+		// No schema available - just convert without coercion
+		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+	}
+
+	for key, strVal := range m {
+		if field, ok := fields[key]; ok {
+			// This is a provider-specific attribute - coerce it to proper type
+			coercedVal, err := field.Coerce(strVal, []string{key})
+			if err != nil {
+				return nil, errors.Errorf("unable to coerce provider config key %q: %w", key, err)
+			}
+			result[key] = coercedVal
+		} else {
+			// Not a provider-specific attribute - keep as string
+			result[key] = strVal
+		}
+	}
+
+	return result, nil
 }
 
 // ModelConfigValues returns the config values for the model and the source of
@@ -418,14 +478,16 @@ type WatchableService struct {
 func NewWatchableService(
 	defaultsProvider ModelDefaultsProvider,
 	modelValidator config.Validator,
+	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc,
 	st State,
 	watcherFactory WatcherFactory,
 ) *WatchableService {
 	return &WatchableService{
 		Service: Service{
-			defaultsProvider: defaultsProvider,
-			modelValidator:   modelValidator,
-			st:               st,
+			defaultsProvider:              defaultsProvider,
+			modelValidator:                modelValidator,
+			modelConfigProviderGetterFunc: modelConfigProviderGetterFunc,
+			st:                            st,
 		},
 		watcherFactory: watcherFactory,
 	}

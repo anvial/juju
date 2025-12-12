@@ -13,6 +13,7 @@ import (
 	"github.com/juju/juju/domain/modelconfig/service"
 	"github.com/juju/juju/domain/modelconfig/state"
 	"github.com/juju/juju/domain/modeldefaults"
+	modeldefaultsservice "github.com/juju/juju/domain/modeldefaults/service"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
 )
@@ -50,6 +51,7 @@ func (e *exportOperation) Setup(scope modelmigration.Scope) error {
 		// no-op provider.
 		noopModelDefaultsProvider{},
 		config.ModelValidator(),
+		modeldefaultsservice.ProviderModelConfigGetter(),
 		state.NewState(scope.ModelDB()))
 	return nil
 }

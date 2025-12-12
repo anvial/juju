@@ -227,6 +227,7 @@ func (s *ModelServices) Config() *modelconfigservice.WatchableService {
 	return modelconfigservice.NewWatchableService(
 		defaultsProvider,
 		config.ModelValidator(),
+		modeldefaultsservice.ProviderModelConfigGetter(),
 		modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
 		s.modelWatcherFactory("modelconfig"),
 	)

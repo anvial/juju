@@ -35,13 +35,6 @@ type ModelDefaultsProvider interface {
 // ModelDefaultsProviderFunc is a func type that implements [ModelDefaultsProvider].
 type ModelDefaultsProviderFunc func(context.Context) (modeldefaults.Defaults, error)
 
-// ModelConfigProviderFunc describes a type that is able to return a
-// [environs.ModelConfigProvider] for the specified cloud type. If the no
-// model config provider exists for the supplied cloud type then a
-// [coreerrors.NotFound] error is returned. If the cloud type provider does not
-// support model config then a [coreerrors.NotSupported] error is returned.
-type ModelConfigProviderFunc func(string) (environs.ModelConfigProvider, error)
-
 // State is the model config state required by this service.
 type State interface {
 	// GetModelCloudUUID returns the cloud UUID for the given model.
@@ -116,7 +109,7 @@ type State interface {
 // Service defines a service for interacting with the underlying default
 // configuration options of a model.
 type Service struct {
-	modelConfigProviderGetter ModelConfigProviderFunc
+	modelConfigProviderGetter modeldefaults.ModelConfigProviderFunc
 	st                        State
 }
 
@@ -129,7 +122,7 @@ func (f ModelDefaultsProviderFunc) ModelDefaults(
 
 // NewService returns a new Service for interacting with model defaults state.
 func NewService(
-	modelConfigProviderGetter ModelConfigProviderFunc,
+	modelConfigProviderGetter modeldefaults.ModelConfigProviderFunc,
 	st State,
 ) *Service {
 	return &Service{
@@ -140,7 +133,7 @@ func NewService(
 
 // ProviderModelConfigGetter returns a [ModelConfigProviderFunc] for
 // retrieving provider based model config  values.
-func ProviderModelConfigGetter() ModelConfigProviderFunc {
+func ProviderModelConfigGetter() modeldefaults.ModelConfigProviderFunc {
 	return func(cloudType string) (environs.ModelConfigProvider, error) {
 		envProvider, err := environs.GlobalProviderRegistry().Provider(cloudType)
 		if errors.Is(err, coreerrors.NotFound) {
@@ -170,7 +163,7 @@ func ProviderModelConfigGetter() ModelConfigProviderFunc {
 func ProviderDefaults(
 	ctx context.Context,
 	cloudType string,
-	providerGetter ModelConfigProviderFunc,
+	providerGetter modeldefaults.ModelConfigProviderFunc,
 ) (map[string]any, error) {
 	configProvider, err := providerGetter(cloudType)
 	if errors.Is(err, coreerrors.NotFound) {
@@ -585,7 +578,7 @@ func (s *Service) modelCloudRegionDefaults(
 func coerceDefaultsToSchema(
 	strConfig map[string]string,
 	cloudType string,
-	providerGetter ModelConfigProviderFunc,
+	providerGetter modeldefaults.ModelConfigProviderFunc,
 ) (map[string]any, error) {
 	configProvider, err := providerGetter(cloudType)
 	if errors.Is(err, coreerrors.NotFound) {

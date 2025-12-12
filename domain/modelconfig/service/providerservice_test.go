@@ -36,7 +36,7 @@ func (s *providerServiceSuite) TestModelConfig(c *tc.C) {
 		nil,
 	)
 
-	svc := NewProviderService(s.mockState)
+	svc := NewProviderService(s.mockState, nil)
 	cfg, err := svc.ModelConfig(c.Context())
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(cfg.AllAttrs(), tc.DeepEquals, map[string]any{

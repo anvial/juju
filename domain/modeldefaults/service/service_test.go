@@ -15,6 +15,7 @@ import (
 	coreerrors "github.com/juju/juju/core/errors"
 	coremodel "github.com/juju/juju/core/model"
 	clouderrors "github.com/juju/juju/domain/cloud/errors"
+	"github.com/juju/juju/domain/modeldefaults"
 	"github.com/juju/juju/environs"
 )
 
@@ -32,7 +33,7 @@ func (s *serviceSuite) SetUpTest(c *tc.C) {
 	s.modelUUID = tc.Must0(c, coremodel.NewUUID)
 }
 
-func (s *serviceSuite) modelConfigProviderFunc(c *tc.C) ModelConfigProviderFunc {
+func (s *serviceSuite) modelConfigProviderFunc(c *tc.C) modeldefaults.ModelConfigProviderFunc {
 	return func(_ string) (environs.ModelConfigProvider, error) {
 		return s.modelConfigProvider, nil
 	}
