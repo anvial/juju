@@ -87,7 +87,7 @@ func (st *State) AddMachine(ctx context.Context, args domainmachine.AddMachineAr
 		InstanceID:              args.InstanceID,
 		HardwareCharacteristics: args.HardwareCharacteristics,
 	}
-	st.logger.Debugf(ctx, "placing machine %q with args: %#v", machineUUID, placeArgs)
+	st.logger.Debugf(ctx, "adding machine %q with args: %#v", machineUUID, placeArgs)
 
 	var machineNames []machine.Name
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {

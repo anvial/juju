@@ -638,7 +638,7 @@ func (st *InsertIAASUnitState) placeIAASUnitMachine(
 		NetNodeUUID: args.MachineNetNodeUUID,
 		MachineUUID: args.MachineUUID,
 	}
-	st.logger.Debugf(ctx, "placing unit with args: %#v", placeMachineArgs)
+	st.logger.Debugf(ctx, "placing machine %q for unit with args: %#v", args.MachineUUID, placeMachineArgs)
 
 	machineNames, err := machinestate.PlaceMachine(
 		ctx, tx, st, st.clock, placeMachineArgs,
