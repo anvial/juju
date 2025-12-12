@@ -492,20 +492,17 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 			{
 				MountPoint: "/bar/0",
 				ReadOnly:   true,
+				AttachTo:   "charm",
 			},
 			{
 				MountPoint: "/bar/1",
 				ReadOnly:   true,
-			},
-		},
-		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{
-			{
-				MountPoint: "/data/config/0",
-				ReadOnly:   true,
+				AttachTo:   "charm",
 			},
 			{
-				MountPoint: "/data/config/1",
+				MountPoint: "/data/config",
 				ReadOnly:   true,
+				AttachTo:   "web-server",
 			},
 		},
 		StorageName:  "config",
@@ -557,12 +554,12 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 			{
 				MountPoint: "/bar",
 				ReadOnly:   true,
+				AttachTo:   "charm",
 			},
-		},
-		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
 				MountPoint: "/data/config",
 				ReadOnly:   true,
+				AttachTo:   "web-server",
 			},
 		},
 		StorageName:  "config",
@@ -608,13 +605,13 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyWorkloadC
 			{
 				MountPoint: "/bar",
 				ReadOnly:   true,
+				AttachTo:   "charm",
 			},
 		},
-		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{},
-		StorageName:            "config",
-		Count:                  1,
-		SizeMiB:                1234,
-		ProviderType:           "foo",
+		StorageName:  "config",
+		Count:        1,
+		SizeMiB:      1234,
+		ProviderType: "foo",
 		Attributes: map[string]string{
 			"laz": "baz",
 		},
@@ -661,15 +658,15 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 			{
 				MountPoint: "/var/lib/juju/storage/config-0",
 				ReadOnly:   true,
+				AttachTo:   "charm",
 			},
-		},
-		// AttachmentsForWorkload doesn't default to `/var/lib/juju/storage/*`
-		// because the charm definition expects `containers[*].mounts[*].location`
-		// to have a value.
-		AttachmentsForWorkload: []storageprovisioning.FilesystemAttachmentTemplate{
+			// "web-server" doesn't default to `/var/lib/juju/storage/*`
+			// because the charm definition expects `containers[*].mounts[*].location`
+			// to have a value.
 			{
 				MountPoint: "/data/config",
 				ReadOnly:   true,
+				AttachTo:   "web-server",
 			},
 		},
 		StorageName:  "config",

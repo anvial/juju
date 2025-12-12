@@ -702,9 +702,11 @@ func (s *OpsSuite) TestAppAlive(c *tc.C) {
 			ResourceTags: map[string]string{
 				"rsc-foo": "rsc-bar",
 			},
-			Attachment: &storage.KubernetesFilesystemAttachmentParams{
-				ReadOnly: false,
-				Path:     "/charm-defined-location/data/0",
+			Attachments: []storage.KubernetesFilesystemAttachmentParams{
+				{
+					ReadOnly: false,
+					Path:     "/charm-defined-location/data/0",
+				},
 			},
 		}},
 		Devices:         []devices.KubernetesDeviceParams{},
