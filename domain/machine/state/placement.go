@@ -48,6 +48,7 @@ func PlaceMachine(
 			Platform:                args.Platform,
 			Nonce:                   args.Nonce,
 			Constraints:             args.Constraints,
+			InstanceID:              args.InstanceID,
 			HardwareCharacteristics: args.HardwareCharacteristics,
 		})
 		return []coremachine.Name{machineName}, errors.Capture(err)
@@ -196,7 +197,7 @@ VALUES ($insertMachine.*);
 		return errors.Errorf("inserting machine constraints: %w", err)
 	}
 
-	if err := insertMachineInstance(ctx, tx, preparer, args.MachineUUID, args.HardwareCharacteristics); err != nil {
+	if err := insertMachineInstance(ctx, tx, preparer, args.MachineUUID, args.InstanceID, args.HardwareCharacteristics); err != nil {
 		return errors.Errorf("inserting machine instance: %w", err)
 	}
 
@@ -307,10 +308,17 @@ func insertMachineInstance(
 	tx *sqlair.TX,
 	preparer domain.Preparer,
 	mUUID string,
+	instanceID *instance.Id,
 	hc instance.HardwareCharacteristics,
 ) error {
+	var instanceIDNull sql.Null[string]
+	if instanceID != nil {
+		instanceIDNull = sql.Null[string]{V: string(*instanceID), Valid: true}
+	}
+
 	instData := instanceData{
 		MachineUUID:    mUUID,
+		InstanceID:     instanceIDNull,
 		LifeID:         0,
 		Arch:           hc.Arch,
 		Mem:            hc.Mem,

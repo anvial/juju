@@ -188,6 +188,12 @@ func (mm *MachineManagerAPI) addOneMachine(ctx context.Context, p params.AddMach
 	if p.Nonce != "" {
 		n = &p.Nonce
 	}
+
+	var instanceID *instance.Id
+	if p.InstanceId != "" {
+		instanceID = &p.InstanceId
+	}
+
 	osType, err := encodeOSType(base.OS)
 	if err != nil {
 		return "", internalerrors.Errorf("invalid placement: %w", err)
@@ -200,6 +206,7 @@ func (mm *MachineManagerAPI) addOneMachine(ctx context.Context, p params.AddMach
 			OSType:  osType,
 		},
 		Directive:               parsedPlacement,
+		InstanceID:              instanceID,
 		HardwareCharacteristics: p.HardwareCharacteristics,
 	})
 

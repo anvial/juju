@@ -23,6 +23,10 @@ type CreateMachineArgs struct {
 	NetNodeUUID string
 	Platform    deployment.Platform
 	Nonce       *string
+
+	// InstanceID is the provider instance ID for the machine being created.
+	InstanceID *instance.Id
+
 	// HardwareCharacteristics contains the hardware characteristics for a
 	// manually provisioned machine.
 	HardwareCharacteristics instance.HardwareCharacteristics

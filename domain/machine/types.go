@@ -41,7 +41,11 @@ type AddMachineArgs struct {
 	Platform    deployment.Platform
 	Nonce       *string
 
-	// HardwareCharacteristics contains the hardware characteristics for a manually provisioned machine.
+	// InstanceID is the provider instance ID for the machine being added.
+	InstanceID *instance.Id
+
+	// HardwareCharacteristics contains the hardware characteristics for a
+	// manually provisioned machine.
 	HardwareCharacteristics instance.HardwareCharacteristics
 }
 
@@ -62,6 +66,9 @@ type PlaceMachineArgs struct {
 	NetNodeUUID network.NetNodeUUID
 
 	Nonce *string
+
+	// InstanceID is the provider instance ID for the machine being placed.
+	InstanceID *instance.Id
 
 	// HardwareCharacteristics contains the hardware characteristics for a manually provisioned machine.
 	HardwareCharacteristics instance.HardwareCharacteristics
