@@ -22,6 +22,24 @@ import (
 	domaintesting "github.com/juju/juju/domain/storageprovisioning/testing"
 )
 
+// applicationContainerParams represents the type to add a new application
+// container to the DB. This is part of seeding the DB with data for the tests
+// to run.
+type applicationContainerParams struct {
+	appName           string
+	containerKey      string
+	containerResource string
+	containerMounts   []mounts
+}
+
+// mounts represents the mount point a container is requesting.
+type mounts struct {
+	index        string
+	containerKey string
+	storageName  string
+	location     string
+}
+
 // filesystemSuite provides a set of tests for asserting the state interface
 // for filesystems in the model.
 type filesystemSuite struct {
@@ -1148,7 +1166,25 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMountPointSet(c *tc.C
 // TestGetContainerMountsForCharm tests fetching the container mounts for
 // a given charm UUID.
 func (s *filesystemSuite) TestGetContainerMountsForApplication(c *tc.C) {
-	appUUID, _ := s.newApplicationContainer(c)
+	appUUID, _ := s.newApplicationContainer(c, applicationContainerParams{
+		appName:           "web",
+		containerKey:      "web-server",
+		containerResource: "web-resource",
+		containerMounts: []mounts{
+			{
+				index:        "0",
+				containerKey: "web-server",
+				storageName:  "cert",
+				location:     "/data/cert",
+			},
+			{
+				index:        "1",
+				containerKey: "web-server",
+				storageName:  "config",
+				location:     "/data/config",
+			},
+		},
+	})
 
 	st := NewState(s.TxnRunnerFactory())
 
@@ -1368,22 +1404,24 @@ VALUES (?, ?, 0, 0)
 	return fsUUID, fsID
 }
 
-// newCharmContainer creates a new charm container and its mount locations.
+// newApplicationContainer creates a new charm container and its mount locations.
 // The application and charm UUID is returned.
-func (s *filesystemSuite) newApplicationContainer(c *tc.C) (application.UUID, corecharm.ID) {
-	applicationUUID, charmUUID := s.newApplication(c, "foo")
+func (s *filesystemSuite) newApplicationContainer(c *tc.C, param applicationContainerParams) (application.UUID, corecharm.ID) {
+	applicationUUID, charmUUID := s.newApplication(c, param.appName)
 
 	_, err := s.DB().Exec(`
 INSERT INTO charm_container (charm_uuid, "key", resource)
-VALUES (?, 'web-server', 'foo-resource')
-`, charmUUID)
+VALUES (?, ?, ?)
+`, charmUUID, param.containerKey, param.containerResource)
 	c.Check(err, tc.ErrorIsNil)
 
-	_, err = s.DB().Exec(`
+	for _, mount := range param.containerMounts {
+		_, err = s.DB().Exec(`
 INSERT INTO charm_container_mount (array_index, charm_uuid, charm_container_key, storage, location)
-VALUES (1, ?, 'web-server', 'config', '/data/config'), (0, ?, 'web-server', 'cert', '/data/cert')
-`, charmUUID, charmUUID)
-	c.Check(err, tc.ErrorIsNil)
+VALUES (?, ?, ?, ?, ?)
+`, mount.index, charmUUID, mount.containerKey, mount.storageName, mount.location)
+		c.Check(err, tc.ErrorIsNil)
+	}
 
 	return application.UUID(applicationUUID), corecharm.ID(charmUUID)
 }
