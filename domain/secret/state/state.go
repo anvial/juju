@@ -153,7 +153,7 @@ func (st State) CheckApplicationSecretLabelExists(ctx domain.AtomicContext, appU
 	var exists bool
 	err := domain.Run(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
-		exists, err = st.checkApplicationSecretLabelExists(ctx, tx, appUUID, label)
+		exists, err = st.checkApplicationSecretLabelExists(ctx, tx, appUUID, label, "")
 		return errors.Capture(err)
 	})
 	if err != nil {
@@ -162,8 +162,13 @@ func (st State) CheckApplicationSecretLabelExists(ctx domain.AtomicContext, appU
 	return exists, nil
 }
 
-func (st State) checkApplicationSecretLabelExists(ctx context.Context, tx *sqlair.TX, appUUID coreapplication.UUID, label string) (bool, error) {
-	input := secretApplicationOwner{Label: label, ApplicationUUID: appUUID.String()}
+// checkApplicationSecretLabelExists checks if a given secret label exists for
+// an application within the database context.
+// It returns true if the label exists and is used by another secret other than the
+// one with the provided ID (if any).
+func (st State) checkApplicationSecretLabelExists(ctx context.Context, tx *sqlair.TX, appUUID coreapplication.UUID,
+	label, secretID string) (bool, error) {
+	input := secretApplicationOwner{SecretID: secretID, Label: label, ApplicationUUID: appUUID.String()}
 	count := count{}
 	// TODO(secrets) - we check using 2 queries, but should do in DDL
 	checkLabelExistsSQL := `
@@ -179,7 +184,8 @@ FROM (
        JOIN unit u ON u.uuid = unit_uuid
     WHERE  label = $secretApplicationOwner.label
     AND    u.application_uuid = $secretApplicationOwner.application_uuid
-)`
+)
+WHERE secret_id != $secretApplicationOwner.secret_id`
 
 	checkExistsStmt, err := st.Prepare(checkLabelExistsSQL, input, count)
 	if err != nil {
@@ -199,7 +205,7 @@ func (st State) CheckUnitSecretLabelExists(ctx domain.AtomicContext, unitUUID co
 	var exists bool
 	err := domain.Run(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
-		exists, err = st.checkUnitSecretLabelExists(ctx, tx, unitUUID, label)
+		exists, err = st.checkUnitSecretLabelExists(ctx, tx, unitUUID, label, "")
 		return errors.Capture(err)
 	})
 	if err != nil {
@@ -210,8 +216,12 @@ func (st State) CheckUnitSecretLabelExists(ctx domain.AtomicContext, unitUUID co
 	return exists, nil
 }
 
-func (st State) checkUnitSecretLabelExists(ctx context.Context, tx *sqlair.TX, unitUUID coreunit.UUID, label string) (bool, error) {
-	input := secretUnitOwner{Label: label, UnitUUID: unitUUID.String()}
+// checkUnitSecretLabelExists checks if a given secret label exists for
+// a unit within the database context.
+// It returns true if the label exists and is used by another secret than the
+// one with the provided ID (if any).
+func (st State) checkUnitSecretLabelExists(ctx context.Context, tx *sqlair.TX, unitUUID coreunit.UUID, label string, secretID string) (bool, error) {
+	input := secretUnitOwner{SecretID: secretID, Label: label, UnitUUID: unitUUID.String()}
 	count := count{}
 	// TODO(secrets) - we check using 2 queries, but should do in DDL
 	checkLabelExistsSQL := `
@@ -227,7 +237,8 @@ FROM (
     FROM   secret_unit_owner AS suo
     WHERE  label = $secretUnitOwner.label
     AND    suo.unit_uuid = $secretUnitOwner.unit_uuid
-)`
+)
+WHERE secret_id != $secretUnitOwner.secret_id`
 
 	checkExistsStmt, err := st.Prepare(checkLabelExistsSQL, input, count)
 	if err != nil {
@@ -247,7 +258,7 @@ func (st State) CheckUserSecretLabelExists(ctx domain.AtomicContext, label strin
 	var exists bool
 	err := domain.Run(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		var err error
-		exists, err = st.checkUserSecretLabelExists(ctx, tx, label)
+		exists, err = st.checkUserSecretLabelExists(ctx, tx, label, "")
 		return errors.Capture(err)
 	})
 	if err != nil {
@@ -256,13 +267,18 @@ func (st State) CheckUserSecretLabelExists(ctx domain.AtomicContext, label strin
 	return exists, nil
 }
 
-func (st State) checkUserSecretLabelExists(ctx context.Context, tx *sqlair.TX, label string) (bool, error) {
-	input := secretOwner{Label: label}
+// checkUserSecretLabelExists checks if a given secret label exists for
+// a user within the database context.
+// It returns true if the label exists and is used by another secret than the
+// one with the provided ID (if any).
+func (st State) checkUserSecretLabelExists(ctx context.Context, tx *sqlair.TX, label string, secretID string) (bool, error) {
+	input := secretOwner{SecretID: secretID, Label: label}
 	count := count{}
 	checkLabelExistsSQL := `
 SELECT COUNT(*) AS &count.num
 FROM   secret_model_owner
-WHERE  label = $secretOwner.label`
+WHERE  label = $secretOwner.label
+AND    secret_id != $secretOwner.secret_id`
 
 	checkExistsStmt, err := st.Prepare(checkLabelExistsSQL, input, count)
 	if err != nil {
@@ -442,11 +458,11 @@ func (st State) checkSecretLabelConflict(ctx context.Context, tx *sqlair.TX, uri
 	var labelExists bool
 	switch kind := owner.Kind; kind {
 	case domainsecret.ApplicationOwner:
-		labelExists, err = st.checkApplicationSecretLabelExists(ctx, tx, coreapplication.UUID(owner.UUID), label)
+		labelExists, err = st.checkApplicationSecretLabelExists(ctx, tx, coreapplication.UUID(owner.UUID), label, uri.ID)
 	case domainsecret.UnitOwner:
-		labelExists, err = st.checkUnitSecretLabelExists(ctx, tx, coreunit.UUID(owner.UUID), label)
+		labelExists, err = st.checkUnitSecretLabelExists(ctx, tx, coreunit.UUID(owner.UUID), label, uri.ID)
 	case domainsecret.ModelOwner:
-		labelExists, err = st.checkUserSecretLabelExists(ctx, tx, label)
+		labelExists, err = st.checkUserSecretLabelExists(ctx, tx, label, uri.ID)
 	default:
 		// Should never happen.
 		return errors.Errorf("unexpected secret owner kind %q for secret %q", kind, uri.ID)

@@ -2081,6 +2081,39 @@ func (s *stateSuite) TestUpdateUserSecretFailedLabelAlreadyExists(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, secreterrors.SecretLabelAlreadyExists)
 }
 
+func (s *stateSuite) TestUpdateUserSecretExistingLabelSameID(c *tc.C) {
+	ctx := c.Context()
+
+	// Create a user secret with label "dup" on a given URI (ID).
+	uri := coresecrets.NewURI()
+	sp := domainsecret.UpsertSecretParams{
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+		Label:       ptr("dup"),
+		Description: ptr("first"),
+		Data:        coresecrets.SecretData{"k": "v"},
+	}
+	err := createUserSecret(ctx, s.state, 1, uri, sp)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Update the same secret (same ID) keeping the same label. This should work.
+	err = s.state.UpdateSecret(ctx, uri, domainsecret.UpsertSecretParams{
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+		Label:       ptr("dup"),
+		Description: ptr("updated"),
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	md, err := s.state.GetSecret(ctx, uri)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(md.Version, tc.Equals, 1)
+	c.Assert(md.Label, tc.Equals, "dup")
+	c.Assert(md.Description, tc.Equals, "updated")
+	c.Assert(md.LatestRevision, tc.Equals, 1)
+
+	now := time.Now()
+	c.Assert(md.UpdateTime, tc.Almost, now)
+}
+
 func (s *stateSuite) TestUpdateUserSecretFailedRevisionIDMissing(c *tc.C) {
 
 	sp := domainsecret.UpsertSecretParams{
@@ -2173,6 +2206,41 @@ func (s *stateSuite) TestUpdateApplicationSecretFailedLabelAlreadyExists(c *tc.C
 	c.Assert(err, tc.ErrorIs, secreterrors.SecretLabelAlreadyExists)
 }
 
+func (s *stateSuite) TestUpdateApplicationSecretExistingLabelSameID(c *tc.C) {
+	s.setupUnits(c, "mysql")
+
+	ctx := c.Context()
+
+	// Create an application secret with label "dup" on a given URI (ID).
+	uri := coresecrets.NewURI()
+	sp := domainsecret.UpsertSecretParams{
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+		Label:       ptr("dup"),
+		Description: ptr("first"),
+		Data:        coresecrets.SecretData{"k": "v"},
+	}
+	err := createCharmApplicationSecret(ctx, s.state, 1, uri, "mysql", sp)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Update the same secret (same ID) keeping the same label. This should work.
+	err = s.state.UpdateSecret(ctx, uri, domainsecret.UpsertSecretParams{
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+		Label:       ptr("dup"),
+		Description: ptr("updated"),
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	md, err := s.state.GetSecret(ctx, uri)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(md.Version, tc.Equals, 1)
+	c.Assert(md.Label, tc.Equals, "dup")
+	c.Assert(md.Description, tc.Equals, "updated")
+	c.Assert(md.LatestRevision, tc.Equals, 1)
+
+	now := time.Now()
+	c.Assert(md.UpdateTime, tc.Almost, now)
+}
+
 func (s *stateSuite) TestUpdateCharmUnitSecretMetadataOnly(c *tc.C) {
 
 	s.setupUnits(c, "mysql")
@@ -2241,6 +2309,41 @@ func (s *stateSuite) TestUpdateUnitSecretFailedLabelAlreadyExists(c *tc.C) {
 		Label:      ptr("dup"),
 	})
 	c.Assert(err, tc.ErrorIs, secreterrors.SecretLabelAlreadyExists)
+}
+
+func (s *stateSuite) TestUpdateUnitSecretExistingLabelSameID(c *tc.C) {
+	s.setupUnits(c, "mysql")
+
+	ctx := c.Context()
+
+	// Create a unit secret with label "dup" on a given URI (ID).
+	uri := coresecrets.NewURI()
+	sp := domainsecret.UpsertSecretParams{
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+		Label:       ptr("dup"),
+		Description: ptr("first"),
+		Data:        coresecrets.SecretData{"k": "v"},
+	}
+	err := createCharmUnitSecret(ctx, s.state, 1, uri, "mysql/0", sp)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Update the same secret (same ID) keeping the same label. This should work.
+	err = s.state.UpdateSecret(ctx, uri, domainsecret.UpsertSecretParams{
+		RevisionID:  ptr(uuid.MustNewUUID().String()),
+		Label:       ptr("dup"),
+		Description: ptr("updated"),
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	md, err := s.state.GetSecret(ctx, uri)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(md.Version, tc.Equals, 1)
+	c.Assert(md.Label, tc.Equals, "dup")
+	c.Assert(md.Description, tc.Equals, "updated")
+	c.Assert(md.LatestRevision, tc.Equals, 1)
+
+	now := time.Now()
+	c.Assert(md.UpdateTime, tc.Almost, now)
 }
 
 func fillDataForUpsertSecretParams(c *tc.C, p *domainsecret.UpsertSecretParams, data coresecrets.SecretData) {
