@@ -361,7 +361,7 @@ func (e *manualEnviron) baseAndHardwareCharacteristics() (*instance.HardwareChar
 	}
 	// On retrieval of hardware characteristics for constraints validation, expected the check
 	// to be run as the Ubuntu user.
-	hw, base, err := sshprovisioner.DetectBaseAndHardwareCharacteristics(e.host, "", "")
+	hw, base, err := sshprovisioner.DetectBaseAndHardwareCharacteristics(e.host)
 	if err != nil {
 		return nil, corebase.Base{}, errors.Trace(err)
 	}

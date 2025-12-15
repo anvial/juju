@@ -104,7 +104,14 @@ fi`
 // by connecting to the machine and executing a bash script.
 var DetectBaseAndHardwareCharacteristics = detectBaseAndHardwareCharacteristics
 
-func detectBaseAndHardwareCharacteristics(host string, provisioningUserName string, provisioningUserPrivateKey string) (hc instance.HardwareCharacteristics, base corebase.Base, err error) {
+func detectBaseAndHardwareCharacteristics(host string) (hc instance.HardwareCharacteristics, base corebase.Base, err error) {
+	logger.Infof("Detecting base and characteristics on %s", host)
+	cmd := ssh.Command("ubuntu@"+host, []string{"/bin/bash"}, nil)
+
+	return runDetectBaseAndHardwareCharacteristicsScript(cmd, detectionScript)
+}
+
+func detectBaseAndHardwareCharacteristicsAsUser(host string, provisioningUserName string, provisioningUserPrivateKey string) (hc instance.HardwareCharacteristics, base corebase.Base, err error) {
 	// Build SSH options with provisioning private key if provided.
 	var options ssh.Options
 	if provisioningUserPrivateKey != "" {
@@ -118,6 +125,11 @@ func detectBaseAndHardwareCharacteristics(host string, provisioningUserName stri
 	}
 	logger.Infof("Detecting base and characteristics on %s", host)
 	cmd := ssh.Command(sshHost, []string{"/bin/bash"}, &options)
+
+	return runDetectBaseAndHardwareCharacteristicsScript(cmd, detectionScript)
+}
+
+func runDetectBaseAndHardwareCharacteristicsScript(cmd *ssh.Cmd, script string) (hc instance.HardwareCharacteristics, base corebase.Base, err error) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -276,7 +288,7 @@ func gatherMachineParams(hostname string, provisioningUserName string, privateKe
 		return nil, manual.ErrProvisioned
 	}
 
-	hc, machineBase, err := DetectBaseAndHardwareCharacteristics(hostname, provisioningUserName, privateKey)
+	hc, machineBase, err := detectBaseAndHardwareCharacteristicsAsUser(hostname, provisioningUserName, privateKey)
 	if err != nil {
 		return nil, errors.Annotatef(err, "error detecting linux hardware characteristics")
 	}
