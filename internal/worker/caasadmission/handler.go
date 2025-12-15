@@ -154,7 +154,7 @@ func admissionHandler(logger Logger, rbacMapper RBACMapper, labelVersion constan
 		}
 
 		patchJSON, err := json.Marshal(
-			patchForLabels(metaObj.Labels, appName, labelVersion, controllerUUID, modelUUID, modelName))
+			patchForLabels(logger, metaObj.Labels, appName, labelVersion, controllerUUID, modelUUID, modelName))
 		if err != nil {
 			http.Error(res,
 				fmt.Sprintf("marshalling patch object to json: %v", err),
@@ -192,6 +192,7 @@ func patchEscape(s string) string {
 }
 
 func patchForLabels(
+	logger Logger,
 	labels map[string]string,
 	appName string,
 	labelVersion constants.LabelVersion,
@@ -210,6 +211,10 @@ func patchForLabels(
 	}
 
 	for k, v := range neededLabels {
+		if k == constants.LabelKubernetesAppManaged {
+			logger.Debugf("skipping mutation for label key %q for app name: %q", k, appName)
+			continue
+		}
 		if extVal, found := labels[k]; found && extVal != v {
 			patches = append(patches, patchOperation{
 				Op:    replaceOp,

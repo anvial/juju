@@ -255,10 +255,9 @@ func (l *LabelSuite) TestLabelsForAppCreated(c *gc.C) {
 			ModelUUID:      "d0gf00d",
 			ControllerUUID: "badf00d",
 			ExpectedLabels: labels.Set{
-				"app.juju.is/created-by":       "tlm-boom",
-				"app.kubernetes.io/managed-by": "juju",
-				"model.juju.is/id":             "d0gf00d",
-				"model.juju.is/name":           "tlm-model",
+				"app.juju.is/created-by": "tlm-boom",
+				"model.juju.is/id":       "d0gf00d",
+				"model.juju.is/name":     "tlm-model",
 			},
 			LabelVersion: constants.LabelVersion2,
 		},
