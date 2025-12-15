@@ -12,7 +12,6 @@ import (
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
-	"github.com/juju/juju/domain/modeldefaults"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
 )
@@ -43,13 +42,13 @@ type ProviderState interface {
 // panicking.
 type ProviderService struct {
 	st                            ProviderState
-	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc
+	modelConfigProviderGetterFunc ModelConfigProviderFunc
 }
 
 // NewProviderService creates a new ModelConfig service.
 func NewProviderService(
 	st ProviderState,
-	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc,
+	modelConfigProviderGetterFunc ModelConfigProviderFunc,
 ) *ProviderService {
 	return &ProviderService{
 		st:                            st,
@@ -142,7 +141,7 @@ type WatchableProviderService struct {
 // interacting with ModelConfig and the ability to create watchers.
 func NewWatchableProviderService(
 	st ProviderState,
-	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc,
+	modelConfigProviderGetterFunc ModelConfigProviderFunc,
 	watcherFactory WatcherFactory,
 ) *WatchableProviderService {
 	return &WatchableProviderService{

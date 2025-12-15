@@ -9,11 +9,13 @@ import (
 	"github.com/juju/collections/transform"
 
 	"github.com/juju/juju/core/changestream"
+	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
 	"github.com/juju/juju/domain/modelconfig/validators"
 	"github.com/juju/juju/domain/modeldefaults"
+	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
 )
@@ -25,6 +27,13 @@ type ModelDefaultsProvider interface {
 	// and its config.
 	ModelDefaults(context.Context) (modeldefaults.Defaults, error)
 }
+
+// ModelConfigProviderFunc describes a type that is able to return a
+// [environs.ModelConfigProvider] for the specified cloud type. If the no
+// model config provider exists for the supplied cloud type then a
+// [coreerrors.NotFound] error is returned. If the cloud type provider does not
+// support model config then a [coreerrors.NotSupported] error is returned.
+type ModelConfigProviderFunc func(string) (environs.ModelConfigProvider, error)
 
 // State represents the state entity for accessing and setting per
 // model configuration values.
@@ -83,7 +92,7 @@ type WatcherFactory interface {
 type Service struct {
 	defaultsProvider              ModelDefaultsProvider
 	modelValidator                config.Validator
-	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc
+	modelConfigProviderGetterFunc ModelConfigProviderFunc
 	st                            State
 }
 
@@ -91,7 +100,7 @@ type Service struct {
 func NewService(
 	defaultsProvider ModelDefaultsProvider,
 	modelValidator config.Validator,
-	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc,
+	modelConfigProviderGetterFunc ModelConfigProviderFunc,
 	st State,
 ) *Service {
 	return &Service{
@@ -137,47 +146,48 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 	result := make(map[string]any, len(m))
 
-	// If we don't have a model config provider getter, just do basic string->any conversion
+	// If we don't have a model config provider getter, just do basic
+	// string->any conversion.
 	if s.modelConfigProviderGetterFunc == nil {
 		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
 	}
 
-	// Get the cloud type from the config
+	// Get the cloud type from the config.
 	cloudType, ok := m[config.TypeKey]
 	if !ok || cloudType == "" {
-		// No cloud type - just convert without coercion
+		// No cloud type - just convert without coercion.
 		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
 	}
 
 	// Get the provider for this cloud type
 	provider, err := s.modelConfigProviderGetterFunc(cloudType)
 	if err != nil {
-		// Provider not found or doesn't support schema - graceful degradation
+		// Provider not found or doesn't support schema - graceful degradation.
 		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
 	}
 
 	if provider == nil {
-		// No provider available - just convert without coercion
+		// No provider available - just convert without coercion.
 		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
 	}
 
 	// Get the schema from the provider
 	fields := provider.ConfigSchema()
 	if fields == nil {
-		// No schema available - just convert without coercion
+		// No schema available - just convert without coercion.
 		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
 	}
 
 	for key, strVal := range m {
 		if field, ok := fields[key]; ok {
-			// This is a provider-specific attribute - coerce it to proper type
+			// This is a provider-specific attribute - coerce it to proper type.
 			coercedVal, err := field.Coerce(strVal, []string{key})
 			if err != nil {
 				return nil, errors.Errorf("unable to coerce provider config key %q: %w", key, err)
 			}
 			result[key] = coercedVal
 		} else {
-			// Not a provider-specific attribute - keep as string
+			// Not a provider-specific attribute - keep as string.
 			result[key] = strVal
 		}
 	}
@@ -478,7 +488,7 @@ type WatchableService struct {
 func NewWatchableService(
 	defaultsProvider ModelDefaultsProvider,
 	modelValidator config.Validator,
-	modelConfigProviderGetterFunc modeldefaults.ModelConfigProviderFunc,
+	modelConfigProviderGetterFunc ModelConfigProviderFunc,
 	st State,
 	watcherFactory WatcherFactory,
 ) *WatchableService {
@@ -490,6 +500,28 @@ func NewWatchableService(
 			st:                            st,
 		},
 		watcherFactory: watcherFactory,
+	}
+}
+
+// ProviderModelConfigGetter returns a ModelConfigProviderFunc that can be used
+// to get a ModelConfigProvider for a given cloud type.
+func ProviderModelConfigGetter() ModelConfigProviderFunc {
+	return func(cloudType string) (environs.ModelConfigProvider, error) {
+		envProvider, err := environs.GlobalProviderRegistry().Provider(cloudType)
+		if errors.Is(err, coreerrors.NotFound) {
+			return nil, errors.Errorf(
+				"no model config provider exists for cloud type %q", cloudType,
+			).Add(coreerrors.NotFound)
+		}
+
+		modelConfigProvider, supports := envProvider.(environs.ModelConfigProvider)
+		if !supports {
+			return nil, errors.Errorf(
+				"model config provider not supported for cloud type %q", cloudType,
+			).Add(coreerrors.NotSupported)
+		}
+
+		return modelConfigProvider, nil
 	}
 }
 

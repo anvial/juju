@@ -7,13 +7,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/juju/schema"
 	"github.com/juju/tc"
 	gomock "go.uber.org/mock/gomock"
 
 	coreagentbinary "github.com/juju/juju/core/agentbinary"
 	coremodel "github.com/juju/juju/core/model"
+	coreerrors "github.com/juju/juju/core/errors"
+	modeltesting "github.com/juju/juju/core/model/testing"
 	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/domain/modeldefaults"
+	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
 )
@@ -21,7 +25,8 @@ import (
 type ModelDefaultsProviderFunc func(context.Context) (modeldefaults.Defaults, error)
 
 type serviceSuite struct {
-	mockState *MockState
+	mockState               *MockState
+	mockModelConfigProvider *MockModelConfigProvider
 }
 
 func TestServiceSuite(t *testing.T) {
@@ -43,7 +48,17 @@ func noopDefaultsProvider() ModelDefaultsProvider {
 func (s *serviceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 	s.mockState = NewMockState(ctrl)
+	s.mockModelConfigProvider = NewMockModelConfigProvider(ctrl)
 	return ctrl
+}
+
+func (s *serviceSuite) modelConfigProviderFunc(cloudType string) ModelConfigProviderFunc {
+	return func(ct string) (environs.ModelConfigProvider, error) {
+		if ct != cloudType {
+			return nil, errors.Errorf("unknown cloud type %q", ct).Add(coreerrors.NotFound)
+		}
+		return s.mockModelConfigProvider, nil
+	}
 }
 
 // TestGetModelConfigContainsAgentInformation checks that the models agent
@@ -128,6 +143,121 @@ func (s *serviceSuite) TestUpdateModelConfigNoAgentStreamChange(c *tc.C) {
 	)
 
 	c.Assert(err, tc.ErrorIsNil)
+}
+
+// TestModelConfigWithProviderSchemaCoercion checks that provider-specific
+// config attributes are coerced from strings to their proper types based on
+// the provider's schema.
+func (s *serviceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey:   "wallyworld",
+			config.UUIDKey:   modelUUID.String(),
+			config.TypeKey:   "testprovider",
+			"provider-bool":  "true",
+			"provider-int":   "42",
+			"regular-string": "value",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(
+		schema.Fields{
+			"provider-bool": schema.Bool(),
+			"provider-int":  schema.Int(),
+		},
+	)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
+	cfg, err := svc.ModelConfig(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+
+	attrs := cfg.AllAttrs()
+	c.Check(attrs["provider-bool"], tc.Equals, true)
+	c.Check(attrs["provider-int"], tc.Equals, int64(42))
+	c.Check(attrs["regular-string"], tc.Equals, "value")
+}
+
+// TestModelConfigWithoutProviderGetter checks that ModelConfig works correctly
+// when no provider getter is supplied (graceful degradation).
+func (s *serviceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey: "wallyworld",
+			config.UUIDKey: modelUUID.String(),
+			config.TypeKey: "sometype",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
+	cfg, err := svc.ModelConfig(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(cfg.Name(), tc.Equals, "wallyworld")
+}
+
+// TestModelConfigWithProviderNotFound checks that ModelConfig gracefully
+// handles the case where the provider is not found.
+func (s *serviceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey: "wallyworld",
+			config.UUIDKey: modelUUID.String(),
+			config.TypeKey: "unknown",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
+	cfg, err := svc.ModelConfig(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(cfg.Name(), tc.Equals, "wallyworld")
+}
+
+// TestModelConfigWithProviderNoSchema checks that ModelConfig gracefully
+// handles the case where the provider has no schema.
+func (s *serviceSuite) TestModelConfigWithProviderNoSchema(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey: "wallyworld",
+			config.UUIDKey: modelUUID.String(),
+			config.TypeKey: "testprovider",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(nil)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
+	cfg, err := svc.ModelConfig(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(cfg.Name(), tc.Equals, "wallyworld")
 }
 
 func (s *serviceSuite) TestSetModelConfig(c *tc.C) {

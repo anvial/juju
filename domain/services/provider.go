@@ -15,7 +15,6 @@ import (
 	statemodel "github.com/juju/juju/domain/model/state/model"
 	modelconfigservice "github.com/juju/juju/domain/modelconfig/service"
 	modelconfigstate "github.com/juju/juju/domain/modelconfig/state"
-	modeldefaultsservice "github.com/juju/juju/domain/modeldefaults/service"
 )
 
 // ProviderServices provides access to the services required by the apiserver.
@@ -75,7 +74,7 @@ func (s *ProviderServices) Credential() *credentialservice.WatchableProviderServ
 func (s *ProviderServices) Config() *modelconfigservice.WatchableProviderService {
 	return modelconfigservice.NewWatchableProviderService(
 		modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
-		modeldefaultsservice.ProviderModelConfigGetter(),
+		modelconfigservice.ProviderModelConfigGetter(),
 		s.modelWatcherFactory("modelconfig"),
 	)
 }
