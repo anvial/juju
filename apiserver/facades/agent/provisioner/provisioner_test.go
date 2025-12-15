@@ -1803,7 +1803,7 @@ var _ = gc.Suite(&withImageMetadataSuite{})
 func (s *withImageMetadataSuite) SetUpTest(c *gc.C) {
 	s.ConfigAttrs = map[string]interface{}{
 		config.ContainerImageStreamKey:      "daily",
-		config.ContainerImageMetadataURLKey: "https://images.linuxcontainers.org/",
+		config.ContainerImageMetadataURLKey: "https://images.lxd.canonical.com/",
 	}
 	s.setUpTest(c, false)
 }
@@ -1813,7 +1813,7 @@ func (s *withImageMetadataSuite) TestContainerManagerConfigImageMetadata(c *gc.C
 	c.Assert(cfg, jc.DeepEquals, map[string]string{
 		container.ConfigModelUUID:           coretesting.ModelTag.Id(),
 		config.ContainerImageStreamKey:      "daily",
-		config.ContainerImageMetadataURLKey: "https://images.linuxcontainers.org/",
+		config.ContainerImageMetadataURLKey: "https://images.lxd.canonical.com/",
 		config.LXDSnapChannel:               "5.0/stable",
 		config.ContainerNetworkingMethod:    config.ConfigDefaults()[config.ContainerNetworkingMethod].(string),
 	})

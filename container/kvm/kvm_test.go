@@ -196,13 +196,13 @@ func (s *KVMSuite) TestCreateContainerUsesSetImageMetadataURL(c *gc.C) {
 
 	s.manager, err = kvm.NewContainerManager(container.ManagerConfig{
 		container.ConfigModelUUID:           coretesting.ModelTag.Id(),
-		config.ContainerImageMetadataURLKey: "https://images.linuxcontainers.org",
+		config.ContainerImageMetadataURLKey: "https://images.lxd.canonical.com",
 	})
 	c.Assert(err, jc.ErrorIsNil)
 
 	inst := containertesting.CreateContainerWithMachineConfig(c, s.manager, instanceConfig)
 	startParams := kvm.ContainerFromInstance(inst).(*mock.MockContainer).StartParams
-	c.Assert(startParams.ImageDownloadURL, gc.Equals, "https://images.linuxcontainers.org")
+	c.Assert(startParams.ImageDownloadURL, gc.Equals, "https://images.lxd.canonical.com")
 }
 
 func (s *KVMSuite) TestImageAcquisitionUsesSimpleStream(c *gc.C) {
