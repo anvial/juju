@@ -149,35 +149,27 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 	// If we don't have a model config provider getter, just do basic
 	// string->any conversion.
 	if s.modelConfigProviderGetterFunc == nil {
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+		return stringMapToAny(m), nil
 	}
 
 	// Get the cloud type from the config.
 	cloudType, ok := m[config.TypeKey]
 	if !ok || cloudType == "" {
 		// No cloud type - just convert without coercion.
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+		return stringMapToAny(m), nil
 	}
 
 	// Get the provider for this cloud type
 	provider, err := s.modelConfigProviderGetterFunc(cloudType)
-	if err != nil {
+	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
+		return nil, errors.Capture(err)
+	} else if provider == nil {
 		// Provider not found or doesn't support schema - graceful degradation.
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
-	}
-
-	if provider == nil {
-		// No provider available - just convert without coercion.
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+		return stringMapToAny(m), nil
 	}
 
 	// Get the schema from the provider
 	fields := provider.ConfigSchema()
-	if fields == nil {
-		// No schema available - just convert without coercion.
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
-	}
-
 	for key, strVal := range m {
 		if field, ok := fields[key]; ok {
 			// This is a provider-specific attribute - coerce it to proper type.
@@ -193,6 +185,10 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 	}
 
 	return result, nil
+}
+
+func stringMapToAny(m map[string]string) map[string]any {
+	return transform.Map(m, func(k, v string) (string, any) { return k, v })
 }
 
 // ModelConfigValues returns the config values for the model and the source of
