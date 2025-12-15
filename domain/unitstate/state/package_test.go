@@ -32,7 +32,7 @@ type baseSuite struct {
 
 func (s *baseSuite) SetUpTest(c *tc.C) {
 	s.ModelSuite.SetUpTest(c)
-	s.state = NewState(s.TxnRunnerFactory())
+	s.state = NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
 
 	modelUUID := tc.Must(c, model.NewUUID)
 	s.query(c, `

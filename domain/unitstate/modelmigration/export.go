@@ -8,6 +8,7 @@ import (
 
 	"github.com/juju/description/v11"
 
+	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/unitstate"
@@ -17,8 +18,10 @@ import (
 )
 
 // RegisterExport registers the export operations with the given coordinator.
-func RegisterExport(coordinator Coordinator) {
-	coordinator.Add(&exportOperation{})
+func RegisterExport(coordinator Coordinator, log logger.Logger) {
+	coordinator.Add(&exportOperation{
+		logger: log,
+	})
 }
 
 // ExportService provides a subset of the unitstate domain service methods needed
@@ -34,6 +37,7 @@ type exportOperation struct {
 	modelmigration.BaseOperation
 
 	service ExportService
+	logger  logger.Logger
 }
 
 // Name returns the name of this operation.
@@ -44,7 +48,7 @@ func (e *exportOperation) Name() string {
 // Setup the export operation.
 // This will create a new service instance.
 func (e *exportOperation) Setup(scope modelmigration.Scope) error {
-	e.service = unitstateservice.NewService(unitstatestate.NewState(scope.ModelDB()))
+	e.service = unitstateservice.NewService(unitstatestate.NewState(scope.ModelDB(), e.logger), e.logger)
 	return nil
 }
 

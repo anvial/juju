@@ -6,6 +6,8 @@ package service
 import (
 	"context"
 
+	"github.com/juju/juju/core/leadership"
+	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/trace"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/unitstate"
@@ -23,17 +25,46 @@ type State interface {
 	// If the units state is empty [unitstateerrors.EmptyUnitState] error is
 	// returned.
 	GetUnitState(context.Context, string) (unitstate.RetrievedUnitState, error)
+
+	// CommitHookChanges persists a set of changes after a hook successfully
+	// completes and executes them in a single transaction.
+	CommitHookChanges(ctx context.Context, arg unitstate.CommitHookChangesArg) error
 }
 
 // Service defines a service for interacting with the underlying state.
 type Service struct {
-	st State
+	st     State
+	logger logger.Logger
 }
 
 // NewService returns a new Service for interacting with the underlying state.
-func NewService(st State) *Service {
+func NewService(st State, logger logger.Logger) *Service {
 	return &Service{
-		st: st,
+		st:     st,
+		logger: logger,
+	}
+}
+
+// LeadershipService provides the API for working with unit's state and
+// persisting commit hook changes, including those that require leadership
+// checks.
+type LeadershipService struct {
+	*Service
+	leaderEnsurer leadership.Ensurer
+	logger        logger.Logger
+}
+
+// NewLeadershipService returns a new LeadershipService for working with
+// the underlying state.
+func NewLeadershipService(
+	st State,
+	leaderEnsurer leadership.Ensurer,
+	logger logger.Logger,
+) *LeadershipService {
+	return &LeadershipService{
+		Service:       NewService(st, logger),
+		leaderEnsurer: leaderEnsurer,
+		logger:        logger,
 	}
 }
 
@@ -60,4 +91,46 @@ func (s *Service) GetState(ctx context.Context, name coreunit.Name) (unitstate.R
 		return unitstate.RetrievedUnitState{}, err
 	}
 	return state, nil
+}
+
+// CommitHookChanges persists a set of changes after a hook successfully
+// completes and executes them in a single transaction.
+func (s *LeadershipService) CommitHookChanges(ctx context.Context, arg unitstate.CommitHookChangesArg) error {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	hasChanges, err := arg.Validate()
+	if err != nil {
+		return err
+	}
+	if !hasChanges {
+		return nil
+	}
+
+	withCaveat, err := s.getManagementCaveat(arg)
+	if err != nil {
+		return err
+	}
+	return withCaveat(ctx, func(innerCtx context.Context) error {
+		return s.st.CommitHookChanges(innerCtx, arg)
+	})
+}
+
+func (s *LeadershipService) getManagementCaveat(arg unitstate.CommitHookChangesArg) (func(context.Context, func(context.Context) error) error, error) {
+	if arg.RequiresLeadership() {
+		unitName, err := coreunit.NewName(arg.UnitName)
+		if err != nil {
+			return nil, err
+		}
+		return func(ctx context.Context, fn func(context.Context) error) error {
+			return s.leaderEnsurer.WithLeader(ctx, unitName.Application(), unitName.String(),
+				func(ctx context.Context) error {
+					return fn(ctx)
+				},
+			)
+		}, nil
+	}
+	return func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	}, nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/canonical/sqlair"
 
 	"github.com/juju/juju/core/database"
+	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/unitstate"
 	uniterrors "github.com/juju/juju/domain/unitstate/errors"
@@ -18,12 +19,15 @@ import (
 // State implements persistence for unit state.
 type State struct {
 	*domain.StateBase
+
+	logger logger.Logger
 }
 
 // NewState returns a new state reference.
-func NewState(factory database.TxnRunnerFactory) *State {
+func NewState(factory database.TxnRunnerFactory, logger logger.Logger) *State {
 	return &State{
 		StateBase: domain.NewStateBase(factory),
+		logger:    logger,
 	}
 }
 
@@ -106,7 +110,6 @@ WHERE unit_uuid = $unitUUID.uuid`
 }
 
 func (st *State) SetUnitState(ctx context.Context, as unitstate.UnitState) error {
-
 	db, err := st.DB(ctx)
 	if err != nil {
 		return errors.Capture(err)
