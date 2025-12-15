@@ -3795,6 +3795,44 @@ func (m *MockUnitStateService) EXPECT() *MockUnitStateServiceMockRecorder {
 	return m.recorder
 }
 
+// CommitHookChanges mocks base method.
+func (m *MockUnitStateService) CommitHookChanges(arg0 context.Context, arg1 unitstate.CommitHookChangesArg) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CommitHookChanges", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CommitHookChanges indicates an expected call of CommitHookChanges.
+func (mr *MockUnitStateServiceMockRecorder) CommitHookChanges(arg0, arg1 any) *MockUnitStateServiceCommitHookChangesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitHookChanges", reflect.TypeOf((*MockUnitStateService)(nil).CommitHookChanges), arg0, arg1)
+	return &MockUnitStateServiceCommitHookChangesCall{Call: call}
+}
+
+// MockUnitStateServiceCommitHookChangesCall wrap *gomock.Call
+type MockUnitStateServiceCommitHookChangesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockUnitStateServiceCommitHookChangesCall) Return(arg0 error) *MockUnitStateServiceCommitHookChangesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockUnitStateServiceCommitHookChangesCall) Do(f func(context.Context, unitstate.CommitHookChangesArg) error) *MockUnitStateServiceCommitHookChangesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockUnitStateServiceCommitHookChangesCall) DoAndReturn(f func(context.Context, unitstate.CommitHookChangesArg) error) *MockUnitStateServiceCommitHookChangesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetState mocks base method.
 func (m *MockUnitStateService) GetState(arg0 context.Context, arg1 unit.Name) (unitstate.RetrievedUnitState, error) {
 	m.ctrl.T.Helper()

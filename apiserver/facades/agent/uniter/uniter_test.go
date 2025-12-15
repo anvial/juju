@@ -41,6 +41,7 @@ import (
 	"github.com/juju/juju/domain/removal"
 	"github.com/juju/juju/domain/resolve"
 	resolveerrors "github.com/juju/juju/domain/resolve/errors"
+	"github.com/juju/juju/domain/unitstate"
 	"github.com/juju/juju/internal/charm"
 	internalerrors "github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -2902,12 +2903,46 @@ type commitHookChangesSuite struct {
 	applicationService *MockApplicationService
 	networkService     *MockNetworkService
 	relationService    *MockRelationService
+	unitStateService   *MockUnitStateService
 
 	uniter *UniterAPI
 }
 
 func TestCommitHookChangesSuite(t *testing.T) {
 	tc.Run(t, &commitHookChangesSuite{})
+}
+
+func (s *commitHookChangesSuite) TestCommitHookChangesOneTxn(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange: setup basics
+	unitName, _ := coreunit.NewName("wordpress/0")
+	unitTag := names.NewUnitTag(unitName.String())
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+	s.applicationService.EXPECT().GetUnitUUID(gomock.Any(), unitName).Return(unitUUID, nil)
+
+	// Arrange: SetUnitStateArg
+	arg := params.CommitHookChangesArg{
+		Tag: unitTag.String(),
+		SetUnitState: &params.SetUnitStateArg{
+			Tag:        unitTag.String(),
+			CharmState: &map[string]string{"key": "value"},
+		},
+	}
+
+	// Arrange: CommitHookChanges service call
+	domainArg := unitstate.CommitHookChangesArg{
+		UnitName:   unitName.String(),
+		UnitUUID:   unitUUID.String(),
+		CharmState: arg.SetUnitState.CharmState,
+	}
+	s.unitStateService.EXPECT().CommitHookChanges(gomock.Any(), domainArg).Return(nil)
+
+	// Act
+	err := s.uniter.commitHookChangesForOneUnit(c.Context(), unitTag, arg, nil, nil)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
 }
 
 func (s *commitHookChangesSuite) TestUpdateUnitAndApplicationSettings(c *tc.C) {
@@ -3175,6 +3210,7 @@ func (s *commitHookChangesSuite) setupMocks(c *tc.C) *gomock.Controller {
 	s.applicationService = NewMockApplicationService(ctrl)
 	s.relationService = NewMockRelationService(ctrl)
 	s.networkService = NewMockNetworkService(ctrl)
+	s.unitStateService = NewMockUnitStateService(ctrl)
 
 	s.uniter = &UniterAPI{
 		logger: loggertesting.WrapCheckLog(c),
@@ -3182,6 +3218,7 @@ func (s *commitHookChangesSuite) setupMocks(c *tc.C) *gomock.Controller {
 		applicationService: s.applicationService,
 		networkService:     s.networkService,
 		relationService:    s.relationService,
+		unitStateService:   s.unitStateService,
 	}
 
 	c.Cleanup(func() {
@@ -3189,6 +3226,7 @@ func (s *commitHookChangesSuite) setupMocks(c *tc.C) *gomock.Controller {
 		s.networkService = nil
 		s.relationService = nil
 		s.uniter = nil
+		s.unitStateService = nil
 	})
 
 	return ctrl

@@ -462,9 +462,11 @@ func (s *ModelServices) Proxy() *proxy.Service {
 // hooks to run, and is saved upon hook completion. The service also persists
 // changes made by the charm while a hook was being run.
 func (s *ModelServices) UnitState() *unitstateservice.LeadershipService {
+	log := s.logger.Child("unitstate")
 	return unitstateservice.NewLeadershipService(
-		unitstatestate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
+		unitstatestate.NewState(changestream.NewTxnRunnerFactory(s.modelDB), log),
 		domain.NewLeaseService(s.leaseManager),
+		log,
 	)
 }
 
