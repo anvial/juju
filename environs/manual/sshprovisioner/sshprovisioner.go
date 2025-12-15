@@ -288,7 +288,7 @@ func gatherMachineParams(hostname string, provisioningUserName string, privateKe
 		provisioned, provisionCheckErr = checkProvisioned(hostname)
 	}
 	if provisionCheckErr != nil {
-		return nil, errors.Annotatef(err, "error checking if provisioned")
+		return nil, errors.Annotatef(provisionCheckErr, "error checking if provisioned")
 	}
 	if provisioned {
 		return nil, manual.ErrProvisioned
@@ -303,7 +303,7 @@ func gatherMachineParams(hostname string, provisioningUserName string, privateKe
 		hc, machineBase, detectErr = detectBaseAndHardwareCharacteristics(hostname)
 	}
 	if detectErr != nil {
-		return nil, errors.Annotatef(err, "error detecting linux hardware characteristics")
+		return nil, errors.Annotatef(detectErr, "error detecting linux hardware characteristics")
 	}
 	base := &params.Base{
 		Name:    machineBase.OS,
