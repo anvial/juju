@@ -257,7 +257,6 @@ func (s *Service) DeleteModel(ctx context.Context, modelUUID model.UUID) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	// Only attempt delete the model if it is migrating.
 	if isMigrating, err := s.controllerState.IsMigratingModel(ctx, modelUUID.String()); err != nil {
 		return errors.Errorf("checking if model %q is migrating in controller: %w", modelUUID, err)
 	} else if isMigrating {
