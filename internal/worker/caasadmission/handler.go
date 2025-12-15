@@ -212,6 +212,10 @@ func patchForLabels(
 
 	for k, v := range neededLabels {
 		if extVal, found := labels[k]; found && extVal != v {
+			// Avoid overriding an existing app.kubernetes.io/managed-by label.
+			// For example, the spark-integration-hub-k8s and kyuubi-k8s integration
+			// relies on the label selector app.kubernetes.io/managed-by=spark8t, which is used by a
+			// watcher service to inject additional Spark configuration via K8s secrets.
 			if k == constants.LabelKubernetesAppManaged {
 				logger.Debugf("skipping patch to existing managed-by label, ext value found: %q", extVal)
 				continue
