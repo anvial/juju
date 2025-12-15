@@ -132,30 +132,30 @@ func (s *initialisationSuite) TestDetectHardwareCharacteristics(c *gc.C) {
 func (s *initialisationSuite) TestCheckProvisioned(c *gc.C) {
 	listCmd := service.ListServicesScript()
 	defer installFakeSSH(c, listCmd, "", 0)()
-	provisioned, err := sshprovisioner.CheckProvisioned("example.com", "", "")
+	provisioned, err := sshprovisioner.CheckProvisioned("example.com")
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(provisioned, jc.IsFalse)
 
 	defer installFakeSSH(c, listCmd, "snap.juju.fetch-oci", 0)()
-	provisioned, err = sshprovisioner.CheckProvisioned("example.com", "", "")
+	provisioned, err = sshprovisioner.CheckProvisioned("example.com")
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(provisioned, jc.IsFalse)
 
 	defer installFakeSSH(c, listCmd, "jujud-machine-42", 0)()
-	provisioned, err = sshprovisioner.CheckProvisioned("example.com", "", "")
+	provisioned, err = sshprovisioner.CheckProvisioned("example.com")
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(provisioned, jc.IsTrue)
 
 	// stderr should not affect result.
 	defer installFakeSSH(c, listCmd, []string{"", "non-empty-stderr"}, 0)()
-	provisioned, err = sshprovisioner.CheckProvisioned("example.com", "", "")
+	provisioned, err = sshprovisioner.CheckProvisioned("example.com")
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(provisioned, jc.IsFalse)
 
 	// if the script fails for whatever reason, then checkProvisioned
 	// will return an error. stderr will be included in the error message.
 	defer installFakeSSH(c, listCmd, []string{"non-empty-stdout", "non-empty-stderr"}, 255)()
-	_, err = sshprovisioner.CheckProvisioned("example.com", "", "")
+	_, err = sshprovisioner.CheckProvisioned("example.com")
 	c.Assert(err, gc.ErrorMatches, "subprocess encountered error code 255 \\(non-empty-stderr\\)")
 }
 

@@ -188,7 +188,22 @@ func detectBaseAndHardwareCharacteristics(host string, provisioningUserName stri
 // exist on the host machine.
 var CheckProvisioned = checkProvisioned
 
-func checkProvisioned(host string, provisioningUserName string, provisioningUserPrivateKey string) (bool, error) {
+func checkProvisioned(host string) (bool, error) {
+	logger.Infof("Checking if %s is already provisioned", host)
+
+	script := service.ListServicesScript()
+
+	cmd := ssh.Command("ubuntu@"+host, []string{"/bin/bash"}, nil)
+
+	provisioned, err := runCheckPrevisionedScript(cmd, script)
+	if err != nil {
+		return false, err
+	}
+
+	return provisioned, nil
+}
+
+func checkProvisionedAsUser(host string, provisioningUserName string, provisioningUserPrivateKey string) (bool, error) {
 	logger.Infof("Checking if %s is already provisioned", host)
 
 	script := service.ListServicesScript()
@@ -204,6 +219,17 @@ func checkProvisioned(host string, provisioningUserName string, provisioningUser
 		sshHost = "ubuntu@" + host
 	}
 	cmd := ssh.Command(sshHost, []string{"/bin/bash"}, &options)
+	provisioned, err := runCheckPrevisionedScript(cmd, script)
+	if err != nil {
+		return false, err
+	}
+
+	return provisioned, nil
+}
+
+// runCheckPrevisionedScript runs the provided script on the given ssh.Cmd
+// and returns whether the machine is provisioned or not.
+func runCheckPrevisionedScript(cmd *ssh.Cmd, script string) (bool, error) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -242,7 +268,7 @@ func gatherMachineParams(hostname string, provisioningUserName string, privateKe
 		return nil, err
 	}
 
-	provisioned, err := checkProvisioned(hostname, provisioningUserName, privateKey)
+	provisioned, err := checkProvisionedAsUser(hostname, provisioningUserName, privateKey)
 	if err != nil {
 		return nil, errors.Annotatef(err, "error checking if provisioned")
 	}
