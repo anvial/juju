@@ -325,9 +325,9 @@ func (cfg *ubuntuCloudConfig) AddNetworkConfig(interfaces corenetwork.InterfaceI
 		if err != nil {
 			return errors.Trace(err)
 		}
-		cfg.AddBootTextFile(jujuNetplanFile, netPlan, 0644)
-		cfg.AddBootTextFile(systemNetworkInterfacesFile+".templ", eni, 0644)
-		cfg.AddBootTextFile(systemNetworkInterfacesFile+".py", NetworkInterfacesScript, 0744)
+		cfg.AddBootTextFile(jujuNetplanFile, netPlan, 0600)
+		cfg.AddBootTextFile(systemNetworkInterfacesFile+".templ", eni, 0600)
+		cfg.AddBootTextFile(systemNetworkInterfacesFile+".py", NetworkInterfacesScript, 0700)
 		cfg.AddBootCmd(populateNetworkInterfaces(systemNetworkInterfacesFile))
 	}
 	return nil

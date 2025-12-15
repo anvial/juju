@@ -120,7 +120,7 @@ func (s *NetworkUbuntuSuite) SetUpTest(c *gc.C) {
 	s.expectedSampleConfigHeader = `#cloud-config
 bootcmd:
 `
-	s.expectedSampleConfigWriting = `- install -D -m 644 /dev/null '%[1]s.templ'
+	s.expectedSampleConfigWriting = `- install -D -m 600 /dev/null '%[1]s.templ'
 - |-
   echo '
   auto lo {ethaa_bb_cc_dd_ee_f0} {ethaa_bb_cc_dd_ee_f1} {ethaa_bb_cc_dd_ee_f3} {ethaa_bb_cc_dd_ee_f5}
@@ -183,7 +183,7 @@ iface {ethaa_bb_cc_dd_ee_f5} inet6 static
 	networkInterfacesScriptYamled = strings.Replace(networkInterfacesScriptYamled, "%", "%%", -1)
 	networkInterfacesScriptYamled = strings.Replace(networkInterfacesScriptYamled, "'", "'\"'\"'", -1)
 
-	s.expectedSampleUserData = `- install -D -m 744 /dev/null '%[2]s'
+	s.expectedSampleUserData = `- install -D -m 700 /dev/null '%[2]s'
 - |-
   echo '` + networkInterfacesScriptYamled + ` ' > '%[2]s'
 - |2
@@ -214,7 +214,7 @@ iface {ethaa_bb_cc_dd_ee_f5} inet6 static
   fi
 `[1:]
 	s.expectedFullNetplanYaml = `
-- install -D -m 644 /dev/null '%[1]s'
+- install -D -m 600 /dev/null '%[1]s'
 - |-
   echo 'network:
     version: 2
@@ -500,13 +500,13 @@ func (s *NetworkUbuntuSuite) runENIScript(c *gc.C, pythonBinary, ipCommand, inpu
 	templFile := filepath.Join(s.tempFolder, "interfaces.templ")
 	scriptFile := filepath.Join(s.tempFolder, "script.py")
 
-	err := os.WriteFile(dataFile, []byte(s.originalSystemNetworkInterfaces), 0644)
+	err := os.WriteFile(dataFile, []byte(s.originalSystemNetworkInterfaces), 0600)
 	c.Assert(err, jc.ErrorIsNil, gc.Commentf("Can't write interfaces file"))
 
-	err = os.WriteFile(templFile, []byte(input), 0644)
+	err = os.WriteFile(templFile, []byte(input), 0600)
 	c.Assert(err, jc.ErrorIsNil, gc.Commentf("Can't write interfaces.templ file"))
 
-	err = os.WriteFile(scriptFile, []byte(cloudinit.NetworkInterfacesScript), 0755)
+	err = os.WriteFile(scriptFile, []byte(cloudinit.NetworkInterfacesScript), 0700)
 	c.Assert(err, jc.ErrorIsNil, gc.Commentf("Can't write script file"))
 
 	script := fmt.Sprintf("%q %q --interfaces-file %q --output-file %q --command %q --wait %d --retries %d",
@@ -537,7 +537,7 @@ func (s *NetworkUbuntuSuite) createMockCommand(c *gc.C, outputs []string) string
 	lastFile := ""
 	for i, output := range outputs {
 		dataFile := filepath.Join(s.tempFolder, fmt.Sprintf("%s.%d", baseName, i))
-		err := os.WriteFile(dataFile, []byte(output), 0644)
+		err := os.WriteFile(dataFile, []byte(output), 0600)
 		c.Assert(err, jc.ErrorIsNil, gc.Commentf("can't write mock file"))
 		if lastFile != "" {
 			script += fmt.Sprintf("mv %q %q || true\n", dataFile, lastFile)
