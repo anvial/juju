@@ -212,6 +212,10 @@ func patchForLabels(
 
 	for k, v := range neededLabels {
 		if extVal, found := labels[k]; found && extVal != v {
+			if k == constants.LabelKubernetesAppManaged {
+				logger.Debugf("skipping patch to existing managed-by label, ext value found: %q", extVal)
+				continue
+			}
 			patches = append(patches, patchOperation{
 				Op:    replaceOp,
 				Path:  fmt.Sprintf("/metadata/labels/%s", patchEscape(k)),
