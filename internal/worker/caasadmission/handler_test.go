@@ -357,6 +357,7 @@ func (h *HandlerSuite) TestPatchLabelsReplace(c *gc.C) {
 
 func (h *HandlerSuite) TestPatchForLabelsSkipManagedByLabelReplace(c *gc.C) {
 	labels := map[string]string{
+		providerconst.LabelJujuAppCreatedBy:     "spark",
 		providerconst.LabelKubernetesAppManaged: "spark8t",
 	}
 
@@ -376,8 +377,10 @@ func (h *HandlerSuite) TestPatchForLabelsSkipManagedByLabelReplace(c *gc.C) {
 	var foundCreatedByAddLabelOp bool
 	for _, op := range patchOperations {
 		if op.Path == createdByPath {
+			c.Check(op.Op, gc.Equals, replaceOp)
 			foundCreatedByAddLabelOp = true
 		}
+		// Ensure no managed-by label ops are present for replace.
 		c.Check(op.Path, gc.Not(gc.Equals), managedByPath)
 	}
 
@@ -407,8 +410,10 @@ func (h *HandlerSuite) TestPatchForLabelsRetainsManagedByLabelAdd(c *gc.C) {
 	for _, op := range patchOperations {
 		switch op.Path {
 		case createdByPath:
+			c.Check(op.Op, gc.Equals, addOp)
 			foundCreatedByAddLabelOp = true
 		case managedByPath:
+			c.Check(op.Op, gc.Equals, addOp)
 			foundManagedByAddLabelOp = true
 		}
 	}
