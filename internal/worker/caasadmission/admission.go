@@ -70,7 +70,6 @@ func NewAdmissionCreator(
 	namespaceRuleScope := admission.NamespacedScope
 	clusterRuleScope := admission.ClusterScope
 	sideEffects := admission.SideEffectClassNone
-	five := int32(5)
 
 	// MutatingWebhook Obj
 	obj := admission.MutatingWebhookConfiguration{
@@ -81,8 +80,7 @@ func NewAdmissionCreator(
 		},
 		Webhooks: []admission.MutatingWebhook{
 			{
-				TimeoutSeconds: &five,
-				SideEffects:    &sideEffects,
+				SideEffects: &sideEffects,
 				ClientConfig: admission.WebhookClientConfig{
 					CABundle: caPemBuffer.Bytes(),
 					Service:  service,
