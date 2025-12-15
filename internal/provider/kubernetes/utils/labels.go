@@ -145,7 +145,7 @@ func LabelsForAppCreated(appName, modelName, modelUUID, controllerUUID string, l
 	modelLabels := LabelsForModel(
 		modelName, modelUUID, controllerUUID, labelVersion,
 	)
-	return LabelsMerge(appLabels, modelLabels, LabelsJuju)
+	return LabelsMerge(appLabels, modelLabels)
 }
 
 // SelectorLabelsForApp returns the pod selector labels that should be on
