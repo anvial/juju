@@ -2010,10 +2010,10 @@ func (c *MockModelDomainServicesStorageProvisioningCall) DoAndReturn(f func() *s
 }
 
 // UnitState mocks base method.
-func (m *MockModelDomainServices) UnitState() *service42.Service {
+func (m *MockModelDomainServices) UnitState() *service42.LeadershipService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnitState")
-	ret0, _ := ret[0].(*service42.Service)
+	ret0, _ := ret[0].(*service42.LeadershipService)
 	return ret0
 }
 
@@ -2030,19 +2030,19 @@ type MockModelDomainServicesUnitStateCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockModelDomainServicesUnitStateCall) Return(arg0 *service42.Service) *MockModelDomainServicesUnitStateCall {
+func (c *MockModelDomainServicesUnitStateCall) Return(arg0 *service42.LeadershipService) *MockModelDomainServicesUnitStateCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelDomainServicesUnitStateCall) Do(f func() *service42.Service) *MockModelDomainServicesUnitStateCall {
+func (c *MockModelDomainServicesUnitStateCall) Do(f func() *service42.LeadershipService) *MockModelDomainServicesUnitStateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelDomainServicesUnitStateCall) DoAndReturn(f func() *service42.Service) *MockModelDomainServicesUnitStateCall {
+func (c *MockModelDomainServicesUnitStateCall) DoAndReturn(f func() *service42.LeadershipService) *MockModelDomainServicesUnitStateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3933,10 +3933,10 @@ func (c *MockDomainServicesStorageProvisioningCall) DoAndReturn(f func() *servic
 }
 
 // UnitState mocks base method.
-func (m *MockDomainServices) UnitState() *service42.Service {
+func (m *MockDomainServices) UnitState() *service42.LeadershipService {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnitState")
-	ret0, _ := ret[0].(*service42.Service)
+	ret0, _ := ret[0].(*service42.LeadershipService)
 	return ret0
 }
 
@@ -3953,19 +3953,19 @@ type MockDomainServicesUnitStateCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockDomainServicesUnitStateCall) Return(arg0 *service42.Service) *MockDomainServicesUnitStateCall {
+func (c *MockDomainServicesUnitStateCall) Return(arg0 *service42.LeadershipService) *MockDomainServicesUnitStateCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockDomainServicesUnitStateCall) Do(f func() *service42.Service) *MockDomainServicesUnitStateCall {
+func (c *MockDomainServicesUnitStateCall) Do(f func() *service42.LeadershipService) *MockDomainServicesUnitStateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockDomainServicesUnitStateCall) DoAndReturn(f func() *service42.Service) *MockDomainServicesUnitStateCall {
+func (c *MockDomainServicesUnitStateCall) DoAndReturn(f func() *service42.LeadershipService) *MockDomainServicesUnitStateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
