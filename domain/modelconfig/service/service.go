@@ -146,29 +146,24 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 	result := make(map[string]any, len(m))
 
-	// If we don't have a model config provider getter, just do basic
-	// string->any conversion.
 	if s.modelConfigProviderGetterFunc == nil {
-		return stringMapToAny(m), nil
+		return nil, errors.New("no model config provider getter")
 	}
 
-	// Get the cloud type from the config.
 	cloudType, ok := m[config.TypeKey]
 	if !ok || cloudType == "" {
 		// No cloud type - just convert without coercion.
 		return stringMapToAny(m), nil
 	}
 
-	// Get the provider for this cloud type
 	provider, err := s.modelConfigProviderGetterFunc(cloudType)
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		return nil, errors.Capture(err)
 	} else if provider == nil {
-		// Provider not found or doesn't support schema - graceful degradation.
-		return stringMapToAny(m), nil
+		// Provider not found or doesn't support config schema.
+		return nil, errors.New("provider not found or doesn't support config schema")
 	}
 
-	// Get the schema from the provider
 	fields := provider.ConfigSchema()
 	for key, strVal := range m {
 		if field, ok := fields[key]; ok {

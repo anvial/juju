@@ -71,14 +71,18 @@ func (s *serviceSuite) TestGetModelConfigContainsAgentInformation(c *tc.C) {
 		map[string]string{
 			config.NameKey: "foo",
 			config.UUIDKey: modelUUID.String(),
-			config.TypeKey: "type",
+			config.TypeKey: "testprovider",
 		}, nil,
 	)
 	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(schema.Fields{})
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
 	cfg, err := svc.ModelConfig(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(cfg.AgentStream(), tc.Equals, coreagentbinary.AgentStreamReleased.String())
@@ -94,12 +98,16 @@ func (s *serviceSuite) TestUpdateModelConfigAgentStream(c *tc.C) {
 		map[string]string{
 			"name": "wallyworld",
 			"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
-			"type": "sometype",
+			"type": "testprovider",
 		}, nil,
 	)
 	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return("1.2.3", "released", nil)
 
-	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(schema.Fields{})
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
 	err := svc.UpdateModelConfig(
 		c.Context(),
 		map[string]any{
@@ -123,7 +131,7 @@ func (s *serviceSuite) TestUpdateModelConfigNoAgentStreamChange(c *tc.C) {
 		map[string]string{
 			"name": "wallyworld",
 			"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
-			"type": "sometype",
+			"type": "testprovider",
 		}, nil,
 	)
 	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return("1.2.3", "released", nil)
@@ -133,7 +141,11 @@ func (s *serviceSuite) TestUpdateModelConfigNoAgentStreamChange(c *tc.C) {
 		gomock.Any(),
 	)
 
-	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(schema.Fields{})
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
 	err := svc.UpdateModelConfig(
 		c.Context(),
 		map[string]any{
@@ -185,8 +197,8 @@ func (s *serviceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C) {
 	c.Check(attrs["regular-string"], tc.Equals, "value")
 }
 
-// TestModelConfigWithoutProviderGetter checks that ModelConfig works correctly
-// when no provider getter is supplied (graceful degradation).
+// TestModelConfigWithoutProviderGetter checks that ModelConfig returns an error
+// when no provider getter is supplied.
 func (s *serviceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -203,13 +215,12 @@ func (s *serviceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 	)
 
 	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), nil, s.mockState)
-	cfg, err := svc.ModelConfig(c.Context())
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(cfg.Name(), tc.Equals, "wallyworld")
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, "coercing provider config attributes:.*no model config provider getter")
 }
 
-// TestModelConfigWithProviderNotFound checks that ModelConfig gracefully
-// handles the case where the provider is not found.
+// TestModelConfigWithProviderNotFound checks that ModelConfig returns an error
+// when the provider is not found.
 func (s *serviceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -228,14 +239,13 @@ func (s *serviceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 	providerGetter := s.modelConfigProviderFunc("testprovider")
 
 	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
-	cfg, err := svc.ModelConfig(c.Context())
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(cfg.Name(), tc.Equals, "wallyworld")
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unknown cloud type "unknown"`)
 }
 
-// TestModelConfigWithProviderNoSchema checks that ModelConfig gracefully
-// handles the case where the provider has no schema.
-func (s *serviceSuite) TestModelConfigWithProviderNoSchema(c *tc.C) {
+// TestModelConfigWithProviderEmptySchema checks that ModelConfig works correctly
+// when the provider has an empty schema.
+func (s *serviceSuite) TestModelConfigWithProviderEmptySchema(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	modelUUID := modeltesting.GenModelUUID(c)
@@ -250,7 +260,7 @@ func (s *serviceSuite) TestModelConfigWithProviderNoSchema(c *tc.C) {
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(nil)
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(schema.Fields{})
 
 	providerGetter := s.modelConfigProviderFunc("testprovider")
 
@@ -288,4 +298,111 @@ func (s *serviceSuite) TestSetModelConfig(c *tc.C) {
 	svc := NewService(defaults, config.ModelValidator(), nil, s.mockState)
 	err := svc.SetModelConfig(c.Context(), attrs)
 	c.Assert(err, tc.ErrorIsNil)
+}
+
+// TestModelConfigWithEmptyCloudType checks that ModelConfig handles the case
+// where cloud type is empty string by converting without coercion.
+func (s *serviceSuite) TestModelConfigWithEmptyCloudType(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey: "wallyworld",
+			config.UUIDKey: modelUUID.String(),
+			config.TypeKey: "",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
+	_, err := svc.ModelConfig(c.Context())
+	// Even though type is empty string, config.New requires a valid type
+	c.Check(err, tc.ErrorMatches, ".*empty type in model configuration.*")
+}
+
+// TestModelConfigWithProviderReturnsNotSupportedError checks that when provider getter
+// returns a NotSupported error and provider is nil, we get an error.
+func (s *serviceSuite) TestModelConfigWithProviderReturnsNotSupportedError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey: "wallyworld",
+			config.UUIDKey: modelUUID.String(),
+			config.TypeKey: "unsupportedtype",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+		return nil, errors.Errorf("unsupported").Add(coreerrors.NotSupported)
+	}
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, "coercing provider config attributes:.*provider not found or doesn't support config schema")
+}
+
+// TestModelConfigWithProviderReturnsOtherError checks that non-NotSupported errors
+// are properly propagated.
+func (s *serviceSuite) TestModelConfigWithProviderReturnsOtherError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey: "wallyworld",
+			config.UUIDKey: modelUUID.String(),
+			config.TypeKey: "sometype",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+		return nil, errors.Errorf("some other error")
+	}
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, "coercing provider config attributes:.*some other error")
+}
+
+// TestModelConfigCoercionError checks that coercion errors are properly propagated.
+func (s *serviceSuite) TestModelConfigCoercionError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	modelUUID := modeltesting.GenModelUUID(c)
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			config.NameKey:  "wallyworld",
+			config.UUIDKey:  modelUUID.String(),
+			config.TypeKey:  "testprovider",
+			"provider-bool": "not-a-bool",
+		}, nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
+
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(
+		schema.Fields{
+			"provider-bool": schema.Bool(),
+		},
+	)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unable to coerce provider config key "provider-bool".*`)
 }

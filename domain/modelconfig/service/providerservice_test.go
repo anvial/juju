@@ -47,20 +47,13 @@ func (s *providerServiceSuite) TestModelConfig(c *tc.C) {
 		map[string]string{
 			"name": "wallyworld",
 			"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
-			"type": "sometype",
 		},
 		nil,
 	)
 
 	svc := NewProviderService(s.mockState, nil)
-	cfg, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorIsNil)
-	c.Check(cfg.AllAttrs(), tc.DeepEquals, map[string]any{
-		"name":           "wallyworld",
-		"uuid":           "a677bdfd-3c96-46b2-912f-38e25faceaf7",
-		"type":           "sometype",
-		"logging-config": "<root>=INFO",
-	})
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, "coercing provider config attributes:.*no model config provider getter")
 }
 
 // TestModelConfigWithProviderSchemaCoercion checks that provider-specific
@@ -103,8 +96,8 @@ func (s *providerServiceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C
 	c.Check(attrs["regular-string"], tc.Equals, "value")
 }
 
-// TestModelConfigWithoutProviderGetter checks that ModelConfig works correctly
-// when no provider getter is supplied (graceful degradation).
+// TestModelConfigWithoutProviderGetter checks that ModelConfig returns an error
+// when no provider getter is supplied.
 func (s *providerServiceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -118,13 +111,12 @@ func (s *providerServiceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 	)
 
 	svc := NewProviderService(s.mockState, nil)
-	cfg, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorIsNil)
-	c.Check(cfg.Name(), tc.Equals, "wallyworld")
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, "coercing provider config attributes:.*no model config provider getter")
 }
 
-// TestModelConfigWithProviderNotFound checks that ModelConfig gracefully
-// handles the case where the provider is not found.
+// TestModelConfigWithProviderNotFound checks that ModelConfig returns an error
+// when the provider is not found.
 func (s *providerServiceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -140,14 +132,13 @@ func (s *providerServiceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 	providerGetter := s.modelConfigProviderFunc("testprovider")
 
 	svc := NewProviderService(s.mockState, providerGetter)
-	cfg, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorIsNil)
-	c.Check(cfg.Name(), tc.Equals, "wallyworld")
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unknown cloud type "unknown"`)
 }
 
-// TestModelConfigWithProviderNoSchema checks that ModelConfig gracefully
-// handles the case where the provider has no schema.
-func (s *providerServiceSuite) TestModelConfigWithProviderNoSchema(c *tc.C) {
+// TestModelConfigWithProviderEmptySchema checks that ModelConfig works correctly
+// when the provider has an empty schema.
+func (s *providerServiceSuite) TestModelConfigWithProviderEmptySchema(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
@@ -159,7 +150,7 @@ func (s *providerServiceSuite) TestModelConfigWithProviderNoSchema(c *tc.C) {
 		nil,
 	)
 
-	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(nil)
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(schema.Fields{})
 
 	providerGetter := s.modelConfigProviderFunc("testprovider")
 
@@ -182,4 +173,99 @@ func (s *providerServiceSuite) TestModelConfigStateError(c *tc.C) {
 	svc := NewProviderService(s.mockState, nil)
 	_, err := svc.ModelConfig(c.Context())
 	c.Check(err, tc.ErrorMatches, "getting model config from state:.*database error")
+}
+
+// TestModelConfigWithEmptyCloudType checks that ModelConfig handles the case
+// where cloud type is empty string by converting without coercion.
+func (s *providerServiceSuite) TestModelConfigWithEmptyCloudType(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			"name": "wallyworld",
+			"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
+			"type": "",
+		},
+		nil,
+	)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewProviderService(s.mockState, providerGetter)
+	_, err := svc.ModelConfig(c.Context())
+	// Even though type is empty string, config.New requires a valid type
+	c.Check(err, tc.ErrorMatches, ".*empty type in model configuration.*")
+}
+
+// TestModelConfigWithProviderReturnsNotSupportedError checks that when provider getter
+// returns a NotSupported error and provider is nil, we get an error.
+func (s *providerServiceSuite) TestModelConfigWithProviderReturnsNotSupportedError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			"name": "wallyworld",
+			"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
+			"type": "unsupportedtype",
+		},
+		nil,
+	)
+
+	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+		return nil, errors.Errorf("unsupported").Add(coreerrors.NotSupported)
+	}
+
+	svc := NewProviderService(s.mockState, providerGetter)
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, "coercing provider config attributes:.*provider not found or doesn't support config schema")
+}
+
+// TestModelConfigWithProviderReturnsOtherError checks that non-NotSupported errors
+// are properly propagated.
+func (s *providerServiceSuite) TestModelConfigWithProviderReturnsOtherError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			"name": "wallyworld",
+			"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
+			"type": "sometype",
+		},
+		nil,
+	)
+
+	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+		return nil, errors.Errorf("some other error")
+	}
+
+	svc := NewProviderService(s.mockState, providerGetter)
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, "coercing provider config attributes:.*some other error")
+}
+
+// TestModelConfigCoercionError checks that coercion errors are properly propagated.
+func (s *providerServiceSuite) TestModelConfigCoercionError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			"name":          "wallyworld",
+			"uuid":          "a677bdfd-3c96-46b2-912f-38e25faceaf7",
+			"type":          "testprovider",
+			"provider-bool": "not-a-bool",
+		},
+		nil,
+	)
+
+	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(
+		schema.Fields{
+			"provider-bool": schema.Bool(),
+		},
+	)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewProviderService(s.mockState, providerGetter)
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unable to coerce provider config key "provider-bool".*`)
 }

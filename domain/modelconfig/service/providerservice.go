@@ -6,9 +6,8 @@ package service
 import (
 	"context"
 
-	"github.com/juju/collections/transform"
-
 	"github.com/juju/juju/core/changestream"
+	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
@@ -82,47 +81,35 @@ func (s *ProviderService) ModelConfig(ctx context.Context) (*config.Config, erro
 func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, error) {
 	result := make(map[string]any, len(m))
 
-	// If we don't have a model config provider getter, just do basic string->any conversion
 	if s.modelConfigProviderGetterFunc == nil {
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+		return nil, errors.New("no model config provider getter")
 	}
 
-	// Get the cloud type from the config
 	cloudType, ok := m[config.TypeKey]
 	if !ok || cloudType == "" {
-		// No cloud type - just convert without coercion
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+		// No cloud type - just convert without coercion.
+		return stringMapToAny(m), nil
 	}
 
-	// Get the provider for this cloud type
 	provider, err := s.modelConfigProviderGetterFunc(cloudType)
-	if err != nil {
-		// Provider not found or doesn't support schema - graceful degradation
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
+	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
+		return nil, errors.Capture(err)
+	} else if provider == nil {
+		// Provider not found or doesn't support config schema.
+		return nil, errors.New("provider not found or doesn't support config schema")
 	}
 
-	if provider == nil {
-		// No provider available - just convert without coercion
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
-	}
-
-	// Get the schema from the provider
 	fields := provider.ConfigSchema()
-	if fields == nil {
-		// No schema available - just convert without coercion
-		return transform.Map(m, func(k, v string) (string, any) { return k, v }), nil
-	}
-
 	for key, strVal := range m {
 		if field, ok := fields[key]; ok {
-			// This is a provider-specific attribute - coerce it to proper type
+			// This is a provider-specific attribute - coerce it to proper type.
 			coercedVal, err := field.Coerce(strVal, []string{key})
 			if err != nil {
 				return nil, errors.Errorf("unable to coerce provider config key %q: %w", key, err)
 			}
 			result[key] = coercedVal
 		} else {
-			// Not a provider-specific attribute - keep as string
+			// Not a provider-specific attribute - keep as string.
 			result[key] = strVal
 		}
 	}
