@@ -117,62 +117,62 @@ func (s *volumeSuite) TestInstanceVolumesMAAS2(c *tc.C) {
 	c.Assert(volumes, tc.HasLen, 5)
 	c.Assert(attachments, tc.HasLen, 5)
 	c.Check(volumes, tc.SameContents, []storage.Volume{{
-		names.NewVolumeTag("1"),
-		storage.VolumeInfo{
+		Tag: names.NewVolumeTag("1"),
+		VolumeInfo: storage.VolumeInfo{
 			VolumeId: "volume-1",
 			Size:     476893,
 		},
 	}, {
-		names.NewVolumeTag("2"),
-		storage.VolumeInfo{
+		Tag: names.NewVolumeTag("2"),
+		VolumeInfo: storage.VolumeInfo{
 			VolumeId:   "volume-2",
 			Size:       238764,
 			HardwareId: "foo",
 		},
 	}, {
-		names.NewVolumeTag("3"),
-		storage.VolumeInfo{
+		Tag: names.NewVolumeTag("3"),
+		VolumeInfo: storage.VolumeInfo{
 			VolumeId: "volume-3",
 			Size:     238764,
 		},
 	}, {
-		names.NewVolumeTag("4"),
-		storage.VolumeInfo{
+		Tag: names.NewVolumeTag("4"),
+		VolumeInfo: storage.VolumeInfo{
 			VolumeId: "volume-4",
 			Size:     267374,
 			WWN:      "drbr",
 		},
 	}, {
-		names.NewVolumeTag("5"),
-		storage.VolumeInfo{
+		Tag: names.NewVolumeTag("5"),
+		VolumeInfo: storage.VolumeInfo{
 			VolumeId: "volume-5",
 			Size:     267374,
 		},
 	}})
 	c.Assert(attachments, tc.SameContents, []storage.VolumeAttachment{{
-		names.NewVolumeTag("1"),
-		mTag,
-		storage.VolumeAttachmentInfo{
+		Volume:  names.NewVolumeTag("1"),
+		Machine: mTag,
+		VolumeAttachmentInfo: storage.VolumeAttachmentInfo{
 			DeviceName: "sdb",
 		},
 	}, {
-		names.NewVolumeTag("2"),
-		mTag,
-		storage.VolumeAttachmentInfo{},
+		Volume:               names.NewVolumeTag("2"),
+		Machine:              mTag,
+		VolumeAttachmentInfo: storage.VolumeAttachmentInfo{},
 	}, {
-		names.NewVolumeTag("3"),
-		mTag,
-		storage.VolumeAttachmentInfo{
+		Volume:  names.NewVolumeTag("3"),
+		Machine: mTag,
+		VolumeAttachmentInfo: storage.VolumeAttachmentInfo{
 			DeviceLink: "/dev/disk/by-dname/sdd",
 		},
 	}, {
-		names.NewVolumeTag("4"),
-		mTag,
-		storage.VolumeAttachmentInfo{},
+		Volume:               names.NewVolumeTag("4"),
+		Machine:              mTag,
+		VolumeAttachmentInfo: storage.VolumeAttachmentInfo{},
 	}, {
-		names.NewVolumeTag("5"),
-		mTag,
-		storage.VolumeAttachmentInfo{
+		Volume:  names.NewVolumeTag("5"),
+		Machine: mTag,
+		VolumeAttachmentInfo: storage.VolumeAttachmentInfo{
 			DeviceLink: "/dev/disk/by-dname/sde-part1",
 		},
 	}})
