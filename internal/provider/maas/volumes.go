@@ -16,6 +16,8 @@ import (
 	"github.com/juju/schema"
 
 	"github.com/juju/juju/core/constraints"
+	coreerrors "github.com/juju/juju/core/errors"
+	internalerrors "github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/provider/common"
 	"github.com/juju/juju/internal/storage"
 )
@@ -41,6 +43,22 @@ const (
 	// to specify tag values for requested volumes.
 	tagsAttribute = "tags"
 )
+
+// getMAASProviderConfigChecker returns a [schema.Checker] capable of checking
+// the configuration of a [maasStorageProvider].
+func getMAASProviderConfigChecker() schema.Checker {
+	return schema.FieldMap(
+		schema.Fields{
+			tagsAttribute: schema.OneOf(
+				schema.List(schema.String()),
+				schema.String(),
+			),
+		},
+		schema.Defaults{
+			tagsAttribute: schema.Omit,
+		},
+	)
+}
 
 // RecommendedPoolForKind returns the recommended storage pool to use for
 // the given storage kind. If no pool can be recommended nil is returned. For
@@ -85,48 +103,70 @@ func (*maasEnviron) StorageProvider(t storage.ProviderType) (storage.Provider, e
 	}
 }
 
-var storageConfigFields = schema.Fields{
-	tagsAttribute: schema.OneOf(
-		schema.List(schema.String()),
-		schema.String(),
-	),
-}
-
-var storageConfigChecker = schema.FieldMap(
-	storageConfigFields,
-	schema.Defaults{
-		tagsAttribute: schema.Omit,
-	},
-)
-
-type storageConfig struct {
-	tags []string
-}
-
-func newStorageConfig(attrs map[string]interface{}) (*storageConfig, error) {
-	out, err := storageConfigChecker.Coerce(attrs, nil)
+// TagsFromAttributes takes the attributes from a storage pool that is using
+// the [maasStorageProvider] and returns the set of tags that have been
+// configured on the pool if any. The order of tags returned is not guaranteed
+// to match the order supplied in attributes.
+//
+// Tags are extracted from the attributes using the key "tags" and may be either
+// a string that is a comma-separated list of tags, a string slice of tags or
+// a slice of any only containing strings.
+//
+// If a tag has either leading or trailing white space it will be stripped from
+// the output. Tags may not contain white space within the tag. See expected
+// errors below.
+//
+// The following errors may be returned:
+// - [coreerrors.NotValid] if the attributes do not meet the schema requirements
+// of [maasStorageProvider].
+// - [coreerrors.NotSupported] if any of the tags contains a white space
+// character.
+func (maasStorageProvider) TagsFromAttributes(attrs map[string]any) (
+	[]string, error,
+) {
+	out, err := getMAASProviderConfigChecker().Coerce(attrs, nil)
 	if err != nil {
-		return nil, errors.Annotate(err, "validating MAAS storage config")
+		return nil, internalerrors.Errorf(
+			"validating MAAS storage provider attributes: %w", err,
+		).Add(coreerrors.NotValid)
 	}
-	coerced := out.(map[string]interface{})
-	var tags []string
+
+	coerced := out.(map[string]any)
+	var rawTags []string
 	switch v := coerced[tagsAttribute].(type) {
-	case []string:
-		tags = v
+	case []any:
+		rawTags = make([]string, 0, len(v))
+		for _, r := range v {
+			// We can safely assume that r is a string because the schema
+			// defined by [getMAASProviderConfigChecker] checks on a list of
+			// strings.
+			rawTags = append(rawTags, r.(string))
+		}
 	case string:
-		fields := strings.Split(v, ",")
-		for _, f := range fields {
-			f = strings.TrimSpace(f)
-			if len(f) == 0 {
-				continue
-			}
-			if i := strings.IndexFunc(f, unicode.IsSpace); i >= 0 {
-				return nil, errors.Errorf("tags may not contain whitespace: %q", f)
-			}
-			tags = append(tags, f)
+		rawTags = strings.Split(v, ",")
+	}
+
+	var tags []string
+	processSingleTag := func(tag string) error {
+		tag = strings.TrimSpace(tag)
+		if len(tag) == 0 {
+			return nil
+		}
+		if strings.ContainsFunc(tag, unicode.IsSpace) {
+			return internalerrors.Errorf(
+				"tag %q cannot contain whitespace", tag,
+			).Add(coreerrors.NotSupported)
+		}
+		tags = append(tags, tag)
+		return nil
+	}
+
+	for _, r := range rawTags {
+		if err := processSingleTag(r); err != nil {
+			return nil, err
 		}
 	}
-	return &storageConfig{tags: tags}, nil
+	return tags, nil
 }
 
 func (maasStorageProvider) ValidateForK8s(map[string]any) error {
@@ -134,10 +174,22 @@ func (maasStorageProvider) ValidateForK8s(map[string]any) error {
 	return nil
 }
 
-// ValidateConfig is defined on the Provider interface.
-func (maasStorageProvider) ValidateConfig(cfg *storage.Config) error {
-	_, err := newStorageConfig(cfg.Attrs())
-	return errors.Trace(err)
+// ValidateConfig validates the provided storage pool config that is using
+// this [maasStorageProvider] and returns an error if the config is not valid.
+//
+// This provider only supports tag configuration as part of it's attributes.
+// See [maasStorageProvider.TagsFromAttributes].
+//
+// Implements the [storage.Provider] interface.
+//
+// The following errors may be returned:
+// - [coreerrors.NotValid] if the attributes do not meet the schema requirements
+// of [maasStorageProvider].
+// - [coreerrors.NotSupported] if any of the tags contains a white space
+// character.
+func (m maasStorageProvider) ValidateConfig(cfg *storage.Config) error {
+	_, err := m.TagsFromAttributes(cfg.Attrs())
+	return err
 }
 
 // Supports returns true or false to the caller indicating of the given
@@ -257,15 +309,18 @@ func buildMAASVolumeParameters(args []storage.VolumeParams, cons constraints.Val
 		rootVolume.sizeInGB = mibToGb(*cons.RootDisk)
 	}
 	volumes[0] = rootVolume
+	provider := maasStorageProvider{}
 	for i, v := range args {
-		cfg, err := newStorageConfig(v.Attributes)
+		tags, err := provider.TagsFromAttributes(v.Attributes)
 		if err != nil {
-			return nil, errors.Trace(err)
+			return nil, internalerrors.Errorf(
+				"generating volume %q tags: %w", v.Tag.Id(), err,
+			)
 		}
 		info := volumeInfo{
 			name:     v.Tag.Id(),
 			sizeInGB: mibToGb(v.Size),
-			tags:     cfg.tags,
+			tags:     tags,
 		}
 		volumes[i+1] = info
 	}

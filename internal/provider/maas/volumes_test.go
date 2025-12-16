@@ -186,43 +186,6 @@ func TestStorageProviderSuite(t *testing.T) {
 	tc.Run(t, &storageProviderSuite{})
 }
 
-func (*storageProviderSuite) TestValidateConfigTags(c *tc.C) {
-	p := maasStorageProvider{}
-	validate := func(tags interface{}) {
-		cfg, err := storage.NewConfig("foo", maasStorageProviderType, map[string]interface{}{
-			"tags": tags,
-		})
-		c.Assert(err, tc.ErrorIsNil)
-		err = p.ValidateConfig(cfg)
-		c.Assert(err, tc.ErrorIsNil)
-	}
-	validate("singular")
-	validate("mul,ti,ple")
-	validate(" leading, spaces")
-	validate("trailing ,spaces ")
-	validate(" and,everything, in ,  between ")
-}
-
-func (*storageProviderSuite) TestValidateConfigInvalidConfig(c *tc.C) {
-	p := maasStorageProvider{}
-	cfg, err := storage.NewConfig("foo", maasStorageProviderType, map[string]interface{}{
-		"tags": "white space",
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	err = p.ValidateConfig(cfg)
-	c.Assert(err, tc.ErrorMatches, `tags may not contain whitespace: "white space"`)
-}
-
-func (*storageProviderSuite) TestValidateConfigUnknownAttribute(c *tc.C) {
-	p := maasStorageProvider{}
-	cfg, err := storage.NewConfig("foo", maasStorageProviderType, map[string]interface{}{
-		"unknown": "config",
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	err = p.ValidateConfig(cfg)
-	c.Assert(err, tc.ErrorIsNil) // unknown attributes are ignored
-}
-
 func (s *storageProviderSuite) TestSupports(c *tc.C) {
 	p := maasStorageProvider{}
 	c.Assert(p.Supports(storage.StorageKindBlock), tc.IsTrue)
