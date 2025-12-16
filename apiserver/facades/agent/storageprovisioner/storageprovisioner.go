@@ -2014,10 +2014,15 @@ func (s *StorageProvisionerAPI) FilesystemAttachmentParams(
 			return params.FilesystemAttachmentParamsV5{}, errors.Capture(err)
 		}
 
+		instanceId := fsParams.MachineInstanceID
+		if instanceId == "" && fsParams.CAASInstanceID != "" {
+			instanceId = fsParams.CAASInstanceID
+		}
+
 		return params.FilesystemAttachmentParamsV5{
 			FilesystemTag:        filesystemTag.String(),
 			MachineTag:           hostTag.String(),
-			InstanceId:           fsParams.MachineInstanceID,
+			InstanceId:           instanceId,
 			Provider:             fsParams.Provider,
 			FilesystemProviderId: fsParams.FilesystemProviderID,
 			AttachmentProviderId: fsParams.FilesystemAttachmentProviderID,

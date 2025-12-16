@@ -609,6 +609,7 @@ SELECT &filesystemAttachmentParams.* FROM (
     SELECT    sf.provider_id AS filesystem_provider_id,
               sfa.provider_id AS filesystem_attachment_provider_id,
               mci.instance_id AS machine_instance_id,
+              kp.provider_id AS caas_instance_id,
               cs.location AS charm_storage_location,
               cs.count_max AS charm_storage_count_max,
               sfa.mount_point,
@@ -621,6 +622,7 @@ SELECT &filesystemAttachmentParams.* FROM (
     JOIN      storage_pool sp ON si.storage_pool_uuid = sp.uuid
     LEFT JOIN storage_attachment sa ON si.uuid = sa.storage_instance_uuid
     LEFT JOIN unit u ON sa.unit_uuid = u.uuid
+  	LEFT JOIN k8s_pod kp ON u.uuid = kp.unit_uuid
     LEFT JOIN charm_storage cs ON u.charm_uuid = cs.charm_uuid AND si.storage_name = cs.name
     LEFT JOIN machine m ON sfa.net_node_uuid = m.net_node_uuid
     LEFT JOIN machine_cloud_instance mci ON m.uuid = mci.machine_uuid
@@ -663,6 +665,7 @@ SELECT &filesystemAttachmentParams.* FROM (
 		CharmStorageCountMax: dbVal.CharmStorageCountMax,
 		CharmStorageLocation: dbVal.CharmStorageLocation.V,
 		CharmStorageReadOnly: dbVal.CharmStorageReadOnly.V,
+		CAASInstanceID:       dbVal.CAASInstanceID.V,
 		MachineInstanceID:    dbVal.MachineInstanceID.V,
 		MountPoint:           dbVal.MountPoint.V,
 		Provider:             dbVal.StoragePoolType,
