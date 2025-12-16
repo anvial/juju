@@ -598,6 +598,14 @@ func (v *filesystemSource) AttachFilesystems(
 			results = append(results, result)
 			continue
 		}
+		if param.InstanceId == "" {
+			result.Error = errors.Errorf(
+				"kubernetes filesystem %q attachment to %q missing instance id",
+				param.Filesystem.Id(), param.Machine.Id(),
+			).Add(jujustorage.FilesystemAttachParamsIncomplete)
+			results = append(results, result)
+			continue
+		}
 		// Kubernetes filesystems attachments are PersistentVolumeClaims
 		// that are provisioned by the StatefulSet, not by the storage
 		// provider. Instead we check that it exists and source any
