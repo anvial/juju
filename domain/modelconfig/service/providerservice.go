@@ -79,8 +79,6 @@ func (s *ProviderService) ModelConfig(ctx context.Context) (*config.Config, erro
 // This is necessary because the database stores all config as strings, but provider
 // code expects typed values (e.g., bool, int) for provider-specific attributes.
 func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, error) {
-	result := make(map[string]any, len(m))
-
 	if s.modelConfigProviderGetterFunc == nil {
 		return nil, errors.New("no model config provider getter")
 	}
@@ -99,6 +97,7 @@ func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, e
 		return nil, errors.New("provider not found or doesn't support config schema")
 	}
 
+	result := make(map[string]any, len(m))
 	fields := provider.ConfigSchema()
 	for key, strVal := range m {
 		if field, ok := fields[key]; ok {
