@@ -335,9 +335,6 @@ type UnitStateService interface {
 
 // PortService describes the ability to open and close port ranges for units.
 type PortService interface {
-	// UpdateUnitPorts opens and closes ports for the endpoints of a given unit.
-	UpdateUnitPorts(ctx context.Context, unitUUID coreunit.UUID, openPorts, closePorts network.GroupedPortRanges) error
-
 	// GetMachineOpenedPorts returns the opened ports for all the units on the
 	// machine. Opened ports are grouped first by unit name and then by
 	// endpoint.
