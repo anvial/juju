@@ -42,7 +42,7 @@ func (s *migrationServiceSuite) TestImportModelIAAS(c *tc.C) {
 
 	svc := s.newService(c)
 
-	fn, err := svc.ImportModel(c.Context(), model.ModelImportArgs{
+	err := svc.ImportModel(c.Context(), model.ModelImportArgs{
 		UUID: uuid,
 		GlobalModelCreationArgs: model.GlobalModelCreationArgs{
 			Name:      "foo",
@@ -51,7 +51,6 @@ func (s *migrationServiceSuite) TestImportModelIAAS(c *tc.C) {
 		},
 	})
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(fn, tc.Not(tc.IsNil))
 }
 
 func (s *migrationServiceSuite) TestImportModelCAAS(c *tc.C) {
@@ -65,7 +64,7 @@ func (s *migrationServiceSuite) TestImportModelCAAS(c *tc.C) {
 
 	svc := s.newService(c)
 
-	fn, err := svc.ImportModel(c.Context(), model.ModelImportArgs{
+	err := svc.ImportModel(c.Context(), model.ModelImportArgs{
 		UUID: uuid,
 		GlobalModelCreationArgs: model.GlobalModelCreationArgs{
 			Name:      "foo",
@@ -74,8 +73,6 @@ func (s *migrationServiceSuite) TestImportModelCAAS(c *tc.C) {
 		},
 	})
 	c.Assert(err, tc.ErrorIsNil)
-
-	c.Check(fn, tc.Not(tc.IsNil))
 }
 
 func (s *migrationServiceSuite) TestImportModelActivate(c *tc.C) {
@@ -90,7 +87,7 @@ func (s *migrationServiceSuite) TestImportModelActivate(c *tc.C) {
 
 	svc := s.newService(c)
 
-	fn, err := svc.ImportModel(c.Context(), model.ModelImportArgs{
+	err := svc.ImportModel(c.Context(), model.ModelImportArgs{
 		UUID: uuid,
 		GlobalModelCreationArgs: model.GlobalModelCreationArgs{
 			Name:      "foo",
@@ -99,9 +96,8 @@ func (s *migrationServiceSuite) TestImportModelActivate(c *tc.C) {
 		},
 	})
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(fn, tc.Not(tc.IsNil))
 
-	err = fn(c.Context())
+	err = svc.ActivateModel(c.Context(), uuid)
 	c.Assert(err, tc.ErrorIsNil)
 }
 

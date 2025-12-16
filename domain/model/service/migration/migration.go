@@ -56,19 +56,19 @@ func NewMigrationService(
 func (s *MigrationService) ImportModel(
 	ctx context.Context,
 	args model.ModelImportArgs,
-) (func(context.Context) error, error) {
+) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
 	if err := args.Validate(); err != nil {
-		return nil, errors.Errorf(
+		return errors.Errorf(
 			"cannot validate model import args: %w", err,
 		)
 	}
 
 	modelType, err := service.ModelTypeForCloud(ctx, s.st, args.Cloud)
 	if err != nil {
-		return nil, errors.Errorf(
+		return errors.Errorf(
 			"determining model type when importing model %q: %w",
 			args.Name, err,
 		)
@@ -81,7 +81,7 @@ func (s *MigrationService) ImportModel(
 		case coremodel.IAAS:
 			args.SecretBackend = jujusecrets.BackendName
 		default:
-			return nil, errors.Errorf(
+			return errors.Errorf(
 				"%w for model type %q when creating model with name %q",
 				secretbackenderrors.NotFound,
 				modelType,
@@ -91,13 +91,20 @@ func (s *MigrationService) ImportModel(
 	}
 
 	if err := s.st.ImportModel(ctx, args.UUID, modelType, args.GlobalModelCreationArgs); err != nil {
-		return nil, err
+		return err
 	}
 
-	// Return an activator function that marks the model as active.
-	// This is separate from the importing/migrating status which is tracked
-	// in the migration tables.
-	return func(ctx context.Context) error {
-		return s.st.Activate(ctx, args.UUID)
-	}, nil
+	return nil
+}
+
+// ActivateModel marks the model as active after a successful import or
+// migration.
+func (s *MigrationService) ActivateModel(ctx context.Context, modelUUID coremodel.UUID) error {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	if err := modelUUID.Validate(); err != nil {
+		return errors.Errorf("invalid model UUID %q: %w", modelUUID, err)
+	}
+	return s.st.Activate(ctx, modelUUID)
 }
