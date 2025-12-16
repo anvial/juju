@@ -154,7 +154,7 @@ func admissionHandler(logger Logger, rbacMapper RBACMapper, labelVersion constan
 		}
 
 		patchJSON, err := json.Marshal(
-			patchForLabels(metaObj.Labels, appName, labelVersion, controllerUUID, modelUUID, modelName))
+			patchForLabels(logger, metaObj.Labels, appName, labelVersion, controllerUUID, modelUUID, modelName))
 		if err != nil {
 			http.Error(res,
 				fmt.Sprintf("marshalling patch object to json: %v", err),
@@ -192,6 +192,7 @@ func patchEscape(s string) string {
 }
 
 func patchForLabels(
+	logger Logger,
 	labels map[string]string,
 	appName string,
 	labelVersion constants.LabelVersion,
@@ -211,6 +212,14 @@ func patchForLabels(
 
 	for k, v := range neededLabels {
 		if extVal, found := labels[k]; found && extVal != v {
+			// Avoid overriding an existing app.kubernetes.io/managed-by label.
+			// For example, the spark-integration-hub-k8s and kyuubi-k8s integration
+			// relies on the label selector app.kubernetes.io/managed-by=spark8t, which is used by a
+			// watcher service to inject additional Spark configuration via K8s secrets.
+			if k == constants.LabelKubernetesAppManaged {
+				logger.Debugf("skipping patch to existing managed-by label, ext value found: %q", extVal)
+				continue
+			}
 			patches = append(patches, patchOperation{
 				Op:    replaceOp,
 				Path:  fmt.Sprintf("/metadata/labels/%s", patchEscape(k)),
