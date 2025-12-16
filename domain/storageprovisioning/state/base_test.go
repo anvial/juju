@@ -704,6 +704,18 @@ func (s *baseSuite) removeVolumeWithObliterateValue(
 	c.Assert(err, tc.ErrorIsNil)
 }
 
+func (s *baseSuite) newK8sPod(
+	c *tc.C,
+	unitUUID coreunit.UUID,
+	providerID string,
+) {
+	_, err := s.DB().Exec(
+		`INSERT INTO k8s_pod (unit_uuid, provider_id) VALUES(?, ?)`,
+		unitUUID.String(), providerID,
+	)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
 func ptr[T any](t T) *T {
 	return &t
 }

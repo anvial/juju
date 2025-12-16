@@ -1617,6 +1617,57 @@ func (s *provisionerSuite) TestFilesystemAttachmentParams(c *tc.C) {
 	})
 }
 
+func (s *provisionerSuite) TestFilesystemAttachmentParamsCAASInstanceID(c *tc.C) {
+	defer s.setupAPI(c).Finish()
+
+	tag := names.NewFilesystemTag("123")
+	unitTag := names.NewUnitTag("foo/123")
+	unitUUID := unittesting.GenUnitUUID(c)
+	fsaUUID := storageprovisioningtesting.GenFilesystemAttachmentUUID(c)
+
+	s.applicationService.EXPECT().GetUnitUUID(gomock.Any(), coreunit.Name("foo/123")).Return(
+		unitUUID, nil,
+	)
+	s.storageProvisioningService.EXPECT().GetFilesystemAttachmentUUIDForFilesystemIDUnit(
+		gomock.Any(), tag.Id(), unitUUID,
+	).Return(fsaUUID, nil)
+	s.storageProvisioningService.EXPECT().GetFilesystemAttachmentParams(
+		gomock.Any(), fsaUUID,
+	).Return(
+		storageprovisioning.FilesystemAttachmentParams{
+			CharmStorageReadOnly:           true,
+			CAASInstanceID:                 "myapp-k8s-0",
+			MachineInstanceID:              "",
+			Provider:                       "myprovider",
+			FilesystemProviderID:           "fs-123",
+			FilesystemAttachmentProviderID: ptr("fs-attachment-123"),
+			MountPoint:                     "/var/foo",
+		}, nil,
+	)
+
+	results, err := s.api.FilesystemAttachmentParams(c.Context(), params.MachineStorageIds{
+		Ids: []params.MachineStorageId{
+			{
+				AttachmentTag: tag.String(),
+				MachineTag:    unitTag.String(),
+			},
+		},
+	})
+
+	c.Check(err, tc.ErrorIsNil)
+	c.Assert(results.Results, tc.HasLen, 1)
+	c.Check(results.Results[0].Result, tc.DeepEquals, params.FilesystemAttachmentParamsV5{
+		FilesystemTag:        tag.String(),
+		MachineTag:           unitTag.String(),
+		FilesystemProviderId: "fs-123",
+		AttachmentProviderId: ptr("fs-attachment-123"),
+		InstanceId:           "myapp-k8s-0",
+		Provider:             "myprovider",
+		MountPoint:           "/var/foo",
+		ReadOnly:             true,
+	})
+}
+
 func (s *provisionerSuite) TestWatchMachines(c *tc.C) {
 	ctrl := s.setupAPI(c)
 	defer ctrl.Finish()

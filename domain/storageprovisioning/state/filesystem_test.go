@@ -1056,7 +1056,59 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMachineAttached(c *tc
 		CharmStorageCountMax: 3,
 		CharmStorageLocation: "/var/ory/keystore",
 		CharmStorageReadOnly: false,
+		CAASInstanceID:       "",
 		MachineInstanceID:    "machine-id-123",
+		// We don't expect a mount point to have been set yet.
+		MountPoint:           "",
+		Provider:             "canonical",
+		FilesystemProviderID: "provider-id",
+	})
+}
+
+// TestGetFilesystemAttachmentParamsK8sPodAttached is testing when a k8s_pod
+// entry exists for this attachment, then the CAASInstanceID will be populated.
+func (s *filesystemSuite) TestGetFilesystemAttachmentParamsK8sPodAttached(c *tc.C) {
+	// Construct the net node machine
+	netNodeUUID := s.newNetNode(c)
+
+	// Construct the application
+	appUUID, charmUUID := s.newApplication(c, "testapp")
+	unitUUID, _ := s.newUnitWithNetNode(c, "testapp/0", appUUID, netNodeUUID)
+
+	// Construct the pod
+	s.newK8sPod(c, unitUUID, "testapp-k8s-0")
+
+	// Construct the storage pool
+	poolUUID := s.newStoragePool(c, "thebigpool", "canonical", map[string]string{
+		"foo": "bar",
+	})
+
+	// Construct the charm storage
+	s.newFilesystemCharmStorageWithLocationAndCount(
+		c, charmUUID, "keystore", "/var/ory/keystore", 1, 3,
+	)
+
+	// Construct storage instance, filesystem, filesystem attachment
+	suuid, _ := s.newStorageInstanceForCharmWithPool(c, charmUUID, poolUUID, "keystore")
+	fsUUID, _ := s.newMachineFilesystem(c)
+	s.setFilesystemProviderID(c, fsUUID, "provider-id")
+	fsaUUID := s.newMachineFilesystemAttachment(c, fsUUID, netNodeUUID)
+	s.newStorageInstanceFilesystem(c, suuid, fsUUID)
+
+	// Attach the storage instance to the unit. This is what draws in all the
+	// information for the attachment params.
+	_ = s.newStorageAttachment(c, suuid, unitUUID)
+
+	st := NewState(s.TxnRunnerFactory())
+	params, err := st.GetFilesystemAttachmentParams(c.Context(), fsaUUID)
+
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(params, tc.DeepEquals, storageprovisioning.FilesystemAttachmentParams{
+		CharmStorageCountMax: 3,
+		CharmStorageLocation: "/var/ory/keystore",
+		CharmStorageReadOnly: false,
+		CAASInstanceID:       "testapp-k8s-0",
+		MachineInstanceID:    "",
 		// We don't expect a mount point to have been set yet.
 		MountPoint:           "",
 		Provider:             "canonical",
@@ -1106,6 +1158,7 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsUnitAttached(c *tc.C)
 		CharmStorageCountMax: 1,
 		CharmStorageLocation: "/var/ory/keystore",
 		CharmStorageReadOnly: false,
+		CAASInstanceID:       "",
 		MachineInstanceID:    "",
 		Provider:             "canonical",
 		FilesystemProviderID: "",
@@ -1156,6 +1209,7 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMountPointSet(c *tc.C
 		CharmStorageCountMax: 0,
 		CharmStorageLocation: "/var/ory/keystore",
 		CharmStorageReadOnly: false,
+		CAASInstanceID:       "",
 		MachineInstanceID:    "machine-id-123",
 		MountPoint:           mountPoint,
 		Provider:             "canonical",
