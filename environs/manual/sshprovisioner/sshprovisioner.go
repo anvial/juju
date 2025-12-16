@@ -104,13 +104,12 @@ fi`
 // by connecting to the machine and executing a bash script.
 var DetectBaseAndHardwareCharacteristics = detectBaseAndHardwareCharacteristics
 
+// detectBaseAndHardwareCharacteristics detects the hardware characteristics using the presumed ubuntu user.
 func detectBaseAndHardwareCharacteristics(host string) (hc instance.HardwareCharacteristics, base corebase.Base, err error) {
-	logger.Infof("Detecting base and characteristics on %s", host)
-	cmd := ssh.Command("ubuntu@"+host, []string{"/bin/bash"}, nil)
-
-	return runDetectBaseAndHardwareCharacteristicsScript(cmd, detectionScript)
+	return detectBaseAndHardwareCharacteristicsAsUser(host, "", "")
 }
 
+// detectBaseAndHardwareCharacteristicsAsUser detects the hardware characteristics using the specified provisioning user.
 func detectBaseAndHardwareCharacteristicsAsUser(host string, provisioningUserName string, provisioningUserPrivateKey string) (hc instance.HardwareCharacteristics, base corebase.Base, err error) {
 	// Build SSH options with provisioning private key if provided.
 	var options ssh.Options
@@ -126,10 +125,6 @@ func detectBaseAndHardwareCharacteristicsAsUser(host string, provisioningUserNam
 	logger.Infof("Detecting base and characteristics on %s", host)
 	cmd := ssh.Command(sshHost, []string{"/bin/bash"}, &options)
 
-	return runDetectBaseAndHardwareCharacteristicsScript(cmd, detectionScript)
-}
-
-func runDetectBaseAndHardwareCharacteristicsScript(cmd *ssh.Cmd, script string) (hc instance.HardwareCharacteristics, base corebase.Base, err error) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -201,18 +196,7 @@ func runDetectBaseAndHardwareCharacteristicsScript(cmd *ssh.Cmd, script string) 
 var CheckProvisioned = checkProvisioned
 
 func checkProvisioned(host string) (bool, error) {
-	logger.Infof("Checking if %s is already provisioned", host)
-
-	script := service.ListServicesScript()
-
-	cmd := ssh.Command("ubuntu@"+host, []string{"/bin/bash"}, nil)
-
-	provisioned, err := runCheckPrevisionedScript(cmd, script)
-	if err != nil {
-		return false, err
-	}
-
-	return provisioned, nil
+	return checkProvisionedAsUser(host, "", "")
 }
 
 func checkProvisionedAsUser(host string, provisioningUserName string, provisioningUserPrivateKey string) (bool, error) {
@@ -231,17 +215,7 @@ func checkProvisionedAsUser(host string, provisioningUserName string, provisioni
 		sshHost = "ubuntu@" + host
 	}
 	cmd := ssh.Command(sshHost, []string{"/bin/bash"}, &options)
-	provisioned, err := runCheckPrevisionedScript(cmd, script)
-	if err != nil {
-		return false, err
-	}
 
-	return provisioned, nil
-}
-
-// runCheckPrevisionedScript runs the provided script on the given ssh.Cmd
-// and returns whether the machine is provisioned or not.
-func runCheckPrevisionedScript(cmd *ssh.Cmd, script string) (bool, error) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -280,30 +254,19 @@ func gatherMachineParams(hostname string, provisioningUserName string, privateKe
 		return nil, err
 	}
 
-	var provisioned bool
-	var provisionCheckErr error
-	if provisioningUserName != "" || privateKey != "" {
-		provisioned, provisionCheckErr = checkProvisionedAsUser(hostname, provisioningUserName, privateKey)
-	} else {
-		provisioned, provisionCheckErr = checkProvisioned(hostname)
-	}
-	if provisionCheckErr != nil {
-		return nil, errors.Annotatef(provisionCheckErr, "error checking if provisioned")
+	// If the provisiong username or key isn't set, the ubuntu user is used.
+	provisioned, err := checkProvisionedAsUser(hostname, provisioningUserName, privateKey)
+	if err != nil {
+		return nil, errors.Annotatef(err, "error checking if provisioned")
 	}
 	if provisioned {
 		return nil, manual.ErrProvisioned
 	}
 
-	var hc instance.HardwareCharacteristics
-	var machineBase corebase.Base
-	var detectErr error
-	if provisioningUserName != "" || privateKey != "" {
-		hc, machineBase, detectErr = detectBaseAndHardwareCharacteristicsAsUser(hostname, provisioningUserName, privateKey)
-	} else {
-		hc, machineBase, detectErr = detectBaseAndHardwareCharacteristics(hostname)
-	}
-	if detectErr != nil {
-		return nil, errors.Annotatef(detectErr, "error detecting linux hardware characteristics")
+	// If the provisiong username or key isn't set, the ubuntu user is used.
+	hc, machineBase, err := detectBaseAndHardwareCharacteristicsAsUser(hostname, provisioningUserName, privateKey)
+	if err != nil {
+		return nil, errors.Annotatef(err, "error detecting linux hardware characteristics")
 	}
 	base := &params.Base{
 		Name:    machineBase.OS,
