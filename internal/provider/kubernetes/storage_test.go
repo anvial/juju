@@ -6,10 +6,13 @@ package kubernetes_test
 import (
 	"testing"
 
+	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 	core "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/internal/provider/kubernetes"
@@ -236,4 +239,432 @@ func (s *storageSuite) TestImportFilesystemAlreadyBound(c *tc.C) {
 	_, err = fc.(storage.FilesystemImporter).
 		ImportFilesystem(c.Context(), fsId, make(map[string]string))
 	c.Check(err, tc.ErrorIs, coreerrors.NotSupported)
+}
+
+// TestAttachFilesystems tests that the correct mount path corresponds to the
+// path that is mounted inside the charm container.
+func (s *storageSuite) TestAttachFilesystems(c *tc.C) {
+	ctrl := s.setupController(c)
+	defer ctrl.Finish()
+
+	prov := s.k8sProvider()
+	fs, err := prov.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIsNil)
+
+	providerId := "vault-k8s-certs-dd246a-vault-k8s-0"
+	params := []storage.FilesystemAttachmentParams{
+		{
+			AttachmentParams: storage.AttachmentParams{
+				Provider:   "kubernetes",
+				ProviderId: &providerId,
+				Machine:    names.NewMachineTag("unit-vault-k8s-0"),
+				InstanceId: "vault-k8s-0",
+				ReadOnly:   false,
+			},
+			Filesystem:           names.NewFilesystemTag("1"),
+			FilesystemProviderId: "pvc-8b255462-6fe1-4308-a6a7-dfb46f41d62b",
+			Path:                 "/var/lib/juju/storage/09f5ee7d-4cb7-4866-876a-4216014e1283",
+		},
+	}
+
+	s.mockPersistentVolumeClaims.EXPECT().Get(
+		gomock.Any(),
+		*params[0].ProviderId,
+		gomock.Any(),
+	).Return(&core.PersistentVolumeClaim{
+		ObjectMeta: v1.ObjectMeta{Name: *params[0].ProviderId},
+	}, nil)
+	s.mockPods.EXPECT().Get(
+		gomock.Any(),
+		params[0].InstanceId.String(),
+		gomock.Any(),
+	).Return(&core.Pod{
+		Spec: core.PodSpec{
+			Containers: []core.Container{
+				{
+					Name: "charm",
+					VolumeMounts: []core.VolumeMount{
+						{
+							MountPath: "/var/lib/pebble/default",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/log/juju",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/lib/juju/storage/certs-0",
+							Name:      "vault-k8s-certs-dd246a",
+						},
+					},
+				},
+			},
+			Volumes: []core.Volume{
+				{
+					Name: "vault-k8s-certs-dd246a",
+					VolumeSource: core.VolumeSource{
+						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+							ClaimName: providerId,
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
+	res, err := fs.AttachFilesystems(c.Context(), params)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(res, tc.HasLen, 1)
+	c.Check(res[0].Error, tc.ErrorIsNil)
+	c.Check(*res[0].FilesystemAttachment, tc.DeepEquals, storage.FilesystemAttachment{
+		Filesystem: params[0].Filesystem,
+		Machine:    params[0].Machine,
+		FilesystemAttachmentInfo: storage.FilesystemAttachmentInfo{
+			Path:     "/var/lib/juju/storage/certs-0",
+			ReadOnly: false,
+		},
+	})
+}
+
+// TestAttachFilesystemsErrorMissingProviderID tests that it should indicate
+// an error if the provider ID is missing.
+func (s *storageSuite) TestAttachFilesystemsErrorMissingProviderID(c *tc.C) {
+	ctrl := s.setupController(c)
+	defer ctrl.Finish()
+
+	prov := s.k8sProvider()
+	fs, err := prov.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIsNil)
+
+	params := []storage.FilesystemAttachmentParams{
+		{
+			AttachmentParams: storage.AttachmentParams{
+				Provider:   "kubernetes",
+				ProviderId: nil,
+				Machine:    names.NewMachineTag("unit-vault-k8s-0"),
+				InstanceId: "vault-k8s-0",
+				ReadOnly:   false,
+			},
+			Filesystem:           names.NewFilesystemTag("1"),
+			FilesystemProviderId: "pvc-8b255462-6fe1-4308-a6a7-dfb46f41d62b",
+			Path:                 "/var/lib/juju/storage/09f5ee7d-4cb7-4866-876a-4216014e1283",
+		},
+	}
+
+	res, err := fs.AttachFilesystems(c.Context(), params)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(res, tc.HasLen, 1)
+	c.Check(res[0].Error, tc.ErrorIs, storage.FilesystemAttachParamsIncomplete)
+}
+
+// TestAttachFilesystemsErrorMissingInstanceID tests that it should indicate
+// an error if the instance ID is missing.
+func (s *storageSuite) TestAttachFilesystemsErrorMissingInstanceID(c *tc.C) {
+	ctrl := s.setupController(c)
+	defer ctrl.Finish()
+
+	prov := s.k8sProvider()
+	fs, err := prov.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIsNil)
+
+	providerId := "vault-k8s-certs-dd246a-vault-k8s-0"
+	params := []storage.FilesystemAttachmentParams{
+		{
+			AttachmentParams: storage.AttachmentParams{
+				Provider:   "kubernetes",
+				ProviderId: &providerId,
+				Machine:    names.NewMachineTag("unit-vault-k8s-0"),
+				InstanceId: "",
+				ReadOnly:   false,
+			},
+			Filesystem:           names.NewFilesystemTag("1"),
+			FilesystemProviderId: "pvc-8b255462-6fe1-4308-a6a7-dfb46f41d62b",
+			Path:                 "/var/lib/juju/storage/09f5ee7d-4cb7-4866-876a-4216014e1283",
+		},
+	}
+
+	res, err := fs.AttachFilesystems(c.Context(), params)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(res, tc.HasLen, 1)
+	c.Check(res[0].Error, tc.ErrorIs, storage.FilesystemAttachParamsIncomplete)
+}
+
+// TestAttachFilesystemsErrorMissingPod tests that it should indicate
+// an error if the kubernetes pod couldn't be found.
+func (s *storageSuite) TestAttachFilesystemsErrorMissingPod(c *tc.C) {
+	ctrl := s.setupController(c)
+	defer ctrl.Finish()
+
+	prov := s.k8sProvider()
+	fs, err := prov.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIsNil)
+
+	providerId := "vault-k8s-certs-dd246a-vault-k8s-0"
+	params := []storage.FilesystemAttachmentParams{
+		{
+			AttachmentParams: storage.AttachmentParams{
+				Provider:   "kubernetes",
+				ProviderId: &providerId,
+				Machine:    names.NewMachineTag("unit-vault-k8s-0"),
+				InstanceId: "vault-k8s-0",
+				ReadOnly:   false,
+			},
+			Filesystem:           names.NewFilesystemTag("1"),
+			FilesystemProviderId: "pvc-8b255462-6fe1-4308-a6a7-dfb46f41d62b",
+			Path:                 "/var/lib/juju/storage/09f5ee7d-4cb7-4866-876a-4216014e1283",
+		},
+	}
+
+	s.mockPersistentVolumeClaims.EXPECT().Get(
+		gomock.Any(),
+		*params[0].ProviderId,
+		gomock.Any(),
+	).Return(&core.PersistentVolumeClaim{
+		ObjectMeta: v1.ObjectMeta{Name: *params[0].ProviderId},
+	}, nil)
+	s.mockPods.EXPECT().Get(
+		gomock.Any(),
+		params[0].InstanceId.String(),
+		gomock.Any(),
+	).Return(nil, k8serrors.NewNotFound(schema.GroupResource{},
+		params[0].InstanceId.String()))
+
+	res, err := fs.AttachFilesystems(c.Context(), params)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(res, tc.HasLen, 1)
+	c.Check(res[0].Error, tc.ErrorMatches, `.* kubernetes Pod "vault-k8s-0" not found`)
+}
+
+// TestAttachFilesystemsErrorMissingCharmContainer tests that it should indicate
+// an error if the charm container couldn't be found in the pod spec.
+func (s *storageSuite) TestAttachFilesystemsErrorMissingCharmContainer(c *tc.C) {
+	ctrl := s.setupController(c)
+	defer ctrl.Finish()
+
+	prov := s.k8sProvider()
+	fs, err := prov.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIsNil)
+
+	providerId := "vault-k8s-certs-dd246a-vault-k8s-0"
+	params := []storage.FilesystemAttachmentParams{
+		{
+			AttachmentParams: storage.AttachmentParams{
+				Provider:   "kubernetes",
+				ProviderId: &providerId,
+				Machine:    names.NewMachineTag("unit-vault-k8s-0"),
+				InstanceId: "vault-k8s-0",
+				ReadOnly:   false,
+			},
+			Filesystem:           names.NewFilesystemTag("1"),
+			FilesystemProviderId: "pvc-8b255462-6fe1-4308-a6a7-dfb46f41d62b",
+			Path:                 "/var/lib/juju/storage/09f5ee7d-4cb7-4866-876a-4216014e1283",
+		},
+	}
+
+	s.mockPersistentVolumeClaims.EXPECT().Get(
+		gomock.Any(),
+		*params[0].ProviderId,
+		gomock.Any(),
+	).Return(&core.PersistentVolumeClaim{
+		ObjectMeta: v1.ObjectMeta{Name: *params[0].ProviderId},
+	}, nil)
+	s.mockPods.EXPECT().Get(
+		gomock.Any(),
+		params[0].InstanceId.String(),
+		gomock.Any(),
+	).Return(&core.Pod{
+		Spec: core.PodSpec{
+			Containers: []core.Container{
+				{
+					Name: "vault",
+					VolumeMounts: []core.VolumeMount{
+						{
+							MountPath: "/var/lib/pebble/default",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/log/juju",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/lib/juju/storage/certs-0",
+							Name:      "vault-k8s-certs-dd246a",
+						},
+					},
+				},
+			},
+			Volumes: []core.Volume{
+				{
+					Name: "vault-k8s-certs-dd246a",
+					VolumeSource: core.VolumeSource{
+						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+							ClaimName: providerId,
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
+	res, err := fs.AttachFilesystems(c.Context(), params)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(res, tc.HasLen, 1)
+	c.Check(res[0].Error, tc.ErrorMatches, `.* charm container fot found`)
+}
+
+// TestAttachFilesystemsErrorMissingVolume tests that it should indicate
+// an error if the volume couldn't be found by matching the given pvcName (providerId).
+func (s *storageSuite) TestAttachFilesystemsErrorMissingVolume(c *tc.C) {
+	ctrl := s.setupController(c)
+	defer ctrl.Finish()
+
+	prov := s.k8sProvider()
+	fs, err := prov.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIsNil)
+
+	providerId := "vault-k8s-certs-dd246a-vault-k8s-0"
+	params := []storage.FilesystemAttachmentParams{
+		{
+			AttachmentParams: storage.AttachmentParams{
+				Provider:   "kubernetes",
+				ProviderId: &providerId,
+				Machine:    names.NewMachineTag("unit-vault-k8s-0"),
+				InstanceId: "vault-k8s-0",
+				ReadOnly:   false,
+			},
+			Filesystem:           names.NewFilesystemTag("1"),
+			FilesystemProviderId: "pvc-8b255462-6fe1-4308-a6a7-dfb46f41d62b",
+			Path:                 "/var/lib/juju/storage/09f5ee7d-4cb7-4866-876a-4216014e1283",
+		},
+	}
+
+	s.mockPersistentVolumeClaims.EXPECT().Get(
+		gomock.Any(),
+		*params[0].ProviderId,
+		gomock.Any(),
+	).Return(&core.PersistentVolumeClaim{
+		ObjectMeta: v1.ObjectMeta{Name: *params[0].ProviderId},
+	}, nil)
+	s.mockPods.EXPECT().Get(
+		gomock.Any(),
+		params[0].InstanceId.String(),
+		gomock.Any(),
+	).Return(&core.Pod{
+		Spec: core.PodSpec{
+			Containers: []core.Container{
+				{
+					Name: "charm",
+					VolumeMounts: []core.VolumeMount{
+						{
+							MountPath: "/var/lib/pebble/default",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/log/juju",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/lib/juju/storage/certs-0",
+							Name:      "vault-k8s-certs-dd246a",
+						},
+					},
+				},
+			},
+			Volumes: []core.Volume{
+				{
+					Name: "vault-k8s-certs-dd246a",
+					VolumeSource: core.VolumeSource{
+						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+							ClaimName: "claim-name-doesnt-match",
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
+	res, err := fs.AttachFilesystems(c.Context(), params)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(res, tc.HasLen, 1)
+	c.Check(res[0].Error, tc.ErrorMatches, `.* pod volume which references claim "vault-k8s-certs-dd246a-vault-k8s-0" not found`)
+}
+
+// TestAttachFilesystemsErrorMissingVolumeMount tests that it should indicate
+// an error if the volume mount of the charm container couldn't be found by
+// matching the volume name.
+func (s *storageSuite) TestAttachFilesystemsErrorMissingVolumeMount(c *tc.C) {
+	ctrl := s.setupController(c)
+	defer ctrl.Finish()
+
+	prov := s.k8sProvider()
+	fs, err := prov.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIsNil)
+
+	providerId := "vault-k8s-certs-dd246a-vault-k8s-0"
+	params := []storage.FilesystemAttachmentParams{
+		{
+			AttachmentParams: storage.AttachmentParams{
+				Provider:   "kubernetes",
+				ProviderId: &providerId,
+				Machine:    names.NewMachineTag("unit-vault-k8s-0"),
+				InstanceId: "vault-k8s-0",
+				ReadOnly:   false,
+			},
+			Filesystem:           names.NewFilesystemTag("1"),
+			FilesystemProviderId: "pvc-8b255462-6fe1-4308-a6a7-dfb46f41d62b",
+			Path:                 "/var/lib/juju/storage/09f5ee7d-4cb7-4866-876a-4216014e1283",
+		},
+	}
+
+	s.mockPersistentVolumeClaims.EXPECT().Get(
+		gomock.Any(),
+		*params[0].ProviderId,
+		gomock.Any(),
+	).Return(&core.PersistentVolumeClaim{
+		ObjectMeta: v1.ObjectMeta{Name: *params[0].ProviderId},
+	}, nil)
+	s.mockPods.EXPECT().Get(
+		gomock.Any(),
+		params[0].InstanceId.String(),
+		gomock.Any(),
+	).Return(&core.Pod{
+		Spec: core.PodSpec{
+			Containers: []core.Container{
+				{
+					Name: "charm",
+					VolumeMounts: []core.VolumeMount{
+						{
+							MountPath: "/var/lib/pebble/default",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/log/juju",
+							Name:      "charm-data",
+						},
+						{
+							MountPath: "/var/lib/juju/storage/certs-0",
+							Name:      "volume-name-doesnt-match",
+						},
+					},
+				},
+			},
+			Volumes: []core.Volume{
+				{
+					Name: "vault-k8s-certs-dd246a",
+					VolumeSource: core.VolumeSource{
+						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+							ClaimName: providerId,
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
+	res, err := fs.AttachFilesystems(c.Context(), params)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(res, tc.HasLen, 1)
+	c.Check(res[0].Error, tc.ErrorMatches, `.* pod volume mount "vault-k8s-certs-dd246a" not found`)
 }
