@@ -731,7 +731,7 @@ func (s *environBrokerSuite) TestImageSourcesDefault(c *gc.C) {
 
 	s.checkSources(c, sources, []string{
 		"https://cloud-images.ubuntu.com/releases/",
-		"https://images.linuxcontainers.org",
+		"https://images.lxd.canonical.com",
 	})
 }
 
@@ -750,7 +750,7 @@ func (s *environBrokerSuite) TestImageMetadataURL(c *gc.C) {
 	s.checkSources(c, sources, []string{
 		"https://my-test.com/images/",
 		"https://cloud-images.ubuntu.com/releases/",
-		"https://images.linuxcontainers.org",
+		"https://images.lxd.canonical.com",
 	})
 }
 
@@ -770,7 +770,7 @@ func (s *environBrokerSuite) TestImageMetadataURLEnsuresHTTPS(c *gc.C) {
 	s.checkSources(c, sources, []string{
 		"https://my-test.com/images/",
 		"https://cloud-images.ubuntu.com/releases/",
-		"https://images.linuxcontainers.org",
+		"https://images.lxd.canonical.com",
 	})
 }
 
@@ -788,7 +788,7 @@ func (s *environBrokerSuite) TestImageStreamReleased(c *gc.C) {
 
 	s.checkSources(c, sources, []string{
 		"https://cloud-images.ubuntu.com/releases/",
-		"https://images.linuxcontainers.org",
+		"https://images.lxd.canonical.com",
 	})
 }
 
@@ -806,7 +806,7 @@ func (s *environBrokerSuite) TestImageStreamDaily(c *gc.C) {
 
 	s.checkSources(c, sources, []string{
 		"https://cloud-images.ubuntu.com/daily/",
-		"https://images.linuxcontainers.org",
+		"https://images.lxd.canonical.com",
 	})
 }
 
