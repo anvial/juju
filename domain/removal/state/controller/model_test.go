@@ -60,6 +60,29 @@ func (s *modelSuite) TestGetModelLifeNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
+func (s *modelSuite) TestIsMigratingModel(c *tc.C) {
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	modelUUID := s.getModelUUID(c)
+
+	isMigrating, err := st.IsMigratingModel(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(isMigrating, tc.IsFalse)
+
+	// Set the model as migrating.
+	err = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model_migration_import (uuid, model_uuid)
+VALUES ('foo', ?)`, modelUUID)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	isMigrating, err = st.IsMigratingModel(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(isMigrating, tc.IsTrue)
+}
+
 func (s *modelSuite) TestEnsureModelNotAlive(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
 
@@ -80,6 +103,69 @@ func (s *modelSuite) TestGetModelUUIDs(c *tc.C) {
 
 	expectedUUID := s.getModelUUID(c)
 	c.Check(modelUUIDs[0], tc.DeepEquals, expectedUUID)
+}
+
+func (s *modelSuite) TestMarkMigratingModelAsDeadNotFound(c *tc.C) {
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	err := st.MarkMigratingModelAsDead(c.Context(), "non-existent-model-uuid")
+	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
+}
+
+func (s *modelSuite) TestMarkMigratingModelAsDeadStillAlive(c *tc.C) {
+	modelUUID := s.getModelUUID(c)
+
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO model_migration_import (uuid, model_uuid)
+VALUES ('foo', ?)`, modelUUID); err != nil {
+			return err
+		}
+		return nil
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	err = st.MarkMigratingModelAsDead(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *modelSuite) TestMarkMigratingModelAsDeadDying(c *tc.C) {
+	modelUUID := s.getModelUUID(c)
+
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, "UPDATE model SET life_id = 1 WHERE uuid = ?", modelUUID); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO model_migration_import (uuid, model_uuid)
+VALUES ('foo', ?)`, modelUUID); err != nil {
+			return err
+		}
+		return nil
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	err = st.MarkMigratingModelAsDead(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *modelSuite) TestMarkMigratingModelAsDeadAlreadyDead(c *tc.C) {
+	modelUUID := s.getModelUUID(c)
+
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, "UPDATE model SET life_id = 2 WHERE uuid = ?", modelUUID)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	err = st.MarkMigratingModelAsDead(c.Context(), modelUUID)
+	c.Assert(err, tc.ErrorIsNil)
 }
 
 func (s *modelSuite) TestMarkModelAsDeadNotFound(c *tc.C) {

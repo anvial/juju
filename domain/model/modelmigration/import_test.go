@@ -24,7 +24,6 @@ import (
 	jujuversion "github.com/juju/juju/core/version"
 	usererrors "github.com/juju/juju/domain/access/errors"
 	"github.com/juju/juju/domain/model"
-	modelerrors "github.com/juju/juju/domain/model/errors"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -199,7 +198,7 @@ func (i *importSuite) TestModelCreate(c *tc.C) {
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(activated, tc.IsTrue)
 }
@@ -281,7 +280,7 @@ func (i *importSuite) TestModelCreateWithAgentStream(c *tc.C) {
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(activated, tc.IsTrue)
 }
@@ -325,7 +324,6 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
-	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)
 
 	model := description.NewModel(description.ModelArgs{
 		Config: map[string]any{
@@ -355,7 +353,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
 	// The activator should not be called when the import fails and rolls back.
@@ -402,7 +400,6 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
-	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(modelerrors.NotFound)
 
 	model := description.NewModel(description.ModelArgs{
 		Config: map[string]any{
@@ -432,7 +429,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
 	// The activator should not be called when the import fails and rolls back.
@@ -478,7 +475,6 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
-	i.modelImportService.EXPECT().DeleteModel(gomock.Any(), modelUUID).Return(nil)
 
 	model := description.NewModel(description.ModelArgs{
 		Config: map[string]any{
@@ -508,7 +504,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 		loggertesting.WrapCheckLog(c),
 		modelmigrationtesting.IgnoredSetupOperation(importOp),
 	)
-	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
+	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
 
 	// The activator should not be called when the import fails and rolls back.

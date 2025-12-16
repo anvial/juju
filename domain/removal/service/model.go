@@ -99,6 +99,38 @@ func (s *Service) RemoveModel(
 	return s.removeModel(ctx, modelUUID, force, wait)
 }
 
+// RemoveMigratingModel removes a model that is currently importing/migrating.
+// The model is guaranteed after this call to be dead.
+func (s *Service) RemoveMigratingModel(
+	ctx context.Context,
+	modelUUID model.UUID,
+) error {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	if controllerModel, err := s.modelState.IsControllerModel(ctx, modelUUID.String()); err != nil {
+		return errors.Capture(err)
+	} else if controllerModel {
+		return errors.Errorf("cannot remove controller model %q", modelUUID)
+	}
+
+	if migrating, err := s.controllerState.IsMigratingModel(ctx, modelUUID.String()); err != nil {
+		return errors.Errorf("getting model %q migrating status in controller: %w", modelUUID, err)
+	} else if !migrating {
+		return errors.Errorf("model %q is not importing", modelUUID)
+	}
+
+	// Once all entities are dead, we can mark the model as dead in the
+	// controller database. This will cause the undertaker to delete the model
+	// database.
+
+	if err := s.controllerState.MarkMigratingModelAsDead(ctx, modelUUID.String()); err != nil {
+		return errors.Errorf("marking controller model %q as dead: %w", modelUUID, err)
+	}
+
+	return nil
+}
+
 func (s *Service) removeModel(
 	ctx context.Context,
 	modelUUID model.UUID,
@@ -225,25 +257,39 @@ func (s *Service) DeleteModel(ctx context.Context, modelUUID model.UUID) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
+	if isMigrating, err := s.controllerState.IsMigratingModel(ctx, modelUUID.String()); err != nil {
+		return errors.Errorf("checking if model %q is migrating in controller: %w", modelUUID, err)
+	} else if isMigrating {
+
+		// If this fails, the undertaker will retry the deletion later.
+		if err := s.controllerState.DeleteModel(ctx, modelUUID.String()); err != nil {
+			return errors.Errorf("deleting model: %w", err)
+		}
+
+		return nil
+	}
+
 	controllerLife, err := s.controllerState.GetModelLife(ctx, modelUUID.String())
 	if errors.Is(err, modelerrors.NotFound) {
 		controllerLife = life.Dead
 	} else if err != nil {
-		return errors.Errorf("getting controller model %q life: %w", modelUUID, err)
+		return errors.Errorf("getting model %q life in controller: %w", modelUUID, err)
 	}
 
 	// The life of the model should never be anything but dead. This is because
 	// if this is either a clean or forced removal, the model should have been
 	// set to dead prior to this call. There isn't away to get here, other than
 	// via the undertaker, without the model being dead.
-	if controllerLife == life.Alive {
+	switch controllerLife {
+	case life.Alive:
 		return errors.Errorf("model %q is still alive", modelUUID).Add(removalerrors.EntityStillAlive)
-	} else if controllerLife == life.Dying {
+	case life.Dying:
 		return errors.Errorf("model %q is dying", modelUUID).Add(removalerrors.EntityNotDead)
 	}
 
 	// Attempt to destroy the provider of the model. This is best effort,
-	// because we might not have all the model information available to do so.
+	// because we might not have all the model information available to do
+	// so.
 	provider, err := s.providerGetter(ctx)
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		s.logger.Errorf(ctx, "failed to get model provider: %v", err)
