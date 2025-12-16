@@ -228,8 +228,8 @@ func (s *serviceSuite) assertCreateUserSecret(c *tc.C, isInternal, finalStepFail
 
 	err := s.service.CreateUserSecret(c.Context(), uri, CreateUserSecretParams{
 		UpdateUserSecretParams: UpdateUserSecretParams{
-			Accessor: SecretAccessor{
-				Kind: ModelAccessor,
+			Accessor: domainsecret.SecretAccessor{
+				Kind: domainsecret.ModelAccessor,
 				ID:   s.modelID.String(),
 			},
 			Description: ptr("a secret"),
@@ -380,8 +380,8 @@ func (s *serviceSuite) assertUpdateUserSecret(c *tc.C, isInternal, finalStepFail
 		})
 
 	err := s.service.UpdateUserSecret(c.Context(), uri, UpdateUserSecretParams{
-		Accessor: SecretAccessor{
-			Kind: ModelAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.ModelAccessor,
 			ID:   s.modelID.String(),
 		},
 		Description: ptr("a secret"),
@@ -440,10 +440,10 @@ func (s *serviceSuite) TestCreateCharmUnitSecret(c *tc.C) {
 		return nil
 	}, nil)
 
-	err = s.service.CreateCharmSecret(c.Context(), uri, CreateCharmSecretParams{
-		UpdateCharmSecretParams: UpdateCharmSecretParams{
-			Accessor: SecretAccessor{
-				Kind: UnitAccessor,
+	err = s.service.CreateCharmSecret(c.Context(), uri, domainsecret.CreateCharmSecretParams{
+		UpdateCharmSecretParams: domainsecret.UpdateCharmSecretParams{
+			Accessor: domainsecret.SecretAccessor{
+				Kind: domainsecret.UnitAccessor,
 				ID:   "mariadb/0",
 			},
 			Description:  ptr("a secret"),
@@ -454,8 +454,8 @@ func (s *serviceSuite) TestCreateCharmUnitSecret(c *tc.C) {
 			RotatePolicy: ptr(coresecrets.RotateHourly),
 		},
 		Version: 1,
-		CharmOwner: CharmSecretOwner{
-			Kind: UnitOwner,
+		CharmOwner: domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mariadb/0",
 		},
 	})
@@ -481,10 +481,10 @@ func (s *serviceSuite) TestCreateCharmUnitSecretFailedLabelAlreadyExists(c *tc.C
 		return nil
 	}, nil)
 
-	err = s.service.CreateCharmSecret(c.Context(), uri, CreateCharmSecretParams{
-		UpdateCharmSecretParams: UpdateCharmSecretParams{
-			Accessor: SecretAccessor{
-				Kind: UnitAccessor,
+	err = s.service.CreateCharmSecret(c.Context(), uri, domainsecret.CreateCharmSecretParams{
+		UpdateCharmSecretParams: domainsecret.UpdateCharmSecretParams{
+			Accessor: domainsecret.SecretAccessor{
+				Kind: domainsecret.UnitAccessor,
 				ID:   "mariadb/0",
 			},
 			Description:  ptr("a secret"),
@@ -495,8 +495,8 @@ func (s *serviceSuite) TestCreateCharmUnitSecretFailedLabelAlreadyExists(c *tc.C
 			RotatePolicy: ptr(coresecrets.RotateHourly),
 		},
 		Version: 1,
-		CharmOwner: CharmSecretOwner{
-			Kind: UnitOwner,
+		CharmOwner: domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mariadb/0",
 		},
 	})
@@ -545,10 +545,10 @@ func (s *serviceSuite) TestCreateCharmApplicationSecret(c *tc.C) {
 		return nil
 	}, nil)
 
-	err = s.service.CreateCharmSecret(c.Context(), uri, CreateCharmSecretParams{
-		UpdateCharmSecretParams: UpdateCharmSecretParams{
-			Accessor: SecretAccessor{
-				Kind: UnitAccessor,
+	err = s.service.CreateCharmSecret(c.Context(), uri, domainsecret.CreateCharmSecretParams{
+		UpdateCharmSecretParams: domainsecret.UpdateCharmSecretParams{
+			Accessor: domainsecret.SecretAccessor{
+				Kind: domainsecret.UnitAccessor,
 				ID:   "mariadb/0",
 			},
 			Description:  ptr("a secret"),
@@ -559,8 +559,8 @@ func (s *serviceSuite) TestCreateCharmApplicationSecret(c *tc.C) {
 			RotatePolicy: ptr(coresecrets.RotateHourly),
 		},
 		Version: 1,
-		CharmOwner: CharmSecretOwner{
-			Kind: ApplicationOwner,
+		CharmOwner: domainsecret.CharmSecretOwner{
+			Kind: domainsecret.ApplicationCharmSecretOwner,
 			ID:   "mariadb",
 		},
 	})
@@ -588,10 +588,10 @@ func (s *serviceSuite) TestCreateCharmApplicationSecretFailedLabelExists(c *tc.C
 		return nil
 	}, nil)
 
-	err = s.service.CreateCharmSecret(c.Context(), uri, CreateCharmSecretParams{
-		UpdateCharmSecretParams: UpdateCharmSecretParams{
-			Accessor: SecretAccessor{
-				Kind: UnitAccessor,
+	err = s.service.CreateCharmSecret(c.Context(), uri, domainsecret.CreateCharmSecretParams{
+		UpdateCharmSecretParams: domainsecret.UpdateCharmSecretParams{
+			Accessor: domainsecret.SecretAccessor{
+				Kind: domainsecret.UnitAccessor,
 				ID:   "mariadb/0",
 			},
 			Description:  ptr("a secret"),
@@ -602,8 +602,8 @@ func (s *serviceSuite) TestCreateCharmApplicationSecretFailedLabelExists(c *tc.C
 			RotatePolicy: ptr(coresecrets.RotateHourly),
 		},
 		Version: 1,
-		CharmOwner: CharmSecretOwner{
-			Kind: ApplicationOwner,
+		CharmOwner: domainsecret.CharmSecretOwner{
+			Kind: domainsecret.ApplicationCharmSecretOwner,
 			ID:   "mariadb",
 		},
 	})
@@ -640,9 +640,9 @@ func (s *serviceSuite) TestUpdateCharmSecretNoRotate(c *tc.C) {
 
 	s.state.EXPECT().UpdateSecret(gomock.Any(), uri, p).Return(nil)
 
-	err := s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.UpdateCharmSecret(c.Context(), uri, domainsecret.UpdateCharmSecretParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Description: ptr("a secret"),
@@ -749,9 +749,9 @@ func (s *serviceSuite) runRotatePolicyUpdateCase(c *tc.C, uri *coresecrets.URI, 
 		return nil
 	})
 
-	err := s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.UpdateCharmSecret(c.Context(), uri, domainsecret.UpdateCharmSecretParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Label:        ptr("my secret"),
@@ -797,9 +797,9 @@ func (s *serviceSuite) TestUpdateCharmSecretDoNotRecomputeNextRotateTimeIfLessFr
 
 	s.state.EXPECT().UpdateSecret(gomock.Any(), uri, p).Return(nil)
 
-	err := s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.UpdateCharmSecret(c.Context(), uri, domainsecret.UpdateCharmSecretParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Description:  ptr("a secret"),
@@ -853,9 +853,9 @@ func (s *serviceSuite) TestUpdateCharmSecret(c *tc.C) {
 		return nil
 	})
 
-	err := s.service.UpdateCharmSecret(c.Context(), uri, UpdateCharmSecretParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.UpdateCharmSecret(c.Context(), uri, domainsecret.UpdateCharmSecretParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Description:  ptr("a secret"),
@@ -884,9 +884,9 @@ func (s *serviceSuite) TestUpdateCharmSecretFailedStateError(c *tc.C) {
 	stateError := errors.New("boom")
 	s.state.EXPECT().UpdateSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(stateError)
 
-	err := s.service.UpdateCharmSecret(c.Context(), coresecrets.NewURI(), UpdateCharmSecretParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.UpdateCharmSecret(c.Context(), coresecrets.NewURI(), domainsecret.UpdateCharmSecretParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Description:  ptr("a secret"),
@@ -926,8 +926,8 @@ func (s *serviceSuite) TestGetSecretValue(c *tc.C) {
 	}).Return("manage", nil)
 	s.state.EXPECT().GetSecretValue(gomock.Any(), uri, 666).Return(coresecrets.SecretData{"foo": "bar"}, nil, nil)
 
-	data, ref, err := s.service.GetSecretValue(c.Context(), uri, 666, SecretAccessor{
-		Kind: UnitAccessor,
+	data, ref, err := s.service.GetSecretValue(c.Context(), uri, 666, domainsecret.SecretAccessor{
+		Kind: domainsecret.UnitAccessor,
 		ID:   "mariadb/0",
 	})
 	c.Assert(err, tc.ErrorIsNil)
@@ -1012,11 +1012,11 @@ func (s *serviceSuite) TestListCharmSecretsToDrain(c *tc.C) {
 	s.state.EXPECT().ListCharmSecretsToDrain(
 		gomock.Any(), domainsecret.ApplicationOwners{"mariadb"}, domainsecret.UnitOwners{"mariadb/0"}).Return(md, nil)
 
-	got, err := s.service.ListCharmSecretsToDrain(c.Context(), []CharmSecretOwner{{
-		Kind: UnitOwner,
+	got, err := s.service.ListCharmSecretsToDrain(c.Context(), []domainsecret.CharmSecretOwner{{
+		Kind: domainsecret.UnitCharmSecretOwner,
 		ID:   "mariadb/0",
 	}, {
-		Kind: ApplicationOwner,
+		Kind: domainsecret.ApplicationCharmSecretOwner,
 		ID:   "mariadb",
 	}}...)
 	c.Assert(err, tc.ErrorIsNil)
@@ -1047,11 +1047,11 @@ func (s *serviceSuite) TestListUserSecretsToDrain(c *tc.C) {
 func (s *serviceSuite) TestListCharmSecrets(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	owners := []CharmSecretOwner{{
-		Kind: ApplicationOwner,
+	owners := []domainsecret.CharmSecretOwner{{
+		Kind: domainsecret.ApplicationCharmSecretOwner,
 		ID:   "mysql",
 	}, {
-		Kind: UnitOwner,
+		Kind: domainsecret.UnitCharmSecretOwner,
 		ID:   "mysql/0",
 	}}
 	md := []*coresecrets.SecretMetadata{{Label: "one"}}
@@ -1200,8 +1200,8 @@ func (s *serviceSuite) TestListSecretsAllError(c *tc.C) {
 func (s *serviceSuite) TestListCharmJustApplication(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	owners := []CharmSecretOwner{{
-		Kind: ApplicationOwner,
+	owners := []domainsecret.CharmSecretOwner{{
+		Kind: domainsecret.ApplicationCharmSecretOwner,
 		ID:   "mysql",
 	}}
 	md := []*coresecrets.SecretMetadata{{Label: "one"}}
@@ -1219,8 +1219,8 @@ func (s *serviceSuite) TestListCharmJustApplication(c *tc.C) {
 func (s *serviceSuite) TestListCharmJustUnit(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	owners := []CharmSecretOwner{{
-		Kind: UnitOwner,
+	owners := []domainsecret.CharmSecretOwner{{
+		Kind: domainsecret.UnitCharmSecretOwner,
 		ID:   "mysql/0",
 	}}
 	md := []*coresecrets.SecretMetadata{{Label: "one"}}
@@ -1266,17 +1266,17 @@ func (s *serviceSuite) TestGrantSecretUnitAccess(c *tc.C) {
 		RoleID:        domainsecret.RoleManage,
 	}).Return(nil)
 
-	err := s.service.GrantSecretAccess(c.Context(), uri, SecretAccessParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.GrantSecretAccess(c.Context(), uri, domainsecret.SecretAccessParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "another/0",
 		},
-		Scope: SecretAccessScope{
-			Kind: ApplicationAccessScope,
+		Scope: domainsecret.SecretAccessScope{
+			Kind: domainsecret.ApplicationAccessScope,
 			ID:   "mysql",
 		},
-		Subject: SecretAccessor{
-			Kind: UnitAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mysql/0",
 		},
 		Role: "manage",
@@ -1302,17 +1302,17 @@ func (s *serviceSuite) TestGrantSecretApplicationAccess(c *tc.C) {
 		RoleID:        domainsecret.RoleView,
 	}).Return(nil)
 
-	err := s.service.GrantSecretAccess(c.Context(), uri, SecretAccessParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.GrantSecretAccess(c.Context(), uri, domainsecret.SecretAccessParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "another/0",
 		},
-		Scope: SecretAccessScope{
-			Kind: ApplicationAccessScope,
+		Scope: domainsecret.SecretAccessScope{
+			Kind: domainsecret.ApplicationAccessScope,
 			ID:   "mysql",
 		},
-		Subject: SecretAccessor{
-			Kind: ApplicationAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.ApplicationAccessor,
 			ID:   "mysql",
 		},
 		Role: "view",
@@ -1334,16 +1334,16 @@ func (s *serviceSuite) TestGrantSecretModelAccess(c *tc.C) {
 		RoleID:        domainsecret.RoleManage,
 	}).Return(nil)
 
-	err := s.service.GrantSecretAccess(c.Context(), uri, SecretAccessParams{
-		Accessor: SecretAccessor{
-			Kind: ModelAccessor,
+	err := s.service.GrantSecretAccess(c.Context(), uri, domainsecret.SecretAccessParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.ModelAccessor,
 			ID:   "model-uuid",
 		},
-		Scope: SecretAccessScope{
-			Kind: ModelAccessScope,
+		Scope: domainsecret.SecretAccessScope{
+			Kind: domainsecret.ModelAccessScope,
 		},
-		Subject: SecretAccessor{
-			Kind: ModelAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.ModelAccessor,
 		},
 		Role: "manage",
 	})
@@ -1378,17 +1378,17 @@ func (s *serviceSuite) TestGrantSecretRelationScope(c *tc.C) {
 		RoleID:        domainsecret.RoleView,
 	}).Return(nil)
 
-	err := s.service.GrantSecretAccess(c.Context(), uri, SecretAccessParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.GrantSecretAccess(c.Context(), uri, domainsecret.SecretAccessParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "another/0",
 		},
-		Scope: SecretAccessScope{
-			Kind: RelationAccessScope,
+		Scope: domainsecret.SecretAccessScope{
+			Kind: domainsecret.RelationAccessScope,
 			ID:   "mediawiki:db mysql:db",
 		},
-		Subject: SecretAccessor{
-			Kind: ApplicationAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.ApplicationAccessor,
 			ID:   "mysql",
 		},
 		Role: "view",
@@ -1411,13 +1411,13 @@ func (s *serviceSuite) TestRevokeSecretUnitAccess(c *tc.C) {
 		SubjectUUID:   unitUUID.String(),
 	}).Return(nil)
 
-	err := s.service.RevokeSecretAccess(c.Context(), uri, SecretAccessParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.RevokeSecretAccess(c.Context(), uri, domainsecret.SecretAccessParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mysql/0",
 		},
-		Subject: SecretAccessor{
-			Kind: UnitAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "another/0",
 		},
 	})
@@ -1439,13 +1439,13 @@ func (s *serviceSuite) TestRevokeSecretApplicationAccess(c *tc.C) {
 		SubjectUUID:   appUUID.String(),
 	}).Return(nil)
 
-	err := s.service.RevokeSecretAccess(c.Context(), uri, SecretAccessParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+	err := s.service.RevokeSecretAccess(c.Context(), uri, domainsecret.SecretAccessParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mysql/0",
 		},
-		Subject: SecretAccessor{
-			Kind: ApplicationAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.ApplicationAccessor,
 			ID:   "another",
 		},
 	})
@@ -1467,13 +1467,13 @@ func (s *serviceSuite) TestRevokeSecretModelAccess(c *tc.C) {
 		SubjectUUID:   appUUID.String(),
 	}).Return(nil)
 
-	err := s.service.RevokeSecretAccess(c.Context(), uri, SecretAccessParams{
-		Accessor: SecretAccessor{
-			Kind: ModelAccessor,
+	err := s.service.RevokeSecretAccess(c.Context(), uri, domainsecret.SecretAccessParams{
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.ModelAccessor,
 			ID:   "model-uuid",
 		},
-		Subject: SecretAccessor{
-			Kind: ApplicationAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.ApplicationAccessor,
 			ID:   "mysql",
 		},
 	})
@@ -1489,8 +1489,8 @@ func (s *serviceSuite) TestGetSecretAccess(c *tc.C) {
 		SubjectID:     "mysql",
 	}).Return("manage", nil)
 
-	role, err := s.service.getSecretAccess(c.Context(), uri, SecretAccessor{
-		Kind: ApplicationAccessor,
+	role, err := s.service.getSecretAccess(c.Context(), uri, domainsecret.SecretAccessor{
+		Kind: domainsecret.ApplicationAccessor,
 		ID:   "mysql",
 	})
 	c.Assert(err, tc.ErrorIsNil)
@@ -1506,8 +1506,8 @@ func (s *serviceSuite) TestGetSecretAccessNone(c *tc.C) {
 		SubjectID:     "mysql",
 	}).Return("", nil)
 
-	role, err := s.service.getSecretAccess(c.Context(), uri, SecretAccessor{
-		Kind: ApplicationAccessor,
+	role, err := s.service.getSecretAccess(c.Context(), uri, domainsecret.SecretAccessor{
+		Kind: domainsecret.ApplicationAccessor,
 		ID:   "mysql",
 	})
 	c.Assert(err, tc.ErrorIsNil)
@@ -1524,8 +1524,8 @@ func (s *serviceSuite) TestGetSecretAccessRelationScope(c *tc.C) {
 		SubjectID:     "mysql",
 	}).Return(relUUID.String(), nil)
 
-	got, err := s.service.GetSecretAccessRelationScope(c.Context(), uri, SecretAccessor{
-		Kind: ApplicationAccessor,
+	got, err := s.service.GetSecretAccessRelationScope(c.Context(), uri, domainsecret.SecretAccessor{
+		Kind: domainsecret.ApplicationAccessor,
 		ID:   "mysql",
 	})
 	c.Assert(err, tc.ErrorIsNil)
@@ -1562,22 +1562,22 @@ func (s *serviceSuite) TestGetSecretGrants(c *tc.C) {
 	g, err := s.service.GetSecretGrants(c.Context(), uri, coresecrets.RoleView)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(g, tc.DeepEquals, []SecretAccess{{
-		Scope: SecretAccessScope{
-			Kind: ModelAccessScope,
+		Scope: domainsecret.SecretAccessScope{
+			Kind: domainsecret.ModelAccessScope,
 			ID:   "model-uuid",
 		},
-		Subject: SecretAccessor{
-			Kind: ApplicationAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.ApplicationAccessor,
 			ID:   "mysql",
 		},
 		Role: coresecrets.RoleView,
 	}, {
-		Scope: SecretAccessScope{
-			Kind: RelationAccessScope,
+		Scope: domainsecret.SecretAccessScope{
+			Kind: domainsecret.RelationAccessScope,
 			ID:   "mediawiki:db mysql:db",
 		},
-		Subject: SecretAccessor{
-			Kind: UnitAccessor,
+		Subject: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mediawiki/0",
 		},
 		Role: coresecrets.RoleView,
@@ -1608,8 +1608,8 @@ func (s *serviceSuite) TestChangeSecretBackendToExternalBackend(c *tc.C) {
 	}, nil)
 
 	err := s.service.ChangeSecretBackend(ctx, uri, 1, ChangeSecretBackendParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		ValueRef: valueRef,
@@ -1638,8 +1638,8 @@ func (s *serviceSuite) TestChangeSecretBackendToInternalBackend(c *tc.C) {
 	}, nil)
 
 	err := s.service.ChangeSecretBackend(ctx, uri, 1, ChangeSecretBackendParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Data: map[string]string{"foo": "bar"},
@@ -1668,8 +1668,8 @@ func (s *serviceSuite) TestChangeSecretBackendFailedAndRollback(c *tc.C) {
 	}, nil)
 
 	err := s.service.ChangeSecretBackend(ctx, uri, 1, ChangeSecretBackendParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Data: map[string]string{"foo": "bar"},
@@ -1692,8 +1692,8 @@ func (s *serviceSuite) TestChangeSecretBackendFailedPermissionDenied(c *tc.C) {
 	}).Return("view", nil)
 
 	err := s.service.ChangeSecretBackend(ctx, uri, 1, ChangeSecretBackendParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Data: map[string]string{"foo": "bar"},
@@ -1721,8 +1721,8 @@ func (s *serviceSuite) TestChangeSecretBackendFailedSecretNotFound(c *tc.C) {
 	}, nil)
 
 	err := s.service.ChangeSecretBackend(ctx, uri, 1, ChangeSecretBackendParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Data: map[string]string{"foo": "bar"},
@@ -1753,8 +1753,8 @@ func (s *serviceSuite) TestSecretsRotated(c *tc.C) {
 	}, nil)
 
 	err := s.service.SecretRotated(ctx, uri, SecretRotatedParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		OriginalRevision: 666,
@@ -1784,8 +1784,8 @@ func (s *serviceSuite) TestSecretsRotatedRetry(c *tc.C) {
 	}, nil)
 
 	err := s.service.SecretRotated(ctx, uri, SecretRotatedParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		OriginalRevision: 666,
@@ -1816,8 +1816,8 @@ func (s *serviceSuite) TestSecretsRotatedForce(c *tc.C) {
 	}, nil)
 
 	err := s.service.SecretRotated(ctx, uri, SecretRotatedParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		OriginalRevision: 666,
@@ -1841,8 +1841,8 @@ func (s *serviceSuite) TestSecretsRotatedThenNever(c *tc.C) {
 	}, nil)
 
 	err := s.service.SecretRotated(ctx, uri, SecretRotatedParams{
-		Accessor: SecretAccessor{
-			Kind: UnitAccessor,
+		Accessor: domainsecret.SecretAccessor{
+			Kind: domainsecret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		OriginalRevision: 666,
@@ -2318,16 +2318,16 @@ func (s *serviceSuite) TestWatchObsolete(c *tc.C) {
 	svc := NewWatchableService(
 		s.state, s.secretBackendState, s.ensurer, mockWatcherFactory, loggertesting.WrapCheckLog(c))
 	w, err := svc.WatchObsoleteSecrets(c.Context(),
-		CharmSecretOwner{
-			Kind: ApplicationOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.ApplicationCharmSecretOwner,
 			ID:   "mysql",
 		},
-		CharmSecretOwner{
-			Kind: UnitOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mysql/0",
 		},
-		CharmSecretOwner{
-			Kind: UnitOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mysql/1",
 		},
 	)
@@ -2474,16 +2474,16 @@ func (s *serviceSuite) TestWatchSecretsRotationChanges(c *tc.C) {
 	svc := NewWatchableService(
 		s.state, s.secretBackendState, s.ensurer, mockWatcherFactory, loggertesting.WrapCheckLog(c))
 	w, err := svc.WatchSecretsRotationChanges(c.Context(),
-		CharmSecretOwner{
-			Kind: ApplicationOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.ApplicationCharmSecretOwner,
 			ID:   "mediawiki",
 		},
-		CharmSecretOwner{
-			Kind: UnitOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mysql/0",
 		},
-		CharmSecretOwner{
-			Kind: UnitOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mysql/1",
 		},
 	)
@@ -2560,16 +2560,16 @@ func (s *serviceSuite) TestWatchSecretRevisionsExpiryChanges(c *tc.C) {
 	svc := NewWatchableService(
 		s.state, s.secretBackendState, s.ensurer, mockWatcherFactory, loggertesting.WrapCheckLog(c))
 	w, err := svc.WatchSecretRevisionsExpiryChanges(c.Context(),
-		CharmSecretOwner{
-			Kind: ApplicationOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.ApplicationCharmSecretOwner,
 			ID:   "mediawiki",
 		},
-		CharmSecretOwner{
-			Kind: UnitOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mysql/0",
 		},
-		CharmSecretOwner{
-			Kind: UnitOwner,
+		domainsecret.CharmSecretOwner{
+			Kind: domainsecret.UnitCharmSecretOwner,
 			ID:   "mysql/1",
 		},
 	)

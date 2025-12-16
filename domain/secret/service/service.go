@@ -91,7 +91,7 @@ func (s *SecretService) getBackend(cfg *provider.ModelBackendConfig) (provider.S
 	return p.NewBackend(cfg)
 }
 
-func (s *SecretService) getBackendForUserSecrets(ctx context.Context, accessor SecretAccessor) (provider.SecretsBackend, string, error) {
+func (s *SecretService) getBackendForUserSecrets(ctx context.Context, accessor domainsecret.SecretAccessor) (provider.SecretsBackend, string, error) {
 	modelUUID, err := s.secretState.GetModelUUID(ctx)
 	if err != nil {
 		return nil, "", errors.Errorf("getting model UUID: %w", err)
@@ -287,7 +287,7 @@ func ptr[T any](s T) *T {
 // CreateCharmSecret creates a charm secret with the specified parameters,
 // returning an error satisfying [secreterrors.SecretLabelAlreadyExists] if the
 // secret owner already has a secret with the same label.
-func (s *SecretService) CreateCharmSecret(ctx context.Context, uri *secrets.URI, params CreateCharmSecretParams) (errOut error) {
+func (s *SecretService) CreateCharmSecret(ctx context.Context, uri *secrets.URI, params domainsecret.CreateCharmSecretParams) (errOut error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer func() {
 		span.RecordError(errOut)
@@ -339,7 +339,7 @@ func (s *SecretService) CreateCharmSecret(ctx context.Context, uri *secrets.URI,
 			}
 		}
 	}()
-	if params.CharmOwner.Kind == ApplicationOwner {
+	if params.CharmOwner.Kind == domainsecret.ApplicationCharmSecretOwner {
 		unitName, err := coreunit.NewName(params.Accessor.ID)
 		if err != nil {
 			return errors.Capture(err)
@@ -468,7 +468,7 @@ func (s *SecretService) UpdateUserSecret(ctx context.Context, uri *secrets.URI, 
 // It also returns an error satisfying [secreterrors.SecretLabelAlreadyExists] if
 // the secret owner already has a secret with the same label.
 // It returns [secreterrors.PermissionDenied] if the secret cannot be managed by the accessor.
-func (s *SecretService) UpdateCharmSecret(ctx context.Context, uri *secrets.URI, params UpdateCharmSecretParams) error {
+func (s *SecretService) UpdateCharmSecret(ctx context.Context, uri *secrets.URI, params domainsecret.UpdateCharmSecretParams) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -641,13 +641,13 @@ func (s *SecretService) ListSecrets(ctx context.Context, uri *secrets.URI,
 	return metadataList, revisionList, nil
 }
 
-func splitCharmSecretOwners(owners ...CharmSecretOwner) (domainsecret.ApplicationOwners, domainsecret.UnitOwners) {
+func splitCharmSecretOwners(owners ...domainsecret.CharmSecretOwner) (domainsecret.ApplicationOwners, domainsecret.UnitOwners) {
 	var (
 		appOwners  domainsecret.ApplicationOwners
 		unitOwners domainsecret.UnitOwners
 	)
 	for _, owner := range owners {
-		if owner.Kind == ApplicationOwner {
+		if owner.Kind == domainsecret.ApplicationCharmSecretOwner {
 			appOwners = append(appOwners, owner.ID)
 		} else {
 			unitOwners = append(unitOwners, owner.ID)
@@ -660,7 +660,7 @@ func splitCharmSecretOwners(owners ...CharmSecretOwner) (domainsecret.Applicatio
 // The result contains secrets owned by any of the non nil owner attributes.
 // The count of secret and revisions in the result must match.
 func (s *SecretService) ListCharmSecrets(
-	ctx context.Context, owners ...CharmSecretOwner,
+	ctx context.Context, owners ...domainsecret.CharmSecretOwner,
 ) ([]*secrets.SecretMetadata, [][]*secrets.SecretRevisionMetadata, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -691,7 +691,7 @@ func (s *SecretService) GetUserSecretURIByLabel(ctx context.Context, label strin
 // the secrets owned by the specified apps and units.
 func (s *SecretService) ListCharmSecretsToDrain(
 	ctx context.Context,
-	owners ...CharmSecretOwner,
+	owners ...domainsecret.CharmSecretOwner,
 ) ([]*secrets.SecretMetadataForDrain, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -710,7 +710,7 @@ func (s *SecretService) ListUserSecretsToDrain(ctx context.Context) ([]*secrets.
 
 // GetSecretValue returns the value of the specified secret revision.
 // If returns [secreterrors.SecretRevisionNotFound] is there's no such secret revision.
-func (s *SecretService) GetSecretValue(ctx context.Context, uri *secrets.URI, rev int, accessor SecretAccessor) (secrets.SecretValue, *secrets.ValueRef, error) {
+func (s *SecretService) GetSecretValue(ctx context.Context, uri *secrets.URI, rev int, accessor domainsecret.SecretAccessor) (secrets.SecretValue, *secrets.ValueRef, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -819,10 +819,10 @@ func (s *SecretService) ProcessCharmSecretConsumerLabel(
 					// model and don't do the update. The logic should be reworked so local lookups
 					// can ge done in a single txn.
 					// Update the label.
-					err := s.UpdateCharmSecret(ctx, uri, UpdateCharmSecretParams{
+					err := s.UpdateCharmSecret(ctx, uri, domainsecret.UpdateCharmSecretParams{
 						Label: &label,
-						Accessor: SecretAccessor{
-							Kind: UnitAccessor,
+						Accessor: domainsecret.SecretAccessor{
+							Kind: domainsecret.UnitAccessor,
 							ID:   unitName.String(),
 						},
 					})
@@ -887,11 +887,11 @@ func (s *SecretService) getAppOwnedOrUnitOwnedSecretMetadata(
 	}
 
 	appName := unitName.Application()
-	owners := []CharmSecretOwner{{
-		Kind: ApplicationOwner,
+	owners := []domainsecret.CharmSecretOwner{{
+		Kind: domainsecret.ApplicationCharmSecretOwner,
 		ID:   appName,
 	}, {
-		Kind: UnitOwner,
+		Kind: domainsecret.UnitCharmSecretOwner,
 		ID:   unitName.String(),
 	}}
 	metadata, _, err := s.ListCharmSecrets(ctx, owners...)

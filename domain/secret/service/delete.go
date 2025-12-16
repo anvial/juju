@@ -9,6 +9,7 @@ import (
 	"github.com/juju/juju/core/secrets"
 	"github.com/juju/juju/core/trace"
 	"github.com/juju/juju/domain"
+	"github.com/juju/juju/domain/secret"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -31,7 +32,7 @@ func (s *SecretService) DeleteObsoleteUserSecretRevisions(ctx context.Context) e
 // DeleteSecret removes the specified secret.
 // If revisions is nil or the last remaining revisions are removed.
 // It returns [secreterrors.PermissionDenied] if the secret cannot be managed by the accessor.
-func (s *SecretService) DeleteSecret(ctx context.Context, uri *secrets.URI, params DeleteSecretParams) error {
+func (s *SecretService) DeleteSecret(ctx context.Context, uri *secrets.URI, params secret.DeleteSecretParams) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 

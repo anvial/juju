@@ -26,8 +26,8 @@ import (
 	"github.com/juju/juju/core/unit"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	relationerrors "github.com/juju/juju/domain/relation/errors"
+	"github.com/juju/juju/domain/secret"
 	secreterrors "github.com/juju/juju/domain/secret/errors"
-	"github.com/juju/juju/domain/secret/service"
 	secretbackendservice "github.com/juju/juju/domain/secretbackend/service"
 	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/secrets"
@@ -140,8 +140,8 @@ func (s *CrossModelSecretsAPI) getSecretAccessScope(ctx context.Context, arg par
 
 func (s *CrossModelSecretsAPI) accessScope(ctx context.Context, secretService SecretService, uri *coresecrets.URI, unitName unit.Name) (relation.UUID, error) {
 	s.logger.Debugf(ctx, "scope for %q on secret %s", unitName, uri.ID)
-	relationUUID, err := secretService.GetSecretAccessRelationScope(ctx, uri, service.SecretAccessor{
-		Kind: service.UnitAccessor,
+	relationUUID, err := secretService.GetSecretAccessRelationScope(ctx, uri, secret.SecretAccessor{
+		Kind: secret.UnitAccessor,
 		ID:   unitName.String(),
 	})
 	if err == nil {
@@ -150,8 +150,8 @@ func (s *CrossModelSecretsAPI) accessScope(ctx context.Context, secretService Se
 	if !errors.Is(err, secreterrors.SecretAccessScopeNotFound) {
 		return "", errors.Capture(err)
 	}
-	relationUUID, err = secretService.GetSecretAccessRelationScope(ctx, uri, service.SecretAccessor{
-		Kind: service.ApplicationAccessor,
+	relationUUID, err = secretService.GetSecretAccessRelationScope(ctx, uri, secret.SecretAccessor{
+		Kind: secret.ApplicationAccessor,
 		ID:   unitName.Application(),
 	})
 	if err != nil {
@@ -340,8 +340,8 @@ func (s *CrossModelSecretsAPI) getBackend(ctx context.Context, modelUUID model.U
 	}
 	cfgInfo, err := s.secretBackendService.BackendConfigInfo(ctx, secretbackendservice.BackendConfigParams{
 		GrantedSecretsGetter: secretService.ListGrantedSecretsForBackend,
-		Accessor: service.SecretAccessor{
-			Kind: service.UnitAccessor,
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   consumer.String(),
 		},
 		ModelUUID:      modelUUID,

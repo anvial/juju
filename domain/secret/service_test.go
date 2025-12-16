@@ -69,9 +69,9 @@ func (s *serviceSuite) TestDeleteSecretInternal(c *tc.C) {
 	s.secretBackendState.EXPECT().AddSecretBackendReference(gomock.Any(), nil, s.modelUUID, gomock.Any())
 	uri := s.createSecret(c, map[string]string{"foo": "bar"}, nil)
 
-	err := s.svc.DeleteSecret(c.Context(), uri, service.DeleteSecretParams{
-		Accessor: service.SecretAccessor{
-			Kind: service.UnitAccessor,
+	err := s.svc.DeleteSecret(c.Context(), uri, secret.DeleteSecretParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Revisions: []int{1},
@@ -92,9 +92,9 @@ func (s *serviceSuite) TestDeleteSecretExternal(c *tc.C) {
 	s.secretBackendState.EXPECT().AddSecretBackendReference(gomock.Any(), ref, s.modelUUID, gomock.Any())
 	uri := s.createSecret(c, nil, ref)
 
-	err := s.svc.DeleteSecret(c.Context(), uri, service.DeleteSecretParams{
-		Accessor: service.SecretAccessor{
-			Kind: service.UnitAccessor,
+	err := s.svc.DeleteSecret(c.Context(), uri, secret.DeleteSecretParams{
+		Accessor: secret.SecretAccessor{
+			Kind: secret.UnitAccessor,
 			ID:   "mariadb/0",
 		},
 		Revisions: []int{1},
@@ -170,14 +170,14 @@ func (s *serviceSuite) createSecret(c *tc.C, data map[string]string, valueRef *c
 	c.Assert(err, tc.ErrorIsNil)
 
 	uri := coresecrets.NewURI()
-	err = s.svc.CreateCharmSecret(ctx, uri, service.CreateCharmSecretParams{
-		UpdateCharmSecretParams: service.UpdateCharmSecretParams{
+	err = s.svc.CreateCharmSecret(ctx, uri, secret.CreateCharmSecretParams{
+		UpdateCharmSecretParams: secret.UpdateCharmSecretParams{
 			Data:     data,
 			ValueRef: valueRef,
 		},
 		Version: 1,
-		CharmOwner: service.CharmSecretOwner{
-			Kind: service.UnitOwner,
+		CharmOwner: secret.CharmSecretOwner{
+			Kind: secret.UnitCharmSecretOwner,
 			ID:   "mariadb/0",
 		},
 	})
