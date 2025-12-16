@@ -12,7 +12,6 @@ import (
 
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/internal/storage"
-	"github.com/juju/juju/internal/testhelpers"
 )
 
 type volumeSuite struct {
@@ -176,23 +175,4 @@ func (s *volumeSuite) TestInstanceVolumesMAAS2(c *tc.C) {
 			DeviceLink: "/dev/disk/by-dname/sde-part1",
 		},
 	}})
-}
-
-type storageProviderSuite struct {
-	testhelpers.IsolationSuite
-}
-
-func TestStorageProviderSuite(t *testing.T) {
-	tc.Run(t, &storageProviderSuite{})
-}
-
-func (s *storageProviderSuite) TestSupports(c *tc.C) {
-	p := maasStorageProvider{}
-	c.Assert(p.Supports(storage.StorageKindBlock), tc.IsTrue)
-	c.Assert(p.Supports(storage.StorageKindFilesystem), tc.IsFalse)
-}
-
-func (s *storageProviderSuite) TestScope(c *tc.C) {
-	p := maasStorageProvider{}
-	c.Assert(p.Scope(), tc.Equals, storage.ScopeEnviron)
 }

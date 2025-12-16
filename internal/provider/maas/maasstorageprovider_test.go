@@ -319,3 +319,28 @@ func (maasStorageProviderSuite) TestValidateConfigValid(c *tc.C) {
 		})
 	}
 }
+
+// TestSupportsAllStorageKindsFalse asserts that the [maasStorageProvider] does
+// not support any of the available storage kinds. This test is important as it
+// ensures that a storage pool made from this provider cannot be used to create
+// storage for a charm.
+//
+// [maasStorageProvider] only supports creating storage for root disks of new
+// machines being provisioned in MAAS.
+func (maasStorageProviderSuite) TestSupportsAllStorageKindsFalse(c *tc.C) {
+	c.Run("block", func(c *testing.T) {
+		p := maasStorageProvider{}
+		tc.Assert(c, p.Supports(internalstorage.StorageKindBlock), tc.IsFalse)
+	})
+	c.Run("filesystem", func(c *testing.T) {
+		p := maasStorageProvider{}
+		tc.Assert(c, p.Supports(internalstorage.StorageKindFilesystem), tc.IsFalse)
+	})
+}
+
+// TestScope asserts that the [maasStorageProvider] scope is
+// always [internalstorage.ScopeEnviron].
+func (maasStorageProviderSuite) TestScope(c *tc.C) {
+	p := maasStorageProvider{}
+	c.Check(p.Scope(), tc.Equals, internalstorage.ScopeEnviron)
+}
