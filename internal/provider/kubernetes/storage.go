@@ -673,7 +673,7 @@ func (v *filesystemSource) getPersistentVolumeClaim(
 	})
 	if containerIdx == -1 {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.New(
-			"charm container fot found")
+			"charm container fot found").Add(coreerrors.NotFound)
 	}
 
 	charmContainer := pod.Spec.Containers[containerIdx]
@@ -683,7 +683,7 @@ func (v *filesystemSource) getPersistentVolumeClaim(
 	if volIdx == -1 {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.Errorf(
 			"pod volume which references claim %q not found", pvcName,
-		)
+		).Add(coreerrors.NotFound)
 	}
 
 	volumeName := pod.Spec.Volumes[volIdx].Name
@@ -693,7 +693,7 @@ func (v *filesystemSource) getPersistentVolumeClaim(
 	if volumeMountIdx == -1 {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.Errorf(
 			"pod volume mount %q not found", volumeName,
-		)
+		).Add(coreerrors.NotFound)
 	}
 	volumeMount := charmContainer.VolumeMounts[volumeMountIdx]
 
