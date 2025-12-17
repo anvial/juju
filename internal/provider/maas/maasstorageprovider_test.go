@@ -344,3 +344,19 @@ func (maasStorageProviderSuite) TestScope(c *tc.C) {
 	p := maasStorageProvider{}
 	c.Check(p.Scope(), tc.Equals, internalstorage.ScopeEnviron)
 }
+
+// TestFilesystemSourceNotSupported asserts that the [maasStorageProvider] does
+// not support supplying a filesystem source.
+func (maasStorageProviderSuite) TestFilesystemSourceNotSupported(c *tc.C) {
+	p := maasStorageProvider{}
+	_, err := p.FilesystemSource(nil)
+	c.Check(err, tc.ErrorIs, coreerrors.NotSupported)
+}
+
+// TestVolumeSourceNotSupported asserts that the [maasStorageProvider] does
+// not support supplying a volume source.
+func (maasStorageProviderSuite) TestVolumeSourceNotSupported(c *tc.C) {
+	p := maasStorageProvider{}
+	_, err := p.VolumeSource(nil)
+	c.Check(err, tc.ErrorIs, coreerrors.NotSupported)
+}

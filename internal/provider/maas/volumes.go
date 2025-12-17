@@ -10,14 +10,13 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/juju/collections/set"
-	"github.com/juju/errors"
 	"github.com/juju/gomaasapi/v2"
 	"github.com/juju/names/v6"
 	"github.com/juju/schema"
 
 	"github.com/juju/juju/core/constraints"
 	coreerrors "github.com/juju/juju/core/errors"
-	internalerrors "github.com/juju/juju/internal/errors"
+	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/provider/common"
 	"github.com/juju/juju/internal/storage"
 )
@@ -126,7 +125,7 @@ func (maasStorageProvider) TagsFromAttributes(attrs map[string]any) (
 ) {
 	out, err := getMAASProviderConfigChecker().Coerce(attrs, nil)
 	if err != nil {
-		return nil, internalerrors.Errorf(
+		return nil, errors.Errorf(
 			"validating MAAS storage provider attributes: %w", err,
 		).Add(coreerrors.NotValid)
 	}
@@ -153,7 +152,7 @@ func (maasStorageProvider) TagsFromAttributes(attrs map[string]any) (
 			return nil
 		}
 		if strings.ContainsFunc(tag, unicode.IsSpace) {
-			return internalerrors.Errorf(
+			return errors.Errorf(
 				"tag %q cannot contain whitespace", tag,
 			).Add(coreerrors.NotSupported)
 		}
@@ -263,26 +262,30 @@ func (maasStorageProvider) DefaultPools() []*storage.Config {
 // provisioning volumes in the model for this storage provider. The
 // [maasStorageProvider] does not support the provisioning of volumes outside of
 // root disk for a new machines. Because of this an error satisfying
-// [github.com/juju/juju/core/storage] is always returned.
+// [github.com/juju/juju/core/errors.NotSupported] is always returned.
 //
 // Implements [storage.Provider] interface.
 func (maasStorageProvider) VolumeSource(_ *storage.Config) (
 	storage.VolumeSource, error,
 ) {
-	return nil, errors.NotSupportedf("volumes")
+	return nil, errors.Errorf(
+		"maas storage provider does not support provisioning of volumes",
+	).Add(coreerrors.NotSupported)
 }
 
 // FilesystemSource is responsible for returning a [storage.FilesystemSource]
 // capable of provisioning filesystems in the model for this storage provider.
 // The [maasStorageProvider] does not support the provisioning of file systems
 // outside of root disk volumes for  new machines. Because of this an error
-// satisfying [github.com/juju/juju/core/storage] is always returned.
+// satisfying [github.com/juju/juju/core/errors.NotSupported] is always returned.
 //
 // Implements [storage.Provider] interface.
 func (maasStorageProvider) FilesystemSource(_ *storage.Config) (
 	storage.FilesystemSource, error,
 ) {
-	return nil, errors.NotSupportedf("filesystems")
+	return nil, errors.Errorf(
+		"maas storage provider does not support provisioning of filesystems",
+	).Add(coreerrors.NotSupported)
 }
 
 type volumeInfo struct {
@@ -313,7 +316,7 @@ func buildMAASVolumeParameters(args []storage.VolumeParams, cons constraints.Val
 	for i, v := range args {
 		tags, err := provider.TagsFromAttributes(v.Attributes)
 		if err != nil {
-			return nil, internalerrors.Errorf(
+			return nil, errors.Errorf(
 				"generating volume %q tags: %w", v.Tag.Id(), err,
 			)
 		}
@@ -334,7 +337,9 @@ func (mi *maasInstance) volumes(
 	[]storage.Volume, []storage.VolumeAttachment, error,
 ) {
 	if mi.constraintMatches.Storage == nil {
-		return nil, nil, errors.NotFoundf("constraint storage mapping")
+		return nil, nil, errors.New(
+			"constraint storage mapping not found",
+		).Add(coreerrors.NotFound)
 	}
 
 	var volumes []storage.Volume
