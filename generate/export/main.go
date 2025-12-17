@@ -76,12 +76,13 @@ func main() {
 }
 
 func generate(ctx context.Context, runner *txnRunner) error {
-	var thisVersion uint64
-	for v := range export.ExportVersions {
-		if v > thisVersion {
-			thisVersion = v
-		}
+	// Use the last listed export version string (e.g., "4.0.1").
+	if len(export.ExportVersions) == 0 {
+		return fmt.Errorf("no export versions defined")
 	}
+	// Transform dots to underscores for use in package and directory names
+	thisVersion := export.ExportVersions[len(export.ExportVersions)-1]
+	thisVersion = strings.ReplaceAll(thisVersion, ".", "_")
 
 	tableNames, err := getTableNames(ctx, runner)
 	if err != nil {
@@ -230,14 +231,14 @@ func sqliteTypeToGoType(sqliteType string, notNull bool) (string, string) {
 	return goType, imp
 }
 
-func writeTypesFile(version uint64, structs []string, structNames []string, imports map[string]struct{}) error {
+func writeTypesFile(version string, structs []string, structNames []string, imports map[string]struct{}) error {
 	// We should be in domain/export/generate.
 	_, filename, _, _ := runtime.Caller(0)
 	currentDir := filepath.Dir(filename)
 
 	// Target directory is always under the repository's domain/export path.
 	repoRoot := filepath.Dir(filepath.Dir(currentDir)) // generate/export -> generate -> repo root
-	dir := filepath.Join(repoRoot, "domain", "export", "types", fmt.Sprintf("v%d", version))
+	dir := filepath.Join(repoRoot, "domain", "export", "types", fmt.Sprintf("v%s", version))
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
@@ -257,7 +258,7 @@ func writeTypesFile(version uint64, structs []string, structNames []string, impo
 	}
 
 	data := struct {
-		Version     uint64
+		Version     string
 		Imports     []string
 		Structs     []string
 		StructNames []string
@@ -284,7 +285,7 @@ func writeTypesFile(version uint64, structs []string, structNames []string, impo
 	return os.WriteFile(filePath, formatted, 0644)
 }
 
-func writeStateModelVersionFile(version uint64, tableNames []string, structNames []string) error {
+func writeStateModelVersionFile(version string, tableNames []string, structNames []string) error {
 	_, filename, _, _ := runtime.Caller(0)
 	currentDir := filepath.Dir(filename)
 
@@ -302,7 +303,7 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 	}
 
 	data := struct {
-		Version     uint64
+		Version     string
 		TableNames  []string
 		StructNames []string
 	}{
@@ -319,7 +320,7 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 
 	formatted, err := format.Source(out.Bytes())
 	if err != nil {
-		log.Printf("error formatting generated code for v%d.go: %v", version, err)
+		log.Printf("error formatting generated code for v%s.go: %v", version, err)
 		formatted = out.Bytes()
 	}
 
@@ -340,7 +341,7 @@ func writeStateModelVersionFile(version uint64, tableNames []string, structNames
 	}
 
 	testData := struct {
-		Version uint64
+		Version string
 	}{
 		Version: version,
 	}

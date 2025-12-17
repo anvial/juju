@@ -6,20 +6,21 @@ package model
 import (
 	"testing"
 
-	schematesting "github.com/juju/juju/domain/schema/testing"
 	"github.com/juju/tc"
+
+	schematesting "github.com/juju/juju/domain/schema/testing"
 )
 
-type exportStateSuiteV0 struct {
+type exportStateSuiteV4_0_1 struct {
 	schematesting.ModelSuite
 }
 
-func TestExportStateSuiteV0(t *testing.T) {
-	tc.Run(t, &exportStateSuiteV0{})
+func TestExportStateSuiteV4_0_1(t *testing.T) {
+	tc.Run(t, &exportStateSuiteV4_0_1{})
 }
 
-func (s *exportStateSuiteV0) TestExportRuns(c *tc.C) {
+func (s *exportStateSuiteV4_0_1) TestExportRuns(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory())
-	_, err := st.ExportV0(c.Context())
+	_, err := st.ExportV4_0_1(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 }

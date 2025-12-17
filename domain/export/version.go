@@ -3,13 +3,12 @@
 
 package export
 
-// ExportVersions maps export version formats to the first Juju version for
-// which the export version was generated.
-// This drives the automated generation of types for serialisable controller
-// and model formats.
-// To add a new format, add the next version sequence integer mapped to the
-// current Juju version in string form, then run `go generate` in the
-// generate/export directory.
-var ExportVersions = map[uint64]string{
-	0: "4.0.1",
+// ExportVersions lists each semantic version for which there is a new
+// export format.
+// To generate new export types and logic, add the current semantic version
+// in string form, then run `go generate` from the generate/export directory.
+// If the version currently being worked on has not been released,
+// the generation can be run repeatedly for the same version.
+var ExportVersions = []string{
+	"4.0.1",
 }
