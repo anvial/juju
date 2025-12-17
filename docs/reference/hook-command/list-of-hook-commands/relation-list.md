@@ -16,8 +16,8 @@ List relation units.
 
 ## Details
 
--r must be specified when not in a relation hook
+`-r` must be specified when not in a relation hook
 
-relation-list outputs a list of all the related units for a relation identifier.
-If not running in a relation hook context, -r needs to be specified with a
-relation identifier similar to the relation-get and relation-set commands.
+`relation-list` outputs a list of all the related units for a relation identifier.
+If not running in a relation hook context, `-r` needs to be specified with a
+relation identifier similar to the `relation-get` and `relation-set` commands.

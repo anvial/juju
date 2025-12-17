@@ -19,5 +19,5 @@ Print application leadership settings.
 
 ## Details
 
-leader-get prints the value of a leadership setting specified by key. If no key
-is given, or if the key is "-", all keys and values will be printed.
+`leader-get` prints the value of a leadership setting specified by key. If no key
+is given, or if the key is `"-"`, all keys and values will be printed.

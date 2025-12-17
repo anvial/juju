@@ -30,8 +30,8 @@ func NewStateGetCommand(ctx Context) (cmd.Command, error) {
 // Info implements part of the cmd.Command interface.
 func (c *StateGetCommand) Info() *cmd.Info {
 	doc := `
-state-get prints the value of the server side state specified by key.
-If no key is given, or if the key is "-", all keys and values will be printed.
+` + "`state-get`" + ` prints the value of the server side state specified by key.
+If no key is given, or if the key is ` + "`" + `"-"` + "`" + `, all keys and values will be printed.
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:    "state-get",

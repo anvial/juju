@@ -48,14 +48,14 @@ func (c *secretAddCommand) Info() *cmd.Info {
 	doc := `
 Add a secret with a list of key values.
 
-If a key has the '#base64' suffix, the value is already in base64 format and no
+If a key has the ` + "`#base64`" + ` suffix, the value is already in base64 format and no
 encoding will be performed, otherwise the value will be base64 encoded
 prior to being stored.
 
-If a key has the '#file' suffix, the value is read from the corresponding file.
+If a key has the ` + "`#file`" + ` suffix, the value is read from the corresponding file.
 
 By default, a secret is owned by the application, meaning only the unit
-leader can manage it. Use "--owner unit" to create a secret owned by the
+leader can manage it. Use ` + "`--owner unit`" + ` to create a secret owned by the
 specific unit which created it.
 `
 	examples := `

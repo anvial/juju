@@ -13,7 +13,7 @@ Update the status of a payload.
 
 ## Details
 
-"payload-status-set" is used to update the current status of a registered payload.
-The &lt;class&gt; and &lt;id&gt; provided must match a payload that has been previously
-registered with juju using payload-register. The &lt;status&gt; must be one of the
-follow: starting, started, stopping, stopped
+`payload-status-set` is used to update the current status of a registered payload.
+The `<class>` and `<id>` provided must match a payload that has been previously
+registered with juju using `payload-register`. The `<status>` must be one of the
+follow: `starting`, `started`, `stopping`, `stopped`

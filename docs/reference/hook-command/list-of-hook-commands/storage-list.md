@@ -19,14 +19,14 @@ List storage attached to the unit.
 
 ## Details
 
-storage-list will list the names of all storage instances
-attached to the unit. These names can be passed to storage-get
-via the "-s" flag to query the storage attributes.
+`storage-list` will list the names of all storage instances
+attached to the unit. These names can be passed to `storage-get`
+via the `"-s"` flag to query the storage attributes.
 
 A storage name may be specified, in which case only storage
 instances for that named storage will be returned.
 
 Further details:
-storage-list list storages instances that are attached to the unit.
-The storage instance identifiers returned from storage-list may be
-passed through to the storage-get command using the -s option.
+`storage-list` list storages instances that are attached to the unit.
+The storage instance identifiers returned from `storage-list` may be
+passed through to the `storage-get` command using the `"-s"` option.

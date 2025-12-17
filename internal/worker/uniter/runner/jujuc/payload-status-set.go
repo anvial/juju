@@ -33,10 +33,10 @@ func (c PayloadStatusSetCmd) Info() *cmd.Info {
 		Args:    "<class> <id> <status>",
 		Purpose: "Update the status of a payload.",
 		Doc: `
-"payload-status-set" is used to update the current status of a registered payload.
-The <class> and <id> provided must match a payload that has been previously
-registered with juju using payload-register. The <status> must be one of the
-follow: starting, started, stopping, stopped
+` + "`payload-status-set`" + ` is used to update the current status of a registered payload.
+The ` + "`<class>`" + ` and ` + "`<id>`" + ` provided must match a payload that has been previously
+registered with juju using ` + "`payload-register`" + `. The ` + "`<status>`" + ` must be one of the
+follow: ` + "`starting`" + `, ` + "`started`" + `, ` + "`stopping`" + `, ` + "`stopped`" + `
 `,
 		Examples: `
     payload-status-set monitor abcd13asa32c starting

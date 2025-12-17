@@ -29,8 +29,8 @@ func NewLeaderGetCommand(ctx Context) (cmd.Command, error) {
 // Info is part of the cmd.Command interface.
 func (c *leaderGetCommand) Info() *cmd.Info {
 	doc := `
-leader-get prints the value of a leadership setting specified by key. If no key
-is given, or if the key is "-", all keys and values will be printed.
+` + "`leader-get`" + ` prints the value of a leadership setting specified by key. If no key
+is given, or if the key is ` + "`" + `"-"` + "`" + `, all keys and values will be printed.
 `
 	examples := `
     ADDRESSS=$(leader-get cluster-leader-address)

@@ -15,9 +15,9 @@ Get details about the model hosing a related application.
 
 ## Details
 
--r must be specified when not in a relation hook
+`-r` must be specified when not in a relation hook
 
-relation-model-get outputs details about the model hosting the application
+`relation-model-get` outputs details about the model hosting the application
 on the other end of a unit relation.
-If not running in a relation hook context, -r needs to be specified with a
-relation identifier similar to the relation-get and relation-set commands.
+If not running in a relation hook context, `-r` needs to be specified with a
+relation identifier similar to the `relation-get` and `relation-set` commands.

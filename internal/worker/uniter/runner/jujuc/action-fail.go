@@ -25,8 +25,8 @@ func NewActionFailCommand(ctx Context) (cmd.Command, error) {
 // Info returns the content for --help.
 func (c *ActionFailCommand) Info() *cmd.Info {
 	doc := `
-action-fail sets the fail state of the action with a given error message.  Using
-action-fail without a failure message will set a default message indicating a
+` + "`action-fail`" + ` sets the fail state of the action with a given error message.  Using
+` + "`action-fail`" + ` without a failure message will set a default message indicating a
 problem with the action.
 `
 	examples := `

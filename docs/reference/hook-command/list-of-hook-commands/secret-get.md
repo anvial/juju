@@ -31,9 +31,9 @@ Get the content of a secret.
 Get the content of a secret with a given secret ID.
 The first time the value is fetched, the latest revision is used.
 Subsequent calls will always return this same revision unless
---peek or --refresh are used.
-Using --peek will fetch the latest revision just this time.
-Using --refresh will fetch the latest revision and continue to
-return the same revision next time unless --peek or --refresh is used.
+`--peek` or `--refresh` are used.
+Using `--peek` will fetch the latest revision just this time.
+Using `--refresh` will fetch the latest revision and continue to
+return the same revision next time unless `--peek` or `--refresh` is used.
 
 Either the ID or label can be used to identify the secret.

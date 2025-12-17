@@ -22,6 +22,6 @@ Print application leadership status.
 
 ## Details
 
-is-leader prints a boolean indicating whether the local unit is guaranteed to
+`is-leader` prints a boolean indicating whether the local unit is guaranteed to
 be application leader for at least 30 seconds. If it fails, you should assume that
 there is no such guarantee.

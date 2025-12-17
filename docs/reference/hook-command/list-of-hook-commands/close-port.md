@@ -29,8 +29,8 @@ Register a request to close a port or port range.
 
 ## Details
 
-close-port registers a request to close the specified port or port range.
+`close-port` registers a request to close the specified port or port range.
 
 By default, the specified port or port range will be closed for all defined
-application endpoints. The --endpoints option can be used to constrain the
+application endpoints. The `--endpoints` option can be used to constrain the
 close request to a comma-delimited list of application endpoints.

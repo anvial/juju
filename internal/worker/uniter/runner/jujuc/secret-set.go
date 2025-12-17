@@ -28,7 +28,7 @@ func NewSecretSetCommand(ctx Context) (cmd.Command, error) {
 func (c *secretUpdateCommand) Info() *cmd.Info {
 	doc := `
 Update a secret with a list of key values, or set new metadata.
-If a value has the '#base64' suffix, it is already in base64 format and no
+If a value has the ` + "`#base64`" + ` suffix, it is already in base64 format and no
 encoding will be performed, otherwise the value will be base64 encoded
 prior to being stored.
 To just update selected metadata like rotate policy, do not specify any secret value.

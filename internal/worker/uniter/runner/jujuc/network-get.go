@@ -49,17 +49,17 @@ func NewNetworkGetCommand(ctx Context) (_ cmd.Command, err error) {
 func (c *NetworkGetCommand) Info() *cmd.Info {
 	args := "<binding-name> [--ingress-address] [--bind-address] [--egress-subnets]"
 	doc := `
-network-get returns the network config for a given binding name. By default
+` + "`network-get`" + ` returns the network config for a given binding name. By default
 it returns the list of interfaces and associated addresses in the space for
 the binding, as well as the ingress address for the binding. If defined, any
 egress subnets are also returned.
 If one of the following flags are specified, just that value is returned.
 If more than one flag is specified, a map of values is returned.
 
-    --bind-address: the address the local unit should listen on to serve connections, as well
+    ` + "`--bind-address`" + `: the address the local unit should listen on to serve connections, as well
                     as the address that should be advertised to its peers.
-    --ingress-address: the address the local unit should advertise as being used for incoming connections.
-    --egress-subnets: subnets (in CIDR notation) from which traffic on this relation will originate.
+    ` + "`--ingress-address`" + `: the address the local unit should advertise as being used for incoming connections.
+    ` + "`--egress-subnets`" + `: subnets (in CIDR notation) from which traffic on this relation will originate.
 `
 	examples := `
     network-get dbserver

@@ -10,4 +10,4 @@ Delete server-side-state key value pairs.
 
 ## Details
 
-state-delete deletes the value of the server side state specified by key.
+`state-delete` deletes the value of the server side state specified by key.

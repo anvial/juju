@@ -17,5 +17,5 @@ Print server-side-state value.
 
 ## Details
 
-state-get prints the value of the server side state specified by key.
-If no key is given, or if the key is "-", all keys and values will be printed.
+`state-get` prints the value of the server side state specified by key.
+If no key is given, or if the key is `"-"`, all keys and values will be printed.

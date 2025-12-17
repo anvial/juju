@@ -13,14 +13,14 @@ Register a charm payload with Juju.
 
 ## Details
 
-"payload-register" is used while a hook is running to let Juju know that a
+`payload-register` is used while a hook is running to let Juju know that a
 payload has been started. The information used to start the payload must be
 provided when "register" is run.
 
 The payload class must correspond to one of the payloads defined in
-the charm's metadata.yaml.
+the charm's `metadata.yaml`.
 
-An example fragment from metadata.yaml:
+An example fragment from `metadata.yaml`:
 
 payloads:
     monitoring:

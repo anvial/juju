@@ -26,7 +26,7 @@ func NewIsLeaderCommand(ctx Context) (cmd.Command, error) {
 // Info is part of the cmd.Command interface.
 func (c *isLeaderCommand) Info() *cmd.Info {
 	doc := `
-is-leader prints a boolean indicating whether the local unit is guaranteed to
+` + "`is-leader`" + ` prints a boolean indicating whether the local unit is guaranteed to
 be application leader for at least 30 seconds. If it fails, you should assume that
 there is no such guarantee.
 `

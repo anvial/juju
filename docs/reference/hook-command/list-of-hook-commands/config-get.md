@@ -22,13 +22,13 @@ Print application configuration.
 
 ## Details
 
-config-get returns information about the application configuration
-(as defined by config.yaml). If called without arguments, it returns
+`config-get` returns information about the application configuration
+(as defined by `config.yaml`). If called without arguments, it returns
 a dictionary containing all config settings that are either explicitly
-set, or which have a non-nil default value. If the --all flag is passed,
+set, or which have a non-nil default value. If the `--all` flag is passed,
 it returns a dictionary containing all defined config settings including
 nil values (for those without defaults). If called with a single argument,
 it returns the value of that config key. Missing config keys are reported
 as nulls, and do not return an error.
 
-&lt;key&gt; and --all are mutually exclusive.
+`<key>` and `--all` are mutually exclusive.
