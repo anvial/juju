@@ -49,7 +49,7 @@ relation identifier similar to the ` + "`relation-get`" + ` and ` + "`relation-s
 	}
 	return jujucmd.Info(&cmd.Info{
 		Name:    "relation-list",
-		Purpose: "List relation units.",
+		Purpose: "Lists relation units.",
 		Doc:     doc,
 	})
 }

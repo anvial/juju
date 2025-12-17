@@ -1,7 +1,7 @@
 (hook-command-storage-add)=
 # `storage-add`
 ## Summary
-Add storage instances.
+Adds storage instances.
 
 ## Usage
 ``` storage-add [options] <charm storage name>[=count] ...```

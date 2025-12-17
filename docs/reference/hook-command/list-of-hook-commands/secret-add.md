@@ -1,10 +1,10 @@
 (hook-command-secret-add)=
 # `secret-add`
 ## Summary
-Add a new secret.
+Adds a new secret.
 
 ## Usage
-``` secret-add [options] [key[#base64|#file]=value...]```
+``` secret-add [options] <key>[#base64]=<value> ...```
 
 ### Options
 | Flag | Default | Usage |

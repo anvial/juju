@@ -65,7 +65,7 @@ func (c *JujuRebootCommand) Info() *cmd.Info {
 	return jujucmd.Info(&cmd.Info{
 		Name:     "juju-reboot",
 		Args:     "",
-		Purpose:  "Reboot the host machine.",
+		Purpose:  "Reboots the host machine.",
 		Doc:      rebootDoc,
 		Examples: rebootExamples,
 	})

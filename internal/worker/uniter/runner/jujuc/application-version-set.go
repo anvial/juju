@@ -27,10 +27,14 @@ func NewApplicationVersionSetCommand(ctx Context) (cmd.Command, error) {
 func (c *applicationVersionSetCommand) Info() *cmd.Info {
 	doc := `
 ` + "`application-version-set`" + ` tells Juju which version of the application
-software is running. This could be a package version number or some
+software is running.
+
+This could be a package version number or some
 other useful identifier, such as a Git hash, that indicates the
 version of the deployed software. (It shouldn't be confused with the
-charm revision.) The version set will be displayed in ` + "`juju status`" + `
+charm revision.)
+
+The version set will be displayed in ` + "`juju status`" + `
 output for the application.
 `
 	examples := `
@@ -39,7 +43,7 @@ output for the application.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "application-version-set",
 		Args:     "<new-version>",
-		Purpose:  "Specify which version of the application is deployed.",
+		Purpose:  "Specifies which version of the application is deployed.",
 		Doc:      doc,
 		Examples: examples,
 	})

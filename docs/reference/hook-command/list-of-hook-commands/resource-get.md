@@ -1,7 +1,7 @@
 (hook-command-resource-get)=
 # `resource-get`
 ## Summary
-Get the path to the locally cached resource file.
+Gets the path to the locally cached resource file.
 
 ## Usage
 ``` resource-get [options] <resource name>```

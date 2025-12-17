@@ -1,10 +1,10 @@
 (hook-command-storage-get)=
 # `storage-get`
 ## Summary
-Print information for the storage instance with the specified ID.
+Prints information for the storage instance with the specified ID.
 
 ## Usage
-``` storage-get [options] [<key>]```
+``` storage-get [options] [-s <storage-id>] [<key>]```
 
 ### Options
 | Flag | Default | Usage |

@@ -54,7 +54,7 @@ Either the ID or label can be used to identify the secret.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "secret-get",
 		Args:     "<ID> [key[#base64]]",
-		Purpose:  "Get the content of a secret.",
+		Purpose:  "Gets the content of a secret.",
 		Doc:      doc,
 		Examples: examples,
 	})

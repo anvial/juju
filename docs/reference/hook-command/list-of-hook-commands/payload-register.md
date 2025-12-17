@@ -1,7 +1,7 @@
 (hook-command-payload-register)=
 # `payload-register`
 ## Summary
-Register a charm payload with Juju.
+Registers a charm payload with Juju.
 
 ## Usage
 ``` payload-register [options] <type> <class> <id> [tags...]```
@@ -22,8 +22,8 @@ the charm's `metadata.yaml`.
 
 An example fragment from `metadata.yaml`:
 
-payloads:
-    monitoring:
-        type: docker
-    kvm-guest:
-        type: kvm
+    payloads:
+        monitoring:
+            type: docker
+        kvm-guest:
+            type: kvm

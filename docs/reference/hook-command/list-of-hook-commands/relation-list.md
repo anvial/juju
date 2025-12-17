@@ -1,7 +1,7 @@
 (hook-command-relation-list)=
 # `relation-list`
 ## Summary
-List relation units.
+Lists relation units.
 
 ## Usage
 ``` relation-list [options] ```

@@ -1,7 +1,7 @@
 (hook-command-unit-get)=
 # `unit-get`
 ## Summary
-Print public-address or private-address.
+Prints public-address or private-address.
 
 ## Usage
 ``` unit-get [options] <setting>```

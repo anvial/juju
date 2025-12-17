@@ -1,7 +1,7 @@
 (hook-command-secret-revoke)=
 # `secret-revoke`
 ## Summary
-Revoke access to a secret.
+Revokes access to a secret.
 
 ## Usage
 ``` secret-revoke [options] <ID>```

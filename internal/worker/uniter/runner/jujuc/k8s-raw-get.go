@@ -25,11 +25,11 @@ func NewK8sRawGetCommand(ctx Context) (cmd.Command, error) {
 
 func (c *K8sRawGetCommand) Info() *cmd.Info {
 	doc := `
-Gets configuration data used to set up k8s resources.
+Gets raw Kubernetes spec information.
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:    "k8s-raw-get",
-		Purpose: "Get k8s raw spec information.",
+		Purpose: "Gets Kubernetes raw spec information.",
 		Doc:     doc,
 	})
 }

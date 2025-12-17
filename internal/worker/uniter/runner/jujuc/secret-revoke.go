@@ -55,7 +55,7 @@ case just that unit's access is revoked.'
 	return jujucmd.Info(&cmd.Info{
 		Name:     "secret-revoke",
 		Args:     "<ID>",
-		Purpose:  "Revoke access to a secret.",
+		Purpose:  "Revokes access to a secret.",
 		Doc:      doc,
 		Examples: examples,
 	})

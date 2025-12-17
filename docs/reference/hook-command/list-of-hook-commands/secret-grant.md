@@ -1,7 +1,7 @@
 (hook-command-secret-grant)=
 # `secret-grant`
 ## Summary
-Grant access to a secret.
+Grants access to a secret.
 
 ## Usage
 ``` secret-grant [options] <ID>```

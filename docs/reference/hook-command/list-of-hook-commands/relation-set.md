@@ -1,7 +1,7 @@
 (hook-command-relation-set)=
 # `relation-set`
 ## Summary
-Set relation settings.
+Sets relation settings.
 
 ## Usage
 ``` relation-set [options] key=value [key=value ...]```

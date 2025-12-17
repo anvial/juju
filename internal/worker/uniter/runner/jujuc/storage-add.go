@@ -41,7 +41,7 @@ If unspecified, the count defaults to 1.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "storage-add",
 		Args:     "<charm storage name>[=count] ...",
-		Purpose:  "Add storage instances.",
+		Purpose:  "Adds storage instances.",
 		Doc:      doc,
 		Examples: examples,
 	})

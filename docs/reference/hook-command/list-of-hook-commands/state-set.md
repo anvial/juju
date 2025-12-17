@@ -3,7 +3,7 @@
 > See also: [state-delete](#state-delete), [state-get](#state-get)
 
 ## Summary
-Set server-side-state values.
+Sets server-side-state values.
 
 ## Usage
 ``` state-set [options] key=value [key=value ...]```

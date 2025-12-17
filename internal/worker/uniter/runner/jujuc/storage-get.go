@@ -58,8 +58,8 @@ singleton stores.
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:     "storage-get",
-		Args:     "[<key>]",
-		Purpose:  "Print information for the storage instance with the specified ID.",
+		Args:     "[-s <storage-id>] [<key>]",
+		Purpose:  "Prints information for the storage instance with the specified ID.",
 		Doc:      doc,
 		Examples: examples,
 	})

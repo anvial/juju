@@ -1,7 +1,7 @@
 (hook-command-juju-log)=
 # `juju-log`
 ## Summary
-Write a message to the juju log.
+Writes a message to Juju logs.
 
 ## Usage
 ``` juju-log [options] <message>```

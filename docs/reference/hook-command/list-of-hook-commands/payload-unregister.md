@@ -1,7 +1,7 @@
 (hook-command-payload-unregister)=
 # `payload-unregister`
 ## Summary
-Stop tracking a payload.
+Stops tracking a payload.
 
 ## Usage
 ``` payload-unregister [options] <class> <id>```

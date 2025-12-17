@@ -42,7 +42,7 @@ from this space, not the ` + "`default`" + ` space.
 	return jujucmd.Info(&cmd.Info{
 		Name:    "unit-get",
 		Args:    "<setting>",
-		Purpose: "Print public-address or private-address.",
+		Purpose: "Prints public-address or private-address.",
 		Doc:     doc,
 	})
 }

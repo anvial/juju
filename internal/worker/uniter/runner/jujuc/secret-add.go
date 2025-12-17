@@ -75,8 +75,8 @@ specific unit which created it.
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:     "secret-add",
-		Args:     "[key[#base64|#file]=value...]",
-		Purpose:  "Add a new secret.",
+		Args:     "<key>[#base64]=<value> ...",
+		Purpose:  "Adds a new secret.",
 		Doc:      doc,
 		Examples: examples,
 	})

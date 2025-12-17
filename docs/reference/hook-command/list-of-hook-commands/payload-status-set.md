@@ -1,7 +1,7 @@
 (hook-command-payload-status-set)=
 # `payload-status-set`
 ## Summary
-Update the status of a payload.
+Updates the status of a payload.
 
 ## Usage
 ``` payload-status-set [options] <class> <id> <status>```
@@ -14,6 +14,9 @@ Update the status of a payload.
 ## Details
 
 `payload-status-set` is used to update the current status of a registered payload.
+
 The `<class>` and `<id>` provided must match a payload that has been previously
-registered with juju using `payload-register`. The `<status>` must be one of the
-follow: `starting`, `started`, `stopping`, `stopped`
+registered with Juju using `payload-register`.
+
+The `<status>` must be one of the
+follow: `starting`, `started`, `stopping`, `stopped`.

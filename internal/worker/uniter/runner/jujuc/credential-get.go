@@ -31,7 +31,7 @@ func (c *CredentialGetCommand) Info() *cmd.Info {
 	return jujucmd.Info(&cmd.Info{
 		Name:    "credential-get",
 		Args:    "",
-		Purpose: "Access cloud credentials.",
+		Purpose: "Accesses cloud credentials.",
 		Doc:     doc,
 	})
 }

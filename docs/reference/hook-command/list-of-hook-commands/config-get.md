@@ -1,7 +1,7 @@
 (hook-command-config-get)=
 # `config-get`
 ## Summary
-Print application configuration.
+Prints application configuration.
 
 ## Usage
 ``` config-get [options] [<key>]```

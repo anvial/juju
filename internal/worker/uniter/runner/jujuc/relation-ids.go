@@ -56,7 +56,7 @@ Only relation ids for relations which are not broken are included.
 	return jujucmd.Info(&cmd.Info{
 		Name:    "relation-ids",
 		Args:    args,
-		Purpose: "List all relation IDs for the given endpoint.",
+		Purpose: "Lists all relation IDs for the given endpoint.",
 		Doc:     doc,
 		Examples: `
     relation-ids database

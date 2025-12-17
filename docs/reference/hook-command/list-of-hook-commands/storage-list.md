@@ -1,7 +1,7 @@
 (hook-command-storage-list)=
 # `storage-list`
 ## Summary
-List storage attached to the unit.
+Lists storage attached to the unit.
 
 ## Usage
 ``` storage-list [options] [<storage-name>]```

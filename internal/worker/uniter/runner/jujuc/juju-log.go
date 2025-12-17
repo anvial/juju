@@ -45,7 +45,7 @@ func (c *JujuLogCommand) Info() *cmd.Info {
 	return jujucmd.Info(&cmd.Info{
 		Name:     "juju-log",
 		Args:     "<message>",
-		Purpose:  "Write a message to the juju log.",
+		Purpose:  "Writes a message to Juju logs.",
 		Examples: examples,
 	})
 }

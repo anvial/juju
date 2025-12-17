@@ -1,10 +1,10 @@
 (hook-command-status-set)=
 # `status-set`
 ## Summary
-Set status information.
+Sets status information.
 
 ## Usage
-``` status-set [options] <maintenance | blocked | waiting | active> [message]```
+``` status-set [options] <status> [<message>]```
 
 ### Options
 | Flag | Default | Usage |

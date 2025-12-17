@@ -1,10 +1,10 @@
 (hook-command-action-set)=
 # `action-set`
 ## Summary
-Set action results.
+Sets action results.
 
 ## Usage
-``` action-set [options] <key-path>=<value> [<key-path>=<value> ...]```
+``` action-set [options] key=value [key=value ...]```
 
 ## Examples
 

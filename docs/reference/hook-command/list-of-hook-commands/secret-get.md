@@ -1,7 +1,7 @@
 (hook-command-secret-get)=
 # `secret-get`
 ## Summary
-Get the content of a secret.
+Gets the content of a secret.
 
 ## Usage
 ``` secret-get [options] <ID> [key[#base64]]```

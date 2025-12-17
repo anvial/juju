@@ -36,7 +36,7 @@ If no key is given, or if the key is ` + "`" + `"-"` + "`" + `, all keys and val
 	return jujucmd.Info(&cmd.Info{
 		Name:    "state-get",
 		Args:    "[<key>]",
-		Purpose: "Print server-side-state value.",
+		Purpose: "Prints server-side-state value.",
 		Doc:     doc,
 		SeeAlso: []string{"state-delete", "state-set"},
 	})

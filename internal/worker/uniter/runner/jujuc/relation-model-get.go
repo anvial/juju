@@ -39,7 +39,7 @@ func NewRelationModelGetCommand(ctx Context) (cmd.Command, error) {
 // Info returns information about the Command.
 func (c *RelationModelGetCommand) Info() *cmd.Info {
 	doc := `
-` + "`-r`" + ` must be specified when not in a relation hook
+` + "`-r`" + ` must be specified when not in a relation hook.
 
 ` + "`relation-model-get`" + ` outputs details about the model hosting the application
 on the other end of a unit relation.
@@ -51,7 +51,7 @@ relation identifier similar to the ` + "`relation-get`" + ` and ` + "`relation-s
 	}
 	return jujucmd.Info(&cmd.Info{
 		Name:    "relation-model-get",
-		Purpose: "Get details about the model hosing a related application.",
+		Purpose: "Gets details about the model housing a related application.",
 		Doc:     doc,
 	})
 }

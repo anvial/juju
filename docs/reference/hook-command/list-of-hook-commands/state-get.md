@@ -3,7 +3,7 @@
 > See also: [state-delete](#state-delete), [state-set](#state-set)
 
 ## Summary
-Print server-side-state value.
+Prints server-side-state value.
 
 ## Usage
 ``` state-get [options] [<key>]```

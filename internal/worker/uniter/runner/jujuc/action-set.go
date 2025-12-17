@@ -78,8 +78,8 @@ will yield:
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:     "action-set",
-		Args:     "<key-path>=<value> [<key-path>=<value> ...]",
-		Purpose:  "Set action results.",
+		Args:     "key=value [key=value ...]",
+		Purpose:  "Sets action results.",
 		Doc:      doc,
 		Examples: examples,
 	})

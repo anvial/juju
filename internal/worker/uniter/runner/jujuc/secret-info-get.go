@@ -41,7 +41,7 @@ Either the ID or label can be used to identify the secret.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "secret-info-get",
 		Args:     "<ID>",
-		Purpose:  "Get a secret's metadata info.",
+		Purpose:  "Gets a secret's metadata info.",
 		Doc:      doc,
 		Examples: examples,
 	})

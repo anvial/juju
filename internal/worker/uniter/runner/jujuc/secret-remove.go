@@ -36,7 +36,7 @@ Remove a secret with the specified URI.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "secret-remove",
 		Args:     "<ID>",
-		Purpose:  "Remove an existing secret.",
+		Purpose:  "Removes an existing secret.",
 		Doc:      doc,
 		Examples: examples,
 	})

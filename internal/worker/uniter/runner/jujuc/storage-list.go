@@ -46,7 +46,7 @@ passed through to the ` + "`storage-get`" + ` command using the ` + "`" + `"-s"`
 	return jujucmd.Info(&cmd.Info{
 		Name:     "storage-list",
 		Args:     "[<storage-name>]",
-		Purpose:  "List storage attached to the unit.",
+		Purpose:  "Lists storage attached to the unit.",
 		Doc:      doc,
 		Examples: examples,
 	})

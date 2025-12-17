@@ -1,7 +1,7 @@
 (hook-command-close-port)=
 # `close-port`
 ## Summary
-Register a request to close a port or port range.
+Registers a request to close a port or port range.
 
 ## Usage
 ``` close-port [options] <port>[/<protocol>] or <from>-<to>[/<protocol>] or icmp```

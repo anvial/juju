@@ -1,7 +1,7 @@
 (hook-command-relation-model-get)=
 # `relation-model-get`
 ## Summary
-Get details about the model hosing a related application.
+Gets details about the model housing a related application.
 
 ## Usage
 ``` relation-model-get [options] ```
@@ -15,7 +15,7 @@ Get details about the model hosing a related application.
 
 ## Details
 
-`-r` must be specified when not in a relation hook
+`-r` must be specified when not in a relation hook.
 
 `relation-model-get` outputs details about the model hosting the application
 on the other end of a unit relation.

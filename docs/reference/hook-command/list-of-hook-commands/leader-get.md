@@ -1,7 +1,7 @@
 (hook-command-leader-get)=
 # `leader-get`
 ## Summary
-Print application leadership settings.
+Prints application leadership settings.
 
 ## Usage
 ``` leader-get [options] [<key>]```
@@ -19,5 +19,7 @@ Print application leadership settings.
 
 ## Details
 
-`leader-get` prints the value of a leadership setting specified by key. If no key
+`leader-get` prints the value of a leadership setting specified by key.
+
+If no key
 is given, or if the key is `"-"`, all keys and values will be printed.

@@ -120,8 +120,8 @@ Non-leader units which attempt to use ` + "`--application`" + ` will receive an 
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:     "status-set",
-		Args:     "<maintenance | blocked | waiting | active> [message]",
-		Purpose:  "Set status information.",
+		Args:     "<status> [<message>]",
+		Purpose:  "Sets status information.",
 		Doc:      doc,
 		Examples: examples,
 	})

@@ -1,7 +1,7 @@
 (hook-command-secret-set)=
 # `secret-set`
 ## Summary
-Update an existing secret.
+Updates an existing secret.
 
 ## Usage
 ``` secret-set [options] <ID> [key[#base64]=value...]```

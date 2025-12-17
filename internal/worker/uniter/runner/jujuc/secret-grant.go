@@ -54,7 +54,7 @@ Optionally specify a unit name to limit access to just that unit.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "secret-grant",
 		Args:     "<ID>",
-		Purpose:  "Grant access to a secret.",
+		Purpose:  "Grants access to a secret.",
 		Doc:      doc,
 		Examples: examples,
 	})

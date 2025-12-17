@@ -49,7 +49,7 @@ Missing config keys are reported as nulls, and do not return an error.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "config-get",
 		Args:     "[<key>]",
-		Purpose:  "Print application configuration.",
+		Purpose:  "Prints application configuration.",
 		Doc:      doc,
 		Examples: examples,
 	})

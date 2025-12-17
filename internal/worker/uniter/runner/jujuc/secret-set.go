@@ -56,7 +56,7 @@ To just update selected metadata like rotate policy, do not specify any secret v
 	return jujucmd.Info(&cmd.Info{
 		Name:     "secret-set",
 		Args:     "<ID> [key[#base64]=value...]",
-		Purpose:  "Update an existing secret.",
+		Purpose:  "Updates an existing secret.",
 		Doc:      doc,
 		Examples: examples,
 	})

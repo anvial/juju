@@ -56,10 +56,10 @@ egress subnets are also returned.
 If one of the following flags are specified, just that value is returned.
 If more than one flag is specified, a map of values is returned.
 
-    ` + "`--bind-address`" + `: the address the local unit should listen on to serve connections, as well
-                    as the address that should be advertised to its peers.
-    ` + "`--ingress-address`" + `: the address the local unit should advertise as being used for incoming connections.
-    ` + "`--egress-subnets`" + `: subnets (in CIDR notation) from which traffic on this relation will originate.
+ ` + "`--bind-address`" + `: the address the local unit should listen on to serve connections, as well
+                 as the address that should be advertised to its peers.
+ ` + "`--ingress-address`" + `: the address the local unit should advertise as being used for incoming connections.
+ ` + "`--egress-subnets`" + `: subnets (in CIDR notation) from which traffic on this relation will originate.
 `
 	examples := `
     network-get dbserver
@@ -71,7 +71,7 @@ If more than one flag is specified, a map of values is returned.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "network-get",
 		Args:     args,
-		Purpose:  "Get network config.",
+		Purpose:  "Gets network config.",
 		Doc:      doc,
 		Examples: examples,
 	})

@@ -1,7 +1,7 @@
 (hook-command-credential-get)=
 # `credential-get`
 ## Summary
-Access cloud credentials.
+Accesses cloud credentials.
 
 ## Usage
 ``` credential-get [options] ```

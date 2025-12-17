@@ -1,7 +1,7 @@
 (hook-command-leader-set)=
 # `leader-set`
 ## Summary
-Write application leadership settings.
+Writes application leadership settings.
 
 ## Usage
 ``` leader-set [options] <key>=<value> [...]```
@@ -20,10 +20,10 @@ without arguments, or if called by a unit that is not currently application lead
 `leader-set` lets you distribute string key=value pairs to other units, but with the
 following differences:
 
-  - there’s only one leader-settings bucket per application (not one per unit)
-  - only the leader can write to the bucket
-  - only minions are informed of changes to the bucket
-  - changes are propagated instantly
+ - there’s only one leader-settings bucket per application (not one per unit)
+ - only the leader can write to the bucket
+ - only minions are informed of changes to the bucket
+ - changes are propagated instantly
 
 The instant propagation may be surprising, but it exists to satisfy the use case where
 shared data can be chosen by the leader at the very beginning of the install hook.

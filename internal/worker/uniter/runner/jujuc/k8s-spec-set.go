@@ -34,7 +34,7 @@ func (c *K8sSpecSetCommand) Info() *cmd.Info {
 Sets configuration data to use for k8s resources.
 The spec applies to all units for the application.
 `
-	purpose := "Set k8s spec information."
+	purpose := "Sets Kubernetes spec information."
 	if c.name == "pod-spec-set" {
 		purpose += " (deprecated)"
 	}

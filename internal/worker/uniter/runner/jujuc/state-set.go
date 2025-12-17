@@ -48,7 +48,7 @@ The following fixed size limits apply:
 	return jujucmd.Info(&cmd.Info{
 		Name:    "state-set",
 		Args:    "key=value [key=value ...]",
-		Purpose: "Set server-side-state values.",
+		Purpose: "Sets server-side-state values.",
 		Doc: fmt.Sprintf(
 			doc,
 			quota.MaxCharmStateKeySize,

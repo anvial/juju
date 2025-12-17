@@ -1,7 +1,7 @@
 (hook-command-network-get)=
 # `network-get`
 ## Summary
-Get network config.
+Gets network config.
 
 ## Usage
 ``` network-get [options] <binding-name> [--ingress-address] [--bind-address] [--egress-subnets]```
@@ -35,7 +35,7 @@ egress subnets are also returned.
 If one of the following flags are specified, just that value is returned.
 If more than one flag is specified, a map of values is returned.
 
-    `--bind-address`: the address the local unit should listen on to serve connections, as well
-                    as the address that should be advertised to its peers.
-    `--ingress-address`: the address the local unit should advertise as being used for incoming connections.
-    `--egress-subnets`: subnets (in CIDR notation) from which traffic on this relation will originate.
+ `--bind-address`: the address the local unit should listen on to serve connections, as well
+                 as the address that should be advertised to its peers.
+ `--ingress-address`: the address the local unit should advertise as being used for incoming connections.
+ `--egress-subnets`: subnets (in CIDR notation) from which traffic on this relation will originate.

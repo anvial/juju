@@ -1,7 +1,7 @@
 (hook-command-juju-reboot)=
 # `juju-reboot`
 ## Summary
-Reboot the host machine.
+Reboots the host machine.
 
 ## Usage
 ``` juju-reboot [options] ```
