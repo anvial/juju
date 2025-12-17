@@ -75,6 +75,7 @@ func (s *baseSuite) SetUpTest(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Cleanup(func() {
+		s.state = nil
 		s.unitName = ""
 		s.unitUUID = ""
 	})

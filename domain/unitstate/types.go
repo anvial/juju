@@ -8,6 +8,7 @@ import (
 	"github.com/juju/juju/core/relation"
 	"github.com/juju/juju/core/secrets"
 	"github.com/juju/juju/core/unit"
+	porterrors "github.com/juju/juju/domain/port/errors"
 	"github.com/juju/juju/domain/secret"
 	"github.com/juju/juju/internal/errors"
 )
@@ -192,6 +193,9 @@ func (c CommitHookChangesArg) ValidateAndHasChanges() (bool, error) {
 			}
 		}
 	}
+	if err := c.verifyNoPortRangeConflicts(); err != nil {
+		errs = append(errs, errors.Errorf("cannot update unit ports with conflict(s): %w", err))
+	}
 	if len(c.SecretCreates) > 0 {
 		// If the URI is empty in a CreateSecretArg, it will be created.
 		hasChanges = true
@@ -245,4 +249,28 @@ func (c CommitHookChangesArg) RequiresLeadership() bool {
 		return true
 	}
 	return false
+}
+
+// verifyNoPortRangeConflicts verifies the provided port ranges do not conflict
+// with each other.
+//
+// A conflict occurs when two (or more) port ranges across all endpoints overlap,
+// but are not equal.
+func (c CommitHookChangesArg) verifyNoPortRangeConflicts() error {
+	if len(c.OpenPorts)+len(c.ClosePorts) == 0 {
+		return nil
+	}
+	allInputPortRanges := append(c.OpenPorts.UniquePortRanges(), c.ClosePorts.UniquePortRanges()...)
+	var conflicts []error
+	for _, portRange := range allInputPortRanges {
+		for _, otherPortRange := range allInputPortRanges {
+			if portRange != otherPortRange && portRange.ConflictsWith(otherPortRange) {
+				conflicts = append(conflicts, errors.Errorf("[%s, %s]", portRange, otherPortRange))
+			}
+		}
+	}
+	if len(conflicts) == 0 {
+		return nil
+	}
+	return errors.Errorf("%s: %w", errors.Join(conflicts...), porterrors.PortRangeConflict)
 }
