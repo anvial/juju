@@ -210,7 +210,7 @@ SELECT uuid, name FROM machine WHERE net_node_uuid = ?
 
 func (s *stateSuite) initialiseOpenPort(c *tc.C, st *State) {
 	ctx := c.Context()
-	err := st.UpdateUnitPorts(ctx, s.unitUUID, network.GroupedPortRanges{
+	err := st.ImportOpenUnitPorts(ctx, s.unitUUID, network.GroupedPortRanges{
 		"ep0": {
 			{Protocol: "tcp", FromPort: 80, ToPort: 80},
 			{Protocol: "udp", FromPort: 1000, ToPort: 1500},
@@ -218,7 +218,7 @@ func (s *stateSuite) initialiseOpenPort(c *tc.C, st *State) {
 		"ep1": {
 			{Protocol: "tcp", FromPort: 8080, ToPort: 8080},
 		},
-	}, network.GroupedPortRanges{})
+	})
 	c.Assert(err, tc.ErrorIsNil)
 }
 
@@ -268,7 +268,7 @@ func (s *stateSuite) TestGetAllOpenedPorts(c *tc.C) {
 
 	_ = s.createApplicationWithRelations(c, appNames[1], "ep0", "ep1", "ep2")
 	unit1UUID, unit1Name := s.createUnit(c, netNodeUUIDs[1], appNames[1])
-	err := st.UpdateUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
+	err := st.ImportOpenUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
 		"ep0": {
 			{Protocol: "tcp", FromPort: 443, ToPort: 443},
 			{Protocol: "udp", FromPort: 2000, ToPort: 2500},
@@ -276,7 +276,7 @@ func (s *stateSuite) TestGetAllOpenedPorts(c *tc.C) {
 		"ep1": {
 			{Protocol: "udp", FromPort: 2000, ToPort: 2500},
 		},
-	}, network.GroupedPortRanges{})
+	})
 	c.Assert(err, tc.ErrorIsNil)
 
 	groupedPortRanges, err := st.GetAllOpenedPorts(ctx)
@@ -333,12 +333,12 @@ func (s *stateSuite) TestGetMachineOpenedPortsAcrossTwoUnits(c *tc.C) {
 	s.initialiseOpenPort(c, st)
 
 	unit1UUID, unit1Name := s.createUnit(c, netNodeUUIDs[0], appNames[0])
-	err := st.UpdateUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
+	err := st.ImportOpenUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
 		"ep0": {
 			{Protocol: "tcp", FromPort: 443, ToPort: 443},
 			{Protocol: "udp", FromPort: 2000, ToPort: 2500},
 		},
-	}, network.GroupedPortRanges{})
+	})
 	c.Assert(err, tc.ErrorIsNil)
 
 	machineGroupedPortRanges, err := st.GetMachineOpenedPorts(ctx, machineUUIDs[0])
@@ -371,12 +371,12 @@ func (s *stateSuite) TestGetMachineOpenedPortsAcrossTwoUnitsDifferentMachines(c 
 	s.initialiseOpenPort(c, st)
 
 	unit1UUID, unit1Name := s.createUnit(c, netNodeUUIDs[1], appNames[0])
-	err := st.UpdateUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
+	err := st.ImportOpenUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
 		"ep0": {
 			{Protocol: "tcp", FromPort: 443, ToPort: 443},
 			{Protocol: "udp", FromPort: 2000, ToPort: 2500},
 		},
-	}, network.GroupedPortRanges{})
+	})
 	c.Assert(err, tc.ErrorIsNil)
 
 	machineGroupedPortRanges, err := st.GetMachineOpenedPorts(ctx, machineUUIDs[0])
@@ -440,12 +440,12 @@ func (s *stateSuite) TestGetApplicationOpenedPortsAcrossTwoUnits(c *tc.C) {
 	s.initialiseOpenPort(c, st)
 
 	unit1UUID, unit1Name := s.createUnit(c, netNodeUUIDs[1], appNames[0])
-	err := st.UpdateUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
+	err := st.ImportOpenUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
 		"ep0": {
 			{Protocol: "tcp", FromPort: 443, ToPort: 443},
 			{Protocol: "udp", FromPort: 2000, ToPort: 2500},
 		},
-	}, network.GroupedPortRanges{})
+	})
 	c.Assert(err, tc.ErrorIsNil)
 
 	expect := port.UnitEndpointPortRanges{
@@ -470,12 +470,12 @@ func (s *stateSuite) TestGetApplicationOpenedPortsAcrossTwoUnitsDifferentApplica
 
 	app1UUID := s.createApplicationWithRelations(c, appNames[1], "ep0", "ep1", "ep2")
 	unit1UUID, unit1Name := s.createUnit(c, netNodeUUIDs[1], appNames[1])
-	err := st.UpdateUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
+	err := st.ImportOpenUnitPorts(ctx, unit1UUID, network.GroupedPortRanges{
 		"ep0": {
 			{Protocol: "tcp", FromPort: 443, ToPort: 443},
 			{Protocol: "udp", FromPort: 2000, ToPort: 2500},
 		},
-	}, network.GroupedPortRanges{})
+	})
 	c.Assert(err, tc.ErrorIsNil)
 
 	expect := port.UnitEndpointPortRanges{

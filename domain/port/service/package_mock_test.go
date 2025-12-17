@@ -278,6 +278,44 @@ func (c *MockStateGetUnitUUIDCall) DoAndReturn(f func(context.Context, unit.Name
 	return c
 }
 
+// ImportOpenUnitPorts mocks base method.
+func (m *MockState) ImportOpenUnitPorts(arg0 context.Context, arg1 unit.UUID, arg2 network.GroupedPortRanges) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportOpenUnitPorts", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ImportOpenUnitPorts indicates an expected call of ImportOpenUnitPorts.
+func (mr *MockStateMockRecorder) ImportOpenUnitPorts(arg0, arg1, arg2 any) *MockStateImportOpenUnitPortsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportOpenUnitPorts", reflect.TypeOf((*MockState)(nil).ImportOpenUnitPorts), arg0, arg1, arg2)
+	return &MockStateImportOpenUnitPortsCall{Call: call}
+}
+
+// MockStateImportOpenUnitPortsCall wrap *gomock.Call
+type MockStateImportOpenUnitPortsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStateImportOpenUnitPortsCall) Return(arg0 error) *MockStateImportOpenUnitPortsCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStateImportOpenUnitPortsCall) Do(f func(context.Context, unit.UUID, network.GroupedPortRanges) error) *MockStateImportOpenUnitPortsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStateImportOpenUnitPortsCall) DoAndReturn(f func(context.Context, unit.UUID, network.GroupedPortRanges) error) *MockStateImportOpenUnitPortsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // InitialWatchOpenedPortsStatement mocks base method.
 func (m *MockState) InitialWatchOpenedPortsStatement() (string, string) {
 	m.ctrl.T.Helper()
@@ -351,44 +389,6 @@ func (c *MockStateNamespaceForWatchOpenedPortCall) Do(f func() string) *MockStat
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockStateNamespaceForWatchOpenedPortCall) DoAndReturn(f func() string) *MockStateNamespaceForWatchOpenedPortCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// UpdateUnitPorts mocks base method.
-func (m *MockState) UpdateUnitPorts(arg0 context.Context, arg1 unit.UUID, arg2, arg3 network.GroupedPortRanges) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUnitPorts", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateUnitPorts indicates an expected call of UpdateUnitPorts.
-func (mr *MockStateMockRecorder) UpdateUnitPorts(arg0, arg1, arg2, arg3 any) *MockStateUpdateUnitPortsCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUnitPorts", reflect.TypeOf((*MockState)(nil).UpdateUnitPorts), arg0, arg1, arg2, arg3)
-	return &MockStateUpdateUnitPortsCall{Call: call}
-}
-
-// MockStateUpdateUnitPortsCall wrap *gomock.Call
-type MockStateUpdateUnitPortsCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockStateUpdateUnitPortsCall) Return(arg0 error) *MockStateUpdateUnitPortsCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockStateUpdateUnitPortsCall) Do(f func(context.Context, unit.UUID, network.GroupedPortRanges, network.GroupedPortRanges) error) *MockStateUpdateUnitPortsCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateUpdateUnitPortsCall) DoAndReturn(f func(context.Context, unit.UUID, network.GroupedPortRanges, network.GroupedPortRanges) error) *MockStateUpdateUnitPortsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

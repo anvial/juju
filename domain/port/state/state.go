@@ -127,8 +127,6 @@ JOIN unit ON unit_uuid = unit.uuid
 //
 // NOTE: In the ddl machines and units both share 1-to-1 relations with net_nodes.
 // So to join units to machines we go via their net_nodes.
-//
-// TODO: Once we have a core static machine uuid type, use it here.
 func (st *State) GetMachineOpenedPorts(ctx context.Context, machine string) (map[coreunit.Name]network.GroupedPortRanges, error) {
 	db, err := st.DB(ctx)
 	if err != nil {

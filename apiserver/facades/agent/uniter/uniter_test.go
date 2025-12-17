@@ -53,12 +53,14 @@ import (
 type uniterSuite struct {
 	testhelpers.IsolationSuite
 
-	badTag names.Tag
+	badTag  names.Tag
+	authTag names.Tag
 
 	applicationService *MockApplicationService
 	machineService     *MockMachineService
 	operationService   *MockOperationService
 	networkService     *MockNetworkService
+	portService        *MockPortService
 	resolveService     *MockResolveService
 	removalService     *MockRemovalService
 	watcherRegistry    *MockWatcherRegistry
@@ -1420,6 +1422,109 @@ func (s *uniterSuite) TestLogActionsMessages(c *tc.C) {
 	}})
 }
 
+func (s *uniterSuite) TestOpenedMachinePortRangesByEndpoint(c *tc.C) {
+	s.badTag = names.NewMachineTag("1")
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	machine0UUID := tc.Must(c, coremachine.NewUUID)
+	s.machineService.EXPECT().GetMachineUUID(gomock.Any(), coremachine.Name("0")).Return(machine0UUID, nil)
+	returnedPortRanges := map[coreunit.Name]network.GroupedPortRanges{
+		"mysql/1": {
+			"server": []network.PortRange{{FromPort: 3306, ToPort: 3306, Protocol: "tcp"}},
+		},
+		"wordpress/0": {
+			"":                []network.PortRange{{FromPort: 100, ToPort: 200, Protocol: "tcp"}},
+			"monitoring-port": []network.PortRange{{FromPort: 10, ToPort: 20, Protocol: "udp"}},
+		},
+	}
+	s.portService.EXPECT().GetMachineOpenedPorts(gomock.Any(), machine0UUID).Return(returnedPortRanges, nil)
+
+	args := params.Entities{Entities: []params.Entity{
+		{Tag: "unit-mysql-0"},
+		{Tag: "machine-0"},
+		{Tag: "machine-1"},
+		{Tag: "unit-foo-42"},
+		{Tag: "application-wordpress"},
+	}}
+	expectPortRanges := map[string][]params.OpenUnitPortRangesByEndpoint{
+		"unit-mysql-1": {
+			{
+				Endpoint:   "server",
+				PortRanges: []params.PortRange{{FromPort: 3306, ToPort: 3306, Protocol: "tcp"}},
+			},
+		},
+		"unit-wordpress-0": {
+			{
+				Endpoint:   "",
+				PortRanges: []params.PortRange{{FromPort: 100, ToPort: 200, Protocol: "tcp"}},
+			},
+			{
+				Endpoint:   "monitoring-port",
+				PortRanges: []params.PortRange{{FromPort: 10, ToPort: 20, Protocol: "udp"}},
+			},
+		},
+	}
+
+	// Act
+	result, err := s.uniter.OpenedMachinePortRangesByEndpoint(c.Context(), args)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.DeepEquals, params.OpenPortRangesByEndpointResults{
+		Results: []params.OpenPortRangesByEndpointResult{
+			{Error: apiservertesting.ErrUnauthorized},
+			{
+				UnitPortRanges: expectPortRanges,
+			},
+			{Error: apiservertesting.ErrUnauthorized},
+			{Error: apiservertesting.ErrUnauthorized},
+			{Error: apiservertesting.ErrUnauthorized},
+		},
+	})
+}
+
+func (s *uniterSuite) TestOpenedPortRangesByEndpoint(c *tc.C) {
+	s.authTag = names.NewUnitTag("mysql/1")
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	mysqlUnitUUID := tc.Must(c, coreunit.NewUUID)
+	s.applicationService.EXPECT().GetUnitUUID(gomock.Any(), coreunit.Name("mysql/1")).Return(mysqlUnitUUID, nil)
+	mysqlResults := network.GroupedPortRanges{
+		"":   []network.PortRange{{FromPort: 1000, ToPort: 1000, Protocol: "tcp"}},
+		"db": []network.PortRange{{FromPort: 1111, ToPort: 1111, Protocol: "udp"}},
+	}
+	s.portService.EXPECT().GetUnitOpenedPorts(gomock.Any(), mysqlUnitUUID).Return(mysqlResults, nil)
+
+	// Get the open port ranges
+	expectPortRanges := []params.OpenUnitPortRangesByEndpoint{
+		{
+			Endpoint:   "",
+			PortRanges: []params.PortRange{{FromPort: 1000, ToPort: 1000, Protocol: "tcp"}},
+		},
+		{
+			Endpoint:   "db",
+			PortRanges: []params.PortRange{{FromPort: 1111, ToPort: 1111, Protocol: "udp"}},
+		},
+	}
+
+	// Act
+	result, err := s.uniter.OpenedPortRangesByEndpoint(c.Context())
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.DeepEquals, params.OpenPortRangesByEndpointResults{
+		Results: []params.OpenPortRangesByEndpointResult{
+			{
+				UnitPortRanges: map[string][]params.OpenUnitPortRangesByEndpoint{
+					"unit-mysql-1": expectPortRanges,
+				},
+			},
+		},
+	})
+}
+
 func (s *uniterSuite) expectedGetConfigSettings(unitName coreunit.Name, settings map[string]any, err error) {
 	s.applicationService.EXPECT().GetApplicationUUIDByUnitName(gomock.Any(), unitName).Return(coreapplication.UUID(unitName.Application()), err)
 	if err == nil {
@@ -1452,10 +1557,16 @@ func (s *uniterSuite) expectGetHasSubordinates(c *tc.C, unitName coreunit.Name, 
 func (s *uniterSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 
+	authorizer := &apiservertesting.FakeAuthorizer{
+		Tag:        s.authTag,
+		Controller: true,
+	}
+
 	s.applicationService = NewMockApplicationService(ctrl)
 	s.machineService = NewMockMachineService(ctrl)
 	s.networkService = NewMockNetworkService(ctrl)
 	s.operationService = NewMockOperationService(ctrl)
+	s.portService = NewMockPortService(ctrl)
 	s.resolveService = NewMockResolveService(ctrl)
 	s.removalService = NewMockRemovalService(ctrl)
 	s.watcherRegistry = NewMockWatcherRegistry(ctrl)
@@ -1465,23 +1576,29 @@ func (s *uniterSuite) setupMocks(c *tc.C) *gomock.Controller {
 			return tag != s.badTag
 		}, nil
 	}
+
 	s.uniter = &UniterAPI{
 		applicationService: s.applicationService,
 		machineService:     s.machineService,
 		networkService:     s.networkService,
 		operationService:   s.operationService,
+		portService:        s.portService,
 		resolveService:     s.resolveService,
 		removalService:     s.removalService,
-		accessUnit:         authFunc,
+		auth:               authorizer,
 		accessApplication:  authFunc,
+		accessMachine:      authFunc,
+		accessUnit:         authFunc,
 		watcherRegistry:    s.watcherRegistry,
 	}
 
 	c.Cleanup(func() {
+		s.uniter = nil
 		s.applicationService = nil
 		s.machineService = nil
 		s.networkService = nil
 		s.operationService = nil
+		s.portService = nil
 		s.resolveService = nil
 		s.removalService = nil
 		s.watcherRegistry = nil
@@ -1519,6 +1636,10 @@ type leadershipSettings interface {
 	// for the given service ID change.
 	WatchLeadershipSettings(ctx context.Context, bulkArgs params.Entities) (params.NotifyWatchResults, error)
 }
+
+//func TestLeadershipUniterSuite(t *testing.T) {
+//	tc.Run(t, &leadershipUniterSuite{})
+//}
 
 type leadershipUniterSuite struct {
 	testhelpers.IsolationSuite
