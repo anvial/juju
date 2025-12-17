@@ -383,9 +383,6 @@ func (st State) createCharmApplicationSecret(
 func (st State) CreateCharmUnitSecret(
 	ctx domain.AtomicContext, version int, uri *coresecrets.URI, unitUUID coreunit.UUID, secret domainsecret.UpsertSecretParams,
 ) error {
-	if secret.AutoPrune != nil && *secret.AutoPrune {
-		return secreterrors.AutoPruneNotSupported
-	}
 	err := domain.Run(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		return st.createCharmUnitSecret(ctx, tx, version, uri, unitUUID, secret)
 	})
@@ -395,6 +392,11 @@ func (st State) CreateCharmUnitSecret(
 func (st State) createCharmUnitSecret(
 	ctx context.Context, tx *sqlair.TX, version int, uri *coresecrets.URI, unitUUID coreunit.UUID, secret domainsecret.UpsertSecretParams,
 ) error {
+	// todo(gfouillet): this check looks like a lot a service layer validation, and
+	//   may requires to be moved to the service layer when it will be refactored
+	if secret.AutoPrune != nil && *secret.AutoPrune {
+		return secreterrors.AutoPruneNotSupported
+	}
 	label := ""
 	if secret.Label != nil {
 		label = *secret.Label
