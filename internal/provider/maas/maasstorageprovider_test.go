@@ -82,7 +82,7 @@ func (maasStorageProviderSuite) TestTagsFromAttributesAnyStringSliceTrimsWhitesp
 
 // TestTagsFromAttributesAnySliceNotAllStrings tests that when
 // [maasStorageProvider.TagsFromAttributes] processes a slice of any value that
-// are not all string values the caller gets back an error satsifying
+// are not all string values the caller gets back an error satisfying
 // [coreerrors.NotValid].
 func (maasStorageProviderSuite) TestTagsFromAttributesAnySliceNotAllStrings(c *tc.C) {
 	provider := &maasStorageProvider{}

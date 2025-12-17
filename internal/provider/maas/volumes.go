@@ -200,7 +200,7 @@ func (m maasStorageProvider) ValidateConfig(cfg *storage.Config) error {
 //
 // This current implementation should be considered a quirk of the storage
 // provider interface as it only supports asking broad provisioning questions
-// and not specifics about the context the provisioning is occuring. We
+// and not specifics about the context the provisioning is occurring. We
 // understand that this is safe to do for the moment as the provisioning of
 // machines doesn't interrogate the capabilities of the storage provider.
 //
