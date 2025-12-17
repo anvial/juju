@@ -11,6 +11,7 @@ import (
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/core/constraints"
+	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/internal/storage"
 )
 
@@ -40,39 +41,94 @@ func (s *volumeSuite) TestBuildMAASVolumeParametersJustRootDisk(c *tc.C) {
 }
 
 func (s *volumeSuite) TestBuildMAASVolumeParametersNoTags(c *tc.C) {
-	vInfo, err := buildMAASVolumeParameters([]storage.VolumeParams{
-		{Tag: names.NewVolumeTag("1"), Size: 2000000},
-	}, constraints.Value{})
+	vInfo, err := buildMAASVolumeParameters(
+		[]storage.VolumeParams{
+			{
+				Provider: storage.ProviderType("maas"),
+				Tag:      names.NewVolumeTag("1"),
+				Size:     2000000,
+			},
+		},
+		constraints.Value{},
+	)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(vInfo, tc.DeepEquals, []volumeInfo{
-		{"root", 0, nil}, //root disk
+		{"root", 0, nil}, //root disk must be first
 		{"1", 1954, nil},
 	})
 }
 
+// TestBuildMAASVolumeParametersWithRootDisk checks that
+// [buildMAASVolumeParameters] correctly constructs the right volume parameters
+// for the supplied [storage.VolumeParams] and includes the root disk for the
+// node that is being aquired.
+//
+// This test also expects to see that the root disk is the first element of the
+// returned slice as required by the MAAS API.
 func (s *volumeSuite) TestBuildMAASVolumeParametersWithRootDisk(c *tc.C) {
 	var cons constraints.Value
 	rootSize := uint64(20000)
 	cons.RootDisk = &rootSize
-	vInfo, err := buildMAASVolumeParameters([]storage.VolumeParams{
-		{Tag: names.NewVolumeTag("1"), Size: 2000000},
-	}, cons)
+	vInfo, err := buildMAASVolumeParameters(
+		[]storage.VolumeParams{
+			{
+				Provider: storage.ProviderType("maas"),
+				Tag:      names.NewVolumeTag("1"),
+				Size:     2000000,
+			},
+		},
+		cons,
+	)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(vInfo, tc.DeepEquals, []volumeInfo{
-		{"root", 20, nil}, //root disk
+		{"root", 20, nil}, //root disk must be first
 		{"1", 1954, nil},
 	})
 }
 
+// TestBuildMAASVolumeParametersWithTags checks that [buildMAASVolumeParameters]
+// correctly constructs the right volume parameters for the supplied
+// [storage.VolumeParams] including tags and includes the root disk for the node
+// that is being aquired.
+//
+// This test also expects to see that the root disk is the first element of the
+// returned slice as required by the MAAS API.
 func (s *volumeSuite) TestBuildMAASVolumeParametersWithTags(c *tc.C) {
-	vInfo, err := buildMAASVolumeParameters([]storage.VolumeParams{
-		{Tag: names.NewVolumeTag("1"), Size: 2000000, Attributes: map[string]interface{}{"tags": "tag1,tag2"}},
-	}, constraints.Value{})
+	vInfo, err := buildMAASVolumeParameters(
+		[]storage.VolumeParams{
+			{
+				Provider:   storage.ProviderType("maas"),
+				Tag:        names.NewVolumeTag("1"),
+				Size:       2000000,
+				Attributes: map[string]interface{}{"tags": "tag1,tag2"},
+			},
+		},
+		constraints.Value{},
+	)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(vInfo, tc.DeepEquals, []volumeInfo{
-		{"root", 0, nil}, //root disk
+		{"root", 0, nil}, //root disk must be first
 		{"1", 1954, []string{"tag1", "tag2"}},
 	})
+}
+
+// TestBuildMAASVolumeParametersWithUnsupportedProvider tests that calling
+// [buildMAASVolumeParameters] with a volume that is using another provider
+// other then [maasStorageProviderType] returns a [coreerrors.NotSupported]
+// error to the caller.
+func (s *volumeSuite) TestBuildMAASVolumeParametersWithUnsupportedProvider(c *tc.C) {
+	_, err := buildMAASVolumeParameters(
+		[]storage.VolumeParams{
+			{
+				Provider:   storage.ProviderType("anotherprovider"),
+				Tag:        names.NewVolumeTag("1"),
+				Size:       2000000,
+				Attributes: map[string]interface{}{"tags": "tag1,tag2"},
+			},
+		},
+		constraints.Value{},
+	)
+	c.Check(err, tc.ErrorIs, coreerrors.NotSupported)
 }
 
 func (s *volumeSuite) TestInstanceVolumesMAAS2(c *tc.C) {

@@ -13,6 +13,7 @@ import (
 	"github.com/juju/collections/set"
 	"github.com/juju/errors"
 	"github.com/juju/gomaasapi/v2"
+	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"github.com/juju/utils/v4"
 	goyaml "gopkg.in/yaml.v2"
@@ -33,6 +34,7 @@ import (
 	envtesting "github.com/juju/juju/environs/testing"
 	envtools "github.com/juju/juju/environs/tools"
 	"github.com/juju/juju/internal/cloudconfig/cloudinit"
+	internalstorage "github.com/juju/juju/internal/storage"
 	"github.com/juju/juju/internal/testhelpers"
 	coretesting "github.com/juju/juju/internal/testing"
 	jujutesting "github.com/juju/juju/juju/testing"
@@ -597,6 +599,71 @@ func (suite *maasEnvironSuite) TestAcquireNodeStorage(c *tc.C) {
 		_, err := env.acquireNode(c.Context(), "", "", "", constraints.Value{}, nil, nil, test.volumes)
 		c.Check(err, tc.ErrorIsNil)
 	}
+}
+
+// TestStartInstnaceIgnoresVolumesForNonMAASProvider tests that the MAAS start
+// instance call ignores volumes that are not for the MAAS storage provider.
+//
+// This is a regression test where previously start instance would try to
+// provision all volumes that were attached to a machine regardless of provider.
+func (suite *maasEnvironSuite) TestStartInstnaceIgnoresVolumesForNonMAASProvider(c *tc.C) {
+	var env *maasEnviron
+	suite.injectController(&fakeController{
+		allocateMachineArgsCheck: func(args gomaasapi.AllocateMachineArgs) {
+			c.Check(args.Storage, tc.DeepEquals, []gomaasapi.StorageSpec{
+				{
+					Label: "root",
+					Size:  0,
+				},
+				{
+					Label: "1",
+					Size:  1,
+				},
+			})
+		},
+		allocateMachine: newFakeMachine("Bruce Sterling", arch.HostArch(), ""),
+		allocateMachineMatches: gomaasapi.ConstraintMatches{
+			Storage: map[string][]gomaasapi.StorageDevice{
+				"root": {
+					&fakeBlockDevice{
+						name:   "sda",
+						idPath: "/dev/disk/by-dname/sda",
+						size:   250059350016,
+					},
+				},
+				"1": {
+					&fakeBlockDevice{
+						name:   "sdb",
+						idPath: "/dev/sdb",
+						size:   500059350016,
+					},
+				},
+			},
+		},
+		zones: []gomaasapi.Zone{&fakeZone{name: "foo"}},
+	})
+	suite.setupFakeTools(c)
+	env = suite.makeEnviron(c, nil)
+	params := environs.StartInstanceParams{
+		ControllerUUID:   suite.controllerUUID,
+		AvailabilityZone: "foo",
+		Constraints:      constraints.MustParse("mem=8G"),
+		Volumes: []internalstorage.VolumeParams{
+			{
+				Provider: internalstorage.ProviderType("notmaas"),
+				Tag:      tc.Must1(c, names.ParseVolumeTag, "volume-2"),
+				Size:     1024,
+			},
+			{
+				Provider: internalstorage.ProviderType("maas"),
+				Tag:      tc.Must1(c, names.ParseVolumeTag, "volume-1"),
+				Size:     1024,
+			},
+		},
+	}
+	result, err := jujutesting.StartInstanceWithParams(c, env, "1", params)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result.Instance.Id(), tc.Equals, instance.Id("Bruce Sterling"))
 }
 
 func (suite *maasEnvironSuite) TestAcquireNodeInterfaces(c *tc.C) {

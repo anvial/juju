@@ -301,19 +301,47 @@ func mibToGb(m uint64) uint64 {
 }
 
 // buildMAASVolumeParameters creates the MAAS volume information to include
-// in a request to acquire a MAAS node, based on the supplied storage parameters.
-func buildMAASVolumeParameters(args []storage.VolumeParams, cons constraints.Value) ([]volumeInfo, error) {
+// in a request to acquire a MAAS node, based on the supplied volume parameters.
+// Include in the volume information will also be the root disk volume for the
+// node being acquired. This func gaurantees that the root disk will be the
+// first [volumeInfo] in the returned slice. This is done as MAAS expects this
+// ordering.
+//
+// The volume parameters supplied to this func MUST only be for provider type
+// [maasStorageProviderType].
+//
+// The following errors may be expected:
+// - [coreerrors.NotSupported] when either a volume supplied is using a
+// provider other then [maasStorageProviderType] or the tags supplied with the
+// provider attributes contain whitespace.
+// - [coreerrors.NotValid] when the supplied provider attributes do not pass
+// validation for a volume.
+func buildMAASVolumeParameters(
+	args []storage.VolumeParams,
+	cons constraints.Value,
+) ([]volumeInfo, error) {
 	if len(args) == 0 && cons.RootDisk == nil {
 		return nil, nil
 	}
-	volumes := make([]volumeInfo, len(args)+1)
+
+	// Add one more element to cover the root disk
+	volumes := make([]volumeInfo, 0, len(args)+1)
+
 	rootVolume := volumeInfo{name: rootDiskLabel}
 	if cons.RootDisk != nil {
 		rootVolume.sizeInGB = mibToGb(*cons.RootDisk)
 	}
-	volumes[0] = rootVolume
+	volumes = append(volumes, rootVolume)
+
 	provider := maasStorageProvider{}
-	for i, v := range args {
+	for _, v := range args {
+		if v.Provider != maasStorageProviderType {
+			return nil, errors.Errorf(
+				"building MAAS volume parameters for provider %q not supported",
+				v.Provider,
+			).Add(coreerrors.NotSupported)
+		}
+
 		tags, err := provider.TagsFromAttributes(v.Attributes)
 		if err != nil {
 			return nil, errors.Errorf(
@@ -325,8 +353,9 @@ func buildMAASVolumeParameters(args []storage.VolumeParams, cons constraints.Val
 			sizeInGB: mibToGb(v.Size),
 			tags:     tags,
 		}
-		volumes[i+1] = info
+		volumes = append(volumes, info)
 	}
+
 	return volumes, nil
 }
 
