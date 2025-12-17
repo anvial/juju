@@ -18,8 +18,11 @@ import (
 
 const relationSetDoc = `
 ` + "`relation-set`" + ` writes the local unit's settings for some relation.
-If no relation is specified then the current relation is used. The
-setting values are not inspected and are stored as strings. Setting
+
+If no relation is specified then the current relation is used.
+If it’s not running in a relation hook, ` + "`-r`" + ` needs to be specified.
+
+The setting values are not inspected and are stored as strings. Setting
 an empty string causes the setting to be removed. Duplicate settings
 are not allowed.
 
@@ -33,11 +36,6 @@ too long to fit within the command length limit of the shell or
 operating system. The file will contain a YAML map containing the
 settings.  Settings in the file will be overridden by any duplicate
 key-value arguments. A value of ` + "`" + `"-"` + "`" + ` for the filename means ` + "`<stdin>`" + `.
-
-Further details:
-` + "`relation-set`" + ` writes the local unit’s settings for some relation. If it’s not running in a
-relation hook, ` + "`-r`" + ` needs to be specified. The value part of an argument is not inspected,
-and is stored directly as a string. Setting an empty string causes the setting to be removed.
 
 ` + "`relation-set`" + ` is the tool for communicating information between units of related applications.
 By convention the charm that provides an interface is likely to set values, and a charm that
