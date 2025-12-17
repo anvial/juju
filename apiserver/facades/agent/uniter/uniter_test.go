@@ -2932,8 +2932,7 @@ func (s *commitHookChangesSuite) TestCommitHookChangesOneTxn(c *tc.C) {
 
 	// Arrange: CommitHookChanges service call
 	domainArg := unitstate.CommitHookChangesArg{
-		UnitName:   unitName.String(),
-		UnitUUID:   unitUUID.String(),
+		UnitName:   unitName,
 		CharmState: arg.SetUnitState.CharmState,
 	}
 	s.unitStateService.EXPECT().CommitHookChanges(gomock.Any(), domainArg).Return(nil)

@@ -5,7 +5,9 @@ package unitstate
 
 import (
 	"github.com/juju/juju/core/network"
+	"github.com/juju/juju/core/relation"
 	"github.com/juju/juju/core/secrets"
+	"github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/secret"
 	"github.com/juju/juju/internal/errors"
 )
@@ -61,7 +63,7 @@ type Settings map[string]string
 // app-level settings.
 type RelationSettings struct {
 	// RelationUUID is the UUID of the relation.
-	RelationUUID string
+	RelationUUID relation.UUID
 
 	// Settings represent the settings of the unit.
 	Settings Settings
@@ -109,10 +111,7 @@ type DeleteSecretArg struct {
 // CommitHookChangesArg contains data needed to commit a hook change.
 type CommitHookChangesArg struct {
 	// UnitName is the name of the unit these changes pertain to.
-	UnitName string
-
-	// UnitUUID is the UUID of the unit these changes pertain to.
-	UnitUUID string
+	UnitName unit.Name
 
 	// UpdateNetworkInfo indicates that the relation network settings
 	// should be updated for this unit.
@@ -156,18 +155,16 @@ type CommitHookChangesArg struct {
 	// Implement storage
 }
 
-// Validate validates that:
-// - there are changes to be made
-// - that a unit name and uuid are provided
+// ValidateAndHasChanges validates that:
+// - that a unit name and uuid are provided and valid
+// - relation settings have a valid relation uuid
 // - port ranges are valid if provided
 // - secret changes requiring a URI have them
-func (c CommitHookChangesArg) Validate() (bool, error) {
+// Returns true if there are changes.
+func (c CommitHookChangesArg) ValidateAndHasChanges() (bool, error) {
 	errs := []error{}
-	if c.UnitName == "" {
-		errs = append(errs, errors.New("unit name is required"))
-	}
-	if c.UnitUUID == "" {
-		errs = append(errs, errors.New("unit uuid is required"))
+	if err := c.UnitName.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 	hasChanges := c.UpdateNetworkInfo
 	if c.CharmState != nil {
@@ -175,8 +172,8 @@ func (c CommitHookChangesArg) Validate() (bool, error) {
 	}
 	for _, settings := range c.RelationSettings {
 		hasChanges = true
-		if settings.RelationUUID == "" {
-			errs = append(errs, errors.New("relation uuid is required"))
+		if err := settings.RelationUUID.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 	for _, portRange := range c.OpenPorts {

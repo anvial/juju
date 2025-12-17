@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	unitstate "github.com/juju/juju/domain/unitstate"
+	internal "github.com/juju/juju/domain/unitstate/internal"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,7 +42,7 @@ func (m *MockState) EXPECT() *MockStateMockRecorder {
 }
 
 // CommitHookChanges mocks base method.
-func (m *MockState) CommitHookChanges(arg0 context.Context, arg1 unitstate.CommitHookChangesArg) error {
+func (m *MockState) CommitHookChanges(arg0 context.Context, arg1 internal.CommitHookChangesArg) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CommitHookChanges", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -67,13 +68,13 @@ func (c *MockStateCommitHookChangesCall) Return(arg0 error) *MockStateCommitHook
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateCommitHookChangesCall) Do(f func(context.Context, unitstate.CommitHookChangesArg) error) *MockStateCommitHookChangesCall {
+func (c *MockStateCommitHookChangesCall) Do(f func(context.Context, internal.CommitHookChangesArg) error) *MockStateCommitHookChangesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateCommitHookChangesCall) DoAndReturn(f func(context.Context, unitstate.CommitHookChangesArg) error) *MockStateCommitHookChangesCall {
+func (c *MockStateCommitHookChangesCall) DoAndReturn(f func(context.Context, internal.CommitHookChangesArg) error) *MockStateCommitHookChangesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/juju/juju/core/trace"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/unitstate"
+	"github.com/juju/juju/domain/unitstate/internal"
 )
 
 // State defines an interface for interacting with the underlying state.
@@ -28,7 +29,7 @@ type State interface {
 
 	// CommitHookChanges persists a set of changes after a hook successfully
 	// completes and executes them in a single transaction.
-	CommitHookChanges(ctx context.Context, arg unitstate.CommitHookChangesArg) error
+	CommitHookChanges(ctx context.Context, arg internal.CommitHookChangesArg) error
 }
 
 // Service defines a service for interacting with the underlying state.
@@ -99,7 +100,7 @@ func (s *LeadershipService) CommitHookChanges(ctx context.Context, arg unitstate
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	hasChanges, err := arg.Validate()
+	hasChanges, err := arg.ValidateAndHasChanges()
 	if err != nil {
 		return err
 	}
@@ -112,18 +113,14 @@ func (s *LeadershipService) CommitHookChanges(ctx context.Context, arg unitstate
 		return err
 	}
 	return withCaveat(ctx, func(innerCtx context.Context) error {
-		return s.st.CommitHookChanges(innerCtx, arg)
+		return s.st.CommitHookChanges(innerCtx, internal.TransformCommitHookChangesArg(arg))
 	})
 }
 
 func (s *LeadershipService) getManagementCaveat(arg unitstate.CommitHookChangesArg) (func(context.Context, func(context.Context) error) error, error) {
 	if arg.RequiresLeadership() {
-		unitName, err := coreunit.NewName(arg.UnitName)
-		if err != nil {
-			return nil, err
-		}
 		return func(ctx context.Context, fn func(context.Context) error) error {
-			return s.leaderEnsurer.WithLeader(ctx, unitName.Application(), unitName.String(),
+			return s.leaderEnsurer.WithLeader(ctx, arg.UnitName.Application(), arg.UnitName.String(),
 				func(ctx context.Context) error {
 					return fn(ctx)
 				},

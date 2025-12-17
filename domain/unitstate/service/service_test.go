@@ -10,11 +10,11 @@ import (
 	"go.uber.org/mock/gomock"
 
 	corerelation "github.com/juju/juju/core/relation"
-	coreunit "github.com/juju/juju/core/unit"
 	unittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/unitstate"
 	unitstateerrors "github.com/juju/juju/domain/unitstate/errors"
+	"github.com/juju/juju/domain/unitstate/internal"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 )
 
@@ -107,8 +107,7 @@ func (s *commitHookSuite) TestCommitHookChangesNoChanges(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 	// Arrange: args which no changes are needed
 	arg := unitstate.CommitHookChangesArg{
-		UnitName: "test/0",
-		UnitUUID: tc.Must(c, coreunit.NewUUID).String(),
+		UnitName: unittesting.GenNewName(c, "test/0"),
 	}
 
 	// Act
@@ -123,14 +122,13 @@ func (s *commitHookSuite) TestCommitHookChangesNoLeadership(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 	// Arrange: args which indicate leadership is not required
 	arg := unitstate.CommitHookChangesArg{
-		UnitName: "test/0",
-		UnitUUID: tc.Must(c, coreunit.NewUUID).String(),
+		UnitName: unittesting.GenNewName(c, "test/0"),
 		RelationSettings: []unitstate.RelationSettings{{
-			RelationUUID: tc.Must(c, corerelation.NewUUID).String(),
+			RelationUUID: tc.Must(c, corerelation.NewUUID),
 			Settings:     map[string]string{"key": "value"},
 		}},
 	}
-	s.st.EXPECT().CommitHookChanges(c.Context(), arg).Return(nil)
+	s.st.EXPECT().CommitHookChanges(c.Context(), internal.TransformCommitHookChangesArg(arg)).Return(nil)
 
 	// Act
 	svc := NewLeadershipService(s.st, s.leadershipEnsurer, loggertesting.WrapCheckLog(c))
@@ -144,10 +142,9 @@ func (s *commitHookSuite) TestCommitHookChangesLeadership(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 	// Arrange: args which indicate leadership is required
 	arg := unitstate.CommitHookChangesArg{
-		UnitName: "test/0",
-		UnitUUID: tc.Must(c, coreunit.NewUUID).String(),
+		UnitName: unittesting.GenNewName(c, "test/0"),
 		RelationSettings: []unitstate.RelationSettings{{
-			RelationUUID:        tc.Must(c, corerelation.NewUUID).String(),
+			RelationUUID:        tc.Must(c, corerelation.NewUUID),
 			ApplicationSettings: map[string]string{"key": "value"},
 		}},
 	}

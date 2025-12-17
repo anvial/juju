@@ -2867,8 +2867,7 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 		return internalerrors.Errorf("getting UUID of unit %q: %w", unitName, err)
 	}
 	arg := unitstate.CommitHookChangesArg{
-		UnitName: unitName.String(),
-		UnitUUID: unitUUID.String(),
+		UnitName: unitName,
 	}
 
 	if changes.UpdateNetworkInfo {

@@ -10,18 +10,24 @@ import (
 
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/domain/unitstate"
+	"github.com/juju/juju/domain/unitstate/internal"
 	"github.com/juju/juju/internal/errors"
 )
 
 // CommitHookChanges persists a set of changes after a hook successfully
 // completes and executes them in a single transaction.
-func (st *State) CommitHookChanges(ctx context.Context, arg unitstate.CommitHookChangesArg) error {
+func (st *State) CommitHookChanges(ctx context.Context, arg internal.CommitHookChangesArg) error {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return errors.Capture(err)
 	}
 
 	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		unit, err := st.getUnitUUIDForName(ctx, tx, arg.UnitName)
+		if err != nil {
+			return errors.Errorf("get unit uuid: %v", err)
+		}
+
 		if err := st.updateNetworkInfo(ctx, tx, arg.UpdateNetworkInfo); err != nil {
 			return errors.Errorf("update network info: %v", err)
 		}
@@ -34,7 +40,7 @@ func (st *State) CommitHookChanges(ctx context.Context, arg unitstate.CommitHook
 			return errors.Errorf("update ports: %v", err)
 		}
 
-		if err := st.updateCharmState(ctx, tx, arg.UnitUUID, arg.CharmState); err != nil {
+		if err := st.updateCharmState(ctx, tx, unit, arg.CharmState); err != nil {
 			return errors.Errorf("update charm state: %v", err)
 		}
 
@@ -72,7 +78,7 @@ func (st *State) updateNetworkInfo(ctx context.Context, tx *sqlair.TX, info bool
 	return nil
 }
 
-func (st *State) updateRelationSettings(ctx context.Context, tx *sqlair.TX, settings []unitstate.RelationSettings) error {
+func (st *State) updateRelationSettings(ctx context.Context, tx *sqlair.TX, settings []internal.RelationSettings) error {
 	return nil
 }
 
@@ -80,12 +86,11 @@ func (st *State) updatePorts(ctx context.Context, tx *sqlair.TX, openPorts netwo
 	return nil
 }
 
-func (st *State) updateCharmState(ctx context.Context, tx *sqlair.TX, unit string, charmState *map[string]string) error {
+func (st *State) updateCharmState(ctx context.Context, tx *sqlair.TX, unit unitUUID, charmState *map[string]string) error {
 	if charmState == nil {
 		return nil
 	}
-	st.logger.Criticalf(ctx, "charm state: %v", charmState)
-	return st.setUnitStateCharm(ctx, tx, unitUUID{UUID: unit}, *charmState)
+	return st.setUnitStateCharm(ctx, tx, unit, *charmState)
 }
 
 func (st *State) createSecrets(ctx context.Context, tx *sqlair.TX, creates []unitstate.CreateSecretArg) error {

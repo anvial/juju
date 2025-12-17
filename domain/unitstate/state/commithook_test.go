@@ -11,7 +11,7 @@ import (
 	"github.com/canonical/sqlair"
 	"github.com/juju/tc"
 
-	"github.com/juju/juju/domain/unitstate"
+	"github.com/juju/juju/domain/unitstate/internal"
 )
 
 type commitHookSuite struct {
@@ -24,9 +24,8 @@ func TestCommitHookSuite(t *testing.T) {
 
 func (s *commitHookSuite) TestCommitHookChanges(c *tc.C) {
 	// Arrange
-	arg := unitstate.CommitHookChangesArg{
+	arg := internal.CommitHookChangesArg{
 		UnitName:           s.unitName,
-		UnitUUID:           s.unitUUID,
 		UpdateNetworkInfo:  true,
 		RelationSettings:   nil,
 		OpenPorts:          nil,
@@ -61,7 +60,8 @@ func (s *commitHookSuite) TestUpdateCharmState(c *tc.C) {
 
 	// Act
 	err := s.TxnRunner().Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		return s.state.updateCharmState(ctx, tx, s.unitUUID, &expState)
+		unit := unitUUID{UUID: s.unitUUID}
+		return s.state.updateCharmState(ctx, tx, unit, &expState)
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -95,7 +95,8 @@ func (s *commitHookSuite) TestUpdateCharmStateEmpty(c *tc.C) {
 	// Act - use a bad unit uuid to ensure the test fails if setUnitStateCharm
 	// is called.
 	err := s.TxnRunner().Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		return s.state.updateCharmState(ctx, tx, "bad-unit-uuid", nil)
+		unit := unitUUID{UUID: "bad-unit-uuid"}
+		return s.state.updateCharmState(ctx, tx, unit, nil)
 	})
 
 	// Assert

@@ -9,6 +9,7 @@ import (
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/core/network"
+	unittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/domain/secret"
 )
 
@@ -18,66 +19,51 @@ func TestCommitHookChangesArgSuite(t *testing.T) {
 	tc.Run(t, &commitHookChangesArgSuite{})
 }
 
-func (s *commitHookChangesArgSuite) TestValidateNoChanges(c *tc.C) {
+func (s *commitHookChangesArgSuite) TestValidateAndHasChangesNoChanges(c *tc.C) {
 	hasChanges, err := CommitHookChangesArg{
-		UnitName: "testing/0",
-		UnitUUID: "unit-uuid",
-	}.Validate()
+		UnitName: unittesting.GenNewName(c, "testing/0"),
+	}.ValidateAndHasChanges()
 
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(hasChanges, tc.Equals, false)
 }
 
-func (s *commitHookChangesArgSuite) TestValidateCreateSecret(c *tc.C) {
+func (s *commitHookChangesArgSuite) TestValidateAndHasChangesCreateSecret(c *tc.C) {
 	hasChanges, err := CommitHookChangesArg{
-		UnitName:      "testing/0",
-		UnitUUID:      "unit-uuid",
+		UnitName:      unittesting.GenNewName(c, "testing/0"),
 		SecretCreates: []CreateSecretArg{{CreateCharmSecretParams: secret.CreateCharmSecretParams{}}},
-	}.Validate()
+	}.ValidateAndHasChanges()
 
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(hasChanges, tc.Equals, true)
 }
 
-func (s *commitHookChangesArgSuite) TestValidateErrorNoUnitName(c *tc.C) {
-	hasChanges, err := CommitHookChangesArg{
-		UnitUUID: "unit-uuid",
-	}.Validate()
+func (s *commitHookChangesArgSuite) TestValidateAndHasChangesErrorNoUnitName(c *tc.C) {
+	hasChanges, err := CommitHookChangesArg{}.ValidateAndHasChanges()
 
-	c.Check(err, tc.ErrorMatches, "unit name is required")
+	c.Check(err, tc.ErrorMatches, "invalid unit name: \"\"")
 	c.Check(hasChanges, tc.Equals, false)
 }
 
-func (s *commitHookChangesArgSuite) TestValidateErrorNoUnitUUID(c *tc.C) {
+func (s *commitHookChangesArgSuite) TestValidateAndHasChangesErrorInvalidOpenPort(c *tc.C) {
 	hasChanges, err := CommitHookChangesArg{
-		UnitName: "testing/0",
-	}.Validate()
-
-	c.Check(err, tc.ErrorMatches, "unit uuid is required")
-	c.Check(hasChanges, tc.Equals, false)
-}
-
-func (s *commitHookChangesArgSuite) TestValidateErrorInvalidOpenPort(c *tc.C) {
-	hasChanges, err := CommitHookChangesArg{
-		UnitName: "testing/0",
-		UnitUUID: "unit-uuid",
+		UnitName: unittesting.GenNewName(c, "testing/0"),
 		OpenPorts: map[string][]network.PortRange{
 			"endpoint": {{Protocol: "failme"}},
 		},
-	}.Validate()
+	}.ValidateAndHasChanges()
 
 	c.Check(err, tc.ErrorMatches, ".*open port is invalid.*")
 	c.Check(hasChanges, tc.Equals, true)
 }
 
-func (s *commitHookChangesArgSuite) TestValidateErrorInvalidClosePort(c *tc.C) {
+func (s *commitHookChangesArgSuite) TestValidateAndHasChangesErrorInvalidClosePort(c *tc.C) {
 	hasChanges, err := CommitHookChangesArg{
-		UnitName: "testing/0",
-		UnitUUID: "unit-uuid",
+		UnitName: unittesting.GenNewName(c, "testing/0"),
 		ClosePorts: map[string][]network.PortRange{
 			"endpoint": {{Protocol: "failme"}},
 		},
-	}.Validate()
+	}.ValidateAndHasChanges()
 
 	c.Check(err, tc.ErrorMatches, ".*close port is invalid.*")
 	c.Check(hasChanges, tc.Equals, true)
@@ -85,8 +71,7 @@ func (s *commitHookChangesArgSuite) TestValidateErrorInvalidClosePort(c *tc.C) {
 
 func (s *commitHookChangesArgSuite) TestRequiresLeadershipTrueCreateSecret(c *tc.C) {
 	requiresLeadership := CommitHookChangesArg{
-		UnitName:      "testing/0",
-		UnitUUID:      "unit-uuid",
+		UnitName:      unittesting.GenNewName(c, "testing/0"),
 		SecretCreates: []CreateSecretArg{{CreateCharmSecretParams: secret.CreateCharmSecretParams{}}},
 	}.RequiresLeadership()
 
@@ -95,8 +80,7 @@ func (s *commitHookChangesArgSuite) TestRequiresLeadershipTrueCreateSecret(c *tc
 
 func (s *commitHookChangesArgSuite) TestRequiresLeadershipTrueApplicationSettings(c *tc.C) {
 	requiresLeadership := CommitHookChangesArg{
-		UnitName: "testing/0",
-		UnitUUID: "unit-uuid",
+		UnitName: unittesting.GenNewName(c, "testing/0"),
 		RelationSettings: []RelationSettings{{
 			ApplicationSettings: map[string]string{"key": "value"},
 		}},
@@ -107,8 +91,7 @@ func (s *commitHookChangesArgSuite) TestRequiresLeadershipTrueApplicationSetting
 
 func (s *commitHookChangesArgSuite) TestRequiresLeadershipFalseUnitSettings(c *tc.C) {
 	requiresLeadership := CommitHookChangesArg{
-		UnitName: "testing/0",
-		UnitUUID: "unit-uuid",
+		UnitName: unittesting.GenNewName(c, "testing/0"),
 		RelationSettings: []RelationSettings{{
 			Settings: map[string]string{"key": "value"},
 		}},
@@ -119,8 +102,7 @@ func (s *commitHookChangesArgSuite) TestRequiresLeadershipFalseUnitSettings(c *t
 
 func (s *commitHookChangesArgSuite) TestRequiresLeadershipFalseOpenPorts(c *tc.C) {
 	requiresLeadership := CommitHookChangesArg{
-		UnitName: "testing/0",
-		UnitUUID: "unit-uuid",
+		UnitName: unittesting.GenNewName(c, "testing/0"),
 		OpenPorts: map[string][]network.PortRange{
 			"endpoint": {{Protocol: "failme"}},
 		},
