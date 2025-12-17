@@ -16,7 +16,6 @@ import (
 	"github.com/juju/juju/apiserver/authentication"
 	"github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/permission"
 	"github.com/juju/juju/core/status"
 	"github.com/juju/juju/domain/application/architecture"
@@ -53,7 +52,7 @@ func TestFullStatusSuite(t *testing.T) {
 }
 
 func (s *fullStatusSuite) SetUpTest(c *tc.C) {
-	s.modelUUID = modeltesting.GenModelUUID(c)
+	s.modelUUID = tc.Must0(c, model.NewUUID)
 	s.clock = testclock.NewClock(time.Now())
 	c.Cleanup(func() {
 		s.clock = nil

@@ -14,7 +14,6 @@ import (
 	cloudtesting "github.com/juju/juju/core/cloud/testing"
 	corecredential "github.com/juju/juju/core/credential"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/user"
 	usertesting "github.com/juju/juju/core/user/testing"
 	userstate "github.com/juju/juju/domain/access/state"
@@ -95,7 +94,7 @@ func (s *stateSuite) setupModel(c *tc.C) coremodel.UUID {
 	err = credentialstate.NewState(s.TxnRunnerFactory()).UpsertCloudCredential(ctx, key, credInfo)
 	c.Assert(err, tc.ErrorIsNil)
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		err = statecontroller.Create(ctx,
 			preparer{},
@@ -137,7 +136,7 @@ func (s *stateSuite) TestGetModelCloudAndCredential(c *tc.C) {
 }
 
 func (s *stateSuite) TestGetModelCloudAndCredentialNotFound(c *tc.C) {
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	st := NewState(s.TxnRunnerFactory())
 	_, _, _, err := st.GetModelCloudAndCredential(c.Context(), uuid)
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)

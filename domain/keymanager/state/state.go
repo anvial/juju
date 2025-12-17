@@ -160,7 +160,7 @@ AND fingerprint = $userPublicKeyInsert.fingerprint
 	// exists and nothing more needs to be done.
 	if err == nil {
 		return row.Id, nil
-	} else if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
+	} else if !errors.Is(err, sqlair.ErrNoRows) {
 		return 0, errors.Errorf(
 			"fetching existing user %q key id when ensuring public key: %w",
 			key.UserId, err,

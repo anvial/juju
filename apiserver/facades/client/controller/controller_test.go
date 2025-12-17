@@ -22,7 +22,6 @@ import (
 	apiservertesting "github.com/juju/juju/apiserver/testing"
 	"github.com/juju/juju/core/leadership"
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/permission"
 	"github.com/juju/juju/core/user"
 	usertesting "github.com/juju/juju/core/user/testing"
@@ -113,8 +112,8 @@ func (s *controllerSuite) SetUpTest(c *tc.C) {
 			DomainServices_:   s.ControllerDomainServices(c),
 			Logger_:           loggertesting.WrapCheckLog(c),
 			LeadershipReader_: s.leadershipReader,
-			ControllerUUID_:   modeltesting.GenModelUUID(c).String(),
-			ModelUUID_:        modeltesting.GenModelUUID(c),
+			ControllerUUID_:   tc.Must0(c, model.NewUUID).String(),
+			ModelUUID_:        tc.Must0(c, model.NewUUID),
 		},
 		DomainServicesForModelFunc_: func(modelUUID model.UUID) internalservices.DomainServices {
 			return s.ModelDomainServices(c, modelUUID)
@@ -282,12 +281,12 @@ func (s *controllerSuite) TestHostedModelConfigs_OnlyHostedModelsReturned(c *tc.
 			{
 				Name:      "first",
 				Qualifier: "prod",
-				UUID:      modeltesting.GenModelUUID(c),
+				UUID:      tc.Must0(c, model.NewUUID),
 			},
 			{
 				Name:      "second",
 				Qualifier: "staging",
-				UUID:      modeltesting.GenModelUUID(c),
+				UUID:      tc.Must0(c, model.NewUUID),
 			},
 		}, nil,
 	)
@@ -432,7 +431,7 @@ func (s *controllerSuite) TestRemoveBlocksNotAll(c *tc.C) {
 func (s *controllerSuite) TestInitiateMigrationInvalidMacaroons(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, model.NewUUID)
 	args := params.InitiateMigrationArgs{
 		Specs: []params.MigrationSpec{
 			{
@@ -699,8 +698,8 @@ func (s *accessSuite) SetUpTest(c *tc.C) {
 		AdminTag: owner,
 	}
 
-	s.controllerUUID = modeltesting.GenModelUUID(c).String()
-	s.controllerModelUUID = modeltesting.GenModelUUID(c)
+	s.controllerUUID = tc.Must0(c, model.NewUUID).String()
+	s.controllerModelUUID = tc.Must0(c, model.NewUUID)
 }
 
 func (s *accessSuite) setupMocks(c *tc.C) *gomock.Controller {

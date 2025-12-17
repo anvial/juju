@@ -19,7 +19,6 @@ import (
 	"github.com/juju/juju/core/database"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/relation"
 	relationtesting "github.com/juju/juju/core/relation/testing"
 	coresecrets "github.com/juju/juju/core/secrets"
@@ -59,7 +58,7 @@ func TestServiceSuite(t *testing.T) {
 }
 
 func (s *serviceSuite) SetUpTest(c *tc.C) {
-	s.modelID = modeltesting.GenModelUUID(c)
+	s.modelID = tc.Must0(c, coremodel.NewUUID)
 	var err error
 	s.fakeUUID, err = uuid.NewUUID()
 	c.Assert(err, tc.ErrorIsNil)

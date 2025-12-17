@@ -22,7 +22,6 @@ import (
 	"github.com/juju/juju/core/lease"
 	corelogger "github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/internal/jwtparser"
 	"github.com/juju/juju/internal/services"
 	"github.com/juju/juju/internal/testhelpers"
@@ -78,7 +77,7 @@ func (s *workerFixture) SetUpTest(c *tc.C) {
 	s.macaroonHTTPClient = &http.Client{}
 	s.domainServicesGetter = &stubDomainServicesGetter{}
 	s.controllerUUID = coretesting.ControllerTag.Id()
-	s.controllerModelUUID = modeltesting.GenModelUUID(c)
+	s.controllerModelUUID = tc.Must0(c, model.NewUUID)
 	s.stub.ResetCalls()
 	s.jwtParser = &jwtparser.Parser{}
 	s.watcherRegistryGetter = &stubWatcherRegistryGetter{}

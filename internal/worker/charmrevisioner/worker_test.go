@@ -21,7 +21,6 @@ import (
 	http "github.com/juju/juju/core/http"
 	"github.com/juju/juju/core/logger"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	coretesting "github.com/juju/juju/core/testing"
 	"github.com/juju/juju/core/version"
 	"github.com/juju/juju/core/watcher/watchertest"
@@ -329,7 +328,7 @@ func (s *WorkerSuite) TestFetch(c *tc.C) {
 	})
 
 	model := coremodel.ModelInfo{
-		UUID:           modeltesting.GenModelUUID(c),
+		UUID:           tc.Must0(c, coremodel.NewUUID),
 		ControllerUUID: uuid.MustNewUUID(),
 		Cloud:          "aws",
 		CloudType:      "ec2",
@@ -387,7 +386,7 @@ func (s *WorkerSuite) TestFetchInfo(c *tc.C) {
 	s.expectModelConfig(c)
 
 	model := coremodel.ModelInfo{
-		UUID:           modeltesting.GenModelUUID(c),
+		UUID:           tc.Must0(c, coremodel.NewUUID),
 		ControllerUUID: uuid.MustNewUUID(),
 		Cloud:          "aws",
 		CloudType:      "ec2",
@@ -491,7 +490,7 @@ func (s *WorkerSuite) TestFetchInfoInvalidResponseLength(c *tc.C) {
 	s.expectModelConfig(c)
 
 	model := coremodel.ModelInfo{
-		UUID:           modeltesting.GenModelUUID(c),
+		UUID:           tc.Must0(c, coremodel.NewUUID),
 		ControllerUUID: uuid.MustNewUUID(),
 		Cloud:          "aws",
 		CloudType:      "ec2",
@@ -568,7 +567,7 @@ func (s *WorkerSuite) TestRequest(c *tc.C) {
 	s.expectModelConfig(c)
 
 	model := coremodel.ModelInfo{
-		UUID:           modeltesting.GenModelUUID(c),
+		UUID:           tc.Must0(c, coremodel.NewUUID),
 		ControllerUUID: uuid.MustNewUUID(),
 		Cloud:          "aws",
 		CloudType:      "ec2",
@@ -649,7 +648,7 @@ func (s *WorkerSuite) TestRequestWithResources(c *tc.C) {
 	s.expectModelConfig(c)
 
 	model := coremodel.ModelInfo{
-		UUID:           modeltesting.GenModelUUID(c),
+		UUID:           tc.Must0(c, coremodel.NewUUID),
 		ControllerUUID: uuid.MustNewUUID(),
 		Cloud:          "aws",
 		CloudType:      "ec2",
@@ -750,7 +749,7 @@ func (s *WorkerSuite) TestRequestWithError(c *tc.C) {
 	s.expectModelConfig(c)
 
 	model := coremodel.ModelInfo{
-		UUID:           modeltesting.GenModelUUID(c),
+		UUID:           tc.Must0(c, coremodel.NewUUID),
 		ControllerUUID: uuid.MustNewUUID(),
 		Cloud:          "aws",
 		CloudType:      "ec2",
@@ -1313,7 +1312,7 @@ func (s *WorkerSuite) expectModelConfig(c *tc.C) {
 
 func (s *WorkerSuite) expectSendEmptyModelMetrics(c *tc.C) {
 	model := coremodel.ModelInfo{
-		UUID:           modeltesting.GenModelUUID(c),
+		UUID:           tc.Must0(c, coremodel.NewUUID),
 		ControllerUUID: uuid.MustNewUUID(),
 		Cloud:          "aws",
 		CloudType:      "ec2",

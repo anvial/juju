@@ -20,7 +20,6 @@ import (
 	corelife "github.com/juju/juju/core/life"
 	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	corenetwork "github.com/juju/juju/core/network"
 	corerelation "github.com/juju/juju/core/relation"
 	corerelationtesting "github.com/juju/juju/core/relation/testing"
@@ -66,7 +65,7 @@ func (s *modelStateSuite) SetUpTest(c *tc.C) {
 }
 
 func (s *modelStateSuite) TestGetModelStatusInfo(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, model.NewUUID)
 	controllerUUID, err := uuid.NewUUID()
 	c.Check(err, tc.ErrorIsNil)
 
@@ -92,7 +91,7 @@ func (s *modelStateSuite) TestGetModelStatusInfoNotFound(c *tc.C) {
 }
 
 func (s *modelStateSuite) TestIsControllerModelNotControllerModel(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, model.NewUUID)
 	controllerUUID, err := uuid.NewUUID()
 	c.Check(err, tc.ErrorIsNil)
 
@@ -111,7 +110,7 @@ VALUES (?, ?, "test", "prod", "iaas", "test-model", "ec2", "owner")
 }
 
 func (s *modelStateSuite) TestIsControllerModel(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, model.NewUUID)
 	controllerUUID, err := uuid.NewUUID()
 	c.Check(err, tc.ErrorIsNil)
 

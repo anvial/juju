@@ -17,7 +17,6 @@ import (
 	crossmodelbakery "github.com/juju/juju/apiserver/internal/crossmodel/bakery"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/offer"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 )
@@ -334,7 +333,7 @@ func (s *authenticatorSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.bakery = NewMockOfferBakery(ctrl)
 
-	s.modelUUID = modeltesting.GenModelUUID(c)
+	s.modelUUID = tc.Must0(c, coremodel.NewUUID)
 
 	c.Cleanup(func() {
 		s.bakery = nil
