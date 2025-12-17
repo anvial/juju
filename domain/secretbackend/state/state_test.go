@@ -17,7 +17,6 @@ import (
 	"github.com/juju/juju/cloud"
 	corecredential "github.com/juju/juju/core/credential"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/permission"
 	"github.com/juju/juju/core/secrets"
 	"github.com/juju/juju/core/user"
@@ -216,7 +215,7 @@ func (s *stateSuite) createModelWithName(c *tc.C, modelType coremodel.ModelType,
 	)
 	c.Assert(err, tc.ErrorIsNil)
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	err = s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		err = statecontroller.Create(
 			c.Context(),
@@ -1345,7 +1344,7 @@ func (s *stateSuite) TestGetActiveModelSecretBackendCAASDefaultBackend(c *tc.C) 
 }
 
 func (s *stateSuite) TestGetActiveModelSecretBackendFailedWithModelNotFound(c *tc.C) {
-	_, _, err := s.state.GetActiveModelSecretBackend(c.Context(), modeltesting.GenModelUUID(c))
+	_, _, err := s.state.GetActiveModelSecretBackend(c.Context(), tc.Must0(c, coremodel.NewUUID))
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
@@ -1615,7 +1614,7 @@ func (s *stateSuite) TestSetModelSecretBackendModelNotFound(c *tc.C) {
 		BackendType: "vault",
 	}, nil)
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	err = s.state.SetModelSecretBackend(c.Context(), modelUUID, "my-backend")
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 	c.Assert(err, tc.ErrorMatches, `cannot set secret backend "my-backend" for model "`+modelUUID.String()+`": model not found`)
@@ -1684,7 +1683,7 @@ func (s *stateSuite) TestAddSecretBackendReferenceFailedSecretBackendNotFound(c 
 
 func (s *stateSuite) TestAddSecretBackendReferenceFailedModelNotFound(c *tc.C) {
 	_ = s.createModel(c, coremodel.IAAS)
-	nonExistsModelUUID := modeltesting.GenModelUUID(c)
+	nonExistsModelUUID := tc.Must0(c, coremodel.NewUUID)
 	secretRevisionID := uuid.MustNewUUID().String()
 	_, err := s.state.AddSecretBackendReference(c.Context(), &secrets.ValueRef{BackendID: s.vaultBackendID}, nonExistsModelUUID, secretRevisionID)
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)

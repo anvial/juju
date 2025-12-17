@@ -18,7 +18,6 @@ import (
 	coremachine "github.com/juju/juju/core/machine"
 	coremigration "github.com/juju/juju/core/migration"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/semversion"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/modelmigration"
@@ -100,8 +99,8 @@ func (s *SourcePrecheckSuite) expectControllerNoMachines() {
 func (s *SourcePrecheckSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := s.precheckBaseSuite.setupMocksWithDefaultAgentVersion(c)
 
-	s.modelUUID = modeltesting.GenModelUUID(c)
-	s.controllerModelUUID = modeltesting.GenModelUUID(c)
+	s.modelUUID = tc.Must0(c, coremodel.NewUUID)
+	s.controllerModelUUID = tc.Must0(c, coremodel.NewUUID)
 
 	s.controllerUpgradeService = NewMockUpgradeService(ctrl)
 	s.controllerModelAgentService = NewMockModelAgentService(ctrl)

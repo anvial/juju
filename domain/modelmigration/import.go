@@ -66,7 +66,7 @@ func ImportOperations(
 	lease.RegisterImport(coordinator, logger.Child("lease"))
 	externalcontroller.RegisterImport(coordinator)
 	credential.RegisterImport(coordinator, logger.Child("credential"))
-	model.RegisterImport(coordinator, logger.Child("model"))
+	model.RegisterModelImport(coordinator, logger.Child("model"))
 
 	// Domain services is available for all the following services, but only
 	// after the model has been imported and activated.
@@ -102,4 +102,8 @@ func ImportOperations(
 	// any block commands from being executed before all the other operations
 	// have been completed.
 	blockcommand.RegisterImport(coordinator, logger.Child("blockcommand"))
+
+	// Finally, we need to activate the model after all other operations
+	// have been completed.
+	model.RegisterModelActivationImport(coordinator, logger.Child("model"))
 }

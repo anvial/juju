@@ -10,7 +10,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/juju/juju/core/errors"
-	modeltesting "github.com/juju/juju/core/model/testing"
+	coremodel "github.com/juju/juju/core/model"
 	corestorage "github.com/juju/juju/core/storage"
 	domainstorage "github.com/juju/juju/domain/storage"
 	storageerrors "github.com/juju/juju/domain/storage/errors"
@@ -127,7 +127,7 @@ func (s *storageSuite) TestImportFilesystem(c *tc.C) {
 	}, nil)
 
 	controllerUUID := uuid.MustNewUUID().String()
-	modelUUID := modeltesting.GenModelUUID(c).String()
+	modelUUID := tc.Must0(c, coremodel.NewUUID).String()
 	// s.state.EXPECT().GetStoragePoolByName(gomock.Any(), "elastic").Return(domainstorage.StoragePool{}, storageerrors.PoolNotFoundError)
 	s.filesystemImporter.EXPECT().ImportFilesystem(gomock.Any(), "provider-id", map[string]string{
 		"juju-model-uuid":      modelUUID,
@@ -173,7 +173,7 @@ func (s *storageSuite) TestImportFilesystemUsingStoragePool(c *tc.C) {
 	// 	Provider: "elastic",
 	// }, nil)
 	controllerUUID := uuid.MustNewUUID().String()
-	modelUUID := modeltesting.GenModelUUID(c).String()
+	modelUUID := tc.Must0(c, coremodel.NewUUID).String()
 	s.filesystemImporter.EXPECT().ImportFilesystem(gomock.Any(), "provider-id", map[string]string{
 		"juju-model-uuid":      modelUUID,
 		"juju-controller-uuid": controllerUUID,
@@ -234,7 +234,7 @@ func (s *storageSuite) TestImportFilesystemVolumeBacked(c *tc.C) {
 	}, nil)
 
 	controllerUUID := uuid.MustNewUUID().String()
-	modelUUID := modeltesting.GenModelUUID(c).String()
+	modelUUID := tc.Must0(c, coremodel.NewUUID).String()
 	// s.state.EXPECT().GetStoragePoolByName(gomock.Any(), "ebs").Return(domainstorage.StoragePool{}, storageerrors.PoolNotFoundError)
 	s.volumeImporter.EXPECT().ImportVolume(gomock.Any(), "provider-id", "", map[string]string{
 		"juju-model-uuid":      modelUUID,

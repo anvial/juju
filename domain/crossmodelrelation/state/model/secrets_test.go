@@ -12,7 +12,7 @@ import (
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/core/database"
-	modeltesting "github.com/juju/juju/core/model/testing"
+	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/network"
 	corerelation "github.com/juju/juju/core/relation"
 	coresecrets "github.com/juju/juju/core/secrets"
@@ -506,7 +506,7 @@ func (s *modelSecretsSuite) setupSecretAccess(c *tc.C, uri *coresecrets.URI, uni
 	c.Assert(err, tc.ErrorIsNil)
 
 	err = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		modelUUID := modeltesting.GenModelUUID(c)
+		modelUUID := tc.Must0(c, coremodel.NewUUID)
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO model (uuid, controller_uuid,  name, qualifier, type, cloud, cloud_type)
 			VALUES (?, ?, "test", "prod", "iaas", "test-model", "ec2")

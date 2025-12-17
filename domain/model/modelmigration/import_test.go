@@ -4,7 +4,6 @@
 package modelmigration
 
 import (
-	"context"
 	"testing"
 
 	"github.com/juju/description/v11"
@@ -16,7 +15,6 @@ import (
 	"github.com/juju/juju/core/credential"
 	coreerrors "github.com/juju/juju/core/errors"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/modelmigration"
 	modelmigrationtesting "github.com/juju/juju/core/modelmigration/testing"
 	coreuser "github.com/juju/juju/core/user"
@@ -105,7 +103,7 @@ func (i *importSuite) TestModelOwnerNoExist(c *tc.C) {
 		userService:        i.userService,
 	}
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 
 	model := description.NewModel(description.ModelArgs{
 		Config: map[string]any{
@@ -126,7 +124,7 @@ func (i *importSuite) TestModelOwnerNoExist(c *tc.C) {
 // - If no agent stream is specified in the model's config then a default stream
 // of [agentbinary.AgentStreamReleased] is used.
 func (i *importSuite) TestModelCreate(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	userUUID, err := coreuser.NewUUID()
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -154,13 +152,7 @@ func (i *importSuite) TestModelCreate(c *tc.C) {
 		UUID: modelUUID,
 	}
 
-	activated := false
-	activator := func(_ context.Context) error {
-		activated = true
-		return nil
-	}
-
-	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
+	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(nil)
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(),
 		jujuversion.Current,
@@ -200,7 +192,6 @@ func (i *importSuite) TestModelCreate(c *tc.C) {
 	)
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(activated, tc.IsTrue)
 }
 
 // TestModelCreateWithAgentStream is asserting the happy path of importing a
@@ -208,7 +199,7 @@ func (i *importSuite) TestModelCreate(c *tc.C) {
 // the model being imported has their agent stream set in model config that this
 // value is used when creating the model.
 func (i *importSuite) TestModelCreateWithAgentStream(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	userUUID, err := coreuser.NewUUID()
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -236,15 +227,9 @@ func (i *importSuite) TestModelCreateWithAgentStream(c *tc.C) {
 		UUID: modelUUID,
 	}
 
-	activated := false
-	activator := func(_ context.Context) error {
-		activated = true
-		return nil
-	}
-
 	c.Assert(err, tc.ErrorIsNil)
 
-	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
+	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(nil)
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(),
 		jujuversion.Current,
@@ -282,11 +267,10 @@ func (i *importSuite) TestModelCreateWithAgentStream(c *tc.C) {
 	)
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(activated, tc.IsTrue)
 }
 
 func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	userUUID, err := coreuser.NewUUID()
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -314,13 +298,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 		UUID: modelUUID,
 	}
 
-	var activated bool
-	activator := func(_ context.Context) error {
-		activated = true
-		return nil
-	}
-
-	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
+	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(nil)
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
@@ -355,13 +333,10 @@ func (i *importSuite) TestModelCreateRollbacksOnFailure(c *tc.C) {
 	)
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
-
-	// The activator should not be called when the import fails and rolls back.
-	c.Check(activated, tc.IsFalse)
 }
 
 func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	userUUID, err := coreuser.NewUUID()
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -389,14 +364,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 		UUID: modelUUID,
 	}
 
-	activated := false
-	activator := func(_ context.Context) error {
-		activated = true
-		return nil
-	}
-	c.Assert(err, tc.ErrorIsNil)
-
-	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
+	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(nil)
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
@@ -431,13 +399,10 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundModel(c *tc
 	)
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
-
-	// The activator should not be called when the import fails and rolls back.
-	c.Check(activated, tc.IsFalse)
 }
 
 func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyModel(c *tc.C) {
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	userUUID, err := coreuser.NewUUID()
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -448,12 +413,6 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 		},
 		nil,
 	)
-
-	activated := false
-	activator := func(_ context.Context) error {
-		activated = true
-		return nil
-	}
 
 	args := model.ModelImportArgs{
 		GlobalModelCreationArgs: model.GlobalModelCreationArgs{
@@ -471,7 +430,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 		UUID: modelUUID,
 	}
 
-	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(activator, nil)
+	i.modelImportService.EXPECT().ImportModel(gomock.Any(), args).Return(nil)
 	i.modelDetailService.EXPECT().CreateImportingModelWithAgentVersionStream(
 		gomock.Any(), jujuversion.Current, agentbinary.AgentStreamReleased,
 	).Return(errors.New("boom"))
@@ -506,9 +465,6 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 	)
 	err = coordinator.Perform(c.Context(), modelmigration.NewScope(nil, nil, tc.Must0(c, coremodel.NewUUID)), model)
 	c.Check(err, tc.ErrorMatches, `.*boom.*`)
-
-	// The activator should not be called when the import fails and rolls back.
-	c.Check(activated, tc.IsFalse)
 }
 
 // TestImportModelConstraintsNoOperations asserts that if no constraints are set
@@ -517,7 +473,7 @@ func (i *importSuite) TestModelCreateRollbacksOnFailureIgnoreNotFoundReadOnlyMod
 func (i *importSuite) TestImportModelConstraintsNoOperations(c *tc.C) {
 	defer i.setupMocks(c).Finish()
 
-	newUUID := modeltesting.GenModelUUID(c)
+	newUUID := tc.Must0(c, coremodel.NewUUID)
 	importOp := importModelConstraintsOperation{
 		modelDetailServiceFunc: func(_ coremodel.UUID) ModelDetailService { return i.modelDetailService },
 	}
@@ -545,7 +501,7 @@ func (i *importSuite) TestImportModelConstraintsNoOperations(c *tc.C) {
 func (i *importSuite) TestImportModelConstraints(c *tc.C) {
 	defer i.setupMocks(c).Finish()
 
-	newUUID := modeltesting.GenModelUUID(c)
+	newUUID := tc.Must0(c, coremodel.NewUUID)
 	importOp := importModelConstraintsOperation{
 		modelDetailServiceFunc: func(_ coremodel.UUID) ModelDetailService { return i.modelDetailService },
 	}
@@ -568,4 +524,26 @@ func (i *importSuite) TestImportModelConstraints(c *tc.C) {
 	})
 	err := importOp.Execute(c.Context(), model)
 	c.Check(err, tc.ErrorIsNil)
+}
+
+func (i *importSuite) TestModelActivate(c *tc.C) {
+	defer i.setupMocks(c).Finish()
+
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
+
+	i.modelImportService.EXPECT().ActivateModel(gomock.Any(), modelUUID).Return(nil)
+
+	importOp := &importModelActivatorOperation{
+		modelImportService: i.modelImportService,
+	}
+
+	model := description.NewModel(description.ModelArgs{
+		Config: map[string]any{
+			config.NameKey: "test-model",
+			config.UUIDKey: modelUUID.String(),
+		},
+	})
+
+	err := importOp.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
 }

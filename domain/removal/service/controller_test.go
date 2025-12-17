@@ -11,7 +11,6 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	"github.com/juju/juju/domain/removal"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
@@ -218,6 +217,6 @@ func newControllerModelJob(c *tc.C) removal.Job {
 	return removal.Job{
 		UUID:        jUUID,
 		RemovalType: removal.ControllerModelJob,
-		EntityUUID:  modeltesting.GenModelUUID(c).String(),
+		EntityUUID:  tc.Must0(c, model.NewUUID).String(),
 	}
 }

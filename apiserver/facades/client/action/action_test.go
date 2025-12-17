@@ -16,7 +16,7 @@ import (
 	apiservererrors "github.com/juju/juju/apiserver/errors"
 	apiservertesting "github.com/juju/juju/apiserver/testing"
 	"github.com/juju/juju/core/leadership"
-	modeltesting "github.com/juju/juju/core/model/testing"
+	coremodel "github.com/juju/juju/core/model"
 	corestatus "github.com/juju/juju/core/status"
 	applicationcharm "github.com/juju/juju/domain/application/charm"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
@@ -67,7 +67,7 @@ func (s *actionSuite) setupAPI(c *tc.C, authTag names.UserTag) {
 		Tag:      authTag,
 		AdminTag: s.adminTag,
 	}
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 
 	leadershipFunc := func() (leadership.Reader, error) {
 		return FakeLeadership{}, nil

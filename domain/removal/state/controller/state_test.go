@@ -14,7 +14,6 @@ import (
 	cloudtesting "github.com/juju/juju/core/cloud/testing"
 	corecredential "github.com/juju/juju/core/credential"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/permission"
 	"github.com/juju/juju/core/user"
 	usertesting "github.com/juju/juju/core/user/testing"
@@ -51,7 +50,7 @@ func (m *baseSuite) SetUpTest(c *tc.C) {
 
 	// We need to generate a user in the database so that we can set the model
 	// owner.
-	m.uuid = modeltesting.GenModelUUID(c)
+	m.uuid = tc.Must0(c, coremodel.NewUUID)
 	userName := usertesting.GenNewName(c, "test-user")
 	accessState := accessstate.NewState(m.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
 
