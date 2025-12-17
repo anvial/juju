@@ -61,7 +61,7 @@ func (s *volumeSuite) TestBuildMAASVolumeParametersNoTags(c *tc.C) {
 // TestBuildMAASVolumeParametersWithRootDisk checks that
 // [buildMAASVolumeParameters] correctly constructs the right volume parameters
 // for the supplied [storage.VolumeParams] and includes the root disk for the
-// node that is being aquired.
+// node that is being acquired.
 //
 // This test also expects to see that the root disk is the first element of the
 // returned slice as required by the MAAS API.
@@ -89,7 +89,7 @@ func (s *volumeSuite) TestBuildMAASVolumeParametersWithRootDisk(c *tc.C) {
 // TestBuildMAASVolumeParametersWithTags checks that [buildMAASVolumeParameters]
 // correctly constructs the right volume parameters for the supplied
 // [storage.VolumeParams] including tags and includes the root disk for the node
-// that is being aquired.
+// that is being acquired.
 //
 // This test also expects to see that the root disk is the first element of the
 // returned slice as required by the MAAS API.

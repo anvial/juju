@@ -303,7 +303,7 @@ func mibToGb(m uint64) uint64 {
 // buildMAASVolumeParameters creates the MAAS volume information to include
 // in a request to acquire a MAAS node, based on the supplied volume parameters.
 // Include in the volume information will also be the root disk volume for the
-// node being acquired. This func gaurantees that the root disk will be the
+// node being acquired. This func guarantees that the root disk will be the
 // first [volumeInfo] in the returned slice. This is done as MAAS expects this
 // ordering.
 //
