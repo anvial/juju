@@ -62,7 +62,7 @@ The following fixed size limits apply:
 // SetFlags implements part of the cmd.Command interface.
 func (c *StateSetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.keyValueFile.SetStdin()
-	f.Var(&c.keyValueFile, "file", "file containing key-value pairs")
+	f.Var(&c.keyValueFile, "file", "Specifies a file containing key-value pairs.")
 }
 
 // Init initializes the Command before running.

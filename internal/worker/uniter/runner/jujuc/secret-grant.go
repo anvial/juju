@@ -62,9 +62,9 @@ Optionally specify a unit name to limit access to just that unit.
 
 // SetFlags implements cmd.Command.
 func (c *secretGrantCommand) SetFlags(f *gnuflag.FlagSet) {
-	f.StringVar(&c.unit, "unit", "", "the unit to grant access")
-	f.Var(c.relationIdProxy, "r", "the relation with which to associate the grant")
-	f.Var(c.relationIdProxy, "relation", "the relation with which to associate the grant")
+	f.StringVar(&c.unit, "unit", "", "Specifies the unit to grant access.")
+	f.Var(c.relationIdProxy, "r", "Specifies the relation with which to associate the grant.")
+	f.Var(c.relationIdProxy, "relation", "Specifies the relation with which to associate the grant.")
 }
 
 // Init implements cmd.Command.

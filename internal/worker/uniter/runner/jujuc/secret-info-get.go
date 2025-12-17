@@ -53,7 +53,7 @@ func (c *secretInfoGetCommand) SetFlags(f *gnuflag.FlagSet) {
 		"yaml": cmd.FormatYaml,
 		"json": cmd.FormatJson,
 	})
-	f.StringVar(&c.label, "label", "", "a label used to identify the secret")
+	f.StringVar(&c.label, "label", "", "Specifies a label used to identify the secret.")
 }
 
 // Init implements cmd.Command.

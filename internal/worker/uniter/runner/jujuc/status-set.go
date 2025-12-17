@@ -135,7 +135,7 @@ var validStatus = []status.Status{
 }
 
 func (c *StatusSetCommand) SetFlags(f *gnuflag.FlagSet) {
-	f.BoolVar(&c.application, "application", false, "set this status for the application to which the unit belongs if the unit is the leader")
+	f.BoolVar(&c.application, "application", false, "Sets this status for the application to which the unit belongs if the unit is the leader.")
 }
 
 func (c *StatusSetCommand) Init(args []string) error {

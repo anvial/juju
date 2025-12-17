@@ -84,12 +84,12 @@ specific unit which created it.
 
 // SetFlags implements cmd.Command.
 func (c *secretUpsertCommand) SetFlags(f *gnuflag.FlagSet) {
-	f.StringVar(&c.expireSpec, "expire", "", "either a duration or time when the secret should expire")
-	f.StringVar(&c.rotatePolicy, "rotate", "", "the secret rotation policy")
-	f.StringVar(&c.description, "description", "", "the secret description")
-	f.StringVar(&c.label, "label", "", "a label used to identify the secret in hooks")
-	f.StringVar(&c.fileName, "file", "", "a YAML file containing secret key values")
-	f.StringVar(&c.owner, "owner", "application", "the owner of the secret, either the application or unit")
+	f.StringVar(&c.expireSpec, "expire", "", "Specifies either a duration or time when the secret should expire.")
+	f.StringVar(&c.rotatePolicy, "rotate", "", "Specifies the secret rotation policy.")
+	f.StringVar(&c.description, "description", "", "Specifies the secret description.")
+	f.StringVar(&c.label, "label", "", "Specifies a label used to identify the secret in hooks.")
+	f.StringVar(&c.fileName, "file", "", "Specifies a YAML file containing secret key values.")
+	f.StringVar(&c.owner, "owner", "application", "Specifies the owner of the secret, either the application or unit.")
 }
 
 const rcf3339NoTZ = "2006-01-02T15:04:05"

@@ -9,9 +9,9 @@ Writes a message to Juju logs.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--debug` | false | log at debug level |
-| `--format` |  | deprecated format flag |
-| `-l`, `--log-level` | INFO | Send log message at the given level |
+| `--debug` | false | Sends message at debug level. |
+| `--format` |  | (DEPRECATED) Specifies the message format. |
+| `-l`, `--log-level` | INFO | Sends message at the given level. |
 
 ## Examples
 

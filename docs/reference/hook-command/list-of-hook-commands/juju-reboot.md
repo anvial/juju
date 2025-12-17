@@ -9,7 +9,7 @@ Reboots the host machine.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--now` | false | reboot immediately, killing the invoking process |
+| `--now` | false | Reboots immediately, killing the invoking process. |
 
 ## Examples
 

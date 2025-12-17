@@ -67,7 +67,7 @@ singleton stores.
 
 func (c *StorageGetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.Var(c.storageTagProxy, "s", "specify a storage instance by id")
+	f.Var(c.storageTagProxy, "s", "Specifies a storage instance by ID.")
 }
 
 func (c *StorageGetCommand) Init(args []string) error {

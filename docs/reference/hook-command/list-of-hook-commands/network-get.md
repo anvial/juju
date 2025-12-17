@@ -9,13 +9,13 @@ Gets network config.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--bind-address` | false | get the address for the binding on which the unit should listen |
-| `--egress-subnets` | false | get the egress subnets for the binding |
+| `--bind-address` | false | Gets the address for the binding on which the unit should listen. |
+| `--egress-subnets` | false | Gets the egress subnets for the binding. |
 | `--format` | smart | Specify output format (json&#x7c;smart&#x7c;yaml) |
-| `--ingress-address` | false | get the ingress address for the binding |
+| `--ingress-address` | false | Gets the ingress address for the binding. |
 | `-o`, `--output` |  | Specify an output file |
-| `--primary-address` | false | (deprecated) get the primary address for the binding |
-| `-r`, `--relation` |  | specify a relation by id |
+| `--primary-address` | false | (DEPRECATED) Gets the primary address for the binding. |
+| `-r`, `--relation` |  | Specifies a relation by ID. |
 
 ## Examples
 

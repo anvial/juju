@@ -58,7 +58,7 @@ pending open-port operations run from within the same hook.
 
 func (c *OpenedPortsCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.BoolVar(&c.showEndpoints, "endpoints", false, "display the list of target application endpoints for each port range")
+	f.BoolVar(&c.showEndpoints, "endpoints", false, "Displays the list of target application endpoints for each port range.")
 }
 
 func (c *OpenedPortsCommand) Init(args []string) error {

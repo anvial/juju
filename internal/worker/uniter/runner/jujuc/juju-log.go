@@ -51,10 +51,10 @@ func (c *JujuLogCommand) Info() *cmd.Info {
 }
 
 func (c *JujuLogCommand) SetFlags(f *gnuflag.FlagSet) {
-	f.BoolVar(&c.Debug, "debug", false, "log at debug level")
-	f.StringVar(&c.Level, "l", "INFO", "Send log message at the given level")
+	f.BoolVar(&c.Debug, "debug", false, "Sends message at debug level.")
+	f.StringVar(&c.Level, "l", "INFO", "Sends message at the given level.")
 	f.StringVar(&c.Level, "log-level", "INFO", "")
-	f.StringVar(&c.formatFlag, "format", "", "deprecated format flag")
+	f.StringVar(&c.formatFlag, "format", "", "(DEPRECATED) Specifies the message format.")
 }
 
 func (c *JujuLogCommand) Init(args []string) error {

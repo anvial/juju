@@ -9,9 +9,9 @@ Prints status information.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--application` | false | print status for all units of this application if this unit is the leader |
+| `--application` | false | Prints status for all units of this application if this unit is the leader. |
 | `--format` | smart | Specify output format (json&#x7c;smart&#x7c;yaml) |
-| `--include-data` | false | print all status data |
+| `--include-data` | false | Prints all status data. |
 | `-o`, `--output` |  | Specify an output file |
 
 ## Examples

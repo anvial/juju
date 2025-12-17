@@ -13,7 +13,7 @@ Prints server-side-state value.
 | --- | --- | --- |
 | `--format` | smart | Specify output format (json&#x7c;smart&#x7c;yaml) |
 | `-o`, `--output` |  | Specify an output file |
-| `--strict` | false | Return an error if the requested key does not exist |
+| `--strict` | false | Returns an error if the requested key does not exist. |
 
 ## Details
 

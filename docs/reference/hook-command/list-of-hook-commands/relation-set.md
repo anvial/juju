@@ -9,10 +9,10 @@ Sets relation settings.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--app` | false | pick whether you are setting "application" settings or "unit" settings |
-| `--file` |  | file containing key-value pairs |
-| `--format` |  | deprecated format flag |
-| `-r`, `--relation` |  | specify a relation by id |
+| `--app` | false | Sets relation settings for the application instead of the unit (leader only). |
+| `--file` |  | Specifies a file containing key-value pairs. |
+| `--format` |  | (DEPRECATED) Format flag. |
+| `-r`, `--relation` |  | Specifies a relation by ID. |
 
 ## Examples
 

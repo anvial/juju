@@ -59,7 +59,7 @@ relation identifier similar to the ` + "`relation-get`" + ` and ` + "`relation-s
 // SetFlags adds command specific flags to the flag set.
 func (c *RelationModelGetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.Var(c.relationIdProxy, "r", "Specify a relation by id")
+	f.Var(c.relationIdProxy, "r", "Specifies a relation by ID.")
 	f.Var(c.relationIdProxy, "relation", "")
 }
 

@@ -11,7 +11,7 @@ Prints information for the storage instance with the specified ID.
 | --- | --- | --- |
 | `--format` | smart | Specify output format (json&#x7c;smart&#x7c;yaml) |
 | `-o`, `--output` |  | Specify an output file |
-| `-s` |  | specify a storage instance by id |
+| `-s` |  | Specifies a storage instance by ID. |
 
 ## Examples
 

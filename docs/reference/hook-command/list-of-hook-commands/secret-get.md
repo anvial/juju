@@ -10,10 +10,10 @@ Gets the content of a secret.
 | Flag | Default | Usage |
 | --- | --- | --- |
 | `--format` | yaml | Specify output format (json&#x7c;yaml) |
-| `--label` |  | a label used to identify the secret in hooks |
+| `--label` |  | Specifies a label used to identify the secret in hooks. |
 | `-o`, `--output` |  | Specify an output file |
-| `--peek` | false | get the latest revision just this time |
-| `--refresh` | false | get the latest revision and also get this same revision for subsequent calls |
+| `--peek` | false | Gets the latest revision just this time. |
+| `--refresh` | false | Gets the latest revision and also gets this same revision for subsequent calls. |
 
 ## Examples
 

@@ -66,11 +66,11 @@ func (c *secretGetCommand) SetFlags(f *gnuflag.FlagSet) {
 		"yaml": cmd.FormatYaml,
 		"json": cmd.FormatJson,
 	})
-	f.StringVar(&c.label, "label", "", "a label used to identify the secret in hooks")
+	f.StringVar(&c.label, "label", "", "Specifies a label used to identify the secret in hooks.")
 	f.BoolVar(&c.peek, "peek", false,
-		`get the latest revision just this time`)
+		`Gets the latest revision just this time.`)
 	f.BoolVar(&c.refresh, "refresh", false,
-		`get the latest revision and also get this same revision for subsequent calls`)
+		`Gets the latest revision and also gets this same revision for subsequent calls.`)
 }
 
 // Init implements cmd.Command.

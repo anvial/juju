@@ -56,9 +56,9 @@ relation identifier similar to the ` + "`relation-get`" + ` and ` + "`relation-s
 
 func (c *RelationListCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.Var(c.relationIdProxy, "r", "Specify a relation by id")
+	f.Var(c.relationIdProxy, "r", "Specifies a relation by ID.")
 	f.Var(c.relationIdProxy, "relation", "")
-	f.BoolVar(&c.ListRemoteApplication, "app", false, "List remote application instead of participating units")
+	f.BoolVar(&c.ListRemoteApplication, "app", false, "Lists remote application instead of participating units.")
 }
 
 func (c *RelationListCommand) Init(args []string) (err error) {

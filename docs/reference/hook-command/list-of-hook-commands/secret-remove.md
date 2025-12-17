@@ -9,7 +9,7 @@ Removes an existing secret.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--revision` | 0 | remove the specified revision |
+| `--revision` | 0 | Removes the specified revision. |
 
 ## Examples
 

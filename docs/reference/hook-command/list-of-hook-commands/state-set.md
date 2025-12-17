@@ -11,7 +11,7 @@ Sets server-side-state values.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--file` |  | file containing key-value pairs |
+| `--file` |  | Specifies a file containing key-value pairs. |
 
 ## Details
 

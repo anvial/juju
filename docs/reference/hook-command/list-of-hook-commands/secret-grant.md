@@ -9,8 +9,8 @@ Grants access to a secret.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `-r`, `--relation` |  | the relation with which to associate the grant |
-| `--unit` |  | the unit to grant access |
+| `-r`, `--relation` |  | Specifies the relation with which to associate the grant. |
+| `--unit` |  | Specifies the unit to grant access. |
 
 ## Examples
 

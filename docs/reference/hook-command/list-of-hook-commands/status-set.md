@@ -9,7 +9,7 @@ Sets status information.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--application` | false | set this status for the application to which the unit belongs if the unit is the leader |
+| `--application` | false | Sets this status for the application to which the unit belongs if the unit is the leader. |
 
 ## Examples
 

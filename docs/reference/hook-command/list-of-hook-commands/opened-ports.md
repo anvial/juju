@@ -9,7 +9,7 @@ Lists all ports or port ranges opened by the unit.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--endpoints` | false | display the list of target application endpoints for each port range |
+| `--endpoints` | false | Displays the list of target application endpoints for each port range. |
 | `--format` | smart | Specify output format (json&#x7c;smart&#x7c;yaml) |
 | `-o`, `--output` |  | Specify an output file |
 

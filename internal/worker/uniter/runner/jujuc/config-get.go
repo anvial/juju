@@ -57,7 +57,7 @@ Missing config keys are reported as nulls, and do not return an error.
 
 func (c *ConfigGetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.BoolVar(&c.All, "a", false, "print all keys")
+	f.BoolVar(&c.All, "a", false, "Prints all keys.")
 	f.BoolVar(&c.All, "all", false, "")
 }
 

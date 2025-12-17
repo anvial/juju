@@ -35,8 +35,8 @@ func (c *portCommand) Info() *cmd.Info {
 }
 
 func (c *portCommand) SetFlags(f *gnuflag.FlagSet) {
-	f.StringVar(&c.formatFlag, "format", "", "deprecated format flag")
-	f.StringVar(&c.endpoints, "endpoints", "", "a comma-delimited list of application endpoints to target with this operation")
+	f.StringVar(&c.formatFlag, "format", "", "(DEPRECATED) Specifies the format.")
+	f.StringVar(&c.endpoints, "endpoints", "", "Specifies a comma-delimited list of application endpoints to target with this operation.")
 }
 
 func (c *portCommand) Init(args []string) error {

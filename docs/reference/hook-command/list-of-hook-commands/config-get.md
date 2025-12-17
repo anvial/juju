@@ -9,7 +9,7 @@ Prints application configuration.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `-a`, `--all` | false | print all keys |
+| `-a`, `--all` | false | Prints all keys. |
 | `--format` | smart | Specify output format (json&#x7c;smart&#x7c;yaml) |
 | `-o`, `--output` |  | Specify an output file |
 

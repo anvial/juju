@@ -72,7 +72,7 @@ func (c *JujuRebootCommand) Info() *cmd.Info {
 }
 
 func (c *JujuRebootCommand) SetFlags(f *gnuflag.FlagSet) {
-	f.BoolVar(&c.Now, "now", false, "reboot immediately, killing the invoking process")
+	f.BoolVar(&c.Now, "now", false, "Reboots immediately, killing the invoking process.")
 }
 
 func (c *JujuRebootCommand) Init(args []string) error {

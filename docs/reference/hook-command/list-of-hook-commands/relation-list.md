@@ -9,10 +9,10 @@ Lists relation units.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--app` | false | List remote application instead of participating units |
+| `--app` | false | Lists remote application instead of participating units. |
 | `--format` | smart | Specify output format (json&#x7c;smart&#x7c;yaml) |
 | `-o`, `--output` |  | Specify an output file |
-| `-r`, `--relation` |  | Specify a relation by id |
+| `-r`, `--relation` |  | Specifies a relation by ID. |
 
 ## Details
 

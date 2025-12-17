@@ -55,8 +55,8 @@ rather than an individual unit.
 
 func (c *StatusGetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.BoolVar(&c.includeData, "include-data", false, "print all status data")
-	f.BoolVar(&c.applicationWide, "application", false, "print status for all units of this application if this unit is the leader")
+	f.BoolVar(&c.includeData, "include-data", false, "Prints all status data.")
+	f.BoolVar(&c.applicationWide, "application", false, "Prints status for all units of this application if this unit is the leader.")
 }
 
 func (c *StatusGetCommand) Init(args []string) error {

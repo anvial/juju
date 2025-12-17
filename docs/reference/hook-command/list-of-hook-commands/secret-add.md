@@ -9,12 +9,12 @@ Adds a new secret.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--description` |  | the secret description |
-| `--expire` |  | either a duration or time when the secret should expire |
-| `--file` |  | a YAML file containing secret key values |
-| `--label` |  | a label used to identify the secret in hooks |
-| `--owner` | application | the owner of the secret, either the application or unit |
-| `--rotate` |  | the secret rotation policy |
+| `--description` |  | Specifies the secret description. |
+| `--expire` |  | Specifies either a duration or time when the secret should expire. |
+| `--file` |  | Specifies a YAML file containing secret key values. |
+| `--label` |  | Specifies a label used to identify the secret in hooks. |
+| `--owner` | application | Specifies the owner of the secret, either the application or unit. |
+| `--rotate` |  | Specifies the secret rotation policy. |
 
 ## Examples
 

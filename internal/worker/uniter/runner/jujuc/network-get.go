@@ -80,11 +80,11 @@ If more than one flag is specified, a map of values is returned.
 // SetFlags is part of the cmd.Command interface.
 func (c *NetworkGetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.BoolVar(&c.primaryAddress, "primary-address", false, "(deprecated) get the primary address for the binding")
-	f.BoolVar(&c.bindAddress, "bind-address", false, "get the address for the binding on which the unit should listen")
-	f.BoolVar(&c.ingressAddress, "ingress-address", false, "get the ingress address for the binding")
-	f.BoolVar(&c.egressSubnets, "egress-subnets", false, "get the egress subnets for the binding")
-	f.Var(c.relationIdProxy, "r", "specify a relation by id")
+	f.BoolVar(&c.primaryAddress, "primary-address", false, "(DEPRECATED) Gets the primary address for the binding.")
+	f.BoolVar(&c.bindAddress, "bind-address", false, "Gets the address for the binding on which the unit should listen.")
+	f.BoolVar(&c.ingressAddress, "ingress-address", false, "Gets the ingress address for the binding.")
+	f.BoolVar(&c.egressSubnets, "egress-subnets", false, "Gets the egress subnets for the binding.")
+	f.Var(c.relationIdProxy, "r", "Specifies a relation by ID.")
 	f.Var(c.relationIdProxy, "relation", "")
 }
 

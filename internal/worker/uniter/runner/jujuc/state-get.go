@@ -46,7 +46,7 @@ If no key is given, or if the key is ` + "`" + `"-"` + "`" + `, all keys and val
 // SetFlags implements part of the cmd.Command interface.
 func (c *StateGetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.BoolVar(&c.strict, "strict", false, "Return an error if the requested key does not exist")
+	f.BoolVar(&c.strict, "strict", false, "Returns an error if the requested key does not exist.")
 }
 
 // Init initializes the Command before running.

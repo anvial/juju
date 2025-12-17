@@ -9,8 +9,8 @@ Registers a request to close a port or port range.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--endpoints` |  | a comma-delimited list of application endpoints to target with this operation |
-| `--format` |  | deprecated format flag |
+| `--endpoints` |  | Specifies a comma-delimited list of application endpoints to target with this operation. |
+| `--format` |  | (DEPRECATED) Specifies the format. |
 
 ## Examples
 

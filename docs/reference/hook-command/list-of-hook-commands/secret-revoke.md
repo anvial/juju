@@ -9,9 +9,9 @@ Revokes access to a secret.
 ### Options
 | Flag | Default | Usage |
 | --- | --- | --- |
-| `--app`, `--application` |  | the application to revoke access |
-| `-r`, `--relation` |  | the relation for which to revoke the grant |
-| `--unit` |  | the unit to revoke access |
+| `--app`, `--application` |  | Specifies the application for which to revoke access. |
+| `-r`, `--relation` |  | Specifies the relation for which to revoke the grant. |
+| `--unit` |  | Specifies the unit for which to revoke access. |
 
 ## Examples
 

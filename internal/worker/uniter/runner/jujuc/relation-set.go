@@ -98,15 +98,15 @@ func (c *RelationSetCommand) Info() *cmd.Info {
 }
 
 func (c *RelationSetCommand) SetFlags(f *gnuflag.FlagSet) {
-	f.Var(c.relationIdProxy, "r", "specify a relation by id")
+	f.Var(c.relationIdProxy, "r", "Specifies a relation by ID.")
 	f.Var(c.relationIdProxy, "relation", "")
 
 	c.settingsFile.SetStdin()
-	f.Var(&c.settingsFile, "file", "file containing key-value pairs")
+	f.Var(&c.settingsFile, "file", "Specifies a file containing key-value pairs.")
 
-	f.BoolVar(&c.Application, "app", false, `pick whether you are setting "application" settings or "unit" settings`)
+	f.BoolVar(&c.Application, "app", false, "Sets relation settings for the application instead of the unit (leader only).")
 
-	f.StringVar(&c.formatFlag, "format", "", "deprecated format flag")
+	f.StringVar(&c.formatFlag, "format", "", "(DEPRECATED) Format flag.")
 }
 
 func (c *RelationSetCommand) Init(args []string) error {
