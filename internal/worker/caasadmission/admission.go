@@ -109,6 +109,11 @@ func NewAdmissionCreator(
 						Rule: admission.Rule{
 							APIGroups:   anyMatch,
 							APIVersions: anyMatch,
+							// The resources we are interested in correspond
+							// to those we want to track for deletion when
+							// the juju app that created them is deleted.
+							// See Delete() on the k8s application resource in
+							// internal/provider/kubernetes/application/application.go
 							Resources: []string{
 								"configmaps/*",
 								"pods/*",

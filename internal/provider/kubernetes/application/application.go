@@ -1005,6 +1005,9 @@ func (a *app) Delete() error {
 	resourcesToDelete := []resources.Resource(nil)
 
 	// Create selector labels.
+	// These label correspond to those which are added to a fixed
+	// set of resources by the model operator mutating web hook.
+	// See [github.com/juju/juju/internal/worker/caasadmission.NewAdmissionCreator].
 	resourceLabels := utils.LabelsForAppCreated(
 		a.name, a.modelName, a.modelUUID, a.controllerUUID, a.labelVersion)
 
