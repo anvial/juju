@@ -36,3 +36,10 @@ type FilesystemTemplate struct {
 	// ReadOnly is true if this filesystem(s) or the mount should be read-only.
 	ReadOnly bool
 }
+
+// ContainerMount describes the mount locations defined for a workload container.
+type ContainerMount struct {
+	ContainerKey string
+	StorageName  string
+	MountPoint   string
+}

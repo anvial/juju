@@ -175,8 +175,9 @@ type FilesystemAttachmentTemplate struct {
 	// made.
 	MountPoint string
 
-	// AttachTo is the identifier of where this attachment should be mounted to.
-	AttachTo string
+	// ContainerKey is the identifier of the container this attachment
+	// should be mounted to.
+	ContainerKey string
 }
 
 // FilesystemProvisionedInfo is information set by the storage provisioner for
@@ -197,11 +198,4 @@ type FilesystemAttachmentProvisionedInfo struct {
 
 	// ReadOnly is true if the filesystem is mounted read-only.
 	ReadOnly bool
-}
-
-// ContainerMount describes the mount locations defined for a workload container.
-type ContainerMount struct {
-	ContainerKey string
-	StorageName  string
-	MountPoint   string
 }

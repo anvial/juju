@@ -1190,17 +1190,20 @@ func (s *filesystemSuite) TestGetContainerMountsForApplication(c *tc.C) {
 
 	mounts, err := st.GetContainerMountsForApplication(c.Context(), appUUID)
 	c.Check(err, tc.ErrorIsNil)
-	c.Check(mounts, tc.DeepEquals, map[string][]storageprovisioning.ContainerMount{
-		"config": {{
+	c.Check(mounts, tc.HasLen, 2)
+	c.Check(mounts["config"], tc.SameContents, []internal.ContainerMount{
+		{
 			ContainerKey: "web-server",
 			StorageName:  "config",
 			MountPoint:   "/data/config",
-		}},
-		"cert": {{
+		},
+	})
+	c.Check(mounts["cert"], tc.SameContents, []internal.ContainerMount{
+		{
 			ContainerKey: "web-server",
 			StorageName:  "cert",
 			MountPoint:   "/data/cert",
-		}},
+		},
 	})
 }
 

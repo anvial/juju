@@ -218,7 +218,7 @@ type CharmState interface {
 	GetContainerMountsForApplication(
 		context.Context,
 		coreapplication.UUID,
-	) (map[string][]storageprovisioning.ContainerMount, error)
+	) (map[string][]internal.ContainerMount, error)
 }
 
 // CheckFilesystemForIDExists checks if a filesystem exists for the supplied
@@ -446,19 +446,19 @@ func calculateFilesystemAttachmentTemplates(
 		)
 
 		retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
-			MountPoint: mountPoint,
-			ReadOnly:   readOnly,
-			AttachTo:   attachTo,
+			MountPoint:   mountPoint,
+			ReadOnly:     readOnly,
+			ContainerKey: attachTo,
 		})
 	}
 	return retVal
 }
 
-// calculateFilesystemAttachmentTemplatesForWorkload calculates all the
+// calculateFilesystemAttachmentTemplatesForContainers calculates all the
 // [storageprovisioning.FilesystemAttachmentTemplate]s for the supplied args.
-// This is specifically used for a workload container that has specified mount
+// This is specifically used for a container that has specified mount
 // points.
-func calculateFilesystemAttachmentTemplatesForWorkload(
+func calculateFilesystemAttachmentTemplatesForContainers(
 	location string,
 	readOnly bool,
 	count int,
@@ -477,9 +477,9 @@ func calculateFilesystemAttachmentTemplatesForWorkload(
 		location, true, "",
 	)
 	retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
-		MountPoint: mountPoint,
-		ReadOnly:   readOnly,
-		AttachTo:   attachTo,
+		MountPoint:   mountPoint,
+		ReadOnly:     readOnly,
+		ContainerKey: attachTo,
 	})
 	return retVal
 }
@@ -887,13 +887,13 @@ func (s *Service) GetFilesystemTemplatesForApplication(
 		)
 
 		for _, mount := range containerMounts[fsTemplate.StorageName] {
-			workloadAttachments := calculateFilesystemAttachmentTemplatesForWorkload(
+			containerAttachments := calculateFilesystemAttachmentTemplatesForContainers(
 				mount.MountPoint,
 				fsTemplate.ReadOnly,
 				fsTemplate.Count,
 				mount.ContainerKey,
 			)
-			attachments = append(attachments, workloadAttachments...)
+			attachments = append(attachments, containerAttachments...)
 		}
 
 		mountTemplate := storageprovisioning.FilesystemTemplate{

@@ -1313,7 +1313,7 @@ WHERE  uuid = $filesystemAttachmentProvisionedInfo.uuid
 func (st *State) GetContainerMountsForApplication(
 	ctx context.Context,
 	appUUID coreapplication.UUID,
-) (map[string][]storageprovisioning.ContainerMount, error) {
+) (map[string][]internal.ContainerMount, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return nil, errors.Capture(err)
@@ -1335,7 +1335,15 @@ WHERE  a.uuid = $entityUUID.uuid
 	}
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		err := tx.Query(ctx, stmt, input).GetAll(&containerMounts)
+		exists, err := st.checkApplicationExists(ctx, tx, appUUID)
+		if err != nil {
+			return err
+		} else if !exists {
+			return errors.Errorf(
+				"application %q does not exist", appUUID,
+			).Add(applicationerrors.ApplicationNotFound)
+		}
+		err = tx.Query(ctx, stmt, input).GetAll(&containerMounts)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
@@ -1346,15 +1354,11 @@ WHERE  a.uuid = $entityUUID.uuid
 		return nil, errors.Capture(err)
 	}
 
-	rvals := make(map[string][]storageprovisioning.ContainerMount)
+	rvals := make(map[string][]internal.ContainerMount)
 
 	for _, mount := range containerMounts {
-		_, ok := rvals[mount.Storage]
-		if !ok {
-			rvals[mount.Storage] = make([]storageprovisioning.ContainerMount, 0)
-		}
 		rvals[mount.Storage] = append(rvals[mount.Storage],
-			storageprovisioning.ContainerMount{
+			internal.ContainerMount{
 				ContainerKey: mount.CharmContainerKey,
 				StorageName:  mount.Storage,
 				MountPoint:   mount.Location,

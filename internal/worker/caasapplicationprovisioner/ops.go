@@ -288,12 +288,11 @@ func appAlive(ctx context.Context, appName string, appUUID coreapplication.UUID,
 			len(attachments),
 		)
 
-		for i := 0; i < len(attachments); i++ {
-			attachment := attachments[i]
+		for i, attachment := range attachments {
 			k8sFileSystemParamAttachments[i] = internalstorage.KubernetesFilesystemAttachmentParams{
 				ReadOnly:      attachment.ReadOnly,
 				Path:          attachment.MountPoint,
-				ContainerName: attachment.AttachTo,
+				ContainerName: attachment.ContainerKey,
 			}
 		}
 
