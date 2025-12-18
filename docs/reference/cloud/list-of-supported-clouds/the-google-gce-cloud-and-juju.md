@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Configure Google Compute Engine (GCE) cloud with Juju, including IAM permissions, service account setup, and authentication types."
+---
+
 (cloud-gce)=
 # The Google GCE cloud and Juju
 
@@ -171,7 +177,7 @@ To configure workload machines to use a different (less privileged) service acco
 > - A service account with sufficient privileges. See more: {ref}`gce-appendix-service-account`
 
 1. Bootstrap with the arg `--bootstrap-constraints="instance-role=auto"`
-2. The controller machines will be created and attached to the project's default service account. 
+2. The controller machines will be created and attached to the project's default service account.
 3. Alternatively you can specify a different service account instead of `auto`.
 
 ```{tip}

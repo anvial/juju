@@ -1,4 +1,10 @@
 
+---
+myst:
+  html_meta:
+    description: "Set up a local Juju environment for testing and development with Multipass, MicroK8s, and charm development tools."
+---
+
 (set-things-up)=
 # Set up your deployment - local testing and development
 

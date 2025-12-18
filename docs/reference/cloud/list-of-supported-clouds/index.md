@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Browse the complete list of clouds supported by Juju, including machine clouds like AWS EC2, Azure, and Kubernetes clouds like EKS, GKE, AKS."
+---
+
 (list-of-supported-clouds)=
 # List of supported clouds
 

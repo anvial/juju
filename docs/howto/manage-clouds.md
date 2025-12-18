@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Learn how to manage clouds in Juju: add new cloud definitions, list available clouds, and configure cloud access for both machine and Kubernetes environments."
+---
+
 (manage-clouds)=
 # How to manage clouds
 

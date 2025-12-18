@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Learn how to deploy a chat service with Juju and charms on Kubernetes. Step-by-step tutorial using Multipass, MicroK8s, Mattermost, and PostgreSQL."
+---
+
 (tutorial)=
 # Get started with Juju
 

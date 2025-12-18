@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju 2.9 LTS release notes: security fixes, bug fixes, and updates for the long-term support version through April 2035."
+---
+
 (juju29x)=
 # Juju 2.9 (LTS)
 > Currently in Security Fix Only support

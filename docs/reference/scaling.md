@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju scaling reference: vertical and horizontal scaling with constraints and units for high availability and resource optimization."
+---
+
 (scaling)=
 # Scaling
 

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju constraints reference: customize compute resources with specifications for CPU, memory, storage, networking, and instance types."
+---
+
 (constraint)=
 # Constraint
 

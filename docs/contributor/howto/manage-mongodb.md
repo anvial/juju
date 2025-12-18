@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Configure MongoDB profiling, optimize query performance, and manage database operations for Juju development and debugging."
+---
+
 (manage-mongodb)=
 # Manage MongoDB
 

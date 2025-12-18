@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Create a Manual cloud in Juju from existing machines, including SSH requirements, bare metal setup, and cloud configuration without MAAS."
+---
+
 (cloud-manual)=
 # The Manual cloud and Juju
 

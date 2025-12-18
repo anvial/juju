@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju 3.6 LTS release notes: new features, improvements, bug fixes for the latest long-term support version through April 2039."
+---
+
 (juju36x)=
 # Juju 3.6 (LTS)
 > April 2039: expected end of security fix support
@@ -119,7 +125,7 @@ eg<br>
 `juju model-config ssh-allow="192.168.0.0/24"`
 
 **Service account credentials**<br>
-Similar to using instance roles on AWS or managed identities on Azure, it's now possible to use 
+Similar to using instance roles on AWS or managed identities on Azure, it's now possible to use
 service accounts to confer permissions to Juju controllers such that a credential secret is not required.
 The service account to be used must have the following scopes:
 - `https://www.googleapis.com/auth/compute`
@@ -149,7 +155,7 @@ On the client machine used to run the Juju CLI, simply:<br>
 `export JUJU_DEV_FEATURE_FLAGS=k8s-attach-storage`
 
 The primary use case this feature is designed to solve is to provide the ability to re-use volumes that have
-been restored from a backup and attach them to units when deploying or scaling. The basic steps follow the 
+been restored from a backup and attach them to units when deploying or scaling. The basic steps follow the
 usual import and attach workflow supported already on other clouds:
 1. Import the PV into the Juju model to create a detached storage instance.
 2. Use the imported storage with the `--attach-storage` option for `deploy` or `add-unit`.<br>
@@ -235,19 +241,19 @@ In some cases, the `juju refresh` command could panic.
 
 ### Openstack
 The 3.6.9 release introduced a [regression](https://github.com/juju/juju/issues/20513) when running on Openstack clouds where security groups are disabled.
- 
+
 * fix: gracefully handle error when security group is disabled in openstack by @adisazhar123 in https://github.com/juju/juju/pull/20548
 
 ### Google cloud
 Specifying non-default disk storage using storage pools is fixed.
-Using images configured for pro support is fixed. 
+Using images configured for pro support is fixed.
 
 * fix: ensure gce images are correctly configured for pro support by @wallyworld in https://github.com/juju/juju/pull/20417
 * fix: set maintenance policy upon instance creation on GCE by @adglkh in https://github.com/juju/juju/pull/20509
 * fix: use `disk-type` instead of `type` when querying disk type on gce by @adglkh in https://github.com/juju/juju/pull/20557
 
 ### Kubernetes
-The mutating web hook created a misnamed label on pods which cause a regression when deploying certain charms. 
+The mutating web hook created a misnamed label on pods which cause a regression when deploying certain charms.
 
 * fix: mutating web hook now attaches correct labels to k8s app resources by @wallyworld in https://github.com/juju/juju/pull/20774
 
@@ -278,7 +284,7 @@ The `credential-get` hook command now works on Kubernetes models for trusted app
 ### LXD
 When a model is deleted, any LXD profiles created for the model and its applications are now removed.
 The profile naming scheme has been updated to include a reference to the model UUID as well as name to ensure
-profiles are fully disambiguated. Upon upgrade to this Juju version, existing profiles are renamed as needed. 
+profiles are fully disambiguated. Upon upgrade to this Juju version, existing profiles are renamed as needed.
 
 The new profile names are of the form:<br>
 `juju-<model>-<shortid>` or `juju-<model>-<shortid>-<app>-<rev>`

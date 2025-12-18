@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju relation (integration) reference: application connections through endpoints. These include regular relations, peer relations, subordinate relations, and cross-model relations, and involve relation databags."
+---
+
 (relation)=
 # Relation (integration)
 

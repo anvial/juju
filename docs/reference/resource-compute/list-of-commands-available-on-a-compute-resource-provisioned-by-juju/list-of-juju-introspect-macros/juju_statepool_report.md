@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "View MongoDB session pool details for each model using juju_statepool_report diagnostic tool on Juju controller machines."
+---
+
 (juju_statepool_report)=
 # `juju_statepool_report`
 
