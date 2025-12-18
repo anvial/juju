@@ -475,7 +475,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
 	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
-		Return(map[string][]storageprovisioning.ContainerMount{
+		Return(map[string][]internal.ContainerMount{
 			"config": {{
 				ContainerKey: "web-server",
 				StorageName:  "config",
@@ -490,19 +490,19 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/bar/0",
-				ReadOnly:   true,
-				AttachTo:   "charm",
+				MountPoint:   "/bar/0",
+				ReadOnly:     true,
+				ContainerKey: "charm",
 			},
 			{
-				MountPoint: "/bar/1",
-				ReadOnly:   true,
-				AttachTo:   "charm",
+				MountPoint:   "/bar/1",
+				ReadOnly:     true,
+				ContainerKey: "charm",
 			},
 			{
-				MountPoint: "/data/config",
-				ReadOnly:   true,
-				AttachTo:   "web-server",
+				MountPoint:   "/data/config",
+				ReadOnly:     true,
+				ContainerKey: "web-server",
 			},
 		},
 		StorageName:  "config",
@@ -537,7 +537,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
 	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
-		Return(map[string][]storageprovisioning.ContainerMount{
+		Return(map[string][]internal.ContainerMount{
 			"config": {{
 				ContainerKey: "web-server",
 				StorageName:  "config",
@@ -552,14 +552,14 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/bar",
-				ReadOnly:   true,
-				AttachTo:   "charm",
+				MountPoint:   "/bar",
+				ReadOnly:     true,
+				ContainerKey: "charm",
 			},
 			{
-				MountPoint: "/data/config",
-				ReadOnly:   true,
-				AttachTo:   "web-server",
+				MountPoint:   "/data/config",
+				ReadOnly:     true,
+				ContainerKey: "web-server",
 			},
 		},
 		StorageName:  "config",
@@ -573,9 +573,9 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	c.Check(result, tc.DeepEquals, expectedResult)
 }
 
-// TestGetFilesystemsTemplateForApplicationEmptyWorkloadContainerMounts tests
-// the workload container does not have any mount points defined.
-func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyWorkloadContainerMounts(c *tc.C) {
+// TestGetFilesystemsTemplateForApplicationEmptyContainerMounts tests
+// the container does not have any mount points defined.
+func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyContainerMounts(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
@@ -603,9 +603,9 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyWorkloadC
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/bar",
-				ReadOnly:   true,
-				AttachTo:   "charm",
+				MountPoint:   "/bar",
+				ReadOnly:     true,
+				ContainerKey: "charm",
 			},
 		},
 		StorageName:  "config",
@@ -641,7 +641,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
 	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
-		Return(map[string][]storageprovisioning.ContainerMount{
+		Return(map[string][]internal.ContainerMount{
 			"config": {{
 				ContainerKey: "web-server",
 				StorageName:  "config",
@@ -656,17 +656,17 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/var/lib/juju/storage/config-0",
-				ReadOnly:   true,
-				AttachTo:   "charm",
+				MountPoint:   "/var/lib/juju/storage/config-0",
+				ReadOnly:     true,
+				ContainerKey: "charm",
 			},
 			// "web-server" doesn't default to `/var/lib/juju/storage/*`
 			// because the charm definition expects `containers[*].mounts[*].location`
 			// to have a value.
 			{
-				MountPoint: "/data/config",
-				ReadOnly:   true,
-				AttachTo:   "web-server",
+				MountPoint:   "/data/config",
+				ReadOnly:     true,
+				ContainerKey: "web-server",
 			},
 		},
 		StorageName:  "config",
