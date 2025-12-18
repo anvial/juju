@@ -624,6 +624,170 @@ func (s *importSuite) TestImportMaximalCharmConfig(c *tc.C) {
 	})
 }
 
+func (s *importSuite) TestImportMinimalCharmActions(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			manifestBase{
+				name:          "ubuntu",
+				channel:       "stable",
+				architectures: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmActions(description.CharmActionsArgs{
+		Actions: map[string]description.CharmAction{
+			"foo": action{
+				description:    "foo description",
+				parallel:       true,
+				executionGroup: "bar",
+				params: map[string]any{
+					"a": int(1),
+				},
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	actions, err := svc.GetCharmActions(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(actions, tc.DeepEquals, internalcharm.Actions{
+		ActionSpecs: map[string]internalcharm.ActionSpec{
+			"foo": {
+				Description:    "foo description",
+				Parallel:       true,
+				ExecutionGroup: "bar",
+				Params: map[string]any{
+					// All params are marshalled to JSON to try and keep all
+					// types consistent when there are complex types. But, the
+					// downside is that numbers become float64.
+					"a": float64(1),
+				},
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMaximalCharmActions(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			manifestBase{
+				name:          "ubuntu",
+				channel:       "stable",
+				architectures: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmActions(description.CharmActionsArgs{
+		Actions: map[string]description.CharmAction{
+			"foo": action{
+				description:    "foo description",
+				parallel:       true,
+				executionGroup: "bar",
+				params: map[string]any{
+					"a": int(1),
+					"b": "string param",
+					"c": true,
+					"d": 3.14,
+					"e": []any{1, 2.0, "x"},
+					"f": map[string]any{
+						"nested": "value",
+					},
+				},
+			},
+			"baz": action{
+				description: "baz description",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	actions, err := svc.GetCharmActions(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(actions, tc.DeepEquals, internalcharm.Actions{
+		ActionSpecs: map[string]internalcharm.ActionSpec{
+			"foo": {
+				Description:    "foo description",
+				Parallel:       true,
+				ExecutionGroup: "bar",
+				Params: map[string]any{
+					// All params are marshalled to JSON to try and keep all
+					// types consistent when there are complex types. But, the
+					// downside is that numbers become float64.
+					"a": float64(1),
+					"b": "string param",
+					"c": true,
+					"d": 3.14,
+					"e": []any{float64(1), 2.0, "x"},
+					"f": map[string]any{
+						"nested": "value",
+					},
+				},
+			},
+			"baz": {
+				Description: "baz description",
+			},
+		},
+	})
+}
+
 func (s *importSuite) setupService(c *tc.C) *service.Service {
 	modelDB := func(context.Context) (database.TxnRunner, error) {
 		return s.ModelTxnRunner(), nil
@@ -850,4 +1014,27 @@ func (c config) Default() any {
 
 func (c config) Description() string {
 	return c.description
+}
+
+type action struct {
+	description    string
+	parallel       bool
+	executionGroup string
+	params         map[string]any
+}
+
+func (a action) Description() string {
+	return a.description
+}
+
+func (a action) Parallel() bool {
+	return a.parallel
+}
+
+func (a action) ExecutionGroup() string {
+	return a.executionGroup
+}
+
+func (a action) Parameters() map[string]any {
+	return a.params
 }
