@@ -51,7 +51,7 @@ run_secret_drain() {
 	vault_backend_name='myvault'
 	juju add-secret-backend "$vault_backend_name" vault endpoint="$VAULT_ADDR" token="$VAULT_TOKEN" ca-cert="$(cat "$VAULT_CAPATH")"
 
-	juju --show-log deploy jameinel-ubuntu-lite
+	juju --show-log deploy ubuntu-lite
 	wait_for "active" '.applications["ubuntu-lite"] | ."application-status".current'
 	wait_for "ubuntu-lite" "$(idle_condition "ubuntu-lite" 0)"
 
