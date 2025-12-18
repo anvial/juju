@@ -509,12 +509,13 @@ func (s *Service) RunPreUpgradeChecks(ctx context.Context) (semversion.Number, e
 }
 
 // RunPreUpgradeChecksToVersion determines whether the controller can be safely
-// upgraded to the specified version. It performs validation checks to ensure that
-// the target version is valid and that the upgrade can proceed. The method ensures
-// that the desired version is not the zero value, that the upgrade does not attempt
-// a downgrade or a non-patch version change, that all controller nodes are in a
-// consistent state and not blocking the upgrade, and that controller binaries exist
-// for the specified version and required architectures.
+// upgraded to the specified version. It performs validation checks to ensure
+// that the target version is valid and that the upgrade can proceed. The method
+// ensures that the desired version is not the zero value, that the upgrade does
+// not attempt a downgrade or a non-patch version change, that all controller
+// nodes are in a consistent state and not blocking the upgrade, and that
+// controller binaries exist for the specified version and required
+// architectures.
 //
 // The following errors may be expected:
 // - [controllerupgradererrors.DowngradeNotSupported] if the requested version
