@@ -459,10 +459,14 @@ func (s *ModelServices) Proxy() *proxy.Service {
 
 // UnitState returns the service for persisting and retrieving remote unit
 // state. This is used to reconcile with local state to determine which
-// hooks to run, and is saved upon hook completion.
-func (s *ModelServices) UnitState() *unitstateservice.Service {
-	return unitstateservice.NewService(
-		unitstatestate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
+// hooks to run, and is saved upon hook completion. The service also persists
+// changes made by the charm while a hook was being run.
+func (s *ModelServices) UnitState() *unitstateservice.LeadershipService {
+	log := s.logger.Child("unitstate")
+	return unitstateservice.NewLeadershipService(
+		unitstatestate.NewState(changestream.NewTxnRunnerFactory(s.modelDB), log),
+		domain.NewLeaseService(s.leaseManager),
+		log,
 	)
 }
 

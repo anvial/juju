@@ -2858,6 +2858,18 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 	changes params.CommitHookChangesArg,
 	canAccessUnit, canAccessApp common.AuthFunc,
 ) error {
+	unitName, err := coreunit.NewName(unitTag.Id())
+	if err != nil {
+		return internalerrors.Errorf("parsing unit name: %w", err)
+	}
+	unitUUID, err := u.applicationService.GetUnitUUID(ctx, unitName)
+	if err != nil {
+		return internalerrors.Errorf("getting UUID of unit %q: %w", unitName, err)
+	}
+	arg := unitstate.CommitHookChangesArg{
+		UnitName: unitName,
+	}
+
 	if changes.UpdateNetworkInfo {
 		err := u.setUnitRelationNetworks(ctx, coreunit.Name(unitTag.Id()))
 		if err != nil {
@@ -2911,15 +2923,6 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 			}
 			closePorts[r.Endpoint] = append(closePorts[r.Endpoint], portRange)
 		}
-
-		unitName, err := coreunit.NewName(unitTag.Id())
-		if err != nil {
-			return internalerrors.Errorf("parsing unit name: %w", err)
-		}
-		unitUUID, err := u.applicationService.GetUnitUUID(ctx, unitName)
-		if err != nil {
-			return internalerrors.Errorf("getting UUID of unit %q: %w", unitName, err)
-		}
 		err = u.portService.UpdateUnitPorts(ctx, unitUUID, openPorts, closePorts)
 		if err != nil {
 			return internalerrors.Errorf("updating unit ports of unit %q: %w", unitName, err)
@@ -2939,23 +2942,16 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 			return apiservererrors.ErrPerm
 		}
 
-		unitName, err := coreunit.NewName(unitTag.Id())
-		if err != nil {
-			return errors.Trace(err)
-		}
+		// TODO (manadart 2024-10-12): Factor ctrlCfg.MaxCharmStateSize() into
+		// the service call.
+		arg.CharmState = changes.SetUnitState.CharmState
+	}
 
-		// TODO (manadart 2024-10-12): Only charm state is ever set here.
-		// The full state is set in the call to SetState (apiserver/common).
-		// Integrate this into a transaction with other setters once we are also
-		// reading the state from Dqlite.
-		// We also need to factor ctrlCfg.MaxCharmStateSize() into the service
-		// call.
-		if err := u.unitStateService.SetState(ctx, unitstate.UnitState{
-			Name:       unitName,
-			CharmState: changes.SetUnitState.CharmState,
-		}); err != nil {
-			return errors.Trace(err)
-		}
+	// Note: the call to CommitHookChanges will eventually move to the end
+	// of the method. During the change over to running in a single txn,
+	// make it here to preserve the order.
+	if err := u.unitStateService.CommitHookChanges(ctx, arg); err != nil {
+		return apiservererrors.ServerError(err)
 	}
 
 	for _, addParams := range changes.AddStorage {

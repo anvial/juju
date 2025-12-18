@@ -157,7 +157,7 @@ type ModelDomainServices interface {
 	// UnitState returns the service for persisting and retrieving remote unit
 	// state. This is used to reconcile with local state to determine which
 	// hooks to run, and is saved upon hook completion.
-	UnitState() *unitstateservice.Service
+	UnitState() *unitstateservice.LeadershipService
 	// CloudImageMetadata returns the service for persisting and retrieving
 	// cloud image metadata for a specific model.
 	CloudImageMetadata() *cloudimagemetadataservice.Service

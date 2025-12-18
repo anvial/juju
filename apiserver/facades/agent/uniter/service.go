@@ -324,6 +324,9 @@ type StatusService interface {
 // UnitStateService describes the ability to retrieve and persist
 // unit agent state for informing hook reconciliation.
 type UnitStateService interface {
+	// CommitHookChanges persists a set of changes after a hook successfully
+	// completes and executes them in a single transaction.
+	CommitHookChanges(ctx context.Context, arg unitstate.CommitHookChangesArg) error
 	// SetState persists the input unit state.
 	SetState(context.Context, unitstate.UnitState) error
 	// GetState returns the full unit state. The state may be empty.

@@ -92,7 +92,7 @@ func ImportOperations(
 	storage.RegisterImport(coordinator, storageRegistryGetter, logger.Child("storage"))
 	secret.RegisterImport(coordinator, logger.Child("secret"))
 	cloudimagemetadata.RegisterImport(coordinator, logger.Child("cloudimagemetadata"), clock)
-	unitstate.RegisterImport(coordinator)
+	unitstate.RegisterImport(coordinator, logger.Child("unitstate"))
 	operation.RegisterImport(coordinator, objectStoreGetter, clock, logger.Child("operation"))
 
 	// model agent must come after machine and unit
