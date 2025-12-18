@@ -8548,7 +8548,7 @@
     {
         "Name": "StorageProvisioner",
         "Description": "",
-        "Version": 5,
+        "Version": 6,
         "Schema": {
             "type": "object",
             "properties": {
@@ -8592,7 +8592,7 @@
                             "$ref": "#/definitions/MachineStorageIds"
                         },
                         "Result": {
-                            "$ref": "#/definitions/FilesystemAttachmentParamsResultsV5"
+                            "$ref": "#/definitions/FilesystemAttachmentParamsResultsV6"
                         }
                     }
                 },
@@ -9160,14 +9160,14 @@
                     },
                     "additionalProperties": false
                 },
-                "FilesystemAttachmentParamsResultV5": {
+                "FilesystemAttachmentParamsResultV6": {
                     "type": "object",
                     "properties": {
                         "error": {
                             "$ref": "#/definitions/Error"
                         },
                         "result": {
-                            "$ref": "#/definitions/FilesystemAttachmentParamsV5"
+                            "$ref": "#/definitions/FilesystemAttachmentParamsV6"
                         }
                     },
                     "additionalProperties": false,
@@ -9175,19 +9175,54 @@
                         "result"
                     ]
                 },
-                "FilesystemAttachmentParamsResultsV5": {
+                "FilesystemAttachmentParamsResultsV6": {
                     "type": "object",
                     "properties": {
                         "results": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/FilesystemAttachmentParamsResultV5"
+                                "$ref": "#/definitions/FilesystemAttachmentParamsResultV6"
                             }
                         }
                     },
                     "additionalProperties": false
                 },
                 "FilesystemAttachmentParamsV5": {
+                    "type": "object",
+                    "properties": {
+                        "attachment-provider-id": {
+                            "type": "string"
+                        },
+                        "filesystem-provider-id": {
+                            "type": "string"
+                        },
+                        "filesystem-tag": {
+                            "type": "string"
+                        },
+                        "instance-id": {
+                            "type": "string"
+                        },
+                        "machine-tag": {
+                            "type": "string"
+                        },
+                        "mount-point": {
+                            "type": "string"
+                        },
+                        "provider": {
+                            "type": "string"
+                        },
+                        "read-only": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "filesystem-tag",
+                        "machine-tag",
+                        "provider"
+                    ]
+                },
+                "FilesystemAttachmentParamsV6": {
                     "type": "object",
                     "properties": {
                         "attachment-provider-id": {

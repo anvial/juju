@@ -36,7 +36,7 @@ import (
 	"github.com/juju/juju/rpc/params"
 )
 
-// StorageProvisionerAPI provides the StorageProvisioner API v5 facade.
+// StorageProvisionerAPI provides the StorageProvisioner API v6 facade.
 type StorageProvisionerAPI struct {
 	*common.InstanceIdGetter
 
@@ -62,10 +62,19 @@ type StorageProvisionerAPI struct {
 	modelUUID      model.UUID
 }
 
-// StorageProvisionerAPIv4 provides the StorageProvisioner API v4 facade.
-type StorageProvisionerAPIv4 struct {
+// StorageProvisionerAPIv5 provides the StorageProvisioner API v5 facade.
+type StorageProvisionerAPIv5 struct {
 	*StorageProvisionerAPI
 }
+
+// StorageProvisionerAPIv4 provides the StorageProvisioner API v4 facade.
+type StorageProvisionerAPIv4 struct {
+	*StorageProvisionerAPIv5
+}
+
+type instanceIDSelector func(
+	fsParams storageprovisioning.FilesystemAttachmentParams,
+) string
 
 // NewStorageProvisionerAPI creates a new server-side StorageProvisioner v5 facade.
 func NewStorageProvisionerAPI(
@@ -1656,7 +1665,7 @@ func (s *StorageProvisionerAPI) removeVolumeParams(
 func (s *StorageProvisionerAPIv4) FilesystemParams(
 	ctx context.Context, args params.Entities,
 ) (params.FilesystemParamsResults, error) {
-	resultsV5, err := s.StorageProvisionerAPI.FilesystemParams(ctx, args)
+	resultsV5, err := s.StorageProvisionerAPIv5.FilesystemParams(ctx, args)
 	if err != nil {
 		return params.FilesystemParamsResults{}, err
 	}
@@ -1935,7 +1944,7 @@ func (s *StorageProvisionerAPIv4) FilesystemAttachmentParams(
 	ctx context.Context,
 	args params.MachineStorageIds,
 ) (params.FilesystemAttachmentParamsResults, error) {
-	resultsV5, err := s.StorageProvisionerAPI.FilesystemAttachmentParams(
+	resultsV5, err := s.StorageProvisionerAPIv5.FilesystemAttachmentParams(
 		ctx, args)
 	if err != nil {
 		return params.FilesystemAttachmentParamsResults{}, err
@@ -1965,40 +1974,93 @@ func (s *StorageProvisionerAPIv4) FilesystemAttachmentParams(
 
 // FilesystemAttachmentParams returns the parameters for creating the filesystem
 // attachments with the specified IDs.
-func (s *StorageProvisionerAPI) FilesystemAttachmentParams(
+func (s *StorageProvisionerAPIv5) FilesystemAttachmentParams(
 	ctx context.Context,
 	args params.MachineStorageIds,
 ) (params.FilesystemAttachmentParamsResultsV5, error) {
-	canAccess, err := s.getAttachmentAuthFunc(ctx)
+	resultsV6, err := s.filesystemAttachmentParams(
+		ctx, args,
+		func(fsParams storageprovisioning.FilesystemAttachmentParams) string {
+			return fsParams.MachineInstanceID
+		})
 	if err != nil {
-		return params.FilesystemAttachmentParamsResultsV5{}, apiservererrors.ServerError(apiservererrors.ErrPerm)
+		return params.FilesystemAttachmentParamsResultsV5{}, err
 	}
 	results := params.FilesystemAttachmentParamsResultsV5{
-		Results: make([]params.FilesystemAttachmentParamsResultV5, 0, len(args.Ids)),
+		Results: make([]params.FilesystemAttachmentParamsResultV5, len(resultsV6.Results)),
 	}
-	one := func(arg params.MachineStorageId) (params.FilesystemAttachmentParamsV5, error) {
+	for _, resultV6 := range resultsV6.Results {
+		result := params.FilesystemAttachmentParamsResultV5{
+			Result: params.FilesystemAttachmentParamsV5{
+				FilesystemTag:        resultV6.Result.FilesystemTag,
+				MachineTag:           resultV6.Result.MachineTag,
+				FilesystemProviderId: resultV6.Result.FilesystemProviderId,
+				InstanceId:           resultV6.Result.InstanceId,
+				Provider:             resultV6.Result.Provider,
+				AttachmentProviderId: resultV6.Result.AttachmentProviderId,
+				MountPoint:           resultV6.Result.MountPoint,
+				ReadOnly:             resultV6.Result.ReadOnly,
+			},
+		}
+		results.Results = append(results.Results, result)
+	}
+	return results, nil
+}
+
+// FilesystemAttachmentParams returns the parameters for creating the filesystem
+// attachments with the specified IDs.
+// V6 differs in how we determine instanceID. We also consider the CAASInstanceID
+// which indicates it's the pod name.
+func (s *StorageProvisionerAPI) FilesystemAttachmentParams(
+	ctx context.Context,
+	args params.MachineStorageIds,
+) (params.FilesystemAttachmentParamsResultsV6, error) {
+	return s.filesystemAttachmentParams(
+		ctx, args,
+		func(fsParams storageprovisioning.FilesystemAttachmentParams) string {
+			if fsParams.MachineInstanceID != "" {
+				return fsParams.MachineInstanceID
+			}
+			return fsParams.CAASInstanceID
+		})
+}
+
+func (s *StorageProvisionerAPI) filesystemAttachmentParams(
+	ctx context.Context,
+	args params.MachineStorageIds,
+	getInstanceID instanceIDSelector,
+) (params.FilesystemAttachmentParamsResultsV6, error) {
+	canAccess, err := s.getAttachmentAuthFunc(ctx)
+	if err != nil {
+		return params.FilesystemAttachmentParamsResultsV6{},
+			apiservererrors.ServerError(apiservererrors.ErrPerm)
+	}
+	results := params.FilesystemAttachmentParamsResultsV6{
+		Results: make([]params.FilesystemAttachmentParamsResultV6, 0, len(args.Ids)),
+	}
+	one := func(arg params.MachineStorageId) (params.FilesystemAttachmentParamsV6, error) {
 		hostTag, err := names.ParseTag(arg.MachineTag)
 		if err != nil {
-			return params.FilesystemAttachmentParamsV5{}, err
+			return params.FilesystemAttachmentParamsV6{}, err
 		}
 		if hostTag.Kind() != names.MachineTagKind && hostTag.Kind() != names.UnitTagKind {
-			return params.FilesystemAttachmentParamsV5{}, errors.Errorf(
+			return params.FilesystemAttachmentParamsV6{}, errors.Errorf(
 				"filesystem attachment host tag %q not valid", hostTag,
 			).Add(coreerrors.NotValid)
 		}
 		filesystemTag, err := names.ParseFilesystemTag(arg.AttachmentTag)
 		if err != nil {
-			return params.FilesystemAttachmentParamsV5{}, err
+			return params.FilesystemAttachmentParamsV6{}, err
 		}
 		if !canAccess(hostTag, filesystemTag) {
-			return params.FilesystemAttachmentParamsV5{}, apiservererrors.ErrPerm
+			return params.FilesystemAttachmentParamsV6{}, apiservererrors.ErrPerm
 		}
 
 		attachmentUUID, err := s.getFilesystemAttachmentUUID(
 			ctx, filesystemTag, hostTag,
 		)
 		if err != nil {
-			return params.FilesystemAttachmentParamsV5{}, err
+			return params.FilesystemAttachmentParamsV6{}, err
 		}
 
 		fsParams, err := s.storageProvisioningService.GetFilesystemAttachmentParams(
@@ -2011,18 +2073,12 @@ func (s *StorageProvisionerAPI) FilesystemAttachmentParams(
 			).Add(coreerrors.NotFound)
 		}
 		if err != nil {
-			return params.FilesystemAttachmentParamsV5{}, errors.Capture(err)
+			return params.FilesystemAttachmentParamsV6{}, errors.Capture(err)
 		}
-
-		instanceId := fsParams.MachineInstanceID
-		if instanceId == "" && fsParams.CAASInstanceID != "" {
-			instanceId = fsParams.CAASInstanceID
-		}
-
-		return params.FilesystemAttachmentParamsV5{
+		return params.FilesystemAttachmentParamsV6{
 			FilesystemTag:        filesystemTag.String(),
 			MachineTag:           hostTag.String(),
-			InstanceId:           instanceId,
+			InstanceId:           getInstanceID(fsParams),
 			Provider:             fsParams.Provider,
 			FilesystemProviderId: fsParams.FilesystemProviderID,
 			AttachmentProviderId: fsParams.FilesystemAttachmentProviderID,
@@ -2031,7 +2087,7 @@ func (s *StorageProvisionerAPI) FilesystemAttachmentParams(
 		}, nil
 	}
 	for _, arg := range args.Ids {
-		var result params.FilesystemAttachmentParamsResultV5
+		var result params.FilesystemAttachmentParamsResultV6
 		filesystemAttachment, err := one(arg)
 		if err != nil {
 			result.Error = apiservererrors.ServerError(err)
