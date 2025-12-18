@@ -36,7 +36,7 @@ func TestImportSuite(t *testing.T) {
 	tc.Run(t, &importSuite{})
 }
 
-func (s *importSuite) TestImportCharm(c *tc.C) {
+func (s *importSuite) TestImportMaximalCharm(c *tc.C) {
 	desc := description.NewModel(description.ModelArgs{
 		Type: string(model.IAAS),
 	})
@@ -44,6 +44,9 @@ func (s *importSuite) TestImportCharm(c *tc.C) {
 	// Create a charm description and write it into the model, then import
 	// it using the model migration framework. Verify that the charm has been
 	// imported correctly into the database.
+
+	// This skips both Payloads and LXD profiles, as it's not longer used, so
+	// can be skipped.
 
 	app := desc.AddApplication(description.ApplicationArgs{
 		Name:     "foo",
@@ -278,6 +281,62 @@ func (s *importSuite) TestImportCharm(c *tc.C) {
 				Type:        resource.TypeContainerImage,
 				Description: "A resource oci image",
 				Path:        "resources/deadbeef2",
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMinimalCharm(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			manifestBase{
+				name:          "ubuntu",
+				channel:       "stable",
+				architectures: []string{"amd64"},
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	metadata, err := svc.GetCharmMetadata(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(metadata, tc.DeepEquals, internalcharm.Meta{
+		Name: "foo",
+		Provides: map[string]internalcharm.Relation{
+			"juju-info": {
+				Name:      "juju-info",
+				Role:      internalcharm.RoleProvider,
+				Interface: "juju-info",
+				Scope:     "global",
 			},
 		},
 	})
