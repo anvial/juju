@@ -30,7 +30,7 @@ func (c *StateDeleteCommand) Info() *cmd.Info {
 	return jujucmd.Info(&cmd.Info{
 		Name:    "state-delete",
 		Args:    "<key>",
-		Purpose: "Deletes server-side-state key-value pairs.",
+		Purpose: "Deletes server-side-state key value pairs.",
 		Doc:     doc,
 		SeeAlso: []string{"state-get", "state-set"},
 	})

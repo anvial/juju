@@ -78,7 +78,7 @@ will yield:
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:     "action-set",
-		Args:     "key=value [key=value ...]",
+		Args:     "<key>=<value> [<key>=<value> ...]",
 		Purpose:  "Sets action results.",
 		Doc:      doc,
 		Examples: examples,
