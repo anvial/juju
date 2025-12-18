@@ -76,7 +76,7 @@ type instanceIDSelector func(
 	fsParams storageprovisioning.FilesystemAttachmentParams,
 ) string
 
-// NewStorageProvisionerAPI creates a new server-side StorageProvisioner v5 facade.
+// NewStorageProvisionerAPI creates a new server-side StorageProvisioner v6 facade.
 func NewStorageProvisionerAPI(
 	ctx context.Context,
 	watcherRegistry facade.WatcherRegistry,

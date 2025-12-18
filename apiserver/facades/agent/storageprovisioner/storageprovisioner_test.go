@@ -1605,7 +1605,7 @@ func (s *provisionerSuite) TestFilesystemAttachmentParams(c *tc.C) {
 
 	c.Check(err, tc.ErrorIsNil)
 	c.Assert(results.Results, tc.HasLen, 1)
-	c.Check(results.Results[0].Result, tc.DeepEquals, params.FilesystemAttachmentParamsV5{
+	c.Check(results.Results[0].Result, tc.DeepEquals, params.FilesystemAttachmentParamsV6{
 		FilesystemTag:        tag.String(),
 		MachineTag:           unitTag.String(),
 		FilesystemProviderId: "fs-123",
@@ -1637,7 +1637,6 @@ func (s *provisionerSuite) TestFilesystemAttachmentParamsCAASInstanceID(c *tc.C)
 		storageprovisioning.FilesystemAttachmentParams{
 			CharmStorageReadOnly:           true,
 			CAASInstanceID:                 "myapp-k8s-0",
-			MachineInstanceID:              "",
 			Provider:                       "myprovider",
 			FilesystemProviderID:           "fs-123",
 			FilesystemAttachmentProviderID: ptr("fs-attachment-123"),
@@ -1656,7 +1655,7 @@ func (s *provisionerSuite) TestFilesystemAttachmentParamsCAASInstanceID(c *tc.C)
 
 	c.Check(err, tc.ErrorIsNil)
 	c.Assert(results.Results, tc.HasLen, 1)
-	c.Check(results.Results[0].Result, tc.DeepEquals, params.FilesystemAttachmentParamsV5{
+	c.Check(results.Results[0].Result, tc.DeepEquals, params.FilesystemAttachmentParamsV6{
 		FilesystemTag:        tag.String(),
 		MachineTag:           unitTag.String(),
 		FilesystemProviderId: "fs-123",
