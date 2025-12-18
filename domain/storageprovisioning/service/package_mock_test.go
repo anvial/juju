@@ -245,10 +245,10 @@ func (c *MockStateGetBlockDeviceForVolumeAttachmentCall) DoAndReturn(f func(cont
 }
 
 // GetContainerMountsForApplication mocks base method.
-func (m *MockState) GetContainerMountsForApplication(arg0 context.Context, arg1 application.UUID) (map[string][]storageprovisioning.ContainerMount, error) {
+func (m *MockState) GetContainerMountsForApplication(arg0 context.Context, arg1 application.UUID) (map[string][]internal.ContainerMount, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetContainerMountsForApplication", arg0, arg1)
-	ret0, _ := ret[0].(map[string][]storageprovisioning.ContainerMount)
+	ret0, _ := ret[0].(map[string][]internal.ContainerMount)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -266,19 +266,19 @@ type MockStateGetContainerMountsForApplicationCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockStateGetContainerMountsForApplicationCall) Return(arg0 map[string][]storageprovisioning.ContainerMount, arg1 error) *MockStateGetContainerMountsForApplicationCall {
+func (c *MockStateGetContainerMountsForApplicationCall) Return(arg0 map[string][]internal.ContainerMount, arg1 error) *MockStateGetContainerMountsForApplicationCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateGetContainerMountsForApplicationCall) Do(f func(context.Context, application.UUID) (map[string][]storageprovisioning.ContainerMount, error)) *MockStateGetContainerMountsForApplicationCall {
+func (c *MockStateGetContainerMountsForApplicationCall) Do(f func(context.Context, application.UUID) (map[string][]internal.ContainerMount, error)) *MockStateGetContainerMountsForApplicationCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateGetContainerMountsForApplicationCall) DoAndReturn(f func(context.Context, application.UUID) (map[string][]storageprovisioning.ContainerMount, error)) *MockStateGetContainerMountsForApplicationCall {
+func (c *MockStateGetContainerMountsForApplicationCall) DoAndReturn(f func(context.Context, application.UUID) (map[string][]internal.ContainerMount, error)) *MockStateGetContainerMountsForApplicationCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
