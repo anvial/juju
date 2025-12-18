@@ -1207,6 +1207,18 @@ func (s *filesystemSuite) TestGetContainerMountsForApplication(c *tc.C) {
 	})
 }
 
+// TestGetContainerMountsForApplicationMissingApplication tests fetching the
+// container mounts for a given charm UUID but in the unfortunate circumstance
+// the application doesn't exist.
+func (s *filesystemSuite) TestGetContainerMountsForApplicationMissingApplication(c *tc.C) {
+	appUUID := tc.Must(c, application.NewUUID)
+
+	st := NewState(s.TxnRunnerFactory())
+
+	_, err := st.GetContainerMountsForApplication(c.Context(), appUUID)
+	c.Check(err, tc.ErrorIs, domainapplicationerrors.ApplicationNotFound)
+}
+
 // changeFilesystemLife is a utility function for updating the life value of a
 // filesystem.
 func (s *filesystemSuite) changeFilesystemLife(
