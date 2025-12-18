@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Master best practices for writing Juju workers, including tomb usage, channel management, and goroutine lifecycle control patterns."
+    description: "Learn about best practices for writing Juju workers, including tomb usage, channel management, and goroutine lifecycle control patterns."
 ---
 
 (writing-workers)=

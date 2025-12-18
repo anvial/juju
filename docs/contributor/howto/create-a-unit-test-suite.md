@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Build unit test suites for Juju with proper setup and teardown logic using BaseSuite and gocheck test patterns."
+    description: "Build unit test suites for Juju with proper setup and teardown logic using gocheck test patterns."
 ---
 
 (create-a-unit-test-suite)=

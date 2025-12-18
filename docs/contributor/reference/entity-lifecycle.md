@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Understand entity lifecycle states (Alive, Dying, Dead) for machines, units, applications, and relations in Juju's state management."
+    description: "Understand entity lifecycle states (Alive, Dying, Dead) for Juju entities, including machines, units, applications, relations."
 ---
 
 # Entity lifecycle
