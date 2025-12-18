@@ -1622,8 +1622,8 @@ func (s *provisionerSuite) TestFilesystemAttachmentParamsCAASInstanceID(c *tc.C)
 
 	tag := names.NewFilesystemTag("123")
 	unitTag := names.NewUnitTag("foo/123")
-	unitUUID := unittesting.GenUnitUUID(c)
-	fsaUUID := storageprovisioningtesting.GenFilesystemAttachmentUUID(c)
+	unitUUID := tc.Must(c, coreunit.NewUUID)
+	fsaUUID := tc.Must(c, storageprovisioning.NewFilesystemAttachmentUUID)
 
 	s.applicationService.EXPECT().GetUnitUUID(gomock.Any(), coreunit.Name("foo/123")).Return(
 		unitUUID, nil,
