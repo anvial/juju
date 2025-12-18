@@ -1987,7 +1987,7 @@ func (s *StorageProvisionerAPIv5) FilesystemAttachmentParams(
 		return params.FilesystemAttachmentParamsResultsV5{}, err
 	}
 	results := params.FilesystemAttachmentParamsResultsV5{
-		Results: make([]params.FilesystemAttachmentParamsResultV5, len(resultsV6.Results)),
+		Results: make([]params.FilesystemAttachmentParamsResultV5, 0, len(resultsV6.Results)),
 	}
 	for _, resultV6 := range resultsV6.Results {
 		result := params.FilesystemAttachmentParamsResultV5{

@@ -55,8 +55,29 @@ type provisionerSuite struct {
 	controllerUUID string
 }
 
+type provisionerV5Suite struct {
+	authorizer *apiservertesting.FakeAuthorizer
+
+	watcherRegistry            *facademocks.MockWatcherRegistry
+	storageProvisioningService *MockStorageProvisioningService
+	machineService             *MockMachineService
+	applicationService         *MockApplicationService
+	blockDeviceService         *MockBlockDeviceService
+	removalService             *MockRemovalService
+
+	api *StorageProvisionerAPIv5
+
+	machineName    machine.Name
+	modelUUID      model.UUID
+	controllerUUID string
+}
+
 func TestProvisionerSuite(t *stdtesting.T) {
 	tc.Run(t, &provisionerSuite{})
+}
+
+func TestProvisionerV5Suite(t *stdtesting.T) {
+	tc.Run(t, &provisionerV5Suite{})
 }
 
 func (s *provisionerSuite) setupAPI(c *tc.C) *gomock.Controller {
@@ -95,6 +116,59 @@ func (s *provisionerSuite) setupAPI(c *tc.C) *gomock.Controller {
 		s.controllerUUID,
 	)
 	c.Assert(err, tc.IsNil)
+
+	c.Cleanup(func() {
+		s.authorizer = nil
+		s.watcherRegistry = nil
+		s.storageProvisioningService = nil
+		s.machineService = nil
+		s.applicationService = nil
+		s.blockDeviceService = nil
+		s.removalService = nil
+		s.api = nil
+	})
+
+	return ctrl
+}
+
+func (s *provisionerV5Suite) setupAPI(c *tc.C) *gomock.Controller {
+	ctrl := gomock.NewController(c)
+
+	s.machineName = machine.Name("0")
+	s.modelUUID = tc.Must(c, model.NewUUID)
+	s.controllerUUID = coretesting.ControllerTag.Id()
+
+	s.authorizer = &apiservertesting.FakeAuthorizer{
+		Tag:        names.NewMachineTag(s.machineName.String()),
+		Controller: true,
+	}
+
+	s.watcherRegistry = facademocks.NewMockWatcherRegistry(ctrl)
+	s.storageProvisioningService = NewMockStorageProvisioningService(ctrl)
+	s.machineService = NewMockMachineService(ctrl)
+	s.applicationService = NewMockApplicationService(ctrl)
+	s.blockDeviceService = NewMockBlockDeviceService(ctrl)
+	s.removalService = NewMockRemovalService(ctrl)
+
+	var err error
+	apiV6, err := NewStorageProvisionerAPI(
+		c.Context(),
+		s.watcherRegistry,
+		testclock.NewClock(time.Now()),
+		s.blockDeviceService,
+		s.machineService,
+		s.applicationService,
+		s.removalService,
+		s.authorizer,
+		nil, // statusService
+		s.storageProvisioningService,
+		loggertesting.WrapCheckLog(c),
+		s.modelUUID,
+		s.controllerUUID,
+	)
+	c.Assert(err, tc.IsNil)
+
+	s.api = &StorageProvisionerAPIv5{apiV6}
 
 	c.Cleanup(func() {
 		s.authorizer = nil
@@ -4657,4 +4731,58 @@ func (s *provisionerSuite) TestRemoveVolumeAttachment(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(result.Results, tc.HasLen, 1)
 	c.Assert(result.Results[0].Error, tc.IsNil)
+}
+
+func (s *provisionerV5Suite) TestFilesystemAttachmentParams(c *tc.C) {
+	defer s.setupAPI(c).Finish()
+
+	tag := names.NewFilesystemTag("123")
+	unitTag := names.NewUnitTag("foo/123")
+	unitUUID := unittesting.GenUnitUUID(c)
+	fsaUUID := storageprovisioningtesting.GenFilesystemAttachmentUUID(c)
+
+	s.applicationService.EXPECT().GetUnitUUID(gomock.Any(), coreunit.Name("foo/123")).Return(
+		unitUUID, nil,
+	)
+	s.storageProvisioningService.EXPECT().GetFilesystemAttachmentUUIDForFilesystemIDUnit(
+		gomock.Any(), tag.Id(), unitUUID,
+	).Return(fsaUUID, nil)
+	s.storageProvisioningService.EXPECT().GetFilesystemAttachmentParams(
+		gomock.Any(), fsaUUID,
+	).Return(
+		storageprovisioning.FilesystemAttachmentParams{
+			CharmStorageReadOnly: true,
+			MachineInstanceID:    "12",
+			// It will never be the case that both "MachineInstanceID" and
+			// "CAASInstanceID" are filled but for the sake of testing v5
+			// we want to check that it always picks "MachineInstanceID" value
+			CAASInstanceID:                 "my-pod-0",
+			MountPoint:                     "/var/foo",
+			Provider:                       "myprovider",
+			FilesystemProviderID:           "fs-123",
+			FilesystemAttachmentProviderID: ptr("fs-attachment-123"),
+		}, nil,
+	)
+
+	results, err := s.api.FilesystemAttachmentParams(c.Context(), params.MachineStorageIds{
+		Ids: []params.MachineStorageId{
+			{
+				AttachmentTag: tag.String(),
+				MachineTag:    unitTag.String(),
+			},
+		},
+	})
+
+	c.Check(err, tc.ErrorIsNil)
+	c.Assert(results.Results, tc.HasLen, 1)
+	c.Check(results.Results[0].Result, tc.DeepEquals, params.FilesystemAttachmentParamsV5{
+		FilesystemTag:        tag.String(),
+		MachineTag:           unitTag.String(),
+		FilesystemProviderId: "fs-123",
+		AttachmentProviderId: ptr("fs-attachment-123"),
+		InstanceId:           "12",
+		Provider:             "myprovider",
+		MountPoint:           "/var/foo",
+		ReadOnly:             true,
+	})
 }
