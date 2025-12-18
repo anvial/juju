@@ -36,7 +36,7 @@ func TestImportSuite(t *testing.T) {
 	tc.Run(t, &importSuite{})
 }
 
-func (s *importSuite) TestImportMaximalCharm(c *tc.C) {
+func (s *importSuite) TestImportMaximalCharmMetadata(c *tc.C) {
 	desc := description.NewModel(description.ModelArgs{
 		Type: string(model.IAAS),
 	})
@@ -286,7 +286,7 @@ func (s *importSuite) TestImportMaximalCharm(c *tc.C) {
 	})
 }
 
-func (s *importSuite) TestImportMinimalCharm(c *tc.C) {
+func (s *importSuite) TestImportMinimalCharmMetadata(c *tc.C) {
 	desc := description.NewModel(description.ModelArgs{
 		Type: string(model.IAAS),
 	})
@@ -337,6 +337,132 @@ func (s *importSuite) TestImportMinimalCharm(c *tc.C) {
 				Role:      internalcharm.RoleProvider,
 				Interface: "juju-info",
 				Scope:     "global",
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMaximalCharmManifest(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			manifestBase{
+				name:    "ubuntu",
+				channel: "stable",
+			},
+			manifestBase{
+				name:          "ubuntu",
+				channel:       "4.0/stable/foo",
+				architectures: []string{"arm64"},
+			},
+			manifestBase{
+				name:          "ubuntu",
+				channel:       "latest/stable",
+				architectures: []string{"amd64", "s390x", "ppc64el"},
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	manifest, err := svc.GetCharmManifest(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(manifest, tc.DeepEquals, internalcharm.Manifest{
+		Bases: []internalcharm.Base{
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Risk: "stable"},
+				Architectures: []string{"amd64"},
+			},
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Track: "4.0", Risk: "stable", Branch: "foo"},
+				Architectures: []string{"arm64"},
+			},
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Track: "latest", Risk: "stable"},
+				Architectures: []string{"amd64", "s390x", "ppc64el"},
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMinimalCharmManifest(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			manifestBase{
+				name:    "ubuntu",
+				channel: "stable",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	manifest, err := svc.GetCharmManifest(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(manifest, tc.DeepEquals, internalcharm.Manifest{
+		Bases: []internalcharm.Base{
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Risk: "stable"},
+				Architectures: []string{"amd64"},
 			},
 		},
 	})

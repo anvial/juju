@@ -571,7 +571,7 @@ func (i *importOperation) importCharmManifest(data description.CharmManifest) (*
 		return nil, errors.Errorf("import charm manifest: %w", coreerrors.NotValid)
 	}
 	charmBases := data.Bases()
-	if data == nil || len(charmBases) == 0 {
+	if len(charmBases) == 0 {
 		return nil, errors.Errorf("manifest empty")
 	}
 

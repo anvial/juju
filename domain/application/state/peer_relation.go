@@ -72,31 +72,6 @@ func (st *State) insertPeerRelations(ctx context.Context, tx *sqlair.TX, appUUID
 	return nil
 }
 
-// insertMigratingPeerRelations inserts peer relations for the specified application UUID
-// within a transactional context, using the relation ID provided during migration.
-// It retrieves peer endpoints, creates new relations for them,
-// and inserts their statuses and endpoints. Returns an error if any step fails.
-func (st *State) insertMigratingPeerRelations(ctx context.Context, tx *sqlair.TX, appUUID string, relations map[string]int) error {
-	peerEndpoints, err := st.getPeerEndpoints(ctx, tx, appUUID)
-	if err != nil {
-		return errors.Errorf("getting peer endpoints: %w", err)
-	}
-
-	for _, peer := range peerEndpoints {
-		// Find the relation ID of this endpoint.
-		id, ok := relations[peer.Name]
-		if !ok {
-			return errors.Errorf("relation id not found for peer relation: %q", peer.Name)
-		}
-
-		// Insert a new relation with a migrated relation ID and new relation UUID.
-		if err := st.insertPeerRelation(ctx, tx, peer, uint64(id)); err != nil {
-			return errors.Errorf("inserting peer relation for peer %q: %w", peer.Name, err)
-		}
-	}
-	return nil
-}
-
 // insertPeerRelation inserts a single peer relation.
 func (st *State) insertPeerRelation(ctx context.Context, tx *sqlair.TX, peer peerEndpoint, relID uint64) error {
 	relUUID, err := st.insertNewRelation(ctx, tx, relID, charm.ScopeGlobal)
@@ -197,7 +172,6 @@ VALUES ($setRelationEndpoint.*)`, endpoint)
 // It uses the provided context, transaction, and relation UUID to create a
 // record with a status of 'joining'.
 func (st *State) insertNewRelationStatus(ctx context.Context, tx *sqlair.TX, uuid corerelation.UUID) error {
-
 	type setRelationStatus struct {
 		RelationUUID corerelation.UUID `db:"relation_uuid"`
 		Status       corestatus.Status `db:"status"`
