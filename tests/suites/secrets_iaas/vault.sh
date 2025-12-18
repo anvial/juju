@@ -68,7 +68,7 @@ run_secret_drain() {
 	attempt=0
 	until [[ $(vault kv list -format json "${model_name}-${model_uuid: -6}" | jq length) -eq 2 ]]; do
 		if [[ ${attempt} -ge 30 ]]; then
-			echo "Failed: expected all secrets get drained to vault."
+			red "Failed: expected all secrets get drained to vault."
 			exit 1
 		fi
 		sleep 2
@@ -80,7 +80,7 @@ run_secret_drain() {
 	attempt=0
 	until [[ $(vault kv list -format json "${model_name}-${model_uuid: -6}" | jq length) -eq 0 ]]; do
 		if [[ ${attempt} -ge 30 ]]; then
-			echo "Failed: expected all secrets get drained back to juju controller."
+			red "Failed: expected all secrets get drained back to juju controller."
 			exit 1
 		fi
 		sleep 2
@@ -130,7 +130,7 @@ run_user_secret_drain() {
 	attempt=0
 	until [[ $(vault kv list -format json "${model_name}-${model_uuid: -6}" | jq length) -eq 0 ]]; do
 		if [[ ${attempt} -ge 30 ]]; then
-			echo "Failed: expected all secrets get drained back to juju controller."
+			red "Failed: expected all secrets get drained back to juju controller."
 			exit 1
 		fi
 		sleep 2
@@ -144,7 +144,7 @@ run_user_secret_drain() {
 	attempt=0
 	until [[ $(vault kv list -format json "${model_name}-${model_uuid: -6}" | jq length) -eq 2 ]]; do
 		if [[ ${attempt} -ge 30 ]]; then
-			echo "Failed: expected all secrets get drained to vault."
+			red "Failed: expected all secrets get drained to vault."
 			exit 1
 		fi
 		sleep 2
@@ -199,7 +199,7 @@ prepare_vault() {
 	attempt=0
 	until [[ $(vault status -format yaml 2>/dev/null | yq .initialized | grep -i 'true') ]]; do
 		if [[ ${attempt} -ge 30 ]]; then
-			echo "Failed: vault server was not initialized."
+			red "Failed: vault server was not initialized."
 			exit 1
 		fi
 		sleep 2
@@ -209,7 +209,7 @@ prepare_vault() {
 	attempt=0
 	until [[ $(vault status -format yaml 2>/dev/null | yq .ha_enabled | grep -i 'true') ]]; do
 		if [[ ${attempt} -ge 30 ]]; then
-			echo "Failed: vault server was not HA enabled."
+			red "Failed: vault server was not HA enabled."
 			exit 1
 		fi
 		sleep 2
