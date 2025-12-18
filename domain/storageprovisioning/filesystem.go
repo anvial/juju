@@ -174,6 +174,10 @@ type FilesystemAttachmentTemplate struct {
 	// MountPoint is the location where the filesystem attachment should be
 	// made.
 	MountPoint string
+
+	// ContainerKey is the identifier of the container this attachment
+	// should be mounted to.
+	ContainerKey string
 }
 
 // FilesystemProvisionedInfo is information set by the storage provisioner for

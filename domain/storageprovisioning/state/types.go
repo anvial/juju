@@ -439,3 +439,10 @@ type storageAttachmentInfo struct {
 	FilesystemMountPoint  string    `db:"mount_point"`
 	BlockDeviceUUID       string    `db:"block_device_uuid"`
 }
+
+// containerMount represents the charm container mount from the database.
+type containerMount struct {
+	CharmContainerKey string `db:"charm_container_key"`
+	Storage           string `db:"storage"`
+	Location          string `db:"location"`
+}

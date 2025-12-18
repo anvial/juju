@@ -38,6 +38,7 @@ type Service struct {
 // State is the accumulation of all the requirements [Service] has for
 // persisting and watching changes to storage instances in the model.
 type State interface {
+	CharmState
 	FilesystemState
 	VolumeState
 

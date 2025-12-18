@@ -1305,3 +1305,65 @@ WHERE  uuid = $filesystemAttachmentProvisionedInfo.uuid
 	}
 	return nil
 }
+
+// GetContainerMountsForApplication returns the map of mount locations for an
+// application. The map entry is keyed by the storage name.
+// An empty map will be returned if there are no records because it is perfectly
+// valid for a workload container to not have a mount point defined.
+func (st *State) GetContainerMountsForApplication(
+	ctx context.Context,
+	appUUID coreapplication.UUID,
+) (map[string][]internal.ContainerMount, error) {
+	db, err := st.DB(ctx)
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	var containerMounts []containerMount
+	input := entityUUID{appUUID.String()}
+
+	stmt, err := st.Prepare(`
+SELECT (ccm.charm_container_key,
+       ccm.storage,
+       ccm.location) AS (&containerMount.*)
+FROM   application a
+INNER  JOIN charm_container_mount ccm ON a.charm_uuid = ccm.charm_uuid
+WHERE  a.uuid = $entityUUID.uuid
+`, containerMount{}, input)
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		exists, err := st.checkApplicationExists(ctx, tx, appUUID)
+		if err != nil {
+			return err
+		} else if !exists {
+			return errors.Errorf(
+				"application %q does not exist", appUUID,
+			).Add(applicationerrors.ApplicationNotFound)
+		}
+		err = tx.Query(ctx, stmt, input).GetAll(&containerMounts)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	rvals := make(map[string][]internal.ContainerMount)
+
+	for _, mount := range containerMounts {
+		rvals[mount.Storage] = append(rvals[mount.Storage],
+			internal.ContainerMount{
+				ContainerKey: mount.CharmContainerKey,
+				StorageName:  mount.Storage,
+				MountPoint:   mount.Location,
+			})
+	}
+
+	return rvals, nil
+}
