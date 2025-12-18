@@ -167,7 +167,7 @@ func (s *importSuite) TestImportMaximalCharmMetadata(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)
@@ -318,7 +318,7 @@ func (s *importSuite) TestImportMinimalCharmMetadata(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)
@@ -383,7 +383,7 @@ func (s *importSuite) TestImportMaximalCharmManifest(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)
@@ -446,7 +446,7 @@ func (s *importSuite) TestImportMinimalCharmManifest(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)
@@ -509,7 +509,7 @@ func (s *importSuite) TestImportMinimalCharmConfig(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)
@@ -587,7 +587,7 @@ func (s *importSuite) TestImportMaximalCharmConfig(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)
@@ -668,7 +668,7 @@ func (s *importSuite) TestImportMinimalCharmActions(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)
@@ -750,7 +750,7 @@ func (s *importSuite) TestImportMaximalCharmActions(c *tc.C) {
 
 	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
 	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
-	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), model.UUID(s.ModelUUID())), desc)
 	c.Assert(err, tc.ErrorIsNil)
 
 	svc := s.setupService(c)

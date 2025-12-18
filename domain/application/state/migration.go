@@ -314,9 +314,6 @@ func (st *State) InsertMigratingApplication(ctx context.Context, name string, ar
 		}); err != nil {
 			return errors.Errorf("inserting exposed endpoints for application %q: %w", name, err)
 		}
-		// if err := st.insertMigratingPeerRelations(ctx, tx, appDetails.UUID, args.PeerRelations); err != nil {
-		// 	return errors.Errorf("inserting peer relation for application %q: %w", name, err)
-		// }
 
 		// The channel is optional for local charms. Although, it would be
 		// nice to have a channel for local charms, it's not a requirement.
