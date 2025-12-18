@@ -22,6 +22,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	APIPort:                          schema.ForceInt(),
 	APIPortOpenDelay:                 schema.TimeDuration(),
 	IdleConnectionTimeout:            schema.TimeDuration(),
+	HTTPServerReadTimeout:            schema.TimeDuration(),
+	HTTPServerWriteTimeout:           schema.TimeDuration(),
 	ControllerAPIPort:                schema.ForceInt(),
 	ControllerName:                   schema.NonEmptyString(ControllerName),
 	StatePort:                        schema.ForceInt(),
@@ -70,6 +72,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	APIPort:                          DefaultAPIPort,
 	APIPortOpenDelay:                 DefaultAPIPortOpenDelay,
 	IdleConnectionTimeout:            DefaultIdleConnectionTimeout,
+	HTTPServerReadTimeout:            DefaultHTTPServerReadTimeout,
+	HTTPServerWriteTimeout:           DefaultHTTPServerWriteTimeout,
 	ControllerAPIPort:                schema.Omit,
 	ControllerName:                   schema.Omit,
 	AuditingEnabled:                  DefaultAuditingEnabled,
@@ -171,6 +175,18 @@ the api-port and when the api-port is actually opened
 resets of all idle connections. By default, every 10 minutes
 the controller will close all idle connections.
 `,
+	},
+	HTTPServerReadTimeout: {
+		Type: environschema.Tstring,
+		Description: `The maximum duration for reading the entire HTTP request, including the body.
+A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value 
+(e.g., 60s) if you need to prevent indefinite reads.`,
+	},
+	HTTPServerWriteTimeout: {
+		Type: environschema.Tstring,
+		Description: `The maximum duration before timing out writes of the HTTP response.
+A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value 
+(e.g., 60s) if you need to prevent indefinite writes.`,
 	},
 	ControllerAPIPort: {
 		Type: environschema.Tint,

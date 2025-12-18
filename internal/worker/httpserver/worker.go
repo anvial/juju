@@ -37,19 +37,21 @@ var (
 
 // Config is the configuration required for running an API server worker.
 type Config struct {
-	AgentName             string
-	Clock                 clock.Clock
-	TLSConfig             *tls.Config
-	Mux                   *apiserverhttp.Mux
-	MuxShutdownWait       time.Duration
-	LogDir                string
-	Logger                Logger
-	PrometheusRegisterer  prometheus.Registerer
-	Hub                   *pubsub.StructuredHub
-	APIPort               int
-	APIPortOpenDelay      time.Duration
-	ControllerAPIPort     int
-	IdleConnectionTimeout time.Duration
+	AgentName              string
+	Clock                  clock.Clock
+	TLSConfig              *tls.Config
+	Mux                    *apiserverhttp.Mux
+	MuxShutdownWait        time.Duration
+	LogDir                 string
+	Logger                 Logger
+	PrometheusRegisterer   prometheus.Registerer
+	Hub                    *pubsub.StructuredHub
+	APIPort                int
+	APIPortOpenDelay       time.Duration
+	ControllerAPIPort      int
+	IdleConnectionTimeout  time.Duration
+	HTTPServerReadTimeout  time.Duration
+	HTTPServerWriteTimeout time.Duration
 }
 
 // Validate validates the API server configuration.
@@ -136,9 +138,11 @@ func (w *Worker) Wait() error {
 func (w *Worker) Report() map[string]interface{} {
 	w.mu.Lock()
 	result := map[string]interface{}{
-		"api-port":                w.config.APIPort,
-		"status":                  w.status,
-		"idle-connection-timeout": w.config.IdleConnectionTimeout,
+		"api-port":                  w.config.APIPort,
+		"status":                    w.status,
+		"idle-connection-timeout":   w.config.IdleConnectionTimeout,
+		"http-server-read-timeout":  w.config.HTTPServerReadTimeout,
+		"http-server-write-timeout": w.config.HTTPServerWriteTimeout,
 	}
 	if w.holdable != nil {
 		result["ports"] = w.holdable.report()
@@ -207,10 +211,10 @@ func (w *Worker) loop() error {
 		TLSConfig:   w.config.TLSConfig,
 		ErrorLog:    serverLog,
 		IdleTimeout: w.config.IdleConnectionTimeout,
-		// As recommended by Copilot: the Read/Write timeouts should only affect the initial handshake.
-		// Once it has been upgraded to Websocket, then gorilla takes over the read/write deadlines.
-		ReadTimeout:  60 * time.Second,
-		WriteTimeout: 60 * time.Second,
+		// HTTPServerReadTimeout and HTTPServerWriteTimeout default to 0 (no timeout).
+		// Set to non-zero values to prevent indefinite reads/writes if needed.
+		ReadTimeout:  w.config.HTTPServerReadTimeout,
+		WriteTimeout: w.config.HTTPServerWriteTimeout,
 		ConnContext:  recordRawFd,
 	}
 	go func() {

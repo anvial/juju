@@ -281,6 +281,15 @@ const (
 
 	// IdleConnectionTimeout is the time between the controller resetting all idle connections.
 	IdleConnectionTimeout = "idle-connection-timeout"
+
+	// HTTPServerReadTimeout is the maximum duration for reading the entire HTTP request,
+	// including the body.
+	// A zero value means no timeout.
+	HTTPServerReadTimeout = "http-server-read-timeout"
+
+	// HTTPServerWriteTimeout is the maximum duration before timing out writes of the HTTP response.
+	// A zero value means no timeout.
+	HTTPServerWriteTimeout = "http-server-write-timeout"
 )
 
 // Attribute Defaults
@@ -422,6 +431,12 @@ const (
 	// controller will reset idle connections. Apache defaults to a much more
 	// aggressive 5s timeout.
 	DefaultIdleConnectionTimeout = 30 * time.Second
+
+	// DefaultHTTPServerReadTimeout is set to 0 (no timeout).
+	DefaultHTTPServerReadTimeout = 0 * time.Second
+
+	// DefaultHTTPServerWriteTimeout is set to 0 (no timeout).
+	DefaultHTTPServerWriteTimeout = 0 * time.Second
 )
 
 var (
@@ -434,6 +449,8 @@ var (
 		APIPort,
 		APIPortOpenDelay,
 		IdleConnectionTimeout,
+		HTTPServerReadTimeout,
+		HTTPServerWriteTimeout,
 		AutocertDNSNameKey,
 		AutocertURLKey,
 		CACertKey,
@@ -503,7 +520,8 @@ var (
 		AgentRateLimitMax,
 		AgentRateLimitRate,
 		APIPortOpenDelay,
-		IdleConnectionTimeout,
+		HTTPServerReadTimeout,
+		HTTPServerWriteTimeout,
 		ApplicationResourceDownloadLimit,
 		AuditingEnabled,
 		AuditLogCaptureArgs,
@@ -695,6 +713,18 @@ func (c Config) APIPortOpenDelay() time.Duration {
 // IdleConnectionTimeout returns the time between the controller resetting all idle connections
 func (c Config) IdleConnectionTimeout() time.Duration {
 	return c.durationOrDefault(IdleConnectionTimeout, DefaultIdleConnectionTimeout)
+}
+
+// HTTPServerReadTimeout returns the maximum duration for reading the entire HTTP request, including the body.
+// A zero value means no timeout.
+func (c Config) HTTPServerReadTimeout() time.Duration {
+	return c.durationOrDefault(HTTPServerReadTimeout, DefaultHTTPServerReadTimeout)
+}
+
+// HTTPServerWriteTimeout returns the maximum duration before timing out writes of the HTTP response.
+// A zero value means no timeout.
+func (c Config) HTTPServerWriteTimeout() time.Duration {
+	return c.durationOrDefault(HTTPServerWriteTimeout, DefaultHTTPServerWriteTimeout)
 }
 
 // ControllerAPIPort returns the optional API port to be used for
