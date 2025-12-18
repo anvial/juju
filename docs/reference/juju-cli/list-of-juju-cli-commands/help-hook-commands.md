@@ -30,7 +30,7 @@ The currently available charm hook commands include:
     juju-log                 Writes a message to Juju logs.
     juju-reboot              Reboots the host machine.
     k8s-raw-get              Gets Kubernetes raw spec information.
-    k8s-raw-set              Set k8s raw spec information.
+    k8s-raw-set              Sets k8s raw spec information.
     k8s-spec-get             Gets Kubernetes spec information.
     k8s-spec-set             Sets Kubernetes spec information.
     leader-get               Prints application leadership settings.
