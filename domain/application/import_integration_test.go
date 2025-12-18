@@ -468,6 +468,162 @@ func (s *importSuite) TestImportMinimalCharmManifest(c *tc.C) {
 	})
 }
 
+func (s *importSuite) TestImportMinimalCharmConfig(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			manifestBase{
+				name:          "ubuntu",
+				channel:       "stable",
+				architectures: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmConfigs(description.CharmConfigsArgs{
+		Configs: map[string]description.CharmConfig{
+			"foo": config{
+				configType:   "string",
+				defaultValue: "bar",
+				description:  "foo description",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	config, err := svc.GetCharmConfig(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(config, tc.DeepEquals, internalcharm.ConfigSpec{
+		Options: map[string]internalcharm.Option{
+			"foo": {
+				Type:        "string",
+				Default:     "bar",
+				Description: "foo description",
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMaximalCharmConfig(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			manifestBase{
+				name:          "ubuntu",
+				channel:       "stable",
+				architectures: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmConfigs(description.CharmConfigsArgs{
+		Configs: map[string]description.CharmConfig{
+			"foo": config{
+				configType:   "string",
+				defaultValue: "bar",
+				description:  "foo description",
+			},
+			"baz": config{
+				configType:   "int",
+				defaultValue: 42,
+				description:  "baz description",
+			},
+			"qux": config{
+				configType:   "boolean",
+				defaultValue: true,
+				description:  "qux description",
+			},
+			"norf": config{
+				configType:   "secret",
+				defaultValue: "foo-bar-baz",
+				description:  "norf description",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	config, err := svc.GetCharmConfig(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(config, tc.DeepEquals, internalcharm.ConfigSpec{
+		Options: map[string]internalcharm.Option{
+			"foo": {
+				Type:        "string",
+				Default:     "bar",
+				Description: "foo description",
+			},
+			"baz": {
+				Type:        "int",
+				Default:     42,
+				Description: "baz description",
+			},
+			"qux": {
+				Type:        "boolean",
+				Default:     true,
+				Description: "qux description",
+			},
+			"norf": {
+				Type:        "secret",
+				Default:     "foo-bar-baz",
+				Description: "norf description",
+			},
+		},
+	})
+}
+
 func (s *importSuite) setupService(c *tc.C) *service.Service {
 	modelDB := func(context.Context) (database.TxnRunner, error) {
 		return s.ModelTxnRunner(), nil
@@ -676,4 +832,22 @@ func (r resourceMeta) Path() string {
 
 func ptr[T any](i T) *T {
 	return &i
+}
+
+type config struct {
+	configType   string
+	defaultValue any
+	description  string
+}
+
+func (c config) Type() string {
+	return c.configType
+}
+
+func (c config) Default() any {
+	return c.defaultValue
+}
+
+func (c config) Description() string {
+	return c.description
 }
