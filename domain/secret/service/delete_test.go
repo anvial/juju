@@ -9,7 +9,6 @@ import (
 
 	coresecrets "github.com/juju/juju/core/secrets"
 	domainsecret "github.com/juju/juju/domain/secret"
-	domaintesting "github.com/juju/juju/domain/testing"
 	"github.com/juju/juju/internal/secrets/provider"
 	"github.com/juju/juju/internal/uuid"
 )
@@ -40,7 +39,7 @@ func (s *serviceSuite) TestDeleteSecret(c *tc.C) {
 		SubjectTypeID: domainsecret.SubjectUnit,
 		SubjectID:     "mariadb/0",
 	}).Return("manage", nil)
-	s.state.EXPECT().DeleteSecret(domaintesting.IsAtomicContextChecker, uri, []int{1, 2})
+	s.state.EXPECT().DeleteSecret(gomock.Any(), uri, []int{1, 2})
 
 	revs := provider.SecretRevisions{}
 	revs.Add(uri, "rev-id1")

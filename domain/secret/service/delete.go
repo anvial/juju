@@ -8,7 +8,6 @@ import (
 
 	"github.com/juju/juju/core/secrets"
 	"github.com/juju/juju/core/trace"
-	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/secret"
 	"github.com/juju/juju/internal/errors"
 )
@@ -42,11 +41,7 @@ func (s *SecretService) DeleteSecret(ctx context.Context, uri *secrets.URI, para
 	}
 
 	return withCaveat(ctx, func(innerCtx context.Context) error {
-		// TODO (manadart 2024-11-29): This context naming is nasty,
-		// but will be removed with RunAtomic.
-		if err := s.secretState.RunAtomic(innerCtx, func(innerInnerCtx domain.AtomicContext) error {
-			return s.secretState.DeleteSecret(innerInnerCtx, uri, params.Revisions)
-		}); err != nil {
+		if err := s.secretState.DeleteSecret(ctx, uri, params.Revisions); err != nil {
 			return errors.Errorf("deleting secret %q: %w", uri.ID, err)
 		}
 		return nil
