@@ -35,5 +35,5 @@ type ActionNotDefined struct {
 
 // Error implements builtin.error
 func (a ActionNotDefined) Error() string {
-	return fmt.Sprintf("action not defined for charm %q", a.CharmName)
+	return fmt.Sprintf("action not defined for charm %q (target unit: %q)", a.CharmName, a.UnitName)
 }

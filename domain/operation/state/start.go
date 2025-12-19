@@ -144,10 +144,13 @@ func (st *State) AddActionOperation(ctx context.Context,
 		}
 
 		err = st.insertOperationAction(ctx, tx, operationUUID.String(), charmUUID, args.ActionName)
-		if notDefined, ok := errors.AsType[operationerrors.ActionNotDefined](err); ok {
-			// Enhance the error with the unit name.
-			notDefined.UnitName = targetUnits[0].String()
-			return errors.Capture(notDefined)
+		if notDefined, ok := errors.AsType[errActionNotDefined](err); ok {
+			// Translate the error to domain error, enhanced with the unit name
+			return operationerrors.ActionNotDefined{
+				UnitName:   targetUnits[0].String(),
+				CharmName:  notDefined.CharmName,
+				HasActions: notDefined.HasActions,
+			}
 		}
 		if err != nil {
 			return errors.Errorf("inserting operation action: %w", err)
@@ -404,8 +407,23 @@ VALUES ($insertOperationAction.*)
 	return nil
 }
 
+// errActionNotDefined describes an error that occurs when the given charm does
+// not define the given action.
+type errActionNotDefined struct {
+	// CharmName is the name of the charm missing the action.
+	CharmName string
+	// HasActions is true if the charm defines some actions.
+	HasActions bool
+}
+
+// Error implements builtin.error
+func (a errActionNotDefined) Error() string {
+	return fmt.Sprintf("action not defined for charm %q", a.CharmName)
+}
+
 // checkActionDefined checks if an action is defined for a specific charm by its
-// UUID and action name.
+// UUID and action name. Returns nil if the action is defined, an errActionNotDefined
+// if it is not defined, or any error if the query fails.
 func (st *State) checkActionDefined(ctx context.Context, tx *sqlair.TX, charmUUID, name string) error {
 	type search struct {
 		CharmUUID      string `db:"charm_uuid"`
@@ -453,7 +471,7 @@ WHERE  c.uuid = $search.charm_uuid`
 		return errors.Errorf("querying charm %q info: %w", charmUUID, err)
 	}
 
-	return operationerrors.ActionNotDefined{
+	return errActionNotDefined{
 		CharmName:  info.CharmName,
 		HasActions: info.ActionCount > 0,
 	}
