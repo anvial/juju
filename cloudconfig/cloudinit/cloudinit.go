@@ -56,8 +56,8 @@ type cloudConfig struct {
 	//
 	// used only for Ubuntu but implemented as runcmds on CentOS:
 	// apt_proxy			string
-	// apt_mirror			string/bool
 	// apt_sources			[]*packaging.Source
+	// apt					map[string][]AptMirrorInfo
 	//
 	// instead, the following corresponding options are used temporarily,
 	// but are translated to runcmds and removed right before rendering:
