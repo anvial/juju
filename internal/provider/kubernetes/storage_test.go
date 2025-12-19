@@ -314,9 +314,9 @@ func (s *storageSuite) TestAttachFilesystems(c *tc.C) {
 
 	res, err := fs.AttachFilesystems(c.Context(), params)
 	c.Check(err, tc.ErrorIsNil)
-	c.Check(res, tc.HasLen, 1)
+	c.Assert(res, tc.HasLen, 1)
 	c.Check(res[0].Error, tc.ErrorIsNil)
-	c.Check(*res[0].FilesystemAttachment, tc.DeepEquals, storage.FilesystemAttachment{
+	c.Check(res[0].FilesystemAttachment, tc.DeepEquals, &storage.FilesystemAttachment{
 		Filesystem: params[0].Filesystem,
 		Machine:    params[0].Machine,
 		FilesystemAttachmentInfo: storage.FilesystemAttachmentInfo{
@@ -511,7 +511,7 @@ func (s *storageSuite) TestAttachFilesystemsErrorMissingCharmContainer(c *tc.C) 
 	res, err := fs.AttachFilesystems(c.Context(), params)
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(res, tc.HasLen, 1)
-	c.Check(res[0].Error, tc.ErrorMatches, `.* charm container fot found`)
+	c.Check(res[0].Error, tc.ErrorMatches, `.* missing charm container`)
 }
 
 // TestAttachFilesystemsErrorMissingVolume tests that it should indicate
@@ -588,7 +588,7 @@ func (s *storageSuite) TestAttachFilesystemsErrorMissingVolume(c *tc.C) {
 	res, err := fs.AttachFilesystems(c.Context(), params)
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(res, tc.HasLen, 1)
-	c.Check(res[0].Error, tc.ErrorMatches, `.* pod volume which references claim "vault-k8s-certs-dd246a-vault-k8s-0" not found`)
+	c.Check(res[0].Error, tc.ErrorMatches, `.* missing pod volume which references claim "vault-k8s-certs-dd246a-vault-k8s-0"`)
 }
 
 // TestAttachFilesystemsErrorMissingVolumeMount tests that it should indicate
@@ -666,5 +666,5 @@ func (s *storageSuite) TestAttachFilesystemsErrorMissingVolumeMount(c *tc.C) {
 	res, err := fs.AttachFilesystems(c.Context(), params)
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(res, tc.HasLen, 1)
-	c.Check(res[0].Error, tc.ErrorMatches, `.* pod volume mount "vault-k8s-certs-dd246a" not found`)
+	c.Check(res[0].Error, tc.ErrorMatches, `.* missing pod volume mount "vault-k8s-certs-dd246a"`)
 }

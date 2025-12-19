@@ -638,7 +638,7 @@ func (v *filesystemSource) AttachFilesystems(
 }
 
 func (v *filesystemSource) getPersistentVolumeClaim(
-	ctx context.Context, pvcName string, readOnly bool, instanceID string,
+	ctx context.Context, pvcName string, readOnly bool, podName string,
 ) (jujustorage.FilesystemAttachmentInfo, error) {
 	client := v.client.client()
 	pvcAPI := client.CoreV1().PersistentVolumeClaims(v.client.namespace)
@@ -656,24 +656,24 @@ func (v *filesystemSource) getPersistentVolumeClaim(
 	// We attempt to find the mount path in the charm container by going through
 	// the pod -> container -> volume mount.
 	// If any of the lookup fails, stop the search and return an error.
-	pod, err := client.CoreV1().Pods(v.client.namespace).Get(ctx, instanceID, v1.GetOptions{})
+	pod, err := client.CoreV1().Pods(v.client.namespace).Get(ctx, podName, v1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.Errorf(
 			"kubernetes Pod %q not found",
-			instanceID,
+			podName,
 		).Add(coreerrors.NotFound)
 	} else if err != nil {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.Errorf(
-			"getting kubernetes Pod %q: %w", instanceID, err,
+			"getting kubernetes Pod %q: %w", podName, err,
 		)
 	}
 
 	containerIdx := slices.IndexFunc(pod.Spec.Containers, func(container core.Container) bool {
-		return container.Name == "charm"
+		return container.Name == constants.ApplicationCharmContainer
 	})
 	if containerIdx == -1 {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.New(
-			"charm container fot found").Add(coreerrors.NotFound)
+			"missing charm container").Add(coreerrors.NotProvisioned)
 	}
 
 	charmContainer := pod.Spec.Containers[containerIdx]
@@ -682,8 +682,8 @@ func (v *filesystemSource) getPersistentVolumeClaim(
 	})
 	if volIdx == -1 {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.Errorf(
-			"pod volume which references claim %q not found", pvcName,
-		).Add(coreerrors.NotFound)
+			"missing pod volume which references claim %q", pvcName,
+		).Add(coreerrors.NotProvisioned)
 	}
 
 	volumeName := pod.Spec.Volumes[volIdx].Name
@@ -692,8 +692,8 @@ func (v *filesystemSource) getPersistentVolumeClaim(
 	})
 	if volumeMountIdx == -1 {
 		return jujustorage.FilesystemAttachmentInfo{}, errors.Errorf(
-			"pod volume mount %q not found", volumeName,
-		).Add(coreerrors.NotFound)
+			"missing pod volume mount %q", volumeName,
+		).Add(coreerrors.NotProvisioned)
 	}
 	volumeMount := charmContainer.VolumeMounts[volumeMountIdx]
 
