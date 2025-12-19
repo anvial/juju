@@ -545,6 +545,8 @@ func (s *importSuite) TestImportCharmMetadataInvalidResource(c *tc.C) {
 func (s *importSuite) TestImportCharmMetadata(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	// Payloads and LxdProfiles are not imported.
+
 	s.expectRequiresRelation()
 	s.expectProvidesRelation()
 	s.expectPeersRelation()
