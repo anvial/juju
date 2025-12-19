@@ -63,10 +63,12 @@ func (i *importOperation) Name() string {
 func (i *importOperation) Setup(scope modelmigration.Scope) error {
 	// We must not use a watcher during migration, so it's safe to pass a
 	// nil watcher factory.
+	st := state.NewState(scope.ModelDB())
 	i.service = service.NewService(
 		i.defaultsProvider,
 		config.NoControllerAttributesValidator(),
-		state.NewState(scope.ModelDB()))
+		service.ProviderModelConfigGetter(context.Background(), st),
+		st)
 	return nil
 }
 

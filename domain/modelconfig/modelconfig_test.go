@@ -141,7 +141,7 @@ func (s *modelConfigSuite) TestWatchModelConfig(c *tc.C) {
 	factory := domain.NewWatcherFactory(
 		changestream.NewWatchableDBFactoryForNamespace(s.GetWatchableDB, s.modelID.String()),
 		loggertesting.WrapCheckLog(c))
-	svc := service.NewWatchableService(defaults, config.ModelValidator(), st, factory)
+	svc := service.NewWatchableService(defaults, config.ModelValidator(), nil, st, factory)
 
 	watcher, err := svc.Watch(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
