@@ -499,6 +499,19 @@ type FilesystemAttachmentParamsV5 struct {
 	ReadOnly             bool    `json:"read-only,omitempty"`
 }
 
+// FilesystemAttachmentParamsV6 holds the parameters for creating a filesystem
+// attachment for the V6 storage provisioner facade.
+type FilesystemAttachmentParamsV6 struct {
+	FilesystemTag        string  `json:"filesystem-tag"`
+	MachineTag           string  `json:"machine-tag"`
+	FilesystemProviderId string  `json:"filesystem-provider-id,omitempty"`
+	InstanceId           string  `json:"instance-id,omitempty"`
+	Provider             string  `json:"provider"`
+	AttachmentProviderId *string `json:"attachment-provider-id,omitempty"`
+	MountPoint           string  `json:"mount-point,omitempty"`
+	ReadOnly             bool    `json:"read-only,omitempty"`
+}
+
 // FilesystemAttachmentResult holds the details of a single filesystem attachment,
 // or an error.
 type FilesystemAttachmentResult struct {
@@ -581,6 +594,19 @@ type FilesystemAttachmentParamsResultV5 struct {
 // filesystem attachments.
 type FilesystemAttachmentParamsResultsV5 struct {
 	Results []FilesystemAttachmentParamsResultV5 `json:"results,omitempty"`
+}
+
+// FilesystemAttachmentParamsResultV6 holds provisioning parameters for a filesystem
+// attachment.
+type FilesystemAttachmentParamsResultV6 struct {
+	Result FilesystemAttachmentParamsV6 `json:"result"`
+	Error  *Error                       `json:"error,omitempty"`
+}
+
+// FilesystemAttachmentParamsResultsV6 holds provisioning parameters for multiple
+// filesystem attachments.
+type FilesystemAttachmentParamsResultsV6 struct {
+	Results []FilesystemAttachmentParamsResultV6 `json:"results,omitempty"`
 }
 
 // StorageDetails holds information about storage.
