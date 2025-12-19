@@ -4,7 +4,7 @@
 Sets action results.
 
 ## Usage
-``` action-set [options] key=value [key=value ...]```
+``` action-set [options] <key>=<value> [<key>=<value> ...]```
 
 ## Examples
 

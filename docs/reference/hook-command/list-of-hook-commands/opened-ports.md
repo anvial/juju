@@ -25,7 +25,7 @@ Lists all ports or port ranges opened by the unit.
 By default, the port range listing does not include information about the
 application endpoints that each port range applies to. Each list entry is
 formatted as `<port>/<protocol>` (e.g., `80/tcp`)
- or `<from>-<to>/<protocol>`(e.g. "8080-8088/udp").
+ or `<from>-<to>/<protocol>`(e.g., `8080-8088/udp`).
 
 If the `--endpoints` option is specified, each entry in the port list will be
 augmented with a comma-delimited list of endpoints that the port range

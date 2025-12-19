@@ -48,7 +48,6 @@ Juju charms have access to a set of built-in helpers known as 'hook-commands,'
 which allow them to inspect their runtime environment.
 The currently available charm hook commands include:
 
-
     application-version-set  Specifies which version of the application is deployed.
     close-port               Registers a request to close a port or port range.
     config-get               Prints application configuration.

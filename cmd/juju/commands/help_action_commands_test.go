@@ -87,11 +87,12 @@ func (suite *HelpActionCommandsSuite) TestHelpActionCommandsName(c *gc.C) {
 	expectedHelp := `Usage: action-fail ["<failure message>"]
 
 Summary:
-Set action fail status with message.
+Sets action fail status with message.
 
 Details:
-action-fail sets the fail state of the action with a given error message.  Using
-action-fail without a failure message will set a default message indicating a
+` + "`action-fail`" + ` sets the fail state of the action with a given error message.
+
+Using ` + "`action-fail`" + ` without a failure message will set a default message indicating a
 problem with the action.
 
 Examples:
