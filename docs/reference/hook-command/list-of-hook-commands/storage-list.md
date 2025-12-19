@@ -25,8 +25,3 @@ via the `-s` flag to query the storage attributes.
 
 A storage name may be specified, in which case only storage
 instances for that named storage will be returned.
-
-Further details:
-`storage-list` list storages instances that are attached to the unit.
-The storage instance identifiers returned from `storage-list` may be
-passed through to the `storage-get` command using the `-s` option.
