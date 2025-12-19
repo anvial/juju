@@ -175,6 +175,6 @@ Options:
 (.|\n)*
 
 Details:
-relation-get prints the value(.|\n)*`
+` + "`relation-get`" + ` prints the value(.|\n)*`
 	c.Assert(output, gc.Matches, expectedHelp)
 }
