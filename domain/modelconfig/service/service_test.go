@@ -12,9 +12,8 @@ import (
 	gomock "go.uber.org/mock/gomock"
 
 	coreagentbinary "github.com/juju/juju/core/agentbinary"
-	coremodel "github.com/juju/juju/core/model"
 	coreerrors "github.com/juju/juju/core/errors"
-	modeltesting "github.com/juju/juju/core/model/testing"
+	coremodel "github.com/juju/juju/core/model"
 	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/domain/modeldefaults"
 	"github.com/juju/juju/environs"
@@ -53,10 +52,9 @@ func (s *serviceSuite) setupMocks(c *tc.C) *gomock.Controller {
 }
 
 func (s *serviceSuite) modelConfigProviderFunc(cloudType string) ModelConfigProviderFunc {
-	return func(ct string) (environs.ModelConfigProvider, error) {
-		if ct != cloudType {
-			return nil, errors.Errorf("unknown cloud type %q", ct).Add(coreerrors.NotFound)
-		}
+	return func() (environs.ModelConfigProvider, error) {
+		// In tests, we don't need to fetch the cloud type from state,
+		// we just return the mock provider for the expected cloud type.
 		return s.mockModelConfigProvider, nil
 	}
 }
@@ -163,7 +161,7 @@ func (s *serviceSuite) TestUpdateModelConfigNoAgentStreamChange(c *tc.C) {
 func (s *serviceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey:   "wallyworld",
@@ -202,7 +200,7 @@ func (s *serviceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C) {
 func (s *serviceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey: "wallyworld",
@@ -224,7 +222,7 @@ func (s *serviceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 func (s *serviceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey: "wallyworld",
@@ -236,7 +234,9 @@ func (s *serviceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	providerGetter := s.modelConfigProviderFunc("testprovider")
+	providerGetter := func() (environs.ModelConfigProvider, error) {
+		return nil, errors.Errorf("unknown cloud type %q", "unknown").Add(coreerrors.NotFound)
+	}
 
 	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
 	_, err := svc.ModelConfig(c.Context())
@@ -248,7 +248,7 @@ func (s *serviceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 func (s *serviceSuite) TestModelConfigWithProviderEmptySchema(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey: "wallyworld",
@@ -305,7 +305,7 @@ func (s *serviceSuite) TestSetModelConfig(c *tc.C) {
 func (s *serviceSuite) TestModelConfigWithEmptyCloudType(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey: "wallyworld",
@@ -330,7 +330,7 @@ func (s *serviceSuite) TestModelConfigWithEmptyCloudType(c *tc.C) {
 func (s *serviceSuite) TestModelConfigWithProviderReturnsNotSupportedError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey: "wallyworld",
@@ -342,7 +342,7 @@ func (s *serviceSuite) TestModelConfigWithProviderReturnsNotSupportedError(c *tc
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+	providerGetter := func() (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unsupported").Add(coreerrors.NotSupported)
 	}
 
@@ -356,7 +356,7 @@ func (s *serviceSuite) TestModelConfigWithProviderReturnsNotSupportedError(c *tc
 func (s *serviceSuite) TestModelConfigWithProviderReturnsOtherError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey: "wallyworld",
@@ -368,7 +368,7 @@ func (s *serviceSuite) TestModelConfigWithProviderReturnsOtherError(c *tc.C) {
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+	providerGetter := func() (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("some other error")
 	}
 
@@ -381,7 +381,7 @@ func (s *serviceSuite) TestModelConfigWithProviderReturnsOtherError(c *tc.C) {
 func (s *serviceSuite) TestModelConfigCoercionError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must(c, coremodel.NewUUID)
 	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
 		map[string]string{
 			config.NameKey:  "wallyworld",
@@ -404,5 +404,5 @@ func (s *serviceSuite) TestModelConfigCoercionError(c *tc.C) {
 
 	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
 	_, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unable to coerce provider config key "provider-bool".*`)
+	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unable to coerce provider config:.*provider-bool.*`)
 }

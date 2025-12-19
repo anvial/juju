@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/juju/collections/transform"
+	"github.com/juju/schema"
 
 	"github.com/juju/juju/core/changestream"
 	coreerrors "github.com/juju/juju/core/errors"
@@ -29,11 +30,12 @@ type ModelDefaultsProvider interface {
 }
 
 // ModelConfigProviderFunc describes a type that is able to return a
-// [environs.ModelConfigProvider] for the specified cloud type. If the no
-// model config provider exists for the supplied cloud type then a
-// [coreerrors.NotFound] error is returned. If the cloud type provider does not
-// support model config then a [coreerrors.NotSupported] error is returned.
-type ModelConfigProviderFunc func(string) (environs.ModelConfigProvider, error)
+// [environs.ModelConfigProvider] for the model it is scoped to. The function
+// internally determines the cloud type for the model. If no model config
+// provider exists for the model's cloud type then a [coreerrors.NotFound]
+// error is returned. If the cloud type provider does not support model config
+// then a [coreerrors.NotSupported] error is returned.
+type ModelConfigProviderFunc func() (environs.ModelConfigProvider, error)
 
 // State represents the state entity for accessing and setting per
 // model configuration values.
@@ -144,8 +146,6 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 // deserializeMap converts a map[string]string to map[string]any and coerces
 // any provider-specific values that are found in the provider's schema.
 func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
-	result := make(map[string]any, len(m))
-
 	if s.modelConfigProviderGetterFunc == nil {
 		return nil, errors.New("no model config provider getter")
 	}
@@ -156,7 +156,7 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 		return stringMapToAny(m), nil
 	}
 
-	provider, err := s.modelConfigProviderGetterFunc(cloudType)
+	provider, err := s.modelConfigProviderGetterFunc()
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		return nil, errors.Capture(err)
 	} else if provider == nil {
@@ -165,18 +165,32 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 	}
 
 	fields := provider.ConfigSchema()
-	for key, strVal := range m {
-		if field, ok := fields[key]; ok {
-			// This is a provider-specific attribute - coerce it to proper type.
-			coercedVal, err := field.Coerce(strVal, []string{key})
-			if err != nil {
-				return nil, errors.Errorf("unable to coerce provider config key %q: %w", key, err)
-			}
-			result[key] = coercedVal
-		} else {
-			// Not a provider-specific attribute - keep as string.
-			result[key] = strVal
-		}
+
+	// We are building a set of defaults here for each key that exists in
+	// the provider's schema set to [schema.Omit]. The reason for this is
+	// that [schema.FieldMap.Coerce] will try and apply defaults for keys
+	// that don't exist in the input.
+	//
+	// We don't want this to happen here. The purpose of this function is to
+	// fundamentally coerce the type we store the value in at a state level
+	// to that of the schema only if and when the key exists in the input.
+	omitDefaults := make(schema.Defaults, len(fields))
+	for k := range fields {
+		omitDefaults[k] = schema.Omit
+	}
+
+	providerFieldMap := schema.FieldMap(fields, omitDefaults)
+	coercedCfg, err := providerFieldMap.Coerce(m, nil)
+	if err != nil {
+		return nil, errors.Errorf("unable to coerce provider config: %w", err)
+	}
+
+	providerResult := coercedCfg.(map[string]any)
+
+	// Build final result: coerced provider attrs + uncoerced non-provider attrs
+	result := stringMapToAny(m)
+	for key, val := range providerResult {
+		result[key] = val
 	}
 
 	return result, nil
@@ -495,14 +509,40 @@ func NewWatchableService(
 }
 
 // ProviderModelConfigGetter returns a ModelConfigProviderFunc that can be used
-// to get a ModelConfigProvider for a given cloud type.
-func ProviderModelConfigGetter() ModelConfigProviderFunc {
-	return func(cloudType string) (environs.ModelConfigProvider, error) {
+// to get a ModelConfigProvider for the model. The function internally
+// determines the cloud type from the model config and caches the provider for
+// the lifetime of the function.
+func ProviderModelConfigGetter(ctx context.Context, st State) ModelConfigProviderFunc {
+	var (
+		cachedProvider environs.ModelConfigProvider
+		cached         bool
+	)
+
+	return func() (environs.ModelConfigProvider, error) {
+		// Return cached provider if available.
+		if cached {
+			return cachedProvider, nil
+		}
+
+		// Get the model config to determine cloud type.
+		cfg, err := st.ModelConfig(ctx)
+		if err != nil {
+			return nil, errors.Errorf("getting model config for provider lookup: %w", err)
+		}
+
+		cloudType, ok := cfg[config.TypeKey]
+		if !ok || cloudType == "" {
+			return nil, errors.Errorf("cloud type not found in model config").Add(coreerrors.NotFound)
+		}
+
 		envProvider, err := environs.GlobalProviderRegistry().Provider(cloudType)
 		if errors.Is(err, coreerrors.NotFound) {
 			return nil, errors.Errorf(
 				"no model config provider exists for cloud type %q", cloudType,
 			).Add(coreerrors.NotFound)
+		}
+		if err != nil {
+			return nil, errors.Capture(err)
 		}
 
 		modelConfigProvider, supports := envProvider.(environs.ModelConfigProvider)
@@ -511,6 +551,10 @@ func ProviderModelConfigGetter() ModelConfigProviderFunc {
 				"model config provider not supported for cloud type %q", cloudType,
 			).Add(coreerrors.NotSupported)
 		}
+
+		// Cache the provider for subsequent calls.
+		cachedProvider = modelConfigProvider
+		cached = true
 
 		return modelConfigProvider, nil
 	}

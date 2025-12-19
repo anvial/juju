@@ -32,10 +32,9 @@ func (s *providerServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 }
 
 func (s *providerServiceSuite) modelConfigProviderFunc(cloudType string) ModelConfigProviderFunc {
-	return func(ct string) (environs.ModelConfigProvider, error) {
-		if ct != cloudType {
-			return nil, errors.Errorf("unknown cloud type %q", ct).Add(coreerrors.NotFound)
-		}
+	return func() (environs.ModelConfigProvider, error) {
+		// In tests, we don't need to fetch the cloud type from state,
+		// we just return the mock provider for the expected cloud type.
 		return s.mockModelConfigProvider, nil
 	}
 }
@@ -129,7 +128,9 @@ func (s *providerServiceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 		nil,
 	)
 
-	providerGetter := s.modelConfigProviderFunc("testprovider")
+	providerGetter := func() (environs.ModelConfigProvider, error) {
+		return nil, errors.Errorf("unknown cloud type %q", "unknown").Add(coreerrors.NotFound)
+	}
 
 	svc := NewProviderService(s.mockState, providerGetter)
 	_, err := svc.ModelConfig(c.Context())
@@ -211,7 +212,7 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsNotSupportedErr
 		nil,
 	)
 
-	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+	providerGetter := func() (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unsupported").Add(coreerrors.NotSupported)
 	}
 
@@ -234,7 +235,7 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsOtherError(c *t
 		nil,
 	)
 
-	providerGetter := func(ct string) (environs.ModelConfigProvider, error) {
+	providerGetter := func() (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("some other error")
 	}
 

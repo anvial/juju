@@ -4,6 +4,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/juju/juju/core/changestream"
 	"github.com/juju/juju/core/logger"
 	cloudservice "github.com/juju/juju/domain/cloud/service"
@@ -72,9 +74,10 @@ func (s *ProviderServices) Credential() *credentialservice.WatchableProviderServ
 
 // Config returns the provider model config service.
 func (s *ProviderServices) Config() *modelconfigservice.WatchableProviderService {
+	st := modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB))
 	return modelconfigservice.NewWatchableProviderService(
-		modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
-		modelconfigservice.ProviderModelConfigGetter(),
+		st,
+		modelconfigservice.ProviderModelConfigGetter(context.Background(), st),
 		s.modelWatcherFactory("modelconfig"),
 	)
 }

@@ -224,11 +224,12 @@ func (s *ModelServices) Config() *modelconfigservice.WatchableService {
 			changestream.NewTxnRunnerFactory(s.controllerDB),
 		)).ModelDefaultsProvider(s.modelUUID)
 
+	st := modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB))
 	return modelconfigservice.NewWatchableService(
 		defaultsProvider,
 		config.ModelValidator(),
-		modelconfigservice.ProviderModelConfigGetter(),
-		modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
+		modelconfigservice.ProviderModelConfigGetter(context.Background(), st),
+		st,
 		s.modelWatcherFactory("modelconfig"),
 	)
 }

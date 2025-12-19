@@ -89,7 +89,7 @@ func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, e
 		return stringMapToAny(m), nil
 	}
 
-	provider, err := s.modelConfigProviderGetterFunc(cloudType)
+	provider, err := s.modelConfigProviderGetterFunc()
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		return nil, errors.Capture(err)
 	} else if provider == nil {
