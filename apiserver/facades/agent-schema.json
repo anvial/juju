@@ -4367,17 +4367,6 @@
                         }
                     }
                 },
-                "SetCharmProfiles": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/SetProfileArgs"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ErrorResults"
-                        }
-                    }
-                },
                 "SetHostMachineNetworkConfig": {
                     "type": "object",
                     "properties": {
@@ -5939,40 +5928,6 @@
                     "required": [
                         "tag",
                         "config"
-                    ]
-                },
-                "SetProfileArg": {
-                    "type": "object",
-                    "properties": {
-                        "entity": {
-                            "$ref": "#/definitions/Entity"
-                        },
-                        "profiles": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "entity",
-                        "profiles"
-                    ]
-                },
-                "SetProfileArgs": {
-                    "type": "object",
-                    "properties": {
-                        "args": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/SetProfileArg"
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "args"
                     ]
                 },
                 "SetStatus": {

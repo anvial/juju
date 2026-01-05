@@ -1489,42 +1489,6 @@ func (api *ProvisionerAPI) CACert(ctx context.Context) (params.BytesResult, erro
 	return params.BytesResult{Result: []byte(caCert)}, nil
 }
 
-// SetCharmProfiles records the given slice of charm profile names.
-func (api *ProvisionerAPI) SetCharmProfiles(ctx context.Context, args params.SetProfileArgs) (params.ErrorResults, error) {
-	results := make([]params.ErrorResult, len(args.Args))
-	canAccess, err := api.getAuthFunc(ctx)
-	if err != nil {
-		api.logger.Errorf(ctx, "failed to get an authorisation function: %v", err)
-		return params.ErrorResults{}, errors.Capture(err)
-	}
-	for i, a := range args.Args {
-		err := api.setOneMachineCharmProfiles(ctx, a.Entity.Tag, a.Profiles, canAccess)
-		if errors.Is(err, machineerrors.NotProvisioned) {
-			results[i].Error = apiservererrors.ParamsErrorf(
-				params.CodeNotProvisioned, "machine %q not provisioned", a.Entity.Tag,
-			)
-		} else {
-			results[i].Error = apiservererrors.ServerError(err)
-		}
-	}
-	return params.ErrorResults{Results: results}, nil
-}
-
-func (api *ProvisionerAPI) setOneMachineCharmProfiles(ctx context.Context, machineTag string, profiles []string, canAccess common.AuthFunc) error {
-	mTag, err := names.ParseMachineTag(machineTag)
-	if err != nil {
-		return errors.Capture(err)
-	}
-	if !canAccess(mTag) {
-		return apiservererrors.ErrPerm
-	}
-	machineUUID, err := api.machineService.GetMachineUUID(ctx, coremachine.Name(mTag.Id()))
-	if err != nil {
-		return errors.Capture(err)
-	}
-	return errors.Capture(api.machineService.SetAppliedLXDProfileNames(ctx, machineUUID, profiles))
-}
-
 // ModelUUID returns the model UUID that the current connection is for.
 func (api *ProvisionerAPI) ModelUUID(_ context.Context) params.StringResult {
 	return params.StringResult{Result: api.modelUUID.String()}
@@ -1542,4 +1506,12 @@ func (api *ProvisionerAPIV11) SetModificationStatus(
 	_ context.Context, args params.SetStatus,
 ) (params.ErrorResults, error) {
 	return params.ErrorResults{Results: make([]params.ErrorResult, len(args.Entities))}, nil
+}
+
+// SetCharmProfiles was used for LXD profiles to record a list of profile names.
+// This stub resides on the v11 API for compatibility only.
+func (api *ProvisionerAPIV11) SetCharmProfiles(
+	_ context.Context, args params.SetProfileArgs,
+) (params.ErrorResults, error) {
+	return params.ErrorResults{Results: make([]params.ErrorResult, len(args.Args))}, nil
 }
