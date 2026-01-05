@@ -49,6 +49,8 @@ type AgentBinaryGetterStore interface {
 	) (io.ReadCloser, int64, string, error)
 }
 
+// AgentBinaryDiscoverableStore is the interface that defines the methods
+// required from an external agent binary store.
 type AgentBinaryDiscoverableStore interface {
 	// GetAgentBinaryWithSHA256 retrieves the agent binary corresponding to the given version
 	// and stream from an external store.
@@ -104,6 +106,8 @@ type AgentBinaryQuerierStore interface {
 	) ([]agentbinary.AgentBinary, error)
 }
 
+// AgentBinaryLocalStore is the interface that defines the methods required from
+// a local agent binary store.
 type AgentBinaryLocalStore interface {
 	// AddAgentBinaryWithSHA256 adds a new agent binary to the object store and saves its metadata to the database.
 	// The following errors can be returned:
@@ -168,6 +172,8 @@ type AgentBinaryLocalStore interface {
 	) (io.ReadCloser, int64, error)
 }
 
+// ModelState is the interface that defines the methods required from a model's
+// state.
 type ModelState interface {
 	// GetAgentStream returns the stream currently in use by the model.
 	GetAgentStream(ctx context.Context) (agentbinary.Stream, error)
@@ -178,6 +184,8 @@ type ModelState interface {
 	ListAgentBinaries(ctx context.Context) ([]agentbinary.Metadata, error)
 }
 
+// ControllerState is the interface that defines the methods required from a
+// controller's state.
 type ControllerState interface {
 	// ListAgentBinaries lists all agent binaries in the state.
 	// It returns a slice of agent binary metadata.
@@ -199,9 +207,9 @@ type AgentBinaryService struct {
 	store                        AgentBinaryLocalStore
 }
 
-// NewAgentBinaryService returns a new instance of AgentBinaryService.
-// It takes two states: the controller state and the model state to aggregate the
-// agent binaries from both states.
+// NewAgentBinaryService returns a new instance of AgentBinaryService. It takes
+// two states: the controller state and the model state to aggregate the agent
+// binaries from both states.
 func NewAgentBinaryService(
 	providerForAgentBinaryFinder providertracker.ProviderGetter[ProviderForAgentBinaryFinder],
 	getPreferredSimpleStreams PreferredSimpleStreamsFunc,
@@ -245,13 +253,13 @@ func (s *AgentBinaryService) GetAgentBinary(ctx context.Context, ver coreagentbi
 	return reader, size, nil
 }
 
-// GetExternalAgentBinary attempts to retrieve the specified agent binary from one
-// or more configured external stores. It validates the integrity of the fetched
-// binary via SHA256 and SHA384 comparison, then caches and persists it into the
-// local store for subsequent faster retrieval. If the binary cannot be found in
-// any external store or fails hash verification, an appropriate error is
-// returned. The returned reader provides the verified binary content along with
-// its size and SHA384 checksum.
+// GetExternalAgentBinary attempts to retrieve the specified agent binary from
+// one or more configured external stores. It validates the integrity of the
+// fetched binary via SHA256 and SHA384 comparison, then caches and persists it
+// into the local store for subsequent faster retrieval. If the binary cannot be
+// found in any external store or fails hash verification, an appropriate error
+// is returned. The returned reader provides the verified binary content along
+// with its size and SHA384 checksum.
 func (s *AgentBinaryService) GetExternalAgentBinary(ctx context.Context, ver coreagentbinary.Version) (io.ReadCloser, int64, string, error) {
 	hashes, err := s.RetrieveExternalAgentBinary(ctx, ver)
 	if err != nil {
@@ -310,9 +318,8 @@ func (s *AgentBinaryService) RetrieveExternalAgentBinary(ctx context.Context, ve
 		)
 	}
 
-	defer func(extReader io.ReadCloser) {
-		_ = extReader.Close()
-	}(extReader)
+	defer func() { _ = extReader.Close() }()
+
 	rSHA, shaCalc := computeSHA256andSHA384(extReader)
 	cacheR, err := newStrictCacher(rSHA, extSize)
 
@@ -344,8 +351,6 @@ func (s *AgentBinaryService) RetrieveExternalAgentBinary(ctx context.Context, ve
 	return &hashes, nil
 }
 
-// TODO(Alvin): Remove these following after subsequent callers do not call this
-
 // ListAgentBinaries lists all agent binaries in the controller and model stores.
 // It merges the two lists of agent binaries, with the model agent binaries
 // taking precedence over the controller agent binaries.
@@ -354,7 +359,6 @@ func (s *AgentBinaryService) RetrieveExternalAgentBinary(ctx context.Context, ve
 func (s *AgentBinaryService) ListAgentBinaries(ctx context.Context) ([]agentbinary.Metadata, error) {
 	// Merge the two lists of agent binaries. The model agent binaries
 	// take precedence over the controller agent binaries.
-
 	allAgentBinaries := make(map[string]agentbinary.Metadata)
 
 	modelAgentBinaries, err := s.modelState.ListAgentBinaries(ctx)
