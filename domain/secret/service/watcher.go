@@ -305,15 +305,6 @@ func deletedWatcherMapperFunc(
 		currentOwnedSecretIDs set.Strings,
 		secretChange changestream.ChangeEvent,
 	) ([]changestream.ChangeEvent, error) {
-		// pushChanges pushes the secret ID to the changes slice.
-		// At the same time, any previously added deleted revisions of this secret are removed from the slice.
-		pushChanges := func(change changestream.ChangeEvent) {
-			currentChanges = slices.DeleteFunc(currentChanges, func(c changestream.ChangeEvent) bool {
-				id, _ := splitSecretRevision(c.Changed())
-				return id == change.Changed()
-			})
-			currentChanges = append(currentChanges, change)
-		}
 		secretChangeID := secretChange.Changed()
 		if currentOwnedSecretIDs.Contains(secretChangeID) {
 			// It's still owned, so the event must be triggered by an update.
@@ -334,7 +325,7 @@ func deletedWatcherMapperFunc(
 			})
 
 			// An owned secret has been deleted, we need to notify the URI change.
-			pushChanges(secretChange)
+			currentChanges = append(currentChanges, secretChange)
 
 			// No need to track this one anymore.
 			knownSecretURIs.Remove(secretChangeID)
