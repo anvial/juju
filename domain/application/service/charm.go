@@ -78,13 +78,6 @@ type CharmState interface {
 	// returned.
 	GetCharmConfig(context.Context, corecharm.ID) (charm.Config, error)
 
-	// GetCharmLXDProfile returns the LXD profile along with the revision of the
-	// charm using the charm ID. The revision
-	//
-	// If the charm does not exist, a [applicationerrors.CharmNotFound] error is
-	// returned.
-	GetCharmLXDProfile(context.Context, corecharm.ID) ([]byte, charm.Revision, error)
-
 	// GetCharmArchivePath returns the archive storage path for the charm using
 	// the charm ID. If the charm does not exist, a
 	// [applicationerrors.CharmNotFound] error is returned.
@@ -547,32 +540,6 @@ func (s *Service) GetCharmConfig(ctx context.Context, locator charm.CharmLocator
 		return internalcharm.ConfigSpec{}, errors.Capture(err)
 	}
 	return decoded, nil
-}
-
-// GetCharmLXDProfile returns the LXD profile along with the revision of the
-// charm using the charm name, source and revision.
-//
-// If the charm does not exist, a [applicationerrors.CharmNotFound] error is
-// returned.
-func (s *Service) GetCharmLXDProfile(ctx context.Context, locator charm.CharmLocator) (internalcharm.LXDProfile, charm.Revision, error) {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	args := argsFromLocator(locator)
-	id, err := s.getCharmID(ctx, args)
-	if err != nil {
-		return internalcharm.LXDProfile{}, -1, errors.Errorf("charm id: %w", err)
-	}
-	profile, revision, err := s.st.GetCharmLXDProfile(ctx, id)
-	if err != nil {
-		return internalcharm.LXDProfile{}, -1, errors.Capture(err)
-	}
-
-	decoded, err := decodeLXDProfile(profile)
-	if err != nil {
-		return internalcharm.LXDProfile{}, -1, errors.Capture(err)
-	}
-	return decoded, revision, nil
 }
 
 // GetCharmArchivePath returns the archive storage path for the charm using the
