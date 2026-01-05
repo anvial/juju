@@ -4101,7 +4101,7 @@
     {
         "Name": "Provisioner",
         "Description": "",
-        "Version": 11,
+        "Version": 12,
         "Schema": {
             "type": "object",
             "properties": {
@@ -4367,17 +4367,6 @@
                         }
                     }
                 },
-                "Remove": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/Entities"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ErrorResults"
-                        }
-                    }
-                },
                 "SetCharmProfiles": {
                     "type": "object",
                     "properties": {
@@ -4409,17 +4398,6 @@
                     }
                 },
                 "SetInstanceStatus": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/SetStatus"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ErrorResults"
-                        }
-                    }
-                },
-                "SetModificationStatus": {
                     "type": "object",
                     "properties": {
                         "Params": {

@@ -203,8 +203,8 @@ func MakeProvisionerAPI(stdCtx context.Context, ctx facade.ModelContext) (*Provi
 	return api, nil
 }
 
-// ProvisionerAPIV11 provides v10 of the provisioner facade.
-// It relies on agent-set origin when calling SetHostMachineNetworkConfig.
+// ProvisionerAPIV11 provides v11 of the provisioner facade.
+// It has a stub for SetModificationStatus
 type ProvisionerAPIV11 struct {
 	*ProvisionerAPI
 }
@@ -1401,22 +1401,6 @@ func (api *ProvisionerAPI) SetInstanceStatus(ctx context.Context, args params.Se
 	return result, nil
 }
 
-// SetModificationStatus updates the instance whilst changes are occurring. This
-// is different from SetStatus and SetInstanceStatus, by the fact this holds
-// information about the ongoing changes that are happening to instances.
-// Consider LXD Profile updates that can modify a instance, but may not cause
-// the instance to be placed into a error state. This modification status
-// serves the purpose of highlighting that to the operator.
-// Only machine tags are accepted.
-//
-// Deprecated: this facade was used for LXD profiles, which have been removed.
-// Drop this facade on the next facade version bump.
-func (api *ProvisionerAPI) SetModificationStatus(ctx context.Context, args params.SetStatus) (params.ErrorResults, error) {
-	return params.ErrorResults{
-		Results: make([]params.ErrorResult, len(args.Entities)),
-	}, nil
-}
-
 // MarkMachinesForRemoval indicates that the specified machines are
 // ready to have any provider-level resources cleaned up and then be
 // removed.
@@ -1542,14 +1526,20 @@ func (api *ProvisionerAPI) setOneMachineCharmProfiles(ctx context.Context, machi
 }
 
 // ModelUUID returns the model UUID that the current connection is for.
-func (api *ProvisionerAPI) ModelUUID(ctx context.Context) params.StringResult {
+func (api *ProvisionerAPI) ModelUUID(_ context.Context) params.StringResult {
 	return params.StringResult{Result: api.modelUUID.String()}
 }
 
-// Remove is a no-op for the provisioner API. Remove this in the next facade
-// version bump.
-func (api *ProvisionerAPI) Remove(ctx context.Context, args params.Entities) (params.ErrorResults, error) {
-	return params.ErrorResults{
-		Results: make([]params.ErrorResult, len(args.Entities)),
-	}, nil
+// Remove is a no-op for the provisioner API.
+// This stub resides on the v11 API for compatibility only.
+func (api *ProvisionerAPIV11) Remove(_ context.Context, args params.Entities) (params.ErrorResults, error) {
+	return params.ErrorResults{Results: make([]params.ErrorResult, len(args.Entities))}, nil
+}
+
+// SetModificationStatus was used for LXD profiles, which have been removed.
+// This stub resides on the v11 API for compatibility only.
+func (api *ProvisionerAPIV11) SetModificationStatus(
+	_ context.Context, args params.SetStatus,
+) (params.ErrorResults, error) {
+	return params.ErrorResults{Results: make([]params.ErrorResult, len(args.Entities))}, nil
 }
