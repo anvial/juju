@@ -10,6 +10,7 @@ import (
 
 	"github.com/juju/clock/testclock"
 	"github.com/juju/collections/transform"
+	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
@@ -2918,8 +2919,6 @@ func (s *commitHookChangesSuite) TestCommitHookChangesOneTxn(c *tc.C) {
 	// Arrange: setup basics
 	unitName, _ := coreunit.NewName("wordpress/0")
 	unitTag := names.NewUnitTag(unitName.String())
-	unitUUID := tc.Must(c, coreunit.NewUUID)
-	s.applicationService.EXPECT().GetUnitUUID(gomock.Any(), unitName).Return(unitUUID, nil)
 
 	// Arrange: SetUnitStateArg
 	arg := params.CommitHookChangesArg{
@@ -2928,12 +2927,28 @@ func (s *commitHookChangesSuite) TestCommitHookChangesOneTxn(c *tc.C) {
 			Tag:        unitTag.String(),
 			CharmState: &map[string]string{"key": "value"},
 		},
+		ClosePorts: []params.EntityPortRange{{
+			Tag: unitTag.String(), Protocol: "icmp", FromPort: 22, ToPort: 22, Endpoint: "ep0",
+		}},
+		OpenPorts: []params.EntityPortRange{{
+			Tag: unitTag.String(), Protocol: "icmp", FromPort: 80, ToPort: 80, Endpoint: "ep1",
+		}},
 	}
 
 	// Arrange: CommitHookChanges service call
 	domainArg := unitstate.CommitHookChangesArg{
 		UnitName:   unitName,
 		CharmState: arg.SetUnitState.CharmState,
+		ClosePorts: network.GroupedPortRanges{
+			"ep0": []network.PortRange{{
+				Protocol: "icmp", FromPort: 22, ToPort: 22,
+			}},
+		},
+		OpenPorts: network.GroupedPortRanges{
+			"ep1": []network.PortRange{{
+				Protocol: "icmp", FromPort: 80, ToPort: 80,
+			}},
+		},
 	}
 	s.unitStateService.EXPECT().CommitHookChanges(gomock.Any(), domainArg).Return(nil)
 
@@ -2942,6 +2957,29 @@ func (s *commitHookChangesSuite) TestCommitHookChangesOneTxn(c *tc.C) {
 
 	// Assert
 	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *commitHookChangesSuite) TestCommitHookChangesOpenPortFail(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange: setup basics
+	unitName, _ := coreunit.NewName("wordpress/0")
+	unitTag := names.NewUnitTag(unitName.String())
+
+	// Arrange: SetUnitStateArg, ensure it's a CAAS model to fail icmp.
+	arg := params.CommitHookChangesArg{
+		Tag: unitTag.String(),
+		OpenPorts: []params.EntityPortRange{{
+			Tag: unitTag.String(), Protocol: "icmp", FromPort: 80, ToPort: 80, Endpoint: "ep1",
+		}},
+	}
+	s.uniter.modelType = coremodel.CAAS
+
+	// Act
+	err := s.uniter.commitHookChangesForOneUnit(c.Context(), unitTag, arg, nil, nil)
+
+	// Assert
+	c.Assert(err, tc.ErrorIs, errors.NotSupported)
 }
 
 func (s *commitHookChangesSuite) TestUpdateUnitAndApplicationSettings(c *tc.C) {

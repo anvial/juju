@@ -2862,16 +2862,12 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 	if err != nil {
 		return internalerrors.Errorf("parsing unit name: %w", err)
 	}
-	unitUUID, err := u.applicationService.GetUnitUUID(ctx, unitName)
-	if err != nil {
-		return internalerrors.Errorf("getting UUID of unit %q: %w", unitName, err)
-	}
 	arg := unitstate.CommitHookChangesArg{
 		UnitName: unitName,
 	}
 
 	if changes.UpdateNetworkInfo {
-		err := u.setUnitRelationNetworks(ctx, coreunit.Name(unitTag.Id()))
+		err := u.setUnitRelationNetworks(ctx, unitName)
 		if err != nil {
 			return internalerrors.Errorf("updating network info: %w", err)
 		}
@@ -2888,7 +2884,7 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 		}
 	}
 
-	if len(changes.OpenPorts)+len(changes.ClosePorts) > 0 {
+	if len(changes.OpenPorts) > 0 {
 		openPorts := network.GroupedPortRanges{}
 		for _, r := range changes.OpenPorts {
 			// Ensure the tag in the port open request matches the root unit name.
@@ -2908,7 +2904,10 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 			}
 			openPorts[r.Endpoint] = append(openPorts[r.Endpoint], portRange)
 		}
+		arg.OpenPorts = openPorts
+	}
 
+	if len(changes.ClosePorts) > 0 {
 		closePorts := network.GroupedPortRanges{}
 		for _, r := range changes.ClosePorts {
 			// Ensure the tag in the port close request matches the root unit name
@@ -2923,10 +2922,7 @@ func (u *UniterAPI) commitHookChangesForOneUnit(
 			}
 			closePorts[r.Endpoint] = append(closePorts[r.Endpoint], portRange)
 		}
-		err = u.portService.UpdateUnitPorts(ctx, unitUUID, openPorts, closePorts)
-		if err != nil {
-			return internalerrors.Errorf("updating unit ports of unit %q: %w", unitName, err)
-		}
+		arg.ClosePorts = closePorts
 	}
 
 	/*

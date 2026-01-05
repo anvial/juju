@@ -8,7 +8,6 @@ import (
 
 	"github.com/canonical/sqlair"
 
-	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/domain/unitstate"
 	"github.com/juju/juju/domain/unitstate/internal"
 	"github.com/juju/juju/internal/errors"
@@ -36,7 +35,7 @@ func (st *State) CommitHookChanges(ctx context.Context, arg internal.CommitHookC
 			return errors.Errorf("update relation settings: %v", err)
 		}
 
-		if err := st.updatePorts(ctx, tx, arg.OpenPorts, arg.ClosePorts); err != nil {
+		if err := st.updateUnitPorts(ctx, tx, unit.UUID, arg.OpenPorts, arg.ClosePorts); err != nil {
 			return errors.Errorf("update ports: %v", err)
 		}
 
@@ -79,10 +78,6 @@ func (st *State) updateNetworkInfo(ctx context.Context, tx *sqlair.TX, info bool
 }
 
 func (st *State) updateRelationSettings(ctx context.Context, tx *sqlair.TX, settings []internal.RelationSettings) error {
-	return nil
-}
-
-func (st *State) updatePorts(ctx context.Context, tx *sqlair.TX, openPorts network.GroupedPortRanges, closePorts network.GroupedPortRanges) error {
 	return nil
 }
 
