@@ -29,12 +29,8 @@ func (d *dummyAdmissionCreator) EnsureMutatingWebhookConfiguration() (func(), er
 	return d.EnsureMutatingWebhookConfigurationFunc()
 }
 
-func int32Ptr(i int32) *int32 {
-	return &i
-}
-
-func strPtr(s string) *string {
-	return &s
+func ptr[T any](v T) *T {
+	return &v
 }
 
 func (a *AdmissionSuite) TestAdmissionCreatorObject(c *gc.C) {
@@ -53,8 +49,8 @@ func (a *AdmissionSuite) TestAdmissionCreatorObject(c *gc.C) {
 	serviceRef := &admission.ServiceReference{
 		Namespace: namespace,
 		Name:      svcName,
-		Path:      strPtr(path),
-		Port:      int32Ptr(port),
+		Path:      ptr(path),
+		Port:      ptr(port),
 	}
 
 	admissionCreator, err := caasadmission.NewAdmissionCreator(
@@ -68,6 +64,31 @@ func (a *AdmissionSuite) TestAdmissionCreatorObject(c *gc.C) {
 			c.Assert(webhook.AdmissionReviewVersions, gc.DeepEquals, []string{"v1beta1"})
 			c.Assert(webhook.SideEffects, gc.NotNil)
 			c.Assert(*webhook.SideEffects, gc.Equals, admission.SideEffectClassNone)
+			c.Assert(webhook.Rules, gc.HasLen, 2)
+			c.Assert(webhook.Rules[0].Scope, gc.NotNil)
+			c.Assert(*webhook.Rules[0].Scope, gc.Equals, admission.NamespacedScope)
+			c.Assert(webhook.Rules[0].Rule.Resources, jc.SameContents, []string{
+				"configmaps/*",
+				"pods/*",
+				"statefulsets/*",
+				"deployments/*",
+				"daemonsets/*",
+				"roles/*",
+				"rolebindings/*",
+				"services/*",
+				"secrets/*",
+				"serviceaccounts/*",
+				"ingresses/*",
+			})
+			c.Assert(webhook.Rules[1].Scope, gc.NotNil)
+			c.Assert(*webhook.Rules[1].Scope, gc.Equals, admission.ClusterScope)
+			c.Assert(webhook.Rules[1].Rule.Resources, jc.SameContents, []string{
+				"clusterroles/*",
+				"clusterrolebindings/*",
+				"customresourcedefinitions/*",
+				"mutatingwebhookconfigurations/*",
+				"validatingwebhookconfigurations/*",
+			})
 			svc := webhook.ClientConfig.Service
 			c.Assert(svc.Name, gc.Equals, svcName)
 			c.Assert(svc.Namespace, gc.Equals, namespace)
