@@ -290,9 +290,13 @@ func (p *containerProvisioner) getStartTask(ctx context.Context, workerCount int
 // provisioner is used on the agents where we cannot use domain services.
 func machineInstanceInfoSetter(machineProvisionerAPI apiprovisioner.MachineProvisioner) func(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	characteristics *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error {
 	return machineProvisionerAPI.SetInstanceInfo
 }

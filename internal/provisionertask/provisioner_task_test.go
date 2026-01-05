@@ -59,9 +59,13 @@ const (
 
 func machineInstanceInfoSetter(machineProvisionerAPI apiprovisioner.MachineProvisioner) func(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	characteristics *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error {
 	return machineProvisionerAPI.SetInstanceInfo
 }
@@ -1919,7 +1923,7 @@ func (m *testMachine) SetUnprovisioned() {
 func (m *testMachine) SetInstanceInfo(
 	_ context.Context,
 	instId instance.Id, _ string, _ string, _ *instance.HardwareCharacteristics, _ []params.NetworkConfig, _ []params.Volume,
-	_ map[string]params.VolumeAttachmentInfo, _ []string,
+	_ map[string]params.VolumeAttachmentInfo,
 ) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

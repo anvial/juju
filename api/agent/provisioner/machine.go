@@ -73,17 +73,22 @@ type MachineProvisioner interface {
 	// to distribute instances for high availability.
 	DistributionGroup(ctx context.Context) ([]instance.Id, error)
 
-	// SetInstanceInfo sets the provider specific instance id, nonce, metadata,
-	// network config for this machine. Once set, the instance id cannot be changed.
+	// SetInstanceInfo sets the provider-specific instance id,
+	// nonce, metadata, network config for this machine.
+	// Once set, the instance id cannot be changed.
 	SetInstanceInfo(
 		ctx context.Context,
-		id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-		networkConfig []params.NetworkConfig, volumes []params.Volume,
-		volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+		id instance.Id,
+		displayName string,
+		nonce string,
+		characteristics *instance.HardwareCharacteristics,
+		networkConfig []params.NetworkConfig,
+		volumes []params.Volume,
+		volumeAttachments map[string]params.VolumeAttachmentInfo,
 	) error
 
-	// InstanceId returns the provider specific instance id for the
-	// machine or an CodeNotProvisioned error, if not set.
+	// InstanceId returns the provider-specific instance id for the
+	// machine or a CodeNotProvisioned error, if not set.
 	InstanceId(ctx context.Context) (instance.Id, error)
 
 	// KeepInstance returns the value of the keep-instance
@@ -302,9 +307,13 @@ func (m *Machine) DistributionGroup(ctx context.Context) ([]instance.Id, error) 
 // SetInstanceInfo implements MachineProvisioner.SetInstanceInfo.
 func (m *Machine) SetInstanceInfo(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	characteristics *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error {
 	var result params.ErrorResults
 	args := params.InstancesInfo{
@@ -317,7 +326,6 @@ func (m *Machine) SetInstanceInfo(
 			Volumes:           volumes,
 			VolumeAttachments: volumeAttachments,
 			NetworkConfig:     networkConfig,
-			CharmProfiles:     charmProfiles,
 		}},
 	}
 	err := m.st.facade.FacadeCall(ctx, "SetInstanceInfo", args, &result)

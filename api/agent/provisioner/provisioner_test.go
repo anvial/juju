@@ -504,7 +504,6 @@ func (s *provisionerSuite) TestSetInstanceInfo(c *tc.C) {
 			Characteristics:   &hwChars,
 			Volumes:           volumes,
 			VolumeAttachments: volumeAttachments,
-			CharmProfiles:     []string{"profile1"},
 		}},
 	}
 	results := params.ErrorResults{
@@ -515,7 +514,7 @@ func (s *provisionerSuite) TestSetInstanceInfo(c *tc.C) {
 
 	err := machine.SetInstanceInfo(
 		c.Context(),
-		"i-will", "my machine", "fake_nonce", &hwChars, nil, volumes, volumeAttachments, []string{"profile1"},
+		"i-will", "my machine", "fake_nonce", &hwChars, nil, volumes, volumeAttachments,
 	)
 	c.Assert(err, tc.ErrorIsNil)
 }

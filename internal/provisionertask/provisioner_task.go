@@ -108,9 +108,13 @@ type RetryStrategy struct {
 // so it can be used when we don't have a machine service available.
 type GetMachineInstanceInfoSetter func(machineProvisioner apiprovisioner.MachineProvisioner) func(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	characteristics *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error
 
 // TaskConfig holds the initialisation data for a ProvisionerTask instance.
@@ -1443,7 +1447,7 @@ func (task *provisionerTask) doStartMachine(
 	// they are implemented as a dqlite domain.
 	// Gather the charm LXD profile names, including the lxd profile names from
 	// the container brokers.
-	charmLXDProfiles, err := task.gatherCharmLXDProfiles(
+	_, err = task.gatherCharmLXDProfiles(
 		ctx,
 		instanceID.String(), machine.Tag().Id(), startInstanceParams.CharmLXDProfiles)
 	if err != nil {
@@ -1459,7 +1463,6 @@ func (task *provisionerTask) doStartMachine(
 		networkConfig,
 		volumes,
 		volumeNameToAttachmentInfo,
-		charmLXDProfiles,
 	); err != nil {
 		// We need to stop the instance right away here, set error status and go on.
 		if err2 := task.setErrorStatus(ctx, "cannot register instance for machine %v: %v", machine, err); err2 != nil {

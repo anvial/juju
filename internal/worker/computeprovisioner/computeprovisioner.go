@@ -189,15 +189,23 @@ func (p *environProvisioner) getStartTask(ctx context.Context, workerCount int) 
 // provisioner is used on the controller where it's available.
 func (p *environProvisioner) machineInstanceInfoSetter(machineProvisioner apiprovisioner.MachineProvisioner) func(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, hc *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	hc *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error {
 	return func(
 		ctx context.Context,
-		id instance.Id, displayName string, nonce string, hc *instance.HardwareCharacteristics,
-		networkConfig []params.NetworkConfig, volumes []params.Volume,
-		volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+		id instance.Id,
+		displayName string,
+		nonce string,
+		hc *instance.HardwareCharacteristics,
+		networkConfig []params.NetworkConfig,
+		volumes []params.Volume,
+		volumeAttachments map[string]params.VolumeAttachmentInfo,
 	) error {
 		machineName := coremachine.Name(machineProvisioner.Tag().Id())
 		machineUUID, err := p.machineService.GetMachineUUID(ctx, machineName)
