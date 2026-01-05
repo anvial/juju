@@ -813,21 +813,6 @@ func (api *ProvisionerAPI) SetInstanceInfo(ctx context.Context, args params.Inst
 			)
 		}
 
-		err = api.machineService.SetAppliedLXDProfileNames(ctx, machineUUID, arg.CharmProfiles)
-		switch {
-		case errors.Is(err, machineerrors.MachineNotFound):
-			return errors.Errorf("machine %q not found", tag.Id()).Add(
-				coreerrors.NotFound,
-			)
-		case errors.Is(err, machineerrors.NotProvisioned):
-			return errors.Errorf("machine %q is not provisioned", tag.Id()).Add(
-				coreerrors.NotProvisioned,
-			)
-		case err != nil:
-			return errors.Errorf(
-				"setting lxd profiles for machine %q: %w", tag.Id(), err,
-			)
-		}
 		return nil
 	}
 	for i, arg := range args.Machines {

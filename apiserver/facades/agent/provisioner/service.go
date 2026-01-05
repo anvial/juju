@@ -99,11 +99,6 @@ type MachineService interface {
 	// AllMachineNames returns the names of all machines in the model.
 	AllMachineNames(context.Context) ([]coremachine.Name, error)
 
-	// SetAppliedLXDProfileNames sets the list of LXD profile names to the
-	// lxd_profile table for the given machine. This method will overwrite the
-	// list of profiles for the given machine without any checks.
-	SetAppliedLXDProfileNames(ctx context.Context, mUUID coremachine.UUID, profileNames []string) error
-
 	// AvailabilityZone returns the availability zone for the specified machine.
 	//
 	// The following errors may be returned:

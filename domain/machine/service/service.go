@@ -124,11 +124,6 @@ type State interface {
 	// machine.
 	AppliedLXDProfileNames(ctx context.Context, mUUID string) ([]string, error)
 
-	// SetAppliedLXDProfileNames sets the list of LXD profile names to the
-	// lxd_profile table for the given machine. This method will overwrite the
-	// list of profiles for the given machine without any checks.
-	SetAppliedLXDProfileNames(ctx context.Context, mUUID string, profileNames []string) error
-
 	// NamespaceForWatchMachineCloudInstance returns the namespace for watching
 	// machine cloud instance changes.
 	NamespaceForWatchMachineCloudInstance() string
@@ -159,9 +154,9 @@ type State interface {
 	// exist.
 	GetNamesForUUIDs(ctx context.Context, machineUUIDs []string) (map[machine.UUID]machine.Name, error)
 
-	// GetMachineArchesForApplication returns a map of machine names to their
-	// instance IDs. This will ignore non-provisioned machines or container
-	// machines.
+	// GetAllProvisionedMachineInstanceID returns a map of machine names to
+	// their instance IDs. This will ignore non-provisioned machines or
+	// container machines.
 	GetAllProvisionedMachineInstanceID(ctx context.Context) (map[machine.Name]string, error)
 
 	// SetMachineHostname sets the hostname for the given machine.
@@ -180,8 +175,8 @@ type State interface {
 	// (non-subordinate) applications for the specified machine.
 	GetMachinePrincipalApplications(ctx context.Context, mName machine.Name) ([]string, error)
 
-	// GetMachinePlacement returns the placement structure as it was recorded
-	// for the given machine.
+	// GetMachinePlacementDirective returns the placement structure as it was
+	// recorded for the given machine.
 	GetMachinePlacementDirective(ctx context.Context, mName string) (*string, error)
 
 	// GetMachineConstraints returns the constraints for the given machine.
@@ -411,18 +406,6 @@ func (s *Service) AppliedLXDProfileNames(ctx context.Context, mUUID machine.UUID
 		return nil, errors.Capture(err)
 	}
 	return profiles, nil
-}
-
-// SetAppliedLXDProfileNames sets the list of LXD profile names to the
-// lxd_profile table for the given machine. This method will overwrite the list
-// of profiles for the given machine without any checks.
-// [machineerrors.MachineNotFound] will be returned if the machine does not
-// exist.
-func (s *Service) SetAppliedLXDProfileNames(ctx context.Context, mUUID machine.UUID, profileNames []string) error {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	return errors.Capture(s.st.SetAppliedLXDProfileNames(ctx, mUUID.String(), profileNames))
 }
 
 // GetAllProvisionedMachineInstanceID returns all provisioned machine
