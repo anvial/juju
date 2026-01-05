@@ -345,23 +345,37 @@ func (s *watcherSuite) TestWatchDeletedForAppOwnedSecret(c *tc.C) {
 	})
 
 	harness.AddTest(c, func(c *tc.C) {
-		removeSecrets(c, ctx, st,
-			// Delete the application owned secret.
-			secretRev{uri: uri1},
-			// Delete an application owned revision.
-			secretRev{uri: uri2, revs: []int{1}},
-			// Delete the unit owned secret.
-			secretRev{uri: uri3},
-		)
+		// Delete the application owned secret.
+		err := st.DeleteSecret(ctx, uri1, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
 			watchertest.StringSliceAssert(
-				// We only receive the application owned secret events.
 				uri1.ID,
-				uri2.ID+"/1",
 			),
 		)
 	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete an application owned revision.
+		err := st.DeleteSecret(ctx, uri2, []int{1})
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert(
+				uri2.ID + "/1",
+			),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete the unit owned secret.
+		err := st.DeleteSecret(ctx, uri3, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.AssertNoChange()
+	})
+
 	harness.Run(c, []string(nil))
 }
 
@@ -395,32 +409,55 @@ func (s *watcherSuite) TestWatchDeletedSecretRemovesRevisionFromChangeSet(c *tc.
 		err := createCharmApplicationSecret(ctx, st, 1, uri1, "mysql", sp)
 		c.Assert(err, tc.ErrorIsNil)
 
-		// Create another app owned secret with an extra revision.
+		// Create another app owned secret with a few extra revisions.
 		sp.RevisionID = ptr(uuid.MustNewUUID().String())
 		err = createCharmApplicationSecret(ctx, st, 1, uri2, "mysql", sp)
 		c.Assert(err, tc.ErrorIsNil)
+		createNewRevision(c, st, uri2)
 		createNewRevision(c, st, uri2)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.AssertNoChange()
 	})
 
 	harness.AddTest(c, func(c *tc.C) {
-		removeSecrets(c, ctx, st,
-			// Delete the application owned secret.
-			secretRev{uri: uri1},
-			// Delete an application owned revision.
-			secretRev{uri: uri2, revs: []int{1}},
-			// Delete the secret for the above revision.
-			secretRev{uri: uri2},
-		)
+		// Delete the application owned secret.
+		err := st.DeleteSecret(ctx, uri1, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
 			watchertest.StringSliceAssert(
 				uri1.ID,
+			),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete few application owned revisions.
+		err := st.DeleteSecret(ctx, uri2, []int{1, 3})
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert(
+				uri2.ID+"/1",
+				uri2.ID+"/3",
+			),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete the extra revision of the above secret
+		err := st.DeleteSecret(ctx, uri2, []int{2})
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert(
+				// the latest revision has been removed, so the whole secret is
+				// reported in event
 				uri2.ID,
 			),
 		)
 	})
+
 	harness.Run(c, []string(nil))
 }
 
@@ -463,16 +500,20 @@ func (s *watcherSuite) TestWatchDeletedForUnitsOwnedSecret(c *tc.C) {
 	})
 
 	harness.AddTest(c, func(c *tc.C) {
-		removeSecrets(c, ctx, st,
-			// Delete the application owned secret.
-			secretRev{uri: uri1},
-			// Delete the unit owned secret.
-			secretRev{uri: uri2},
-		)
+		// Delete the application owned secret.
+		err := st.DeleteSecret(ctx, uri1, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.AssertNoChange()
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete the unit owned secret.
+		err := st.DeleteSecret(ctx, uri2, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
 			watchertest.StringSliceAssert(
-				// We only receive the unit owned secret event.
 				uri2.ID,
 			),
 		)
@@ -1024,23 +1065,6 @@ func createCharmUnitSecret(ctx context.Context, st *state.State, version int, ur
 		}
 		return st.CreateCharmUnitSecret(ctx, version, uri, unitUUID, secret)
 	})
-}
-
-type secretRev struct {
-	uri  *coresecrets.URI
-	revs []int
-}
-
-func removeSecrets(c *tc.C, ctx context.Context, st *state.State, secrets ...secretRev) {
-	err := st.RunAtomic(ctx, func(ctx domain.AtomicContext) error {
-		for _, sr := range secrets {
-			if err := st.DeleteSecret(ctx, sr.uri, sr.revs); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	c.Assert(err, tc.ErrorIsNil)
 }
 
 type stubCharm struct{}

@@ -18,7 +18,6 @@ import (
 	coresecrets "github.com/juju/juju/core/secrets"
 	coreunit "github.com/juju/juju/core/unit"
 	unittesting "github.com/juju/juju/core/unit/testing"
-	"github.com/juju/juju/domain"
 	"github.com/juju/juju/domain/application/charm"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/life"
@@ -3771,9 +3770,7 @@ func (s *stateSuite) TestDeleteSomeRevisions(c *tc.C) {
 	err = s.state.UpdateSecret(ctx, uri, sp3)
 	c.Assert(err, tc.ErrorIsNil)
 
-	err = s.state.RunAtomic(c.Context(), func(ctx domain.AtomicContext) error {
-		return s.state.DeleteSecret(ctx, uri, []int{2})
-	})
+	err = s.state.DeleteSecret(c.Context(), uri, []int{2})
 	c.Assert(err, tc.ErrorIsNil)
 
 	_, revs, err := s.state.GetSecretByURI(ctx, *uri, ptr(1))
@@ -3834,9 +3831,7 @@ func (s *stateSuite) assertDeleteAllRevisions(c *tc.C, revs []int) {
 	err = s.createCharmApplicationSecret(c, 1, uri2, "mysql", sp)
 	c.Assert(err, tc.ErrorIsNil)
 
-	err = s.state.RunAtomic(c.Context(), func(ctx domain.AtomicContext) error {
-		return s.state.DeleteSecret(ctx, uri, revs)
-	})
+	err = s.state.DeleteSecret(c.Context(), uri, revs)
 	c.Assert(err, tc.ErrorIsNil)
 
 	for r := 1; r <= 3; r++ {

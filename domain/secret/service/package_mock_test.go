@@ -517,7 +517,7 @@ func (c *MockStateDeleteObsoleteUserSecretRevisionsCall) DoAndReturn(f func(cont
 }
 
 // DeleteSecret mocks base method.
-func (m *MockState) DeleteSecret(arg0 domain.AtomicContext, arg1 *secrets.URI, arg2 []int) error {
+func (m *MockState) DeleteSecret(arg0 context.Context, arg1 *secrets.URI, arg2 []int) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteSecret", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -543,13 +543,13 @@ func (c *MockStateDeleteSecretCall) Return(arg0 error) *MockStateDeleteSecretCal
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateDeleteSecretCall) Do(f func(domain.AtomicContext, *secrets.URI, []int) error) *MockStateDeleteSecretCall {
+func (c *MockStateDeleteSecretCall) Do(f func(context.Context, *secrets.URI, []int) error) *MockStateDeleteSecretCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateDeleteSecretCall) DoAndReturn(f func(domain.AtomicContext, *secrets.URI, []int) error) *MockStateDeleteSecretCall {
+func (c *MockStateDeleteSecretCall) DoAndReturn(f func(context.Context, *secrets.URI, []int) error) *MockStateDeleteSecretCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

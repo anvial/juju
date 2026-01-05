@@ -3394,16 +3394,17 @@ type (
 
 // DeleteSecret deletes the specified secret revisions.
 // If revisions is nil the last remaining revisions are removed.
-func (st State) DeleteSecret(ctx domain.AtomicContext, uri *coresecrets.URI, revs []int) error {
-	err := domain.Run(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		var err error
-		_, err = st.deleteSecretRevisions(ctx, tx, uri, revs)
-		return errors.Capture(err)
-	})
+func (st State) DeleteSecret(ctx context.Context, uri *coresecrets.URI, revs []int) error {
+	db, err := st.DB(ctx)
 	if err != nil {
 		return errors.Capture(err)
 	}
-	return nil
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		_, err := st.deleteSecretRevisions(ctx, tx, uri, revs)
+		return errors.Capture(err)
+	})
+	return errors.Capture(err)
 }
 
 // DeleteObsoleteUserSecretRevisions deletes the obsolete user secret revisions.

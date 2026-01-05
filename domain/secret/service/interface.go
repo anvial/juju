@@ -25,7 +25,6 @@ import (
 type AtomicState interface {
 	domain.AtomicStateBase
 
-	DeleteSecret(ctx domain.AtomicContext, uri *secrets.URI, revs []int) error
 	GetApplicationUUID(ctx domain.AtomicContext, appName string) (coreapplication.UUID, error)
 	GetUnitUUID(ctx domain.AtomicContext, name coreunit.Name) (coreunit.UUID, error)
 
@@ -49,6 +48,7 @@ type State interface {
 	AtomicState
 
 	GetModelUUID(ctx context.Context) (coremodel.UUID, error)
+	DeleteSecret(ctx context.Context, uri *secrets.URI, revs []int) error
 	DeleteObsoleteUserSecretRevisions(ctx context.Context) ([]string, error)
 	GetSecret(ctx context.Context, uri *secrets.URI) (*secrets.SecretMetadata, error)
 	GetLatestRevision(ctx context.Context, uri *secrets.URI) (int, error)
