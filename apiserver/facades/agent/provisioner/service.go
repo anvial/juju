@@ -139,12 +139,6 @@ type MachineService interface {
 	// GetMachineBase returns the base for the given machine.
 	GetMachineBase(ctx context.Context, mName coremachine.Name) (base.Base, error)
 
-	// UpdateLXDProfiles writes LXD Profiles to LXC for applications on the
-	// given machine if the providers supports it. A slice of profile names
-	// is returned. If the provider does not support LXDProfiles, no error
-	// is returned.
-	UpdateLXDProfiles(ctx context.Context, modelName string, modelUUID model.UUID, machineID string) ([]string, error)
-
 	// GetBootstrapEnviron returns the bootstrap environ.
 	GetBootstrapEnviron(ctx context.Context) (environs.BootstrapEnviron, error)
 }
