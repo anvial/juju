@@ -75,7 +75,6 @@ func NewWatchableService(
 	st State,
 	watcherFactory WatcherFactory,
 	providerGetter providertracker.ProviderGetter[Provider],
-	lxdProfileProviderGetter providertracker.ProviderGetter[LXDProfileProvider],
 	statusHistory StatusHistory,
 	clock clock.Clock,
 	logger logger.Logger,
@@ -88,8 +87,7 @@ func NewWatchableService(
 				clock:         clock,
 				logger:        logger,
 			},
-			providerGetter:           providerGetter,
-			lxdProfileProviderGetter: lxdProfileProviderGetter,
+			providerGetter: providerGetter,
 		},
 		watcherFactory: watcherFactory,
 	}
