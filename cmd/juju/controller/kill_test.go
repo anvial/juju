@@ -24,7 +24,8 @@ import (
 	"github.com/juju/juju/cmd/juju/controller"
 	"github.com/juju/juju/core/life"
 	"github.com/juju/juju/environs"
-	_ "github.com/juju/juju/internal/provider/dummy"
+	environscloudspec "github.com/juju/juju/environs/cloudspec"
+	"github.com/juju/juju/internal/provider/dummy"
 	coretesting "github.com/juju/juju/testing"
 )
 
@@ -376,6 +377,31 @@ func (s *KillSuite) TestKillWithAPIConnection(c *gc.C) {
 	_, err := s.runKillCommand(c, "test1", "--no-prompt")
 	c.Assert(err, jc.ErrorIsNil)
 	s.api.CheckCallNames(c, "DestroyController", "AllModels", "ModelStatus", "Close")
+	destroyStorage := true
+	s.api.CheckCall(c, 0, "DestroyController", apicontroller.DestroyControllerParams{
+		DestroyModels:  true,
+		DestroyStorage: &destroyStorage,
+	})
+	checkControllerRemovedFromStore(c, "test1", s.store)
+}
+
+func (s *KillSuite) TestKillWithNoCloudCredential(c *gc.C) {
+	s.api.cloud.Credential = nil
+	s.api.hostedConfig = []apicontroller.HostedConfig{{
+		Name:   "test",
+		Owner:  names.NewUserTag("fred"),
+		Config: dummy.SampleConfig(),
+		CloudSpec: environscloudspec.CloudSpec{
+			Type: "ec2",
+			Name: "test",
+		},
+	}}
+	m1 := s.api.envStatus[test1UUID]
+	m1.HostedMachineCount = 666
+	s.api.envStatus[test1UUID] = m1
+	_, err := s.runKillCommand(c, "test1", "--no-prompt", "-t", "0")
+	c.Assert(err, jc.ErrorIsNil)
+	s.api.CheckCallNames(c, "DestroyController", "AllModels", "ModelStatus", "HostedModelConfigs", "ControllerConfig", "Close")
 	destroyStorage := true
 	s.api.CheckCall(c, 0, "DestroyController", apicontroller.DestroyControllerParams{
 		DestroyModels:  true,
