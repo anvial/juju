@@ -19,7 +19,6 @@ import (
 	"github.com/juju/juju/core/status"
 	"github.com/juju/juju/core/unit"
 	"github.com/juju/juju/core/watcher"
-	"github.com/juju/juju/domain/application/charm"
 	"github.com/juju/juju/domain/cloudimagemetadata"
 	domainnetwork "github.com/juju/juju/domain/network"
 	domainstorage "github.com/juju/juju/domain/storage"
@@ -27,7 +26,6 @@ import (
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/environs/simplestreams"
-	internalcharm "github.com/juju/juju/internal/charm"
 )
 
 // AgentProvisionerService provides access to container config.
@@ -246,16 +244,6 @@ type KeyUpdaterService interface {
 
 // ApplicationService instances implement an application service.
 type ApplicationService interface {
-	// GetCharmLocatorByApplicationName returns a CharmLocator by application name.
-	// It returns an error if the charm can not be found by the name. This can also
-	// be used as a cheap way to see if a charm exists without needing to load the
-	// charm metadata.
-	GetCharmLocatorByApplicationName(ctx context.Context, name string) (charm.CharmLocator, error)
-
-	// GetCharmLXDProfile returns the LXD profile along with the revision of the
-	// charm using the charm name, source and revision.
-	GetCharmLXDProfile(context.Context, charm.CharmLocator) (internalcharm.LXDProfile, charm.Revision, error)
-
 	// GetUnitNamesOnMachine returns a slice of the unit names on the given machine.
 	GetUnitNamesOnMachine(context.Context, coremachine.Name) ([]unit.Name, error)
 

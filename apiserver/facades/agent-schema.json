@@ -4233,17 +4233,6 @@
                         }
                     }
                 },
-                "GetContainerProfileInfo": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/Entities"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ContainerProfileResults"
-                        }
-                    }
-                },
                 "HostChangesForContainers": {
                     "type": "object",
                     "properties": {
@@ -4681,41 +4670,6 @@
                         "result"
                     ]
                 },
-                "CharmLXDProfile": {
-                    "type": "object",
-                    "properties": {
-                        "config": {
-                            "type": "object",
-                            "patternProperties": {
-                                ".*": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "devices": {
-                            "type": "object",
-                            "patternProperties": {
-                                ".*": {
-                                    "type": "object",
-                                    "patternProperties": {
-                                        ".*": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "config",
-                        "description",
-                        "devices"
-                    ]
-                },
                 "CloudImageMetadata": {
                     "type": "object",
                     "properties": {
@@ -4857,22 +4811,6 @@
                         "UpdateBehavior"
                     ]
                 },
-                "ContainerLXDProfile": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string"
-                        },
-                        "profile": {
-                            "$ref": "#/definitions/CharmLXDProfile"
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "profile",
-                        "name"
-                    ]
-                },
                 "ContainerManagerConfig": {
                     "type": "object",
                     "properties": {
@@ -4900,36 +4838,6 @@
                     "additionalProperties": false,
                     "required": [
                         "type"
-                    ]
-                },
-                "ContainerProfileResult": {
-                    "type": "object",
-                    "properties": {
-                        "error": {
-                            "$ref": "#/definitions/Error"
-                        },
-                        "lxd-profiles": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ContainerLXDProfile"
-                            }
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "ContainerProfileResults": {
-                    "type": "object",
-                    "properties": {
-                        "results": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ContainerProfileResult"
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "results"
                     ]
                 },
                 "ControllerAPIInfoResult": {
