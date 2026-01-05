@@ -105,9 +105,6 @@ type MachineProvisioner interface {
 
 	// SupportedContainers returns a list of containers supported by this machine.
 	SupportedContainers(ctx context.Context) ([]instance.ContainerType, bool, error)
-
-	// SetCharmProfiles records the given slice of charm profile names.
-	SetCharmProfiles(context.Context, []string) error
 }
 
 // Machine represents a juju machine as seen by the provisioner worker.
@@ -472,29 +469,4 @@ func (m *Machine) SupportedContainers(ctx context.Context) ([]instance.Container
 	}
 	result := results.Results[0]
 	return result.ContainerTypes, result.Determined, nil
-}
-
-// SetCharmProfiles implements MachineProvisioner.SetCharmProfiles.
-func (m *Machine) SetCharmProfiles(ctx context.Context, profiles []string) error {
-	var results params.ErrorResults
-	args := params.SetProfileArgs{
-		Args: []params.SetProfileArg{
-			{
-				Entity:   params.Entity{Tag: m.tag.String()},
-				Profiles: profiles,
-			},
-		},
-	}
-	err := m.st.facade.FacadeCall(ctx, "SetCharmProfiles", args, &results)
-	if err != nil {
-		return err
-	}
-	if len(results.Results) != 1 {
-		return fmt.Errorf("expected 1 result, got %d", len(results.Results))
-	}
-	result := results.Results[0]
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
 }

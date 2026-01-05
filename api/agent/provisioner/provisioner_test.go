@@ -542,28 +542,6 @@ func (s *provisionerSuite) TestAvailabilityZone(c *tc.C) {
 	c.Assert(zone, tc.Equals, "az-666")
 }
 
-func (s *provisionerSuite) TestSetCharmProfiles(c *tc.C) {
-	ctrl := gomock.NewController(c)
-	defer ctrl.Finish()
-
-	caller, machine := s.setupMachines(c, ctrl)
-
-	args := params.SetProfileArgs{
-		Args: []params.SetProfileArg{{
-			Entity:   params.Entity{Tag: "machine-666"},
-			Profiles: []string{"profile"},
-		}},
-	}
-	results := params.ErrorResults{
-		Results: []params.ErrorResult{{}},
-	}
-
-	s.expectCall(caller, "SetCharmProfiles", args, results)
-
-	err := machine.SetCharmProfiles(c.Context(), []string{"profile"})
-	c.Assert(err, tc.ErrorIsNil)
-}
-
 func (s *provisionerSuite) TestKeepInstance(c *tc.C) {
 	ctrl := gomock.NewController(c)
 	defer ctrl.Finish()
