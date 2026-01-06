@@ -1,7 +1,7 @@
 (hook-command-payload-unregister)=
 # `payload-unregister`
 ## Summary
-Stop tracking a payload.
+Stops tracking a payload.
 
 ## Usage
 ``` payload-unregister [options] <class> <id>```
@@ -13,7 +13,7 @@ Stop tracking a payload.
 
 ## Details
 
-"payload-unregister" is used while a hook is running to let Juju know
-that a payload has been manually stopped. The &lt;class&gt; and &lt;id&gt; provided
+`payload-unregister` is used while a hook is running to let Juju know
+that a payload has been manually stopped. The `<class>` and `<id>` provided
 must match a payload that has been previously registered with juju using
-payload-register.
+`payload-register`.

@@ -34,7 +34,7 @@ func (c *K8sSpecSetCommand) Info() *cmd.Info {
 Sets configuration data to use for k8s resources.
 The spec applies to all units for the application.
 `
-	purpose := "Set k8s spec information."
+	purpose := "Sets Kubernetes spec information."
 	if c.name == "pod-spec-set" {
 		purpose += " (deprecated)"
 	}
@@ -53,8 +53,8 @@ The spec applies to all units for the application.
 func (c *K8sSpecSetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.specFile.SetStdin()
 	c.specFile.Path = "-"
-	f.Var(&c.specFile, "file", "file containing pod spec")
-	f.Var(&c.k8sResources, "k8s-resources", "file containing k8s specific resources not yet modelled by Juju")
+	f.Var(&c.specFile, "file", "Specifies the file containing the pod spec.")
+	f.Var(&c.k8sResources, "k8s-resources", "Specifies the file containing Kubernetes-specific resources not yet modelled by Juju.")
 }
 
 func (c *K8sSpecSetCommand) Init(args []string) error {

@@ -27,16 +27,19 @@ func NewConfigGetCommand(ctx Context) (cmd.Command, error) {
 
 func (c *ConfigGetCommand) Info() *cmd.Info {
 	doc := `
-config-get returns information about the application configuration
-(as defined by config.yaml). If called without arguments, it returns
-a dictionary containing all config settings that are either explicitly
-set, or which have a non-nil default value. If the --all flag is passed,
-it returns a dictionary containing all defined config settings including
-nil values (for those without defaults). If called with a single argument,
-it returns the value of that config key. Missing config keys are reported
-as nulls, and do not return an error.
+` + "`config-get`" + ` returns information about the application configuration
+(as defined by ` + "`config.yaml`" + `).
 
-<key> and --all are mutually exclusive.
+If called without arguments, it returns a dictionary containing all config settings
+that are either explicitly set, or which have a non-nil default value.
+
+If the ` + "`--all`" + ` flag is passed, it returns a dictionary containing all defined
+config settings including nil values (for those without defaults).
+
+If called with a single argument, it returns the value of that config key.
+Missing config keys are reported as nulls, and do not return an error.
+
+` + "`<key>`" + ` and ` + "`--all`" + ` are mutually exclusive.
 `
 	examples := `
     INTERVAL=$(config-get interval)
@@ -46,7 +49,7 @@ as nulls, and do not return an error.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "config-get",
 		Args:     "[<key>]",
-		Purpose:  "Print application configuration.",
+		Purpose:  "Prints application configuration.",
 		Doc:      doc,
 		Examples: examples,
 	})
@@ -54,7 +57,7 @@ as nulls, and do not return an error.
 
 func (c *ConfigGetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.out.AddFlags(f, "smart", cmd.DefaultFormatters.Formatters())
-	f.BoolVar(&c.All, "a", false, "print all keys")
+	f.BoolVar(&c.All, "a", false, "Prints all keys.")
 	f.BoolVar(&c.All, "all", false, "")
 }
 

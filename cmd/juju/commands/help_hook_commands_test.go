@@ -48,51 +48,51 @@ Juju charms have access to a set of built-in helpers known as 'hook-commands,'
 which allow them to inspect their runtime environment.
 The currently available charm hook commands include:
 
-    application-version-set  Specify which version of the application is deployed.
-    close-port               Register a request to close a port or port range.
-    config-get               Print application configuration.
-    credential-get           Access cloud credentials.
-    goal-state               Print the status of the charm's peers and related units.
-    is-leader                Print application leadership status.
-    juju-log                 Write a message to the juju log.
-    juju-reboot              Reboot the host machine.
-    k8s-raw-get              Get k8s raw spec information.
-    k8s-raw-set              Set k8s raw spec information.
-    k8s-spec-get             Get k8s spec information.
-    k8s-spec-set             Set k8s spec information.
-    leader-get               Print application leadership settings.
-    leader-set               Write application leadership settings.
-    network-get              Get network config.
-    open-port                Register a request to open a port or port range.
-    opened-ports             List all ports or port ranges opened by the unit.
-    payload-register         Register a charm payload with Juju.
-    payload-status-set       Update the status of a payload.
-    payload-unregister       Stop tracking a payload.
-    pod-spec-get             Get k8s spec information. (deprecated)
-    pod-spec-set             Set k8s spec information. (deprecated)
+    application-version-set  Specifies which version of the application is deployed.
+    close-port               Registers a request to close a port or port range.
+    config-get               Prints application configuration.
+    credential-get           Accesses cloud credentials.
+    goal-state               Prints the status of the charm's peers and related units.
+    is-leader                Prints application leadership status.
+    juju-log                 Writes a message to Juju logs.
+    juju-reboot              Reboots the host machine.
+    k8s-raw-get              Gets Kubernetes raw spec information.
+    k8s-raw-set              Sets k8s raw spec information.
+    k8s-spec-get             Gets Kubernetes spec information.
+    k8s-spec-set             Sets Kubernetes spec information.
+    leader-get               Prints application leadership settings.
+    leader-set               Writes application leadership settings.
+    network-get              Gets network config.
+    open-port                Registers a request to open a port or port range.
+    opened-ports             Lists all ports or port ranges opened by the unit.
+    payload-register         Registers a charm payload with Juju.
+    payload-status-set       Updates the status of a payload.
+    payload-unregister       Stops tracking a payload.
+    pod-spec-get             Gets Kubernetes spec information. (deprecated)
+    pod-spec-set             Sets Kubernetes spec information. (deprecated)
     relation-get             Get relation settings.
-    relation-ids             List all relation IDs for the given endpoint.
-    relation-list            List relation units.
-    relation-model-get       Get details about the model hosing a related application.
-    relation-set             Set relation settings.
-    resource-get             Get the path to the locally cached resource file.
-    secret-add               Add a new secret.
-    secret-get               Get the content of a secret.
-    secret-grant             Grant access to a secret.
-    secret-ids               Print secret IDs.
-    secret-info-get          Get a secret's metadata info.
-    secret-remove            Remove an existing secret.
-    secret-revoke            Revoke access to a secret.
-    secret-set               Update an existing secret.
-    state-delete             Delete server-side-state key value pairs.
-    state-get                Print server-side-state value.
-    state-set                Set server-side-state values.
-    status-get               Print status information.
-    status-set               Set status information.
-    storage-add              Add storage instances.
-    storage-get              Print information for the storage instance with the specified ID.
-    storage-list             List storage attached to the unit.
-    unit-get                 Print public-address or private-address.
+    relation-ids             Lists all relation IDs for the given endpoint.
+    relation-list            Lists relation units.
+    relation-model-get       Gets details about the model housing a related application.
+    relation-set             Sets relation settings.
+    resource-get             Gets the path to the locally cached resource file.
+    secret-add               Adds a new secret.
+    secret-get               Gets the content of a secret.
+    secret-grant             Grants access to a secret.
+    secret-ids               Prints secret IDs.
+    secret-info-get          Gets a secret's metadata info.
+    secret-remove            Removes an existing secret.
+    secret-revoke            Revokes access to a secret.
+    secret-set               Updates an existing secret.
+    state-delete             Deletes server-side-state key-value pairs.
+    state-get                Prints server-side-state value.
+    state-set                Sets server-side-state values.
+    status-get               Prints status information.
+    status-set               Sets status information.
+    storage-add              Adds storage instances.
+    storage-get              Prints information for the storage instance with the specified ID.
+    storage-list             Lists storage attached to the unit.
+    unit-get                 Prints public-address or private-address.
 
 Examples:
 
@@ -175,6 +175,6 @@ Options:
 (.|\n)*
 
 Details:
-relation-get prints the value(.|\n)*`
+` + "`relation-get`" + ` prints the value(.|\n)*`
 	c.Assert(output, gc.Matches, expectedHelp)
 }
