@@ -15,7 +15,6 @@ import (
 	application "github.com/juju/juju/core/application"
 	offer "github.com/juju/juju/core/offer"
 	relation "github.com/juju/juju/core/relation"
-	params "github.com/juju/juju/rpc/params"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -215,49 +214,49 @@ func (m *MockRelationChangesWatcher) EXPECT() *MockRelationChangesWatcherMockRec
 	return m.recorder
 }
 
-// ApplicationToken mocks base method.
-func (m *MockRelationChangesWatcher) ApplicationToken() application.UUID {
+// ApplicationUUID mocks base method.
+func (m *MockRelationChangesWatcher) ApplicationUUID() application.UUID {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplicationToken")
+	ret := m.ctrl.Call(m, "ApplicationUUID")
 	ret0, _ := ret[0].(application.UUID)
 	return ret0
 }
 
-// ApplicationToken indicates an expected call of ApplicationToken.
-func (mr *MockRelationChangesWatcherMockRecorder) ApplicationToken() *MockRelationChangesWatcherApplicationTokenCall {
+// ApplicationUUID indicates an expected call of ApplicationUUID.
+func (mr *MockRelationChangesWatcherMockRecorder) ApplicationUUID() *MockRelationChangesWatcherApplicationUUIDCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplicationToken", reflect.TypeOf((*MockRelationChangesWatcher)(nil).ApplicationToken))
-	return &MockRelationChangesWatcherApplicationTokenCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplicationUUID", reflect.TypeOf((*MockRelationChangesWatcher)(nil).ApplicationUUID))
+	return &MockRelationChangesWatcherApplicationUUIDCall{Call: call}
 }
 
-// MockRelationChangesWatcherApplicationTokenCall wrap *gomock.Call
-type MockRelationChangesWatcherApplicationTokenCall struct {
+// MockRelationChangesWatcherApplicationUUIDCall wrap *gomock.Call
+type MockRelationChangesWatcherApplicationUUIDCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockRelationChangesWatcherApplicationTokenCall) Return(arg0 application.UUID) *MockRelationChangesWatcherApplicationTokenCall {
+func (c *MockRelationChangesWatcherApplicationUUIDCall) Return(arg0 application.UUID) *MockRelationChangesWatcherApplicationUUIDCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockRelationChangesWatcherApplicationTokenCall) Do(f func() application.UUID) *MockRelationChangesWatcherApplicationTokenCall {
+func (c *MockRelationChangesWatcherApplicationUUIDCall) Do(f func() application.UUID) *MockRelationChangesWatcherApplicationUUIDCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockRelationChangesWatcherApplicationTokenCall) DoAndReturn(f func() application.UUID) *MockRelationChangesWatcherApplicationTokenCall {
+func (c *MockRelationChangesWatcherApplicationUUIDCall) DoAndReturn(f func() application.UUID) *MockRelationChangesWatcherApplicationUUIDCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Changes mocks base method.
-func (m *MockRelationChangesWatcher) Changes() <-chan params.RelationUnitsChange {
+func (m *MockRelationChangesWatcher) Changes() <-chan struct{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Changes")
-	ret0, _ := ret[0].(<-chan params.RelationUnitsChange)
+	ret0, _ := ret[0].(<-chan struct{})
 	return ret0
 }
 
@@ -274,19 +273,19 @@ type MockRelationChangesWatcherChangesCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockRelationChangesWatcherChangesCall) Return(arg0 <-chan params.RelationUnitsChange) *MockRelationChangesWatcherChangesCall {
+func (c *MockRelationChangesWatcherChangesCall) Return(arg0 <-chan struct{}) *MockRelationChangesWatcherChangesCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockRelationChangesWatcherChangesCall) Do(f func() <-chan params.RelationUnitsChange) *MockRelationChangesWatcherChangesCall {
+func (c *MockRelationChangesWatcherChangesCall) Do(f func() <-chan struct{}) *MockRelationChangesWatcherChangesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockRelationChangesWatcherChangesCall) DoAndReturn(f func() <-chan params.RelationUnitsChange) *MockRelationChangesWatcherChangesCall {
+func (c *MockRelationChangesWatcherChangesCall) DoAndReturn(f func() <-chan struct{}) *MockRelationChangesWatcherChangesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -327,40 +326,40 @@ func (c *MockRelationChangesWatcherKillCall) DoAndReturn(f func()) *MockRelation
 	return c
 }
 
-// RelationToken mocks base method.
-func (m *MockRelationChangesWatcher) RelationToken() relation.UUID {
+// RelationUUID mocks base method.
+func (m *MockRelationChangesWatcher) RelationUUID() relation.UUID {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RelationToken")
+	ret := m.ctrl.Call(m, "RelationUUID")
 	ret0, _ := ret[0].(relation.UUID)
 	return ret0
 }
 
-// RelationToken indicates an expected call of RelationToken.
-func (mr *MockRelationChangesWatcherMockRecorder) RelationToken() *MockRelationChangesWatcherRelationTokenCall {
+// RelationUUID indicates an expected call of RelationUUID.
+func (mr *MockRelationChangesWatcherMockRecorder) RelationUUID() *MockRelationChangesWatcherRelationUUIDCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RelationToken", reflect.TypeOf((*MockRelationChangesWatcher)(nil).RelationToken))
-	return &MockRelationChangesWatcherRelationTokenCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RelationUUID", reflect.TypeOf((*MockRelationChangesWatcher)(nil).RelationUUID))
+	return &MockRelationChangesWatcherRelationUUIDCall{Call: call}
 }
 
-// MockRelationChangesWatcherRelationTokenCall wrap *gomock.Call
-type MockRelationChangesWatcherRelationTokenCall struct {
+// MockRelationChangesWatcherRelationUUIDCall wrap *gomock.Call
+type MockRelationChangesWatcherRelationUUIDCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockRelationChangesWatcherRelationTokenCall) Return(arg0 relation.UUID) *MockRelationChangesWatcherRelationTokenCall {
+func (c *MockRelationChangesWatcherRelationUUIDCall) Return(arg0 relation.UUID) *MockRelationChangesWatcherRelationUUIDCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockRelationChangesWatcherRelationTokenCall) Do(f func() relation.UUID) *MockRelationChangesWatcherRelationTokenCall {
+func (c *MockRelationChangesWatcherRelationUUIDCall) Do(f func() relation.UUID) *MockRelationChangesWatcherRelationUUIDCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockRelationChangesWatcherRelationTokenCall) DoAndReturn(f func() relation.UUID) *MockRelationChangesWatcherRelationTokenCall {
+func (c *MockRelationChangesWatcherRelationUUIDCall) DoAndReturn(f func() relation.UUID) *MockRelationChangesWatcherRelationUUIDCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

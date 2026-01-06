@@ -122,20 +122,23 @@ func (s *remoteRelationWatcherSuite) TestNext(c *tc.C) {
 	appUUID := tc.Must(c, application.NewUUID)
 	relUUID := tc.Must(c, relation.NewUUID)
 
-	changes := make(chan params.RelationUnitsChange, 1)
-	changes <- params.RelationUnitsChange{
-		Changed: map[string]params.UnitSettings{
-			"foo/1": {Version: 1},
-			"foo/2": {Version: 2},
-		},
-		AppChanged: map[string]int64{
-			"foo": 1,
-		},
-		Departed: []string{"foo/0"},
-	}
+	changes := make(chan struct{}, 1)
+	changes <- struct{}{}
 	s.watcher.EXPECT().Changes().Return(changes)
-	s.watcher.EXPECT().ApplicationToken().Return(appUUID)
-	s.watcher.EXPECT().RelationToken().Return(relUUID)
+	s.watcher.EXPECT().ApplicationUUID().Return(appUUID)
+	s.watcher.EXPECT().RelationUUID().Return(relUUID)
+
+	s.relationService.EXPECT().GetConsumerRelationUnitsChange(gomock.Any(), relUUID, appUUID).Return(
+		domainrelation.ConsumerRelationUnitsChange{
+			UnitsSettingsVersions: map[string]int64{
+				"foo/1": 1,
+				"foo/2": 2,
+			},
+			AppSettingsVersion: map[string]int64{
+				"foo": 1,
+			},
+			DepartedUnits: []string{"foo/0"},
+		}, nil)
 
 	inScopeUnitNames := []unit.Name{"foo/1", "foo/2", "foo/3"}
 	s.relationService.EXPECT().GetInScopeUnits(gomock.Any(), appUUID, relUUID).Return(inScopeUnitNames, nil)
@@ -183,17 +186,20 @@ func (s *remoteRelationWatcherSuite) TestNextNoApplicationSettingsChange(c *tc.C
 	appUUID := tc.Must(c, application.NewUUID)
 	relUUID := tc.Must(c, relation.NewUUID)
 
-	changes := make(chan params.RelationUnitsChange, 1)
-	changes <- params.RelationUnitsChange{
-		Changed: map[string]params.UnitSettings{
-			"foo/1": {Version: 1},
-			"foo/2": {Version: 2},
-		},
-		Departed: []string{"foo/0"},
-	}
+	changes := make(chan struct{}, 1)
+	changes <- struct{}{}
 	s.watcher.EXPECT().Changes().Return(changes)
-	s.watcher.EXPECT().ApplicationToken().Return(appUUID)
-	s.watcher.EXPECT().RelationToken().Return(relUUID)
+	s.watcher.EXPECT().ApplicationUUID().Return(appUUID)
+	s.watcher.EXPECT().RelationUUID().Return(relUUID)
+
+	s.relationService.EXPECT().GetConsumerRelationUnitsChange(gomock.Any(), relUUID, appUUID).Return(
+		domainrelation.ConsumerRelationUnitsChange{
+			UnitsSettingsVersions: map[string]int64{
+				"foo/1": 1,
+				"foo/2": 2,
+			},
+			DepartedUnits: []string{"foo/0"},
+		}, nil)
 
 	inScopeUnitNames := []unit.Name{"foo/1", "foo/2", "foo/3"}
 	s.relationService.EXPECT().GetInScopeUnits(gomock.Any(), appUUID, relUUID).Return(inScopeUnitNames, nil)

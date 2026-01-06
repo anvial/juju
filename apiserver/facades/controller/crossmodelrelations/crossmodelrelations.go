@@ -444,6 +444,34 @@ func (api *CrossModelRelationsAPIv3) registerOneRemoteRelation(
 	}, nil
 }
 
+// RelationChangesWatcher wraps a NotifyWatcher, providing methods to recall
+// the application and relation UUIDs associated with this watcher.
+type RelationChangesWatcher interface {
+	watcher.NotifyWatcher
+
+	// ApplicationUUID returns the application token of the relation.
+	ApplicationUUID() coreapplication.UUID
+
+	// RelationUUID returns the relation token of the relation.
+	RelationUUID() corerelation.UUID
+}
+
+type relationChangesWatcherShim struct {
+	watcher.NotifyWatcher
+	applicationUUID coreapplication.UUID
+	relationUUID    corerelation.UUID
+}
+
+// ApplicationUUID returns the application UUID for the RelationChangesWatcher.
+func (w *relationChangesWatcherShim) ApplicationUUID() coreapplication.UUID {
+	return w.applicationUUID
+}
+
+// RelationUUID returns the relation UUID for the RelationChangesWatcher.
+func (w *relationChangesWatcherShim) RelationUUID() corerelation.UUID {
+	return w.relationUUID
+}
+
 // WatchRelationChanges starts a RemoteRelationChangesWatcher for each
 // specified relation, returning the watcher IDs and initial values,
 // or an error if the remote relations couldn't be watched.
@@ -479,7 +507,7 @@ func (api *CrossModelRelationsAPIv3) WatchRelationChanges(
 func (api *CrossModelRelationsAPIv3) watchOneRelationChanges(
 	ctx context.Context,
 	arg params.RemoteEntityArg,
-) (RelationChangesWatcher, params.RemoteRelationChangeEvent, error) {
+) (*relationChangesWatcherShim, params.RemoteRelationChangeEvent, error) {
 	var empty params.RemoteRelationChangeEvent
 	// relationToken is the relation UUID.
 	relationToken := arg.Token
@@ -510,9 +538,10 @@ func (api *CrossModelRelationsAPIv3) watchOneRelationChanges(
 		return nil, empty, internalerrors.Errorf("getting initial change: %w", err)
 	}
 
-	wrapped, err := wrappedRelationChangesWatcher(w, applicationUUID, relationUUID, api.relationService)
-	if err != nil {
-		return nil, empty, internalerrors.Errorf("watching relation changes: %w", err)
+	wrapped := &relationChangesWatcherShim{
+		NotifyWatcher:   w,
+		applicationUUID: applicationUUID,
+		relationUUID:    relationUUID,
 	}
 
 	return wrapped, change, nil

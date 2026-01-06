@@ -219,19 +219,27 @@ func (w *srvRemoteRelationWatcher) Next(ctx context.Context) (params.RemoteRelat
 	select {
 	case <-ctx.Done():
 		return params.RemoteRelationWatchResult{}, ctx.Err()
-	case change, ok := <-w.watcher.Changes():
+	case _, ok := <-w.watcher.Changes():
 		if !ok {
 			return params.RemoteRelationWatchResult{}, apiservererrors.ErrStoppedWatcher
 		}
 
+		relationUUID := w.watcher.RelationUUID()
+		applicationUUID := w.watcher.ApplicationUUID()
+
+		// TODO: Consolidate service calls into a single method
+		change, err := w.relationService.GetConsumerRelationUnitsChange(ctx, relationUUID, applicationUUID)
+		if err != nil {
+			return params.RemoteRelationWatchResult{
+				Error: apiservererrors.ServerError(err),
+			}, nil
+		}
+
 		var departed []int
-		for _, unitName := range change.Departed {
+		for _, unitName := range change.DepartedUnits {
 			num := unit.Name(unitName).Number()
 			departed = append(departed, num)
 		}
-
-		relationUUID := w.watcher.RelationToken()
-		applicationUUID := w.watcher.ApplicationToken()
 
 		inScopeUnitNames, err := w.relationService.GetInScopeUnits(ctx, applicationUUID, relationUUID)
 		if err != nil {
@@ -240,8 +248,8 @@ func (w *srvRemoteRelationWatcher) Next(ctx context.Context) (params.RemoteRelat
 			}, nil
 		}
 
-		changedUnitNames := transform.MapToSlice(change.Changed,
-			func(k string, _ params.UnitSettings) []unit.Name { return []unit.Name{unit.Name(k)} })
+		changedUnitNames := transform.MapToSlice(change.UnitsSettingsVersions,
+			func(k string, _ int64) []unit.Name { return []unit.Name{unit.Name(k)} })
 
 		changedUnitSettings, err := w.relationService.GetUnitSettingsForUnits(ctx, relationUUID, changedUnitNames)
 		if err != nil {
@@ -258,7 +266,7 @@ func (w *srvRemoteRelationWatcher) Next(ctx context.Context) (params.RemoteRelat
 			})
 
 		var appSettings map[string]string
-		if len(change.AppChanged) > 0 {
+		if len(change.AppSettingsVersion) > 0 {
 			var err error
 			appSettings, err = w.relationService.GetRelationApplicationSettings(ctx, relationUUID, applicationUUID)
 			if err != nil {
