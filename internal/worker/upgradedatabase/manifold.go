@@ -14,10 +14,16 @@ import (
 	"github.com/juju/juju/agent"
 	coredatabase "github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
+	"github.com/juju/juju/core/model"
 	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/internal/services"
 	"github.com/juju/juju/internal/worker/gate"
 )
+
+// UpgradeStep is a function that performs a single step in the database upgrade
+// process. It is provided with the controller and model databases to perform
+// any necessary migrations or transformations.
+type UpgradeStep func(ctx context.Context, controllerDB, modelDB coredatabase.TxnRunner, modelUUID model.UUID) error
 
 // ManifoldConfig defines the configuration on which this manifold depends.
 type ManifoldConfig struct {
@@ -28,6 +34,8 @@ type ManifoldConfig struct {
 	Clock               clock.Clock
 	NewWorker           func(Config) (worker.Worker, error)
 	UpgradeServicesName string
+
+	UpgradeSteps []UpgradeStep
 }
 
 // Validate returns an error if the manifold config is not valid.
@@ -38,7 +46,6 @@ func (cfg ManifoldConfig) Validate() error {
 	if cfg.UpgradeDBGateName == "" {
 		return errors.NotValidf("empty UpgradeDBGateName")
 	}
-
 	if cfg.DBAccessorName == "" {
 		return errors.NotValidf("empty DBAccessorName")
 	}
@@ -104,12 +111,13 @@ func Manifold(cfg ManifoldConfig) dependency.Manifold {
 					ServicesForController().ControllerNode(),
 				UpgradeService: upgradeServicesGetter.
 					ServicesForController().Upgrade(),
-				DBGetter:    dbGetter,
-				Tag:         currentConfig.Tag(),
-				FromVersion: fromVersion,
-				ToVersion:   toVersion,
-				Logger:      cfg.Logger,
-				Clock:       cfg.Clock,
+				UpgradeSteps: cfg.UpgradeSteps,
+				DBGetter:     dbGetter,
+				Tag:          currentConfig.Tag(),
+				FromVersion:  fromVersion,
+				ToVersion:    toVersion,
+				Logger:       cfg.Logger,
+				Clock:        cfg.Clock,
 			})
 		},
 	}

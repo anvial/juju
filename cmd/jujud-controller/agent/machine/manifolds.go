@@ -120,6 +120,7 @@ import (
 	"github.com/juju/juju/internal/worker/trace"
 	"github.com/juju/juju/internal/worker/undertaker"
 	"github.com/juju/juju/internal/worker/upgradedatabase"
+	databaseupgradesteps "github.com/juju/juju/internal/worker/upgradedatabase/upgradesteps"
 	"github.com/juju/juju/internal/worker/upgrader"
 	"github.com/juju/juju/internal/worker/upgradeservices"
 	"github.com/juju/juju/internal/worker/upgradesteps"
@@ -415,6 +416,10 @@ func commonManifolds(config ManifoldsConfig) dependency.Manifolds {
 			NewWorker:           upgradedatabase.NewUpgradeDatabaseWorker,
 			Logger:              internallogger.GetLogger("juju.worker.upgradedatabase"),
 			Clock:               config.Clock,
+			UpgradeSteps: []upgradedatabase.UpgradeStep{
+				// These can be dropped once we have a major or minor release.
+				databaseupgradesteps.Step0001_PatchModelConfigCloudType,
+			},
 		})),
 
 		// The upgrade services worker provides domain services for upgrading
