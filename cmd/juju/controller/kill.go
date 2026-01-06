@@ -293,6 +293,9 @@ func transformModelCloudSpecForInstanceRoles(
 	modelCloudSpec cloudspec.CloudSpec,
 	controllerCloudSpec cloudspec.CloudSpec,
 ) (cloudspec.CloudSpec, error) {
+	if modelCloudSpec.Credential == nil {
+		return modelCloudSpec, nil
+	}
 	authType := modelCloudSpec.Credential.AuthType()
 	var notSupportedAuthType bool
 	switch modelCloudSpec.Type {
