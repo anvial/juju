@@ -20,6 +20,10 @@ JOIN  cloud AS c ON m.cloud_id = c.id
 JOIN cloud_type AS ct ON c.cloud_type_id = ct.id
 WHERE m.uuid = $uuid.uuid;
 `, cloudType{}, uuid{})
+	updateModelDBCloudType = sqlair.MustPrepare(`
+INSERT INTO model_config (key, value) VALUES ('type', $cloudType.type)
+ON CONFLICT(key) DO UPDATE SET value = $cloudType.type
+  `, cloudType{})
 )
 
 // Step0001_PatchModelConfigCloudType assigns the cloud type to existing
@@ -35,7 +39,9 @@ func Step0001_PatchModelConfigCloudType(ctx context.Context, controllerDB, model
 		return err
 	}
 
-	return nil
+	return modelDB.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		return tx.Query(ctx, updateModelDBCloudType, ct).Run()
+	})
 }
 
 type cloudType struct {
