@@ -15,10 +15,10 @@ import (
 var (
 	getCloudTypeQuery = sqlair.MustPrepare(`
 SELECT ct.type AS &cloudType.type
-FROM  model AS m
-JOIN  cloud AS c ON m.cloud_id = c.id
-JOIN cloud_type AS ct ON c.cloud_type_id = ct.id
-WHERE m.uuid = $uuid.uuid;
+FROM   model AS m
+JOIN   cloud AS c ON m.cloud_uuid = c.uuid
+JOIN   cloud_type AS ct ON c.cloud_type_id = ct.id
+WHERE  m.uuid = $uuid.uuid;
 `, cloudType{}, uuid{})
 	updateModelDBCloudType = sqlair.MustPrepare(`
 INSERT INTO model_config (key, value) VALUES ('type', $cloudType.type)
