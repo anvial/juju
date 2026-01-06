@@ -14,6 +14,7 @@ import (
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"github.com/juju/utils/v4"
+	gc "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
 
 	"github.com/juju/juju/api"
@@ -694,6 +695,11 @@ func (s *AddModelSuite) TestNamespaceAnnotationsErr(c *tc.C) {
 	}
 	_, err := s.run(c, "foobar")
 	c.Assert(err, tc.ErrorMatches, `cannot create model "foobar": a namespace called "foobar" already exists on this k8s cluster. Please pick a different model name.`)
+}
+
+func (s *AddModelSuite) TestSpecifyingTargetControllerFlag(c *gc.C) {
+	_, err := s.run(c, "test", "--target-controller", "test-target-controller")
+	c.Assert(err, tc.ErrorIs, cmd.ErrCommandMissing)
 }
 
 // fakeAddClient is used to mock out the behavior of the real

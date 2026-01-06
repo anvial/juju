@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Learn to create and manage offers in Juju, enabling application integration across different models, controllers, and clouds."
+---
+
 (manage-offers)=
 # How to manage offers
 

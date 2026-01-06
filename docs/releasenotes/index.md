@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju release notes: features, fixes, and updates for CLI client and agents. LTS versions, patch releases, and version history."
+---
+
 (releasenotes)=
 # Release notes
 
@@ -19,7 +25,7 @@ These are the notes of Juju releases, that is, the `juju` CLI client and the Juj
 - We release new minor version (the `x` of `m.x.p`) approximately every 3 months.
 - Patch releases for supported series are released every month
 - Once we release a new major version, the latest minor version of the previous release will become an LTS (Long Term Support) release.
-- Minor releases are supported with bug fixes for a period of 4 months from their release date, and a further 2 months of security fixes. 
+- Minor releases are supported with bug fixes for a period of 4 months from their release date, and a further 2 months of security fixes.
 - LTS releases will receive security fixes for 15 years.
 
 

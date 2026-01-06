@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Complete guide to building, finding, deploying, and managing charms and bundles in Juju. Learn to work with Charmhub and local charms."
+---
+
 (manage-charms)=
 # How to manage charms or bundles
 

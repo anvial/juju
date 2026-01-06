@@ -1009,6 +1009,9 @@ func (a *app) Delete() error {
 	resourcesToDelete := []resources.Resource(nil)
 
 	// Create selector labels.
+	// These label correspond to those which are added to a fixed
+	// set of resources by the model operator mutating web hook.
+	// See [github.com/juju/juju/internal/worker/caasadmission.NewAdmissionCreator].
 	resourceLabels := utils.LabelsForAppCreated(
 		a.name, a.modelName, a.modelUUID, a.controllerUUID, a.labelVersion)
 
@@ -1147,9 +1150,7 @@ func (a *app) Delete() error {
 	// List CRs for each CRD to be deleted.
 	var crs []resources.CustomResource
 	for _, crd := range crds {
-		res, err := resources.ListCRsForCRD(ctx, a.dynamicClient, a.namespace, &crd.CustomResourceDefinition, metav1.ListOptions{
-			LabelSelector: resourceLabels.String(),
-		})
+		res, err := resources.ListCRsForCRD(ctx, a.dynamicClient, a.namespace, &crd.CustomResourceDefinition, metav1.ListOptions{})
 		if err != nil {
 			return errors.Annotatef(err, "failed to list CRs for CRD %q", crd.Name)
 		}

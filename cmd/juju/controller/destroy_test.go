@@ -249,7 +249,7 @@ func checkControllerExistsInStore(c *tc.C, name string, store jujuclient.Control
 	c.Assert(err, tc.ErrorIsNil)
 }
 
-func checkControllerRemovedFromStore(c *tc.C, name string, store jujuclient.ControllerGetter) {
+func assertControllerRemovedFromStore(c *tc.C, name string, store jujuclient.ControllerGetter) {
 	_, err := store.ControllerByName(name)
 	c.Assert(err, tc.ErrorIs, errors.NotFound)
 }
@@ -293,13 +293,13 @@ func (s *DestroySuite) TestDestroyCannotConnectToAPI(c *tc.C) {
 func (s *DestroySuite) TestDestroy(c *tc.C) {
 	_, err := s.runDestroyCommand(c, "test1", "--no-prompt")
 	c.Assert(err, tc.ErrorIsNil)
-	checkControllerRemovedFromStore(c, "test1", s.store)
+	assertControllerRemovedFromStore(c, "test1", s.store)
 }
 
 func (s *DestroySuite) TestDestroyAlias(c *tc.C) {
 	_, err := s.runDestroyCommand(c, "test1", "--no-prompt")
 	c.Assert(err, tc.ErrorIsNil)
-	checkControllerRemovedFromStore(c, "test1", s.store)
+	assertControllerRemovedFromStore(c, "test1", s.store)
 }
 
 func (s *DestroySuite) TestDestroyWithDestroyAllModelsFlag(c *tc.C) {
@@ -309,7 +309,7 @@ func (s *DestroySuite) TestDestroyWithDestroyAllModelsFlag(c *tc.C) {
 	s.api.CheckCall(c, 2, "DestroyController", apicontroller.DestroyControllerParams{
 		DestroyModels: true,
 	})
-	checkControllerRemovedFromStore(c, "test1", s.store)
+	assertControllerRemovedFromStore(c, "test1", s.store)
 }
 
 func (s *DestroySuite) TestDestroyWithDestroyDestroyStorageFlag(c *tc.C) {
@@ -521,7 +521,7 @@ func (s *DestroySuite) TestDestroyCommandConfirmation(c *tc.C) {
 	case <-time.After(testing.LongWait):
 		c.Fatalf("command took too long")
 	}
-	checkControllerRemovedFromStore(c, "test1", s.store)
+	assertControllerRemovedFromStore(c, "test1", s.store)
 
 	// Add the test1 controller back into the store for the next test
 	s.resetController(c)

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju Dashboard reference: web-based GUI for managing controllers, models, and applications with at-scale views and collaboration features."
+---
+
 (juju-dashboard)=
 # `juju-dashboard` (The Juju dashboard)
 

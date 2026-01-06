@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Step-by-step guides for managing Juju deployments, clouds, controllers, models, applications, and more. Key operations and common tasks."
+---
+
 (how-to-guides)=
 # How-to guides
 

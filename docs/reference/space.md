@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju network space reference: logical grouping of subnets for traffic segmentation, security, performance, and regulatory compliance."
+---
+
 (space)=
 # Space
 
