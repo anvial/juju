@@ -10,6 +10,7 @@ import (
 	"github.com/juju/tc"
 	gomock "go.uber.org/mock/gomock"
 
+	"github.com/juju/juju/domain/operation"
 	"github.com/juju/juju/internal/testhelpers"
 )
 
@@ -47,6 +48,24 @@ func (s *importSuite) TestImportSequencesEmpty(c *tc.C) {
 	op := s.newImportOperation()
 
 	model := description.NewModel(description.ModelArgs{})
+
+	err := op.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportSequencesLegacy(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
+		operation.OperationSequenceNamespace.String(): 1,
+		"bar": 2,
+	}).Return(nil)
+
+	op := s.newImportOperation()
+
+	model := description.NewModel(description.ModelArgs{})
+	model.SetSequence(legacyOperationSequenceName, 1)
+	model.SetSequence("bar", 2)
 
 	err := op.Execute(c.Context(), model)
 	c.Assert(err, tc.ErrorIsNil)

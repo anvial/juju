@@ -9,8 +9,14 @@ import (
 	"github.com/juju/description/v11"
 
 	"github.com/juju/juju/core/modelmigration"
+	"github.com/juju/juju/domain/operation"
 	"github.com/juju/juju/domain/sequence/service"
 	"github.com/juju/juju/domain/sequence/state"
+)
+
+const (
+	// legacyOperationSequenceName is the sequence name for operations in Juju 3.
+	legacyOperationSequenceName = "task"
 )
 
 // Coordinator is the interface that is used to add operations to a migration.
@@ -63,6 +69,12 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 
 	s := make(map[string]uint64, len(seqs))
 	for k, v := range seqs {
+		switch k {
+		case legacyOperationSequenceName:
+			// The sequence name for operation has been changed between
+			// juju 3 and Juju 4. This is necessary for retro-compatibility.
+			k = operation.OperationSequenceNamespace.String()
+		}
 		s[k] = uint64(v)
 	}
 
