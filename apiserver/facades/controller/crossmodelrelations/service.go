@@ -99,14 +99,6 @@ type StatusService interface {
 
 // RelationService provides access to relations.
 type RelationService interface {
-	// GetConsumerRelationUnitsChange returns the versions of the relation units
-	// settings and any departed units.
-	GetConsumerRelationUnitsChange(
-		context.Context,
-		corerelation.UUID,
-		coreapplication.UUID,
-	) (relation.ConsumerRelationUnitsChange, error)
-
 	// GetRelationUnits returns the current state of the relation units.
 	GetFullRelationUnitChange(
 		ctx context.Context,
