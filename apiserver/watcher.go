@@ -6,6 +6,7 @@ package apiserver
 import (
 	"context"
 
+	"github.com/juju/collections/set"
 	"github.com/juju/collections/transform"
 	"github.com/juju/errors"
 
@@ -14,6 +15,8 @@ import (
 	"github.com/juju/juju/apiserver/facade"
 	"github.com/juju/juju/apiserver/facades/controller/crossmodelrelations"
 	"github.com/juju/juju/apiserver/internal"
+	"github.com/juju/juju/core/application"
+	corerelation "github.com/juju/juju/core/relation"
 	coresecrets "github.com/juju/juju/core/secrets"
 	"github.com/juju/juju/core/unit"
 	corewatcher "github.com/juju/juju/core/watcher"
@@ -182,11 +185,15 @@ func (w *srvRelationUnitsWatcher) Next(ctx context.Context) (params.RelationUnit
 // boundaries.
 type srvRemoteRelationWatcher struct {
 	watcherCommon
-	watcher         crossmodelrelations.RelationChangesWatcher
+	watcher         corewatcher.NotifyWatcher
 	relationService RelationService
+
+	relationUUID    corerelation.UUID
+	applicationUUID application.UUID
+	data            relation.ConsumerRelationUnitsChange
 }
 
-func newRemoteRelationWatcher(_ context.Context, context facade.ModelContext) (facade.Facade, error) {
+func newRemoteRelationWatcher(ctx context.Context, context facade.ModelContext) (facade.Facade, error) {
 	// TODO(wallyworld) - enhance this watcher to support anonymous api calls
 	// with macaroons.
 	auth := context.Auth()
@@ -203,91 +210,158 @@ func newRemoteRelationWatcher(_ context.Context, context facade.ModelContext) (f
 	}
 	watcher, ok := w.(crossmodelrelations.RelationChangesWatcher)
 	if !ok {
-		return nil, errors.Errorf("watcher id: %s is not a crossmodelrelations.RelationChangesWatcher", id)
+		return nil, internalerrors.Errorf("watcher id: %s is not a crossmodelrelations.RelationChangesWatcher", id)
 	}
 
-	domainServices := context.DomainServices()
+	relationUUID := watcher.RelationUUID()
+	applicationUUID := watcher.ApplicationUUID()
+	relationService := context.DomainServices().Relation()
+
+	initialData, err := relationService.GetConsumerRelationUnitsChange(ctx, relationUUID, applicationUUID)
+	if err != nil {
+		return nil, internalerrors.Errorf("fetching initial consumer side of relation %v: %w", relationUUID, err)
+	}
 
 	return &srvRemoteRelationWatcher{
 		watcherCommon:   newWatcherCommon(context),
 		watcher:         watcher,
-		relationService: domainServices.Relation(),
+		relationService: relationService,
+		relationUUID:    relationUUID,
+		applicationUUID: applicationUUID,
+		data:            initialData,
 	}, nil
 }
 
 func (w *srvRemoteRelationWatcher) Next(ctx context.Context) (params.RemoteRelationWatchResult, error) {
-	select {
-	case <-ctx.Done():
-		return params.RemoteRelationWatchResult{}, ctx.Err()
-	case _, ok := <-w.watcher.Changes():
-		if !ok {
-			return params.RemoteRelationWatchResult{}, apiservererrors.ErrStoppedWatcher
-		}
+	for {
+		select {
+		case <-ctx.Done():
+			return params.RemoteRelationWatchResult{}, ctx.Err()
+		case _, ok := <-w.watcher.Changes():
+			if !ok {
+				return params.RemoteRelationWatchResult{}, apiservererrors.ErrStoppedWatcher
+			}
 
-		relationUUID := w.watcher.RelationUUID()
-		applicationUUID := w.watcher.ApplicationUUID()
-
-		// TODO: Consolidate service calls into a single method
-		change, err := w.relationService.GetConsumerRelationUnitsChange(ctx, relationUUID, applicationUUID)
-		if err != nil {
-			return params.RemoteRelationWatchResult{
-				Error: apiservererrors.ServerError(err),
-			}, nil
-		}
-
-		var departed []int
-		for _, unitName := range change.DepartedUnits {
-			num := unit.Name(unitName).Number()
-			departed = append(departed, num)
-		}
-
-		inScopeUnitNames, err := w.relationService.GetInScopeUnits(ctx, applicationUUID, relationUUID)
-		if err != nil {
-			return params.RemoteRelationWatchResult{
-				Error: apiservererrors.ServerError(err),
-			}, nil
-		}
-
-		changedUnitNames := transform.MapToSlice(change.UnitsSettingsVersions,
-			func(k string, _ int64) []unit.Name { return []unit.Name{unit.Name(k)} })
-
-		changedUnitSettings, err := w.relationService.GetUnitSettingsForUnits(ctx, relationUUID, changedUnitNames)
-		if err != nil {
-			return params.RemoteRelationWatchResult{
-				Error: apiservererrors.ServerError(err),
-			}, nil
-		}
-		changedUnitSettingsParams := transform.Slice(changedUnitSettings,
-			func(in relation.UnitSettings) params.RemoteRelationUnitChange {
-				return params.RemoteRelationUnitChange{
-					UnitId:   in.UnitID,
-					Settings: transform.Map(in.Settings, func(k string, v string) (string, interface{}) { return k, v }),
-				}
-			})
-
-		var appSettings map[string]string
-		if len(change.AppSettingsVersion) > 0 {
-			var err error
-			appSettings, err = w.relationService.GetRelationApplicationSettings(ctx, relationUUID, applicationUUID)
+			newData, err := w.relationService.GetConsumerRelationUnitsChange(ctx, w.relationUUID, w.applicationUUID)
 			if err != nil {
 				return params.RemoteRelationWatchResult{
 					Error: apiservererrors.ServerError(err),
 				}, nil
 			}
-		}
 
-		return params.RemoteRelationWatchResult{
-			Changes: params.RemoteRelationChangeEvent{
-				RelationToken:           relationUUID.String(),
-				ApplicationOrOfferToken: applicationUUID.String(),
-				DepartedUnits:           departed,
-				InScopeUnits:            transform.Slice(inScopeUnitNames, func(n unit.Name) int { return n.Number() }),
-				UnitCount:               len(inScopeUnitNames),
-				ApplicationSettings:     transform.Map(appSettings, func(k string, v string) (string, interface{}) { return k, v }),
-				ChangedUnits:            changedUnitSettingsParams,
-			},
-		}, nil
+			change, sendEvent := w.convert(newData)
+			if !sendEvent {
+				continue
+			}
+
+			var departed []int
+			for _, unitName := range change.Departed {
+				num := unit.Name(unitName).Number()
+				departed = append(departed, num)
+			}
+
+			inScopeUnitNames, err := w.relationService.GetInScopeUnits(ctx, w.applicationUUID, w.relationUUID)
+			if err != nil {
+				return params.RemoteRelationWatchResult{
+					Error: apiservererrors.ServerError(err),
+				}, nil
+			}
+
+			changedUnitNames := transform.MapToSlice(change.Changed,
+				func(k string, _ params.UnitSettings) []unit.Name { return []unit.Name{unit.Name(k)} })
+
+			changedUnitSettings, err := w.relationService.GetUnitSettingsForUnits(ctx, w.relationUUID, changedUnitNames)
+			if err != nil {
+				return params.RemoteRelationWatchResult{
+					Error: apiservererrors.ServerError(err),
+				}, nil
+			}
+			changedUnitSettingsParams := transform.Slice(changedUnitSettings,
+				func(in relation.UnitSettings) params.RemoteRelationUnitChange {
+					return params.RemoteRelationUnitChange{
+						UnitId:   in.UnitID,
+						Settings: transform.Map(in.Settings, func(k string, v string) (string, interface{}) { return k, v }),
+					}
+				})
+
+			var appSettings map[string]string
+			if len(change.AppChanged) > 0 {
+				var err error
+				appSettings, err = w.relationService.GetRelationApplicationSettings(ctx, w.relationUUID, w.applicationUUID)
+				if err != nil {
+					return params.RemoteRelationWatchResult{
+						Error: apiservererrors.ServerError(err),
+					}, nil
+				}
+			}
+
+			return params.RemoteRelationWatchResult{
+				Changes: params.RemoteRelationChangeEvent{
+					RelationToken:           w.relationUUID.String(),
+					ApplicationOrOfferToken: w.applicationUUID.String(),
+					DepartedUnits:           departed,
+					InScopeUnits:            transform.Slice(inScopeUnitNames, func(n unit.Name) int { return n.Number() }),
+					UnitCount:               len(inScopeUnitNames),
+					ApplicationSettings:     transform.Map(appSettings, func(k string, v string) (string, interface{}) { return k, v }),
+					ChangedUnits:            changedUnitSettingsParams,
+				},
+			}, nil
+		}
 	}
+}
+
+func (w *srvRemoteRelationWatcher) convert(newData relation.ConsumerRelationUnitsChange) (params.RelationUnitsChange, bool) {
+	changes := w.dataChanges(newData)
+	if changes.Empty() {
+		return params.RelationUnitsChange{}, false
+	}
+
+	// If there are changes, keep the latest version for next time.
+	w.data = newData
+
+	unitsChanged := transform.Map(changes.UnitsSettingsVersions, func(key string, val int64) (string, params.UnitSettings) {
+		return key, params.UnitSettings{Version: val}
+	})
+
+	return params.RelationUnitsChange{
+		Changed:    unitsChanged,
+		AppChanged: changes.AppSettingsVersion,
+		Departed:   changes.DepartedUnits,
+	}, true
+}
+
+// dataChanges returns the changed data since the last time this watcher
+// was triggered.
+func (w *srvRemoteRelationWatcher) dataChanges(event relation.ConsumerRelationUnitsChange) relation.ConsumerRelationUnitsChange {
+	changedEvent := relation.ConsumerRelationUnitsChange{}
+
+	departed := set.NewStrings(event.DepartedUnits...).Difference(set.NewStrings(w.data.DepartedUnits...))
+	if !departed.IsEmpty() {
+		changedEvent.DepartedUnits = departed.SortedValues()
+	}
+
+	appChanges := w.mapDifference(w.data.AppSettingsVersion, event.AppSettingsVersion)
+	if len(appChanges) > 0 {
+		changedEvent.AppSettingsVersion = appChanges
+	}
+
+	unitChanges := w.mapDifference(w.data.UnitsSettingsVersions, event.UnitsSettingsVersions)
+	if len(unitChanges) > 0 {
+		changedEvent.UnitsSettingsVersions = unitChanges
+	}
+
+	return changedEvent
+}
+
+func (w *srvRemoteRelationWatcher) mapDifference(oldMap, newMap map[string]int64) map[string]int64 {
+	difference := make(map[string]int64, 0)
+	for k, newV := range newMap {
+		oldV, ok := oldMap[k]
+		if !ok || oldV != newV {
+			difference[k] = newV
+		}
+	}
+	return difference
 }
 
 // srvRelationStatusWatcher defines the API wrapping a RelationStatusWatcher.
