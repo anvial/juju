@@ -358,9 +358,10 @@ type MachineAgent struct {
 	preUpgradeSteps PreUpgradeStepsFunc
 	upgradeSteps    UpgradeStepsFunc
 
-	bootstrapLock    gate.Lock
-	upgradeDBLock    gate.Lock
-	upgradeStepsLock gate.Lock
+	bootstrapLock            gate.Lock
+	upgradeDBLock            gate.Lock
+	upgradeStepsLock         gate.Lock
+	autoUpgradeMigrationLock gate.Lock
 
 	isCaasAgent bool
 	cmdRunner   CommandRunner
@@ -490,6 +491,7 @@ func (a *MachineAgent) Run(ctx *cmd.Context) (err error) {
 	a.bootstrapLock = gate.NewLock()
 	a.upgradeDBLock = internalupgrade.NewLock(agentConfig, jujuversion.Current)
 	a.upgradeStepsLock = internalupgrade.NewLock(agentConfig, jujuversion.Current)
+	a.autoUpgradeMigrationLock = gate.NewLock()
 
 	createEngine := a.makeEngineCreator(agentName, agentConfig.UpgradedToVersion(), logSink)
 	if err := a.createJujudSymlinks(agentConfig.DataDir()); err != nil {
@@ -551,6 +553,7 @@ func (a *MachineAgent) makeEngineCreator(
 			UpgradeDBLock:                     a.upgradeDBLock,
 			UpgradeStepsLock:                  a.upgradeStepsLock,
 			UpgradeCheckLock:                  a.initialUpgradeCheckComplete,
+			AutoUpgradeMigrationLock:          a.autoUpgradeMigrationLock,
 			NewDBWorkerFunc:                   a.newDBWorkerFunc,
 			PreUpgradeSteps:                   a.preUpgradeSteps,
 			UpgradeSteps:                      a.upgradeSteps,

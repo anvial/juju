@@ -53,6 +53,7 @@ import (
 	jupgradesteps "github.com/juju/juju/internal/upgradesteps"
 	jworker "github.com/juju/juju/internal/worker"
 	"github.com/juju/juju/internal/worker/agent"
+	"github.com/juju/juju/internal/worker/agentbinaryfetcher"
 	"github.com/juju/juju/internal/worker/agentconfigupdater"
 	"github.com/juju/juju/internal/worker/apiaddresssetter"
 	"github.com/juju/juju/internal/worker/apiaddressupdater"
@@ -173,6 +174,10 @@ type ManifoldsConfig struct {
 	// coordinate workers that shouldn't do anything until the
 	// upgrader worker completes it's first check.
 	UpgradeCheckLock gate.Lock
+
+	// AutoUpgradeMigrationLock is used to gate when the auto-upgrade
+	// has been performed after a migration.
+	AutoUpgradeMigrationLock gate.Lock
 
 	// NewDBWorkerFunc returns a tracked db worker.
 	NewDBWorkerFunc dbaccessor.NewDBWorkerFunc
@@ -985,6 +990,24 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Logger:             internallogger.GetLogger("juju.worker.toolsversionchecker"),
 		})),
 
+		// The auto-migration flag is used to indicate whether the agent
+		// has upgraded itself after a migration has been completed.
+		migrationAutoUpgradeGateName: gate.ManifoldEx(config.AutoUpgradeMigrationLock),
+		migrationAutoUpgradeFlagName: gate.FlagManifold(gate.FlagManifoldConfig{
+			GateName:  migrationAutoUpgradeGateName,
+			NewWorker: gate.NewFlagWorker,
+		}),
+
+		agentBinaryFetcherName: ifAutoUpdateMigrationComplete(agentbinaryfetcher.Manifold(agentbinaryfetcher.ManifoldConfig{
+			AgentName:          agentName,
+			DomainServicesName: domainServicesName,
+			GateName:           migrationAutoUpgradeGateName,
+			GetModelUUID:       agentbinaryfetcher.GetModelUUID,
+			GetDomainServices:  agentbinaryfetcher.GetModelDomainServices,
+			NewWorker:          agentbinaryfetcher.New,
+			Logger:             internallogger.GetLogger("juju.worker.agentbinaryfetcher"),
+		})),
+
 		authenticationWorkerName: ifNotMigrating(authenticationworker.Manifold(authenticationworker.ManifoldConfig{
 			AgentName:     agentName,
 			APICallerName: apiCallerName,
@@ -1342,6 +1365,12 @@ var ifDatabaseUpgradeComplete = engine.Housing{
 	},
 }.Decorate
 
+var ifAutoUpdateMigrationComplete = engine.Housing{
+	Flags: []string{
+		migrationAutoUpgradeFlagName,
+	},
+}.Decorate
+
 const (
 	agentName              = "agent"
 	agentConfigUpdaterName = "agent-config-updater"
@@ -1369,10 +1398,13 @@ const (
 	upgradeCheckFlagName       = "upgrade-check-flag"
 	upgradeDomainServicesName  = "upgrade-services"
 
-	migrationFortressName     = "migration-fortress"
-	migrationInactiveFlagName = "migration-inactive-flag"
-	migrationMinionName       = "migration-minion"
+	migrationFortressName        = "migration-fortress"
+	migrationInactiveFlagName    = "migration-inactive-flag"
+	migrationMinionName          = "migration-minion"
+	migrationAutoUpgradeGateName = "migration-auto-upgrade-gate"
+	migrationAutoUpgradeFlagName = "migration-auto-upgrade-flag"
 
+	agentBinaryFetcherName        = "agent-binary-fetcher"
 	apiAddressSetterName          = "api-address-setter"
 	apiAddressUpdaterName         = "api-address-updater"
 	apiServerName                 = "api-server"

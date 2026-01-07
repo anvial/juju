@@ -14,6 +14,7 @@ import (
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/domain/agentbinary/service"
+	"github.com/juju/juju/internal/worker/gate"
 )
 
 // ModelAgentService provides access to the Juju agent version for the model.
@@ -40,6 +41,7 @@ type AgentBinaryService interface {
 type WorkerConfig struct {
 	ModelAgentService  ModelAgentService
 	AgentBinaryService AgentBinaryService
+	Unlocker           gate.Unlocker
 	Logger             logger.Logger
 }
 
