@@ -51,6 +51,8 @@ type updateWorker struct {
 	modelAgentService  ModelAgentService
 	agentBinaryService AgentBinaryService
 
+	unlocker gate.Unlocker
+
 	logger logger.Logger
 }
 
@@ -59,6 +61,8 @@ func New(params WorkerConfig) worker.Worker {
 	w := &updateWorker{
 		modelAgentService:  params.ModelAgentService,
 		agentBinaryService: params.AgentBinaryService,
+
+		unlocker: params.Unlocker,
 
 		logger: params.Logger,
 	}
@@ -87,6 +91,8 @@ func (w *updateWorker) loop() error {
 	}
 
 	if len(arches) == 0 {
+		w.unlocker.Unlock()
+		w.logger.Debugf(ctx, "all agent binaries for version %q are present", targetVersion)
 		return nil
 	}
 
@@ -101,6 +107,9 @@ func (w *updateWorker) loop() error {
 			return errors.Annotatef(err, "retrieving external agent binary for version %q and architecture %q", targetVersion, arch)
 		}
 	}
+
+	w.unlocker.Unlock()
+	w.logger.Infof(ctx, "successfully fetched missing agent binaries for version %q", targetVersion)
 
 	return nil
 }

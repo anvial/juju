@@ -4,3 +4,4 @@
 package agentbinaryfetcher
 
 //go:generate go run go.uber.org/mock/mockgen -typed -package agentbinaryfetcher -destination service_mock_test.go github.com/juju/juju/internal/worker/agentbinaryfetcher ModelAgentService,AgentBinaryService
+//go:generate go run go.uber.org/mock/mockgen -typed -package agentbinaryfetcher -destination gate_mock_test.go github.com/juju/juju/internal/worker/gate Unlocker

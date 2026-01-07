@@ -18,6 +18,7 @@ import (
 	"github.com/juju/juju/core/model"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/testhelpers"
+	"github.com/juju/juju/internal/worker/gate"
 )
 
 type manifoldSuite struct {
@@ -42,6 +43,10 @@ func (s *manifoldSuite) TestValidateConfig(c *tc.C) {
 
 	cfg = s.getConfig(c)
 	cfg.DomainServicesName = ""
+	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
+
+	cfg = s.getConfig(c)
+	cfg.GateName = ""
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
 	cfg = s.getConfig(c)
@@ -74,6 +79,7 @@ func (s *manifoldSuite) getConfig(c *tc.C) ManifoldConfig {
 	return ManifoldConfig{
 		AgentName:          "agent",
 		DomainServicesName: "domain-services",
+		GateName:           "gate",
 		GetModelUUID: func(context.Context, dependency.Getter, string) (model.UUID, error) {
 			return model.UUID("123"), nil
 		},
@@ -89,7 +95,9 @@ func (s *manifoldSuite) getConfig(c *tc.C) ManifoldConfig {
 }
 
 func (s *manifoldSuite) newGetter() dependency.Getter {
-	resources := map[string]any{}
+	resources := map[string]any{
+		"gate": gate.NewLock(),
+	}
 	return dt.StubGetter(resources)
 }
 

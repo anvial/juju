@@ -4,7 +4,6 @@
 package agentbinaryfetcher
 
 import (
-	"context"
 	"testing"
 
 	"github.com/juju/tc"
@@ -15,7 +14,6 @@ import (
 	"github.com/juju/juju/core/agentbinary"
 	"github.com/juju/juju/core/arch"
 	"github.com/juju/juju/core/semversion"
-	"github.com/juju/juju/domain/agentbinary/service"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/testhelpers"
 )
@@ -25,6 +23,7 @@ type workerSuite struct {
 
 	agentBinaryService *MockAgentBinaryService
 	modelAgentService  *MockModelAgentService
+	unlocker           *MockUnlocker
 }
 
 func TestWorkerSuite(t *testing.T) {
@@ -42,9 +41,9 @@ func (s *workerSuite) TestNewWorkerGetsMissingArch(c *tc.C) {
 	s.agentBinaryService.EXPECT().RetrieveExternalAgentBinary(gomock.Any(), agentbinary.Version{
 		Number: targetVersion,
 		Arch:   arch.S390X,
-	}).DoAndReturn(func(ctx context.Context, v agentbinary.Version) (*service.ComputedHashes, error) {
+	}).Return(nil, nil)
+	s.unlocker.EXPECT().Unlock().DoAndReturn(func() {
 		close(done)
-		return nil, nil
 	})
 
 	w := s.newWorker(c)
@@ -73,9 +72,9 @@ func (s *workerSuite) TestNewWorkerGetsMultipleMissingArch(c *tc.C) {
 	s.agentBinaryService.EXPECT().RetrieveExternalAgentBinary(gomock.Any(), agentbinary.Version{
 		Number: targetVersion,
 		Arch:   arch.PPC64EL,
-	}).DoAndReturn(func(ctx context.Context, v agentbinary.Version) (*service.ComputedHashes, error) {
+	}).Return(nil, nil)
+	s.unlocker.EXPECT().Unlock().DoAndReturn(func() {
 		close(done)
-		return nil, nil
 	})
 
 	w := s.newWorker(c)
@@ -94,9 +93,9 @@ func (s *workerSuite) TestNewWorkerNoMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})
-	s.modelAgentService.EXPECT().GetMissingAgentTargetVersions(gomock.Any()).DoAndReturn(func(ctx context.Context) (semversion.Number, []string, error) {
+	s.modelAgentService.EXPECT().GetMissingAgentTargetVersions(gomock.Any()).Return(semversion.Zero, nil, nil)
+	s.unlocker.EXPECT().Unlock().DoAndReturn(func() {
 		close(done)
-		return semversion.Zero, nil, nil
 	})
 
 	w := s.newWorker(c)
@@ -119,6 +118,7 @@ func (s *workerSuite) getConfig(c *tc.C) WorkerConfig {
 	return WorkerConfig{
 		ModelAgentService:  s.modelAgentService,
 		AgentBinaryService: s.agentBinaryService,
+		Unlocker:           s.unlocker,
 		Logger:             loggertesting.WrapCheckLog(c),
 	}
 }
@@ -128,10 +128,12 @@ func (s *workerSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.modelAgentService = NewMockModelAgentService(ctrl)
 	s.agentBinaryService = NewMockAgentBinaryService(ctrl)
+	s.unlocker = NewMockUnlocker(ctrl)
 
 	c.Cleanup(func() {
 		s.modelAgentService = nil
 		s.agentBinaryService = nil
+		s.unlocker = nil
 	})
 
 	return ctrl
