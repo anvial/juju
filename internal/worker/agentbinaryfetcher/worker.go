@@ -41,7 +41,7 @@ type AgentBinaryService interface {
 type WorkerConfig struct {
 	ModelAgentService  ModelAgentService
 	AgentBinaryService AgentBinaryService
-	Unlocker           gate.Unlocker
+	Lock               gate.Lock
 	Logger             logger.Logger
 }
 
@@ -51,7 +51,7 @@ type updateWorker struct {
 	modelAgentService  ModelAgentService
 	agentBinaryService AgentBinaryService
 
-	unlocker gate.Unlocker
+	lock gate.Lock
 
 	logger logger.Logger
 }
@@ -62,7 +62,7 @@ func New(params WorkerConfig) worker.Worker {
 		modelAgentService:  params.ModelAgentService,
 		agentBinaryService: params.AgentBinaryService,
 
-		unlocker: params.Unlocker,
+		lock: params.Lock,
 
 		logger: params.Logger,
 	}
@@ -83,6 +83,10 @@ func (w *updateWorker) Wait() error {
 }
 
 func (w *updateWorker) loop() error {
+	if w.lock.IsUnlocked() {
+		return nil
+	}
+
 	ctx := w.tomb.Context(context.Background())
 
 	targetVersion, arches, err := w.modelAgentService.GetMissingAgentTargetVersions(ctx)
@@ -91,7 +95,7 @@ func (w *updateWorker) loop() error {
 	}
 
 	if len(arches) == 0 {
-		w.unlocker.Unlock()
+		w.lock.Unlock()
 		w.logger.Debugf(ctx, "all agent binaries for version %q are present", targetVersion)
 		return nil
 	}
@@ -108,7 +112,7 @@ func (w *updateWorker) loop() error {
 		}
 	}
 
-	w.unlocker.Unlock()
+	w.lock.Unlock()
 	w.logger.Infof(ctx, "successfully fetched missing agent binaries for version %q", targetVersion)
 
 	return nil

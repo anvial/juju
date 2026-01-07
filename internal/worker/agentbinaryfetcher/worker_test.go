@@ -23,7 +23,7 @@ type workerSuite struct {
 
 	agentBinaryService *MockAgentBinaryService
 	modelAgentService  *MockModelAgentService
-	unlocker           *MockUnlocker
+	lock               *MockLock
 }
 
 func TestWorkerSuite(t *testing.T) {
@@ -31,7 +31,7 @@ func TestWorkerSuite(t *testing.T) {
 	tc.Run(t, &workerSuite{})
 }
 
-func (s *workerSuite) TestNewWorkerGetsMissingArch(c *tc.C) {
+func (s *workerSuite) TestWorkerGetsMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	targetVersion := semversion.MustParse("4.0.1")
@@ -42,7 +42,9 @@ func (s *workerSuite) TestNewWorkerGetsMissingArch(c *tc.C) {
 		Number: targetVersion,
 		Arch:   arch.S390X,
 	}).Return(nil, nil)
-	s.unlocker.EXPECT().Unlock().DoAndReturn(func() {
+
+	s.lock.EXPECT().IsUnlocked().Return(false)
+	s.lock.EXPECT().Unlock().DoAndReturn(func() {
 		close(done)
 	})
 
@@ -58,7 +60,7 @@ func (s *workerSuite) TestNewWorkerGetsMissingArch(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
-func (s *workerSuite) TestNewWorkerGetsMultipleMissingArch(c *tc.C) {
+func (s *workerSuite) TestWorkerGetsMultipleMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	targetVersion := semversion.MustParse("4.0.1")
@@ -73,7 +75,9 @@ func (s *workerSuite) TestNewWorkerGetsMultipleMissingArch(c *tc.C) {
 		Number: targetVersion,
 		Arch:   arch.PPC64EL,
 	}).Return(nil, nil)
-	s.unlocker.EXPECT().Unlock().DoAndReturn(func() {
+
+	s.lock.EXPECT().IsUnlocked().Return(false)
+	s.lock.EXPECT().Unlock().DoAndReturn(func() {
 		close(done)
 	})
 
@@ -89,13 +93,36 @@ func (s *workerSuite) TestNewWorkerGetsMultipleMissingArch(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
-func (s *workerSuite) TestNewWorkerNoMissingArch(c *tc.C) {
+func (s *workerSuite) TestWorkerNoMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})
 	s.modelAgentService.EXPECT().GetMissingAgentTargetVersions(gomock.Any()).Return(semversion.Zero, nil, nil)
-	s.unlocker.EXPECT().Unlock().DoAndReturn(func() {
+
+	s.lock.EXPECT().IsUnlocked().Return(false)
+	s.lock.EXPECT().Unlock().DoAndReturn(func() {
 		close(done)
+	})
+
+	w := s.newWorker(c)
+	defer workertest.DirtyKill(c, w)
+
+	select {
+	case <-done:
+	case <-c.Context().Done():
+		c.Fatal("timeout waiting for agent binary retrieval")
+	}
+
+	workertest.CleanKill(c, w)
+}
+
+func (s *workerSuite) TestWorkerUnlocked(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	done := make(chan struct{})
+	s.lock.EXPECT().IsUnlocked().DoAndReturn(func() bool {
+		close(done)
+		return true
 	})
 
 	w := s.newWorker(c)
@@ -118,7 +145,7 @@ func (s *workerSuite) getConfig(c *tc.C) WorkerConfig {
 	return WorkerConfig{
 		ModelAgentService:  s.modelAgentService,
 		AgentBinaryService: s.agentBinaryService,
-		Unlocker:           s.unlocker,
+		Lock:               s.lock,
 		Logger:             loggertesting.WrapCheckLog(c),
 	}
 }
@@ -128,12 +155,12 @@ func (s *workerSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.modelAgentService = NewMockModelAgentService(ctrl)
 	s.agentBinaryService = NewMockAgentBinaryService(ctrl)
-	s.unlocker = NewMockUnlocker(ctrl)
+	s.lock = NewMockLock(ctrl)
 
 	c.Cleanup(func() {
 		s.modelAgentService = nil
 		s.agentBinaryService = nil
-		s.unlocker = nil
+		s.lock = nil
 	})
 
 	return ctrl

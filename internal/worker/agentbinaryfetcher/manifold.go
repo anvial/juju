@@ -100,15 +100,15 @@ func Manifold(cfg ManifoldConfig) dependency.Manifold {
 				return nil, errors.Capture(err)
 			}
 
-			var unlocker gate.Unlocker
-			if err := getter.Get(cfg.GateName, &unlocker); err != nil {
+			var lock gate.Lock
+			if err := getter.Get(cfg.GateName, &lock); err != nil {
 				return nil, errors.Capture(err)
 			}
 
 			return cfg.NewWorker(WorkerConfig{
 				ModelAgentService:  domainServices.modelAgent,
 				AgentBinaryService: domainServices.agentBinary,
-				Unlocker:           unlocker,
+				Lock:               lock,
 				Logger:             cfg.Logger,
 			}), nil
 		},
