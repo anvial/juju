@@ -1005,8 +1005,9 @@ func (ctx *facadeContext) migrationScope(modelUUID model.UUID) coremodelmigratio
 		changestream.NewTxnRunnerFactory(func(c context.Context) (changestream.WatchableDB, error) {
 			return ctx.modelDB(c, modelUUID)
 		}),
-		modelUUID,
-	)
+		modelObjectStore(func(stdCtx context.Context) (objectstore.ObjectStore, error) {
+			return ctx.r.objectStoreGetter.GetObjectStore(stdCtx, modelUUID.String())
+		}), modelUUID)
 }
 
 // DomainServicesForModel returns the services factory for a given
