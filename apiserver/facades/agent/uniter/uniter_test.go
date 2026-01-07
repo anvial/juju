@@ -1503,6 +1503,9 @@ func (s *uniterSuite) expectWatchUnitResolveMode(
 	s.watcherRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(watcherID, nil).AnyTimes()
 }
 
+// leadershipSettings is a set of methods no longer supported by
+// the uniter API. With API version 20, their functionality has
+// been removed, though they must exist and return empty values.
 type leadershipSettings interface {
 	// Merge merges in the provided leadership settings. Only leaders for
 	// the given service may perform this operation.
@@ -1525,59 +1528,6 @@ type leadershipUniterSuite struct {
 	uniter leadershipSettings
 
 	setupMocks func(c *tc.C) *gomock.Controller
-}
-
-func (s *leadershipUniterSuite) TestLeadershipSettingsMerge(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	results, err := s.uniter.Merge(c.Context(), params.MergeLeadershipSettingsBulkParams{
-		Params: []params.MergeLeadershipSettingsParam{
-			{
-				ApplicationTag: "app1",
-				Settings: params.Settings{
-					"key1": "value1",
-				},
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(results, tc.DeepEquals, params.ErrorResults{
-		Results: []params.ErrorResult{{}},
-	})
-}
-
-func (s *leadershipUniterSuite) TestLeadershipSettingsRead(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	results, err := s.uniter.Read(c.Context(), params.Entities{
-		Entities: []params.Entity{
-			{
-				Tag: "app1",
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(results, tc.DeepEquals, params.GetLeadershipSettingsBulkResults{
-		Results: []params.GetLeadershipSettingsResult{{}},
-	})
-}
-
-func (s *leadershipUniterSuite) TestLeadershipSettingsWatchLeadershipSettings(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	results, err := s.uniter.WatchLeadershipSettings(c.Context(), params.Entities{
-		Entities: []params.Entity{
-			{
-				Tag: "app1",
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(results, tc.DeepEquals, params.NotifyWatchResults{
-		Results: []params.NotifyWatchResult{{
-			NotifyWatcherId: "watcher1",
-		}},
-	})
 }
 
 type uniterv19Suite struct {
@@ -1632,6 +1582,59 @@ func (s *uniterv20Suite) SetUpTest(c *tc.C) {
 
 		return ctrl
 	}
+}
+
+func (s *uniterv20Suite) TestLeadershipSettingsMerge(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	results, err := s.uniter.Merge(c.Context(), params.MergeLeadershipSettingsBulkParams{
+		Params: []params.MergeLeadershipSettingsParam{
+			{
+				ApplicationTag: "app1",
+				Settings: params.Settings{
+					"key1": "value1",
+				},
+			},
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.ErrorResults{
+		Results: []params.ErrorResult{{}},
+	})
+}
+
+func (s *uniterv20Suite) TestLeadershipSettingsRead(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	results, err := s.uniter.Read(c.Context(), params.Entities{
+		Entities: []params.Entity{
+			{
+				Tag: "app1",
+			},
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.GetLeadershipSettingsBulkResults{
+		Results: []params.GetLeadershipSettingsResult{{}},
+	})
+}
+
+func (s *uniterv20Suite) TestLeadershipSettingsWatchLeadershipSettings(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	results, err := s.uniter.WatchLeadershipSettings(c.Context(), params.Entities{
+		Entities: []params.Entity{
+			{
+				Tag: "app1",
+			},
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.NotifyWatchResults{
+		Results: []params.NotifyWatchResult{{
+			NotifyWatcherId: "watcher1",
+		}},
+	})
 }
 
 type uniterRelationSuite struct {
