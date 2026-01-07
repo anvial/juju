@@ -67,7 +67,6 @@ func (s *ManifoldsSuite) TestManifoldNamesIAAS(c *tc.C) {
 		[]string{
 			"agent-config-updater",
 			"agent",
-			"agent-binary-fetcher",
 			"api-address-setter",
 			"api-address-updater",
 			"api-caller",
@@ -114,8 +113,6 @@ func (s *ManifoldsSuite) TestManifoldNamesIAAS(c *tc.C) {
 			"migration-fortress",
 			"migration-inactive-flag",
 			"migration-minion",
-			"migration-auto-upgrade-gate",
-			"migration-auto-upgrade-flag",
 			"model-worker-manager",
 			"object-store-fortress",
 			"object-store-facade",
@@ -261,7 +258,6 @@ func (*ManifoldsSuite) TestUpgradesBlockMigration(c *tc.C) {
 func (s *ManifoldsSuite) TestMigrationGuardsUsed(c *tc.C) {
 	exempt := set.NewStrings(
 		"agent",
-		"agent-binary-fetcher",
 		"api-address-setter",
 		"api-caller",
 		"api-config-watcher",
@@ -299,8 +295,6 @@ func (s *ManifoldsSuite) TestMigrationGuardsUsed(c *tc.C) {
 		"migration-fortress",
 		"migration-inactive-flag",
 		"migration-minion",
-		"migration-auto-upgrade-gate",
-		"migration-auto-upgrade-flag",
 		"model-worker-manager",
 		"object-store-fortress",
 		"object-store-facade",
@@ -561,36 +555,6 @@ func (s *ManifoldsSuite) TestManifoldsDependenciesCAAS(c *tc.C) {
 var expectedMachineManifoldsWithDependenciesIAAS = map[string][]string{
 
 	"agent": {},
-
-	"agent-binary-fetcher": {
-		"agent",
-		"api-remote-caller",
-		"change-stream",
-		"clock",
-		"controller-agent-config",
-		"db-accessor",
-		"domain-services",
-		"file-notify-watcher",
-		"http-client",
-		"is-controller-flag",
-		"lease-manager",
-		"log-sink",
-		"migration-auto-upgrade-flag",
-		"migration-auto-upgrade-gate",
-		"object-store",
-		"object-store-facade",
-		"object-store-fortress",
-		"object-store-s3-caller",
-		"object-store-services",
-		"provider-services",
-		"provider-tracker",
-		"query-logger",
-		"state-config-watcher",
-		"storage-registry",
-		"trace",
-		"upgrade-database-flag",
-		"upgrade-database-gate",
-	},
 
 	"agent-config-updater": {
 		"agent",
@@ -1272,12 +1236,6 @@ var expectedMachineManifoldsWithDependenciesIAAS = map[string][]string{
 		"upgrade-check-gate",
 		"upgrade-steps-flag",
 		"upgrade-steps-gate",
-	},
-
-	"migration-auto-upgrade-gate": {},
-
-	"migration-auto-upgrade-flag": {
-		"migration-auto-upgrade-gate",
 	},
 
 	"model-worker-manager": {

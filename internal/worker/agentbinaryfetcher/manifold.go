@@ -19,7 +19,6 @@ import (
 	errors "github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/services"
 	coretools "github.com/juju/juju/internal/tools"
-	"github.com/juju/juju/internal/worker/gate"
 )
 
 // GetModelUUIDFunc is the type of function that returns the model UUID for the
@@ -42,7 +41,6 @@ type NewWorkerFunc func(WorkerConfig) worker.Worker
 type ManifoldConfig struct {
 	AgentName          string
 	DomainServicesName string
-	GateName           string
 
 	GetModelUUID      GetModelUUIDFunc
 	GetDomainServices GetDomainServicesFunc
@@ -58,9 +56,6 @@ func (cfg *ManifoldConfig) Validate() error {
 	}
 	if cfg.DomainServicesName == "" {
 		return errors.Errorf("empty DomainServicesName").Add(coreerrors.NotValid)
-	}
-	if cfg.GateName == "" {
-		return errors.Errorf("empty GateName").Add(coreerrors.NotValid)
 	}
 	if cfg.Logger == nil {
 		return errors.Errorf("nil Logger").Add(coreerrors.NotValid)
@@ -83,7 +78,6 @@ func Manifold(cfg ManifoldConfig) dependency.Manifold {
 		Inputs: []string{
 			cfg.AgentName,
 			cfg.DomainServicesName,
-			cfg.GateName,
 		},
 		Start: func(ctx context.Context, getter dependency.Getter) (worker.Worker, error) {
 			if err := cfg.Validate(); err != nil {
@@ -100,15 +94,9 @@ func Manifold(cfg ManifoldConfig) dependency.Manifold {
 				return nil, errors.Capture(err)
 			}
 
-			var lock gate.Lock
-			if err := getter.Get(cfg.GateName, &lock); err != nil {
-				return nil, errors.Capture(err)
-			}
-
 			return cfg.NewWorker(WorkerConfig{
 				ModelAgentService:  domainServices.modelAgent,
 				AgentBinaryService: domainServices.agentBinary,
-				Lock:               lock,
 				Logger:             cfg.Logger,
 			}), nil
 		},

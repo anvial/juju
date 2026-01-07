@@ -4,6 +4,7 @@
 package agentbinaryfetcher
 
 import (
+	"context"
 	"testing"
 
 	"github.com/juju/tc"
@@ -14,6 +15,7 @@ import (
 	"github.com/juju/juju/core/agentbinary"
 	"github.com/juju/juju/core/arch"
 	"github.com/juju/juju/core/semversion"
+	service "github.com/juju/juju/domain/agentbinary/service"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/testhelpers"
 )
@@ -23,7 +25,6 @@ type workerSuite struct {
 
 	agentBinaryService *MockAgentBinaryService
 	modelAgentService  *MockModelAgentService
-	lock               *MockLock
 }
 
 func TestWorkerSuite(t *testing.T) {
@@ -41,11 +42,9 @@ func (s *workerSuite) TestWorkerGetsMissingArch(c *tc.C) {
 	s.agentBinaryService.EXPECT().RetrieveExternalAgentBinary(gomock.Any(), agentbinary.Version{
 		Number: targetVersion,
 		Arch:   arch.S390X,
-	}).Return(nil, nil)
-
-	s.lock.EXPECT().IsUnlocked().Return(false)
-	s.lock.EXPECT().Unlock().DoAndReturn(func() {
+	}).DoAndReturn(func(ctx context.Context, v agentbinary.Version) (*service.ComputedHashes, error) {
 		close(done)
+		return nil, nil
 	})
 
 	w := s.newWorker(c)
@@ -74,11 +73,9 @@ func (s *workerSuite) TestWorkerGetsMultipleMissingArch(c *tc.C) {
 	s.agentBinaryService.EXPECT().RetrieveExternalAgentBinary(gomock.Any(), agentbinary.Version{
 		Number: targetVersion,
 		Arch:   arch.PPC64EL,
-	}).Return(nil, nil)
-
-	s.lock.EXPECT().IsUnlocked().Return(false)
-	s.lock.EXPECT().Unlock().DoAndReturn(func() {
+	}).DoAndReturn(func(ctx context.Context, v agentbinary.Version) (*service.ComputedHashes, error) {
 		close(done)
+		return nil, nil
 	})
 
 	w := s.newWorker(c)
@@ -97,32 +94,9 @@ func (s *workerSuite) TestWorkerNoMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})
-	s.modelAgentService.EXPECT().GetMissingAgentTargetVersions(gomock.Any()).Return(semversion.Zero, nil, nil)
-
-	s.lock.EXPECT().IsUnlocked().Return(false)
-	s.lock.EXPECT().Unlock().DoAndReturn(func() {
+	s.modelAgentService.EXPECT().GetMissingAgentTargetVersions(gomock.Any()).DoAndReturn(func(ctx context.Context) (semversion.Number, []string, error) {
 		close(done)
-	})
-
-	w := s.newWorker(c)
-	defer workertest.DirtyKill(c, w)
-
-	select {
-	case <-done:
-	case <-c.Context().Done():
-		c.Fatal("timeout waiting for agent binary retrieval")
-	}
-
-	workertest.CleanKill(c, w)
-}
-
-func (s *workerSuite) TestWorkerUnlocked(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	done := make(chan struct{})
-	s.lock.EXPECT().IsUnlocked().DoAndReturn(func() bool {
-		close(done)
-		return true
+		return semversion.Zero, nil, nil
 	})
 
 	w := s.newWorker(c)
@@ -145,7 +119,6 @@ func (s *workerSuite) getConfig(c *tc.C) WorkerConfig {
 	return WorkerConfig{
 		ModelAgentService:  s.modelAgentService,
 		AgentBinaryService: s.agentBinaryService,
-		Lock:               s.lock,
 		Logger:             loggertesting.WrapCheckLog(c),
 	}
 }
@@ -155,12 +128,10 @@ func (s *workerSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 	s.modelAgentService = NewMockModelAgentService(ctrl)
 	s.agentBinaryService = NewMockAgentBinaryService(ctrl)
-	s.lock = NewMockLock(ctrl)
 
 	c.Cleanup(func() {
 		s.modelAgentService = nil
 		s.agentBinaryService = nil
-		s.lock = nil
 	})
 
 	return ctrl

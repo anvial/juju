@@ -46,10 +46,6 @@ func (s *manifoldSuite) TestValidateConfig(c *tc.C) {
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
 	cfg = s.getConfig(c)
-	cfg.GateName = ""
-	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
-
-	cfg = s.getConfig(c)
 	cfg.GetModelUUID = nil
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
@@ -79,7 +75,6 @@ func (s *manifoldSuite) getConfig(c *tc.C) ManifoldConfig {
 	return ManifoldConfig{
 		AgentName:          "agent",
 		DomainServicesName: "domain-services",
-		GateName:           "gate",
 		GetModelUUID: func(context.Context, dependency.Getter, string) (model.UUID, error) {
 			return model.UUID("123"), nil
 		},

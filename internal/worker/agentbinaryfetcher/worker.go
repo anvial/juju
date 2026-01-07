@@ -14,7 +14,6 @@ import (
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/domain/agentbinary/service"
-	"github.com/juju/juju/internal/worker/gate"
 )
 
 // ModelAgentService provides access to the Juju agent version for the model.
@@ -41,7 +40,6 @@ type AgentBinaryService interface {
 type WorkerConfig struct {
 	ModelAgentService  ModelAgentService
 	AgentBinaryService AgentBinaryService
-	Lock               gate.Lock
 	Logger             logger.Logger
 }
 
@@ -51,8 +49,6 @@ type updateWorker struct {
 	modelAgentService  ModelAgentService
 	agentBinaryService AgentBinaryService
 
-	lock gate.Lock
-
 	logger logger.Logger
 }
 
@@ -61,8 +57,6 @@ func New(params WorkerConfig) worker.Worker {
 	w := &updateWorker{
 		modelAgentService:  params.ModelAgentService,
 		agentBinaryService: params.AgentBinaryService,
-
-		lock: params.Lock,
 
 		logger: params.Logger,
 	}
@@ -83,10 +77,6 @@ func (w *updateWorker) Wait() error {
 }
 
 func (w *updateWorker) loop() error {
-	if w.lock.IsUnlocked() {
-		return nil
-	}
-
 	ctx := w.tomb.Context(context.Background())
 
 	targetVersion, arches, err := w.modelAgentService.GetMissingAgentTargetVersions(ctx)
@@ -95,7 +85,6 @@ func (w *updateWorker) loop() error {
 	}
 
 	if len(arches) == 0 {
-		w.lock.Unlock()
 		w.logger.Debugf(ctx, "all agent binaries for version %q are present", targetVersion)
 		return nil
 	}
@@ -112,7 +101,6 @@ func (w *updateWorker) loop() error {
 		}
 	}
 
-	w.lock.Unlock()
 	w.logger.Infof(ctx, "successfully fetched missing agent binaries for version %q", targetVersion)
 
 	return nil
