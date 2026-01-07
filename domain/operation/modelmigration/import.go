@@ -29,7 +29,6 @@ import (
 // RegisterImport registers the import operations with the given coordinator.
 func RegisterImport(
 	coordinator Coordinator,
-	objectStoreGetter objectstore.ModelObjectStoreGetter,
 	clock clock.Clock,
 	logger logger.Logger,
 ) {

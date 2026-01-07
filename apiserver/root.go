@@ -923,9 +923,6 @@ func (ctx *facadeContext) ModelImporter() facade.ModelImporter {
 			storageService := domainServices.Storage()
 			return storageService.GetStorageRegistry(ctx)
 		}),
-		modelObjectStore(func(stdCtx context.Context) (objectstore.ObjectStore, error) {
-			return ctx.r.objectStoreGetter.GetObjectStore(stdCtx, ctx.ModelUUID().String())
-		}),
 		ctx.Logger(),
 		ctx.r.clock,
 	)

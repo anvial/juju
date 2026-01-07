@@ -521,7 +521,6 @@ func (s *Suite) expectImportModel(c *tc.C) {
 			corestorage.ConstModelStorageRegistry(func() storage.ProviderRegistry {
 				return nil
 			}),
-			s.objectStoreGetter,
 			loggertesting.WrapCheckLog(c),
 			clock.WallClock,
 		).ImportModel(ctx, bytes)

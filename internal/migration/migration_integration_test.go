@@ -55,7 +55,6 @@ func (s *ExportImportSuite) exportImport(c *tc.C, leaders map[string]string) {
 		corestorage.ConstModelStorageRegistry(func() storage.ProviderRegistry {
 			return &storage.StaticProviderRegistry{}
 		}),
-		s.objectStoreGetter,
 		loggertesting.WrapCheckLog(c),
 		clock.WallClock,
 	)
