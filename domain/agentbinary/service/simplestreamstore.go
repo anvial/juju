@@ -20,9 +20,14 @@ import (
 	coretools "github.com/juju/juju/internal/tools"
 )
 
-var (
+const (
 	headerAccept      = "Accept"
 	headerContentType = "Content-Type"
+)
+
+const (
+	gzipXContentType = "application/x-gzip"
+	gzipContentType  = "application/gzip"
 )
 
 // AgentBinaryFilter is a function that filters agent binaries based on the
@@ -86,11 +91,6 @@ func getPreferredFallbackStreams(stream agentbinary.Stream) []string {
 	}
 	return []string{}
 }
-
-const (
-	gzipXContentType = "application/x-gzip"
-	gzipContentType  = "application/gzip"
-)
 
 // GetAgentBinaryWithSHA256 retrieves the agent binary corresponding to the given version
 // and stream from simple stream.
