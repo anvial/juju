@@ -116,13 +116,24 @@ type AddIAASUnitArg struct {
 // ImportUnitArg contains parameters for inserting a fully
 // populated unit into the model, eg during migration.
 type ImportUnitArg struct {
-	UnitName       coreunit.Name
-	PasswordHash   *string
-	CloudContainer *application.CloudContainerParams
-	Machine        machine.Name
+	UnitName        coreunit.Name
+	PasswordHash    *string
+	WorkloadVersion string
 	// Principal contains the name of the units principal unit. If the unit is
 	// not a subordinate, this field is empty.
 	Principal coreunit.Name
+}
+
+// ImportIAASUnitArg contains parameters for importing an IAAS unit.
+type ImportIAASUnitArg struct {
+	ImportUnitArg
+	Machine machine.Name
+}
+
+// ImportCAASUnitArg contains parameters for importing a CAAS unit.
+type ImportCAASUnitArg struct {
+	ImportUnitArg
+	CloudContainer *application.CloudContainerParams
 }
 
 // UpdateCAASUnitParams contains parameters for updating a CAAS unit.
@@ -217,19 +228,12 @@ type ImportApplicationArgs struct {
 	// TODO (stickupkid): This isn't currently wired up.
 	ResolvedResources ResolvedResources
 
-	// Units contains the units to import.
-	Units []ImportUnitArg
-
 	// ApplicationConstraints contains the application constraints.
 	ApplicationConstraints constraints.Value
 
 	// CharmUpgradeOnError indicates whether the charm must be upgraded
 	// even when on error.
 	CharmUpgradeOnError bool
-
-	// ScaleState is the scale state (including scaling, scale and scale
-	// target) of the application.
-	ScaleState application.ScaleState
 
 	// EndpointBindings are the endpoint bindings for the charm
 	EndpointBindings map[string]network.SpaceName
@@ -239,6 +243,28 @@ type ImportApplicationArgs struct {
 
 	// PeerRelations is a map of peer relation endpoint to relation id.
 	PeerRelations map[string]int
+}
+
+// ImportIAASApplicationArgs contains arguments for importing an IAAS
+// application to the model.
+type ImportIAASApplicationArgs struct {
+	ImportApplicationArgs
+
+	// Units contains the IAAS units to import.
+	Units []ImportIAASUnitArg
+}
+
+// ImportCAASApplicationArgs contains arguments for importing a CAAS
+// application to the model.
+type ImportCAASApplicationArgs struct {
+	ImportApplicationArgs
+
+	// Units contains the CAAS units to import.
+	Units []ImportCAASUnitArg
+
+	// ScaleState is the scale state (including scaling, scale and scale
+	// target) of the application.
+	ScaleState application.ScaleState
 }
 
 // ApplicationConfig represents the application config for the specified

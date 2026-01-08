@@ -15,7 +15,6 @@ import (
 	corecharm "github.com/juju/juju/core/charm"
 	charmtesting "github.com/juju/juju/core/charm/testing"
 	"github.com/juju/juju/core/constraints"
-	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/unit"
 	unittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/domain/application"
@@ -407,14 +406,6 @@ func (s *migrationServiceSuite) TestGetApplicationConfigInvalidApplicationName(c
 }
 
 func (s *migrationServiceSuite) TestImportIAASApplication(c *tc.C) {
-	s.assertImportApplication(c, coremodel.IAAS)
-}
-
-func (s *migrationServiceSuite) TestImportCAASApplication(c *tc.C) {
-	s.assertImportApplication(c, coremodel.CAAS)
-}
-
-func (s *migrationServiceSuite) assertImportApplication(c *tc.C, modelType coremodel.ModelType) {
 	defer s.setupMocks(c).Finish()
 
 	id := tc.Must(c, coreapplication.NewUUID)
@@ -445,20 +436,165 @@ func (s *migrationServiceSuite) assertImportApplication(c *tc.C, modelType corem
 		Architecture: architecture.ARM64,
 	}
 
-	var receivedUnitArgs []application.ImportUnitArg
-	if modelType == coremodel.IAAS {
-		s.state.EXPECT().InsertMigratingIAASUnits(gomock.Any(), id, gomock.Any()).DoAndReturn(func(_ context.Context, _ coreapplication.UUID, args ...application.ImportUnitArg) error {
-			receivedUnitArgs = args
-			return nil
-		})
-	} else {
-		s.state.EXPECT().SetDesiredApplicationScale(gomock.Any(), id, 1).Return(nil)
-		s.state.EXPECT().SetApplicationScalingState(gomock.Any(), "ubuntu", 42, true).Return(nil)
-		s.state.EXPECT().InsertMigratingCAASUnits(gomock.Any(), id, gomock.Any()).DoAndReturn(func(_ context.Context, _ coreapplication.UUID, args ...application.ImportUnitArg) error {
-			receivedUnitArgs = args
-			return nil
-		})
+	var receivedUnitArgs []application.ImportIAASUnitArg
+	s.state.EXPECT().InsertMigratingIAASUnits(gomock.Any(), id, gomock.Any()).DoAndReturn(func(_ context.Context, _ coreapplication.UUID, args ...application.ImportIAASUnitArg) error {
+		receivedUnitArgs = args
+		return nil
+	})
+	s.charm.EXPECT().Actions().Return(&charm.Actions{})
+	s.charm.EXPECT().Config().Return(&charm.ConfigSpec{
+		Options: map[string]charm.Option{
+			"foo": {
+				Type:    "string",
+				Default: "baz",
+			},
+		},
+	})
+	s.charm.EXPECT().Meta().Return(&charm.Meta{
+		Name: "ubuntu",
+	}).MinTimes(1)
+	s.charm.EXPECT().Manifest().Return(&charm.Manifest{
+		Bases: []charm.Base{
+			{
+				Name: "ubuntu",
+				Channel: charm.Channel{
+					Risk: charm.Stable,
+				},
+				Architectures: []string{"amd64"},
+			},
+		},
+	}).MinTimes(1)
+
+	args := application.InsertApplicationArgs{
+		Charm:    ch,
+		Platform: platform,
+		Config: map[string]application.AddApplicationConfig{
+			"foo": {
+				Type:  domaincharm.OptionString,
+				Value: "bar",
+			},
+		},
+		Settings: application.ApplicationSettings{
+			Trust: true,
+		},
 	}
+	s.state.EXPECT().InsertMigratingApplication(gomock.Any(), "ubuntu", args).Return(id, nil)
+
+	unitArg := ImportIAASUnitArg{
+		ImportUnitArg: ImportUnitArg{
+			UnitName:     "ubuntu/666",
+			PasswordHash: ptr("passwordhash"),
+			Principal:    "principal/0",
+		},
+		Machine: "0",
+	}
+
+	cons := constraints.Value{
+		Mem:      ptr(uint64(1024)),
+		CpuPower: ptr(uint64(1000)),
+		CpuCores: ptr(uint64(2)),
+		Arch:     ptr("arm64"),
+		Tags:     ptr([]string{"foo", "bar"}),
+	}
+
+	s.state.EXPECT().SetApplicationConstraints(gomock.Any(), id, domainconstraints.DecodeConstraints(cons)).Return(nil)
+
+	s.state.EXPECT().GetCharmIDByApplicationName(gomock.Any(), "ubuntu").Return(charmUUID, nil)
+	s.state.EXPECT().MergeExposeSettings(gomock.Any(), id, map[string]application.ExposedEndpoint{
+		"": {
+			ExposeToSpaceIDs: set.NewStrings("alpha"),
+		},
+		"endpoint0": {
+			ExposeToCIDRs:    set.NewStrings("10.0.0.0/24", "10.0.1.0/24"),
+			ExposeToSpaceIDs: set.NewStrings("space0", "space1"),
+		},
+	}).Return(nil)
+
+	err := s.service.ImportIAASApplication(c.Context(), "ubuntu", ImportIAASApplicationArgs{
+		ImportApplicationArgs: ImportApplicationArgs{
+			Charm: s.charm,
+			CharmOrigin: corecharm.Origin{
+				Source:   corecharm.CharmHub,
+				Platform: corecharm.MustParsePlatform("arm64/ubuntu/24.04"),
+				Revision: ptr(42),
+			},
+			ApplicationConstraints: cons,
+			ReferenceName:          "ubuntu",
+			ApplicationConfig: map[string]any{
+				"foo": "bar",
+			},
+			ApplicationSettings: application.ApplicationSettings{
+				Trust: true,
+			},
+			ExposedEndpoints: map[string]application.ExposedEndpoint{
+				"": {
+					ExposeToSpaceIDs: set.NewStrings("alpha"),
+				},
+				"endpoint0": {
+					ExposeToCIDRs:    set.NewStrings("10.0.0.0/24", "10.0.1.0/24"),
+					ExposeToSpaceIDs: set.NewStrings("space0", "space1"),
+				},
+			},
+		},
+		Units: []ImportIAASUnitArg{
+			unitArg,
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	expectedUnitArgs := []application.ImportIAASUnitArg{{
+		ImportUnitArg: application.ImportUnitArg{
+			UnitName: "ubuntu/666",
+			Password: ptr(application.PasswordInfo{
+				PasswordHash:  "passwordhash",
+				HashAlgorithm: 0,
+			}),
+			Principal: "principal/0",
+		},
+		Machine: "0",
+	}}
+	c.Check(receivedUnitArgs, tc.DeepEquals, expectedUnitArgs)
+}
+
+func (s *migrationServiceSuite) TestImportCAASApplication(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	id := tc.Must(c, coreapplication.NewUUID)
+	charmUUID := charmtesting.GenCharmID(c)
+
+	ch := domaincharm.Charm{
+		Metadata: domaincharm.Metadata{
+			Name:  "ubuntu",
+			RunAs: "default",
+		},
+		Manifest: s.minimalManifest(),
+		Config: domaincharm.Config{
+			Options: map[string]domaincharm.Option{
+				"foo": {
+					Type:    domaincharm.OptionString,
+					Default: "baz",
+				},
+			},
+		},
+		ReferenceName: "ubuntu",
+		Source:        domaincharm.CharmHubSource,
+		Revision:      42,
+		Architecture:  architecture.ARM64,
+	}
+	platform := deployment.Platform{
+		Channel:      "24.04",
+		OSType:       deployment.Ubuntu,
+		Architecture: architecture.ARM64,
+	}
+
+	var receivedUnitArgs []application.ImportCAASUnitArg
+	s.state.EXPECT().SetDesiredApplicationScale(gomock.Any(), id, 1).Return(nil)
+	s.state.EXPECT().SetApplicationScalingState(gomock.Any(), "ubuntu", 42, true).Return(nil)
+	s.state.EXPECT().InsertMigratingCAASUnits(gomock.Any(), id, gomock.Any()).DoAndReturn(func(_ context.Context, _ coreapplication.UUID, args ...application.ImportCAASUnitArg) error {
+		receivedUnitArgs = args
+		return nil
+	})
+
 	s.charm.EXPECT().Actions().Return(&charm.Actions{})
 	s.charm.EXPECT().Config().Return(&charm.ConfigSpec{
 		Options: map[string]charm.Option{
@@ -499,11 +635,12 @@ func (s *migrationServiceSuite) assertImportApplication(c *tc.C, modelType corem
 	}
 	s.state.EXPECT().InsertMigratingApplication(gomock.Any(), "ubuntu", args).Return(id, nil)
 
-	unitArg := ImportUnitArg{
-		UnitName:       "ubuntu/666",
-		PasswordHash:   ptr("passwordhash"),
-		CloudContainer: nil,
-		Principal:      "principal/0",
+	unitArg := ImportCAASUnitArg{
+		ImportUnitArg: ImportUnitArg{
+			UnitName:     "ubuntu/666",
+			PasswordHash: ptr("passwordhash"),
+			Principal:    "principal/0",
+		},
 	}
 
 	cons := constraints.Value{
@@ -527,29 +664,34 @@ func (s *migrationServiceSuite) assertImportApplication(c *tc.C, modelType corem
 		},
 	}).Return(nil)
 
-	var importFunc func(ctx context.Context, name string, args ImportApplicationArgs) error
-	if modelType == coremodel.IAAS {
-		importFunc = s.service.ImportIAASApplication
-	} else {
-		importFunc = s.service.ImportCAASApplication
-	}
+	err := s.service.ImportCAASApplication(c.Context(), "ubuntu", ImportCAASApplicationArgs{
+		ImportApplicationArgs: ImportApplicationArgs{
+			Charm: s.charm,
+			CharmOrigin: corecharm.Origin{
+				Source:   corecharm.CharmHub,
+				Platform: corecharm.MustParsePlatform("arm64/ubuntu/24.04"),
+				Revision: ptr(42),
+			},
+			ApplicationConstraints: cons,
+			ReferenceName:          "ubuntu",
+			ApplicationConfig: map[string]any{
+				"foo": "bar",
+			},
+			ApplicationSettings: application.ApplicationSettings{
+				Trust: true,
+			},
 
-	err := importFunc(c.Context(), "ubuntu", ImportApplicationArgs{
-		Charm: s.charm,
-		CharmOrigin: corecharm.Origin{
-			Source:   corecharm.CharmHub,
-			Platform: corecharm.MustParsePlatform("arm64/ubuntu/24.04"),
-			Revision: ptr(42),
+			ExposedEndpoints: map[string]application.ExposedEndpoint{
+				"": {
+					ExposeToSpaceIDs: set.NewStrings("alpha"),
+				},
+				"endpoint0": {
+					ExposeToCIDRs:    set.NewStrings("10.0.0.0/24", "10.0.1.0/24"),
+					ExposeToSpaceIDs: set.NewStrings("space0", "space1"),
+				},
+			},
 		},
-		ApplicationConstraints: cons,
-		ReferenceName:          "ubuntu",
-		ApplicationConfig: map[string]any{
-			"foo": "bar",
-		},
-		ApplicationSettings: application.ApplicationSettings{
-			Trust: true,
-		},
-		Units: []ImportUnitArg{
+		Units: []ImportCAASUnitArg{
 			unitArg,
 		},
 		ScaleState: application.ScaleState{
@@ -557,26 +699,18 @@ func (s *migrationServiceSuite) assertImportApplication(c *tc.C, modelType corem
 			Scaling:     true,
 			ScaleTarget: 42,
 		},
-		ExposedEndpoints: map[string]application.ExposedEndpoint{
-			"": {
-				ExposeToSpaceIDs: set.NewStrings("alpha"),
-			},
-			"endpoint0": {
-				ExposeToCIDRs:    set.NewStrings("10.0.0.0/24", "10.0.1.0/24"),
-				ExposeToSpaceIDs: set.NewStrings("space0", "space1"),
-			},
-		},
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
-	expectedUnitArgs := []application.ImportUnitArg{{
-		UnitName:       "ubuntu/666",
-		CloudContainer: nil,
-		Password: ptr(application.PasswordInfo{
-			PasswordHash:  "passwordhash",
-			HashAlgorithm: 0,
-		}),
-		Principal: "principal/0",
+	expectedUnitArgs := []application.ImportCAASUnitArg{{
+		ImportUnitArg: application.ImportUnitArg{
+			UnitName: "ubuntu/666",
+			Password: ptr(application.PasswordInfo{
+				PasswordHash:  "passwordhash",
+				HashAlgorithm: 0,
+			}),
+			Principal: "principal/0",
+		},
 	}}
 	c.Check(receivedUnitArgs, tc.DeepEquals, expectedUnitArgs)
 }

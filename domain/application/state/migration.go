@@ -332,7 +332,7 @@ func (st *State) InsertMigratingApplication(ctx context.Context, name string, ar
 
 // InsertIAASUnits imports the fully formed units for the specified IAAS
 // application. This is only used when importing units during model migration.
-func (st *State) InsertMigratingIAASUnits(ctx context.Context, appUUID coreapplication.UUID, units ...application.ImportUnitArg) error {
+func (st *State) InsertMigratingIAASUnits(ctx context.Context, appUUID coreapplication.UUID, units ...application.ImportIAASUnitArg) error {
 	if len(units) == 0 {
 		return nil
 	}
@@ -352,7 +352,7 @@ func (st *State) InsertMigratingIAASUnits(ctx context.Context, appUUID coreappli
 
 // InsertCAASUnits imports the fully formed units for the specified CAAS
 // application. This is only used when importing units during model migration.
-func (st *State) InsertMigratingCAASUnits(ctx context.Context, appUUID coreapplication.UUID, units ...application.ImportUnitArg) error {
+func (st *State) InsertMigratingCAASUnits(ctx context.Context, appUUID coreapplication.UUID, units ...application.ImportCAASUnitArg) error {
 	if len(units) == 0 {
 		return nil
 	}
@@ -374,7 +374,7 @@ func (st *State) importCAASUnit(
 	ctx context.Context,
 	tx *sqlair.TX,
 	appUUID string,
-	args application.ImportUnitArg,
+	args application.ImportCAASUnitArg,
 ) error {
 	err := st.checkUnitExistsByName(ctx, tx, args.UnitName.String())
 	if err == nil {
@@ -482,7 +482,7 @@ func (st *State) importIAASUnit(
 	ctx context.Context,
 	tx *sqlair.TX,
 	appUUID string,
-	args application.ImportUnitArg,
+	args application.ImportIAASUnitArg,
 ) error {
 	err := st.checkUnitExistsByName(ctx, tx, args.UnitName.String())
 	if err == nil {
@@ -508,12 +508,11 @@ func (st *State) importIAASUnit(
 	}
 
 	if err := st.unitState.insertUnit(ctx, tx, appUUID, unitUUID, netNodeUUID, insertUnitArg{
-		CharmUUID:      charmUUID,
-		UnitName:       args.UnitName.String(),
-		CloudContainer: args.CloudContainer,
-		Password:       args.Password,
-		Constraints:    args.Constraints,
-		UnitStatusArg:  args.UnitStatusArg,
+		CharmUUID:     charmUUID,
+		UnitName:      args.UnitName.String(),
+		Password:      args.Password,
+		Constraints:   args.Constraints,
+		UnitStatusArg: args.UnitStatusArg,
 	}); err != nil {
 		return errors.Errorf("importing unit for application %q: %w", appUUID, err)
 	}

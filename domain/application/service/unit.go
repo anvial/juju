@@ -48,7 +48,7 @@ type UnitState interface {
 	// [applicationerrors.ApplicationNotFound] is returned. If any of the units
 	// already exists, an error satisfying [applicationerrors.UnitAlreadyExists]
 	// is returned.
-	InsertMigratingIAASUnits(context.Context, coreapplication.UUID, ...application.ImportUnitArg) error
+	InsertMigratingIAASUnits(context.Context, coreapplication.UUID, ...application.ImportIAASUnitArg) error
 
 	// InsertMigratingCAASUnits inserts the fully formed units for the specified
 	// CAAS application. This is only used when inserting units during model
@@ -56,7 +56,7 @@ type UnitState interface {
 	// [applicationerrors.ApplicationNotFound] is returned. If any of the units
 	// already exists, an error satisfying [applicationerrors.UnitAlreadyExists]
 	// is returned.
-	InsertMigratingCAASUnits(context.Context, coreapplication.UUID, ...application.ImportUnitArg) error
+	InsertMigratingCAASUnits(context.Context, coreapplication.UUID, ...application.ImportCAASUnitArg) error
 
 	// RegisterCAASUnit registers the specified CAAS application unit. The
 	// following errors can be expected:

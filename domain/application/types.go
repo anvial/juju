@@ -416,15 +416,26 @@ type ExportUnit struct {
 
 // ImportUnitArg is used to import a unit.
 type ImportUnitArg struct {
-	UnitName       coreunit.Name
-	CloudContainer *CloudContainer
-	Password       *PasswordInfo
-	Constraints    constraints.Constraints
-	Machine        machine.Name
+	UnitStatusArg
+	UnitName        coreunit.Name
+	Password        *PasswordInfo
+	Constraints     constraints.Constraints
+	WorkloadVersion string
 	// Principal contains the name of the units principal unit. If the unit is
 	// not a subordinate, this field is empty.
 	Principal coreunit.Name
-	UnitStatusArg
+}
+
+// ImportIAASUnitArg is used to import a IAAS unit.
+type ImportIAASUnitArg struct {
+	ImportUnitArg
+	Machine machine.Name
+}
+
+// ImportCAASUnitArg is used to import a CAAS unit.
+type ImportCAASUnitArg struct {
+	ImportUnitArg
+	CloudContainer *CloudContainer
 }
 
 // UnitAttributes contains parameters for exporting a unit.

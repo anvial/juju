@@ -106,12 +106,12 @@ func (s *importSuite) TestApplicationImportWithMinimalCharmForCAAS(c *tc.C) {
 		Platform: "arm64/ubuntu/24.04",
 	})
 
-	var importArgs service.ImportApplicationArgs
+	var importArgs service.ImportCAASApplicationArgs
 	s.importService.EXPECT().ImportCAASApplication(
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportCAASApplicationArgs) error {
 		importArgs = args
 		return nil
 	})
@@ -125,9 +125,11 @@ func (s *importSuite) TestApplicationImportWithMinimalCharmForCAAS(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Check(importArgs.Charm.Meta().Name, tc.Equals, "prometheus")
-	c.Check(importArgs.Units, tc.DeepEquals, []service.ImportUnitArg{{
-		UnitName:     "prometheus/0",
-		PasswordHash: ptr("passwordhash"),
+	c.Check(importArgs.Units, tc.DeepEquals, []service.ImportCAASUnitArg{{
+		ImportUnitArg: service.ImportUnitArg{
+			UnitName:     "prometheus/0",
+			PasswordHash: ptr("passwordhash"),
+		},
 		CloudContainer: ptr(application.CloudContainerParams{
 			ProviderID: "provider-id",
 			Address: ptr(network.SpaceAddress{
@@ -180,12 +182,12 @@ func (s *importSuite) TestApplicationImportWithMinimalCharmForIAAS(c *tc.C) {
 		Platform: "arm64/ubuntu/24.04",
 	})
 
-	var importArgs service.ImportApplicationArgs
+	var importArgs service.ImportIAASApplicationArgs
 	s.importService.EXPECT().ImportIAASApplication(
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		importArgs = args
 		return nil
 	})
@@ -199,10 +201,12 @@ func (s *importSuite) TestApplicationImportWithMinimalCharmForIAAS(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Check(importArgs.Charm.Meta().Name, tc.Equals, "prometheus")
-	c.Check(importArgs.Units, tc.DeepEquals, []service.ImportUnitArg{{
-		UnitName:     "prometheus/0",
-		PasswordHash: ptr("passwordhash"),
-		Machine:      machine.Name("0"),
+	c.Check(importArgs.Units, tc.DeepEquals, []service.ImportIAASUnitArg{{
+		ImportUnitArg: service.ImportUnitArg{
+			UnitName:     "prometheus/0",
+			PasswordHash: ptr("passwordhash"),
+		},
+		Machine: machine.Name("0"),
 	}})
 }
 
@@ -248,12 +252,12 @@ func (s *importSuite) TestApplicationImportWithApplicationConfigAndSettings(c *t
 		Platform: "arm64/ubuntu/24.04",
 	})
 
-	var importArgs service.ImportApplicationArgs
+	var importArgs service.ImportIAASApplicationArgs
 	s.importService.EXPECT().ImportIAASApplication(
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		importArgs = args
 		return nil
 	})
@@ -327,7 +331,7 @@ func (s *importSuite) TestApplicationImportWithConstraints(c *tc.C) {
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		c.Assert(args.Charm.Meta().Name, tc.Equals, "prometheus")
 		c.Check(args.ApplicationConstraints.AllocatePublicIP, tc.DeepEquals, ptr(true))
 		c.Check(args.ApplicationConstraints.Arch, tc.DeepEquals, ptr("amd64"))
@@ -950,13 +954,13 @@ func (s *importSuite) TestImportEndpointBindings36(c *tc.C) {
 		Name: "gamma",
 	})
 
-	var importArgs service.ImportApplicationArgs
+	var importArgs service.ImportIAASApplicationArgs
 	// Arrange: Expect the import of the application.
 	s.importService.EXPECT().ImportIAASApplication(
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		importArgs = args
 		return nil
 	})
@@ -1038,12 +1042,12 @@ func (s *importSuite) TestImportEndpointBindings40(c *tc.C) {
 	})
 
 	// Arrange: Expect the import of the application.
-	var importArgs service.ImportApplicationArgs
+	var importArgs service.ImportIAASApplicationArgs
 	s.importService.EXPECT().ImportIAASApplication(
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		importArgs = args
 		return nil
 	})
@@ -1123,12 +1127,12 @@ func (s *importSuite) TestImportEndpointBindingsDefaultSpace(c *tc.C) {
 	})
 
 	// Arrange: Expect the import of the application.
-	var importArgs service.ImportApplicationArgs
+	var importArgs service.ImportIAASApplicationArgs
 	s.importService.EXPECT().ImportIAASApplication(
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		importArgs = args
 		return nil
 	})
@@ -1205,7 +1209,7 @@ func (s *importSuite) TestImportExposedEndpointsFrom36(c *tc.C) {
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		c.Assert(args.Charm.Meta().Name, tc.Equals, "prometheus")
 		c.Check(args.ExposedEndpoints, tc.HasLen, 2)
 		c.Check(args.ExposedEndpoints[""].ExposeToSpaceIDs, tc.DeepEquals, set.NewStrings(network.AlphaSpaceId.String()))
@@ -1277,7 +1281,7 @@ func (s *importSuite) TestImportExposedEndpointsFrom40(c *tc.C) {
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		c.Assert(args.Charm.Meta().Name, tc.Equals, "prometheus")
 		c.Check(args.ExposedEndpoints, tc.HasLen, 2)
 		c.Check(args.ExposedEndpoints[""].ExposeToSpaceIDs, tc.DeepEquals, set.NewStrings(network.AlphaSpaceId.String()))
@@ -1472,12 +1476,12 @@ func (s *importSuite) TestApplicationImportSubordinate(c *tc.C) {
 		Platform: "arm64/ubuntu/24.04",
 	})
 
-	var importArgs service.ImportApplicationArgs
+	var importArgs service.ImportIAASApplicationArgs
 	s.importService.EXPECT().ImportIAASApplication(
 		gomock.Any(),
 		"prometheus",
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _ string, args service.ImportApplicationArgs) error {
+	).DoAndReturn(func(_ context.Context, _ string, args service.ImportIAASApplicationArgs) error {
 		importArgs = args
 		return nil
 	})
@@ -1491,11 +1495,13 @@ func (s *importSuite) TestApplicationImportSubordinate(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Check(importArgs.Charm.Meta().Name, tc.Equals, "prometheus")
-	c.Check(importArgs.Units, tc.DeepEquals, []service.ImportUnitArg{{
-		UnitName:     "prometheus/0",
-		PasswordHash: ptr("passwordhash"),
-		Machine:      machine.Name("0"),
-		Principal:    "principal/0",
+	c.Check(importArgs.Units, tc.DeepEquals, []service.ImportIAASUnitArg{{
+		ImportUnitArg: service.ImportUnitArg{
+			UnitName:     "prometheus/0",
+			PasswordHash: ptr("passwordhash"),
+			Principal:    "principal/0",
+		},
+		Machine: machine.Name("0"),
 	}})
 }
 
