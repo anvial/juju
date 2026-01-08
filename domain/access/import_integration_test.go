@@ -4,13 +4,16 @@
 package access_test
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
+	"testing"
+	"time"
+
 	"github.com/canonical/sqlair"
 	"github.com/juju/description/v11"
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
-
-	"context"
-	"testing"
 
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/model"
@@ -21,6 +24,7 @@ import (
 	"github.com/juju/juju/domain/access/service"
 	"github.com/juju/juju/domain/access/state"
 	schematesting "github.com/juju/juju/domain/schema/testing"
+	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/uuid"
@@ -51,7 +55,6 @@ func (s *importSuite) SetUpTest(c *tc.C) {
 	s.modelUUID = tc.Must(c, model.NewUUID)
 
 	s.coordinator = coremodelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
-	modelmigration.RegisterOfferAccessImport(s.coordinator, loggertesting.WrapCheckLog(c))
 
 	controllerFactory := func(context.Context) (database.TxnRunner, error) {
 		return s.ControllerTxnRunner(), nil
@@ -84,14 +87,18 @@ func (s *importSuite) SetUpTest(c *tc.C) {
 }
 
 func (s *importSuite) TestOfferPermissionImport(c *tc.C) {
+	// Arrange
+	modelmigration.RegisterOfferAccessImport(s.coordinator, loggertesting.WrapCheckLog(c))
+
 	// Arrange: add users on which offer permissions are set.
 	joeUserUUID := s.addUserToController(c, "joe", permission.LoginAccess)
 	simonUserUUID := s.addUserToController(c, "simon", permission.LoginAccess)
 
 	// Arrange: set up the import data
 	desc := description.NewModel(description.ModelArgs{
-		Type:   string(model.IAAS),
-		Config: map[string]interface{}{"uuid": s.modelUUID.String()},
+		Type: string(model.IAAS),
+		Config: map[string]interface{}{
+			config.UUIDKey: s.modelUUID.String()},
 	})
 	appName := "foo"
 	app := desc.AddApplication(description.ApplicationArgs{
@@ -129,13 +136,92 @@ func (s *importSuite) TestOfferPermissionImport(c *tc.C) {
 	// Assert
 	c.Assert(err, tc.ErrorIsNil)
 
-	obtainedOfferPermissions := s.getOfferPermissions(c)
+	obtainedOfferPermissions := s.getOfferPermissions(c, "v_permission_offer")
 	c.Check(obtainedOfferPermissions, tc.SameContents, []offerAccess{
 		{GrantTo: s.adminUserUUID.String(), GrantOn: offerOneUUID, AccessType: "admin"},
 		{GrantTo: joeUserUUID, GrantOn: offerOneUUID, AccessType: "consume"},
 		{GrantTo: simonUserUUID, GrantOn: offerOneUUID, AccessType: "read"},
 		{GrantTo: simonUserUUID, GrantOn: offerTwoUUID, AccessType: "admin"},
 	})
+}
+
+func (s *importSuite) TestPermissionImport(c *tc.C) {
+	// Arrange
+	s.seedModel(c)
+	modelmigration.RegisterImport(s.coordinator, loggertesting.WrapCheckLog(c))
+
+	// Arrange: add users on which model permissions are set.
+	joeUserUUID := s.addUserToController(c, "joe", permission.LoginAccess)
+	simonUserUUID := s.addUserToController(c, "simon", permission.LoginAccess)
+
+	// Arrange: set up the import data
+	desc := description.NewModel(description.ModelArgs{
+		Owner: "admin",
+		Type:  string(model.IAAS),
+		Config: map[string]interface{}{
+			config.NameKey: "test-me",
+			config.UUIDKey: s.modelUUID.String()},
+	})
+	desc.AddUser(description.UserArgs{
+		Name:           "joe",
+		CreatedBy:      "admin",
+		DateCreated:    time.Now(),
+		LastConnection: time.Now(),
+		Access:         "write",
+	})
+	desc.AddUser(description.UserArgs{
+		Name:           "simon",
+		CreatedBy:      "admin",
+		DateCreated:    time.Now(),
+		LastConnection: time.Now(),
+		Access:         "admin",
+	})
+
+	// Act
+	err := s.coordinator.Perform(c.Context(), s.scope, desc)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+
+	obtainedOfferPermissions := s.getOfferPermissions(c, "v_permission_model")
+	c.Check(obtainedOfferPermissions, tc.SameContents, []offerAccess{
+		{GrantTo: joeUserUUID, GrantOn: s.modelUUID.String(), AccessType: "write"},
+		{GrantTo: simonUserUUID, GrantOn: s.modelUUID.String(), AccessType: "admin"},
+	})
+}
+
+func (s *importSuite) seedModel(c *tc.C) {
+	cloudUUID := tc.Must(c, uuid.NewUUID).String()
+	credUUID := tc.Must(c, uuid.NewUUID).String()
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO cloud (uuid, name, cloud_type_id, endpoint, skip_tls_verify)
+			VALUES (?, ?, 7, "test-endpoint", true)
+		`, cloudUUID, "test-cloud")
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO cloud_auth_type (cloud_uuid, auth_type_id)
+			VALUES (?, 0), (?, 2)
+		`, cloudUUID, cloudUUID)
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO cloud_credential (uuid, cloud_uuid, auth_type_id, owner_uuid, name, revoked, invalid)
+			VALUES (?, ?, ?, ?, "foobar", false, false)
+		`, credUUID, cloudUUID, 0, s.adminUserUUID)
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO model (uuid, name, qualifier, model_type_id, life_id, cloud_uuid)
+			VALUES (?, "test", "prod", 0, 0, ?)
+		`, s.modelUUID.String(), cloudUUID)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
 }
 
 func (s *importSuite) addUserToController(c *tc.C, name string, access permission.Access) string {
@@ -157,12 +243,12 @@ type offerAccess struct {
 	AccessType string `db:"access_type"`
 }
 
-// getRelationApplicationSettings gets the relation application settings.
-func (s *importSuite) getOfferPermissions(c *tc.C) []offerAccess {
-	stmt, err := sqlair.Prepare(`
+// getOfferPermissions gets the permissions for the given table.
+func (s *importSuite) getOfferPermissions(c *tc.C, table string) []offerAccess {
+	stmt, err := sqlair.Prepare(fmt.Sprintf(`
 SELECT * AS &offerAccess.*
-FROM v_permission_offer
-`, offerAccess{})
+FROM %s
+`, table), offerAccess{})
 	c.Assert(err, tc.ErrorIsNil)
 
 	var access []offerAccess
