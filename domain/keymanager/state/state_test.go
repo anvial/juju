@@ -410,6 +410,59 @@ func (s *stateSuite) TestDeletePublicKeysForNonExistentModel(c *tc.C) {
 	c.Check(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
+func (s *stateSuite) TestDeletePublicKeysForModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	err := state.AddPublicKeysForUser(c.Context(), s.modelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	err = state.DeletePublicKeysForModel(c.Context(), s.modelId)
+	c.Assert(err, tc.ErrorIsNil)
+
+	keys, err := state.GetAllUsersPublicKeys(c.Context(), s.modelId)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(len(keys), tc.Equals, 0)
+}
+
+func (s *stateSuite) TestDeletePublicKeysForModelNonExistentModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+
+	badModelId := tc.Must0(c, model.NewUUID)
+
+	err := state.DeletePublicKeysForModel(c.Context(), badModelId)
+	c.Check(err, tc.ErrorIs, modelerrors.NotFound)
+}
+
+func (s *stateSuite) TestDeletePublicKeysForModelNoKeys(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+
+	err := state.DeletePublicKeysForModel(c.Context(), s.modelId)
+	c.Check(err, tc.ErrorIsNil)
+}
+
+func (s *stateSuite) TestDeletePublicKeysForModelKeepsOtherModels(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	err := state.AddPublicKeysForUser(c.Context(), s.modelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Create a second model to add keys onto
+	secondModelId := statemodeltesting.CreateTestModel(c, s.TxnRunnerFactory(), "second-model")
+
+	err = state.AddPublicKeysForUser(c.Context(), secondModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	err = state.DeletePublicKeysForModel(c.Context(), s.modelId)
+	c.Assert(err, tc.ErrorIsNil)
+
+	keys, err := state.GetAllUsersPublicKeys(c.Context(), secondModelId)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(len(keys), tc.Equals, 1)
+	c.Check(keys[s.userName], tc.DeepEquals, testingPublicKeys)
+}
+
 // TestGetAllUsersPublicKeys is responsible for testing the happy path of
 // getting all user keys in the model.
 func (s *stateSuite) TestGetAllUsersPublicKeys(c *tc.C) {
