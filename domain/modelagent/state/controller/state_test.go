@@ -100,25 +100,18 @@ func (s *controllerStateSuite) TestGetControllerAgentVersionsNoneFound(c *tc.C) 
 	c.Check(versions, tc.HasLen, 0)
 }
 
-func (s *controllerStateSuite) TestGetMissingMachineTargetAgentVersionByArchesNoRecordedArches(c *tc.C) {
+func (s *controllerStateSuite) TestGetAllMachineTargetAgentVersionByArchesNoRecordedArches(c *tc.C) {
 	expectedVersion, err := semversion.Parse("4.21.54")
 	c.Assert(err, tc.ErrorIsNil)
 
 	st := NewState(s.TxnRunnerFactory())
 
-	missing, err := st.GetMissingMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String(), map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	})
+	found, err := st.GetAllMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String())
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(missing, tc.HasLen, 2)
-	c.Check(missing, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	})
+	c.Check(found, tc.HasLen, 0)
 }
 
-func (s *controllerStateSuite) TestGetMissingMachineTargetAgentVersionByArches(c *tc.C) {
+func (s *controllerStateSuite) TestGetAllMachineTargetAgentVersionByArches(c *tc.C) {
 	expectedVersion, err := semversion.Parse("4.21.54")
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -136,15 +129,16 @@ func (s *controllerStateSuite) TestGetMissingMachineTargetAgentVersionByArches(c
 
 	st := NewState(s.TxnRunnerFactory())
 
-	missing, err := st.GetMissingMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String(), map[architecture.Architecture]struct{}{
+	found, err := st.GetAllMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(found, tc.HasLen, 2)
+	c.Check(found, tc.DeepEquals, map[architecture.Architecture]struct{}{
 		architecture.AMD64: {},
 		architecture.ARM64: {},
 	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(missing, tc.HasLen, 0)
 }
 
-func (s *controllerStateSuite) TestGetMissingMachineTargetAgentVersionByArchesMultipleVersions(c *tc.C) {
+func (s *controllerStateSuite) TestGetAllMachineTargetAgentVersionByArchesMultipleVersions(c *tc.C) {
 	expectedVersion, err := semversion.Parse("4.21.54")
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -156,9 +150,9 @@ func (s *controllerStateSuite) TestGetMissingMachineTargetAgentVersionByArchesMu
 		Number: semversion.MustParse("4.21.52"),
 		Arch:   corearch.AMD64,
 	}
-	versionAMD64Alt2 := coreagentbinary.Version{
+	versionPPC64ELAlt2 := coreagentbinary.Version{
 		Number: semversion.MustParse("4.0.54"),
-		Arch:   corearch.AMD64,
+		Arch:   corearch.PPC64EL,
 	}
 	versionARM64 := coreagentbinary.Version{
 		Number: expectedVersion,
@@ -167,56 +161,17 @@ func (s *controllerStateSuite) TestGetMissingMachineTargetAgentVersionByArchesMu
 
 	s.registerAgentBinary(c, versionAMD64)
 	s.registerAgentBinary(c, versionAMD64Alt1)
-	s.registerAgentBinary(c, versionAMD64Alt2)
+	s.registerAgentBinary(c, versionPPC64ELAlt2)
 	s.registerAgentBinary(c, versionARM64)
 
 	st := NewState(s.TxnRunnerFactory())
 
-	missing, err := st.GetMissingMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String(), map[architecture.Architecture]struct{}{
+	found, err := st.GetAllMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(found, tc.HasLen, 2)
+	c.Check(found, tc.DeepEquals, map[architecture.Architecture]struct{}{
 		architecture.AMD64: {},
 		architecture.ARM64: {},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(missing, tc.HasLen, 0)
-}
-
-func (s *controllerStateSuite) TestGetMissingMachineTargetAgentVersionByArchesMultipleVersionsWithDifferentArches(c *tc.C) {
-	expectedVersion, err := semversion.Parse("4.21.54")
-	c.Assert(err, tc.ErrorIsNil)
-
-	versionAMD64 := coreagentbinary.Version{
-		Number: expectedVersion,
-		Arch:   corearch.AMD64,
-	}
-	versionAMD64Alt1 := coreagentbinary.Version{
-		Number: semversion.MustParse("4.21.52"),
-		Arch:   corearch.AMD64,
-	}
-	versionAMD64Alt2 := coreagentbinary.Version{
-		Number: semversion.MustParse("4.0.54"),
-		Arch:   corearch.AMD64,
-	}
-	versionARM64 := coreagentbinary.Version{
-		Number: expectedVersion,
-		Arch:   corearch.ARM64,
-	}
-
-	s.registerAgentBinary(c, versionAMD64)
-	s.registerAgentBinary(c, versionAMD64Alt1)
-	s.registerAgentBinary(c, versionAMD64Alt2)
-	s.registerAgentBinary(c, versionARM64)
-
-	st := NewState(s.TxnRunnerFactory())
-
-	missing, err := st.GetMissingMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String(), map[architecture.Architecture]struct{}{
-		architecture.AMD64:   {},
-		architecture.ARM64:   {},
-		architecture.PPC64EL: {},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(missing, tc.HasLen, 1)
-	c.Check(missing, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.PPC64EL: {},
 	})
 }
 

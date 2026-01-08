@@ -5,8 +5,6 @@ package controller
 
 import (
 	"context"
-	"maps"
-	"slices"
 
 	"github.com/canonical/sqlair"
 
@@ -75,13 +73,13 @@ GROUP  BY version
 	return versions, nil
 }
 
-// GetMissingMachineTargetAgentVersionByArches returns the missing
-// architectures that do not have agent binaries for the given target
-// version from the provided set of architectures.
-func (st *State) GetMissingMachineTargetAgentVersionByArches(
+// GetAllMachineTargetAgentVersionByArches returns all the given machine
+// architectures for a given agent version that have an associated agent binary
+// in the agent binary store.
+// It returns an empty map if no architectures are found.
+func (st *State) GetAllMachineTargetAgentVersionByArches(
 	ctx context.Context,
 	version string,
-	arches map[architecture.Architecture]struct{},
 ) (map[architecture.Architecture]struct{}, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
@@ -91,21 +89,19 @@ func (st *State) GetMissingMachineTargetAgentVersionByArches(
 	key := agentBinaryStore{
 		Version: version,
 	}
-	archIDs := architectures(slices.Collect(maps.Keys(arches)))
 
 	stmt, err := st.Prepare(`
 SELECT &agentBinaryStore.*
 FROM   agent_binary_store
 WHERE  version = $agentBinaryStore.version 
-AND    architecture_id IN ($architectures[:])
-`, key, archIDs)
+`, key)
 	if err != nil {
 		return nil, errors.Capture(err)
 	}
 
 	var found []agentBinaryStore
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		err := tx.Query(ctx, stmt, key, archIDs).GetAll(&found)
+		err := tx.Query(ctx, stmt, key).GetAll(&found)
 		if errors.Is(err, sqlair.ErrNoRows) {
 			return nil
 		} else if err != nil {
@@ -123,9 +119,8 @@ AND    architecture_id IN ($architectures[:])
 	// Removed the found architectures from the input set. The resulting
 	// set is the missing architectures.
 	result := make(map[architecture.Architecture]struct{})
-	maps.Copy(result, arches)
 	for _, abs := range found {
-		delete(result, architecture.Architecture(abs.ArchitectureID))
+		result[architecture.Architecture(abs.ArchitectureID)] = struct{}{}
 	}
 
 	return result, nil

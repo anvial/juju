@@ -158,13 +158,12 @@ type ModelState interface {
 	// the model.
 	GetAllMachinesArchitectures(ctx context.Context) (map[architecture.Architecture]struct{}, error)
 
-	// GetMissingMachineTargetAgentVersionByArches returns the missing
-	// architectures that do not have agent binaries for the given target
-	// version from the provided set of architectures.
-	GetMissingMachineTargetAgentVersionByArches(
+	// GetAllMachineTargetAgentVersionByArches returns all the given machine
+	// architectures for a given agent version that have an associated agent binary
+	// in the agent binary store.
+	GetAllMachineTargetAgentVersionByArches(
 		ctx context.Context,
 		version string,
-		arches map[architecture.Architecture]struct{},
 	) (map[architecture.Architecture]struct{}, error)
 }
 
@@ -175,13 +174,12 @@ type ControllerState interface {
 	// getting the agent versions of all the controllers.
 	GetControllerAgentVersions(context.Context) ([]semversion.Number, error)
 
-	// GetMissingMachineTargetAgentVersionByArches returns the missing
-	// architectures that do not have agent binaries for the given target
-	// version from the provided set of architectures.
-	GetMissingMachineTargetAgentVersionByArches(
+	// GetAllMachineTargetAgentVersionByArches returns all the given machine
+	// architectures for a given agent version that have an associated agent binary
+	// in the agent binary store.
+	GetAllMachineTargetAgentVersionByArches(
 		ctx context.Context,
 		version string,
-		arches map[architecture.Architecture]struct{},
 	) (map[architecture.Architecture]struct{}, error)
 }
 
@@ -394,20 +392,25 @@ func (s *Service) GetMissingAgentTargetVersions(ctx context.Context) (semversion
 	// database, before checking the controller database. The look up hierarchy
 	// ensures that if a tools for a give architecture exists in complete form
 	// in the model database, we don't need to check the controller database.
-	missingModelArches, err := s.modelSt.GetMissingMachineTargetAgentVersionByArches(ctx, targetVersion.String(), machineArches)
+	foundModelArches, err := s.modelSt.GetAllMachineTargetAgentVersionByArches(ctx, targetVersion.String())
 	if err != nil {
 		return semversion.Zero, nil, errors.Errorf("getting missing agent target versions from model: %w", err)
-	} else if len(missingModelArches) == 0 {
+	}
+	missingModelArches := removeDuplicateArches(machineArches, foundModelArches)
+	if len(missingModelArches) == 0 {
+		// No missing architectures from the model database.
 		return semversion.Zero, nil, nil
 	}
 
 	// We've got some missing architectures from the model database, check
 	// the controller database for any of the missing architectures.
 
-	missingControllerArches, err := s.controllerSt.GetMissingMachineTargetAgentVersionByArches(ctx, targetVersion.String(), machineArches)
+	foundControllerArches, err := s.controllerSt.GetAllMachineTargetAgentVersionByArches(ctx, targetVersion.String())
 	if err != nil {
 		return semversion.Zero, nil, errors.Errorf("getting missing agent target versions from controller: %w", err)
-	} else if len(missingControllerArches) == 0 {
+	}
+	missingControllerArches := removeDuplicateArches(missingModelArches, foundControllerArches)
+	if len(missingControllerArches) == 0 {
 		return semversion.Zero, nil, nil
 	}
 
@@ -437,7 +440,7 @@ func (s *Service) GetMissingAgentTargetVersions(ctx context.Context) (semversion
 // for each unit and the version that it is running.
 //
 // This is a bulk call to support operations such as model export where it will
-// never provide enough granuality into what unit fails as part of the checks.
+// never provide enough granularity into what unit fails as part of the checks.
 //
 // The following error types can be expected:
 // - [modelagenterrors.AgentVersionNotSet] when one or more units in the
@@ -1304,4 +1307,13 @@ func decodeArchitecture(a architecture.Architecture) (arch.Arch, error) {
 	default:
 		return "", errors.Errorf("unsupported architecture %q", a)
 	}
+}
+
+func removeDuplicateArches(all, found map[architecture.Architecture]struct{}) map[architecture.Architecture]struct{} {
+	missing := make(map[architecture.Architecture]struct{})
+	maps.Copy(missing, all)
+	for arch := range found {
+		delete(missing, arch)
+	}
+	return missing
 }
