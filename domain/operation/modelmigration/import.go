@@ -17,7 +17,6 @@ import (
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/modelmigration"
-	"github.com/juju/juju/core/objectstore"
 	corestatus "github.com/juju/juju/core/status"
 	"github.com/juju/juju/core/trace"
 	coreunit "github.com/juju/juju/core/unit"
@@ -30,14 +29,13 @@ import (
 // RegisterImport registers the import operations with the given coordinator.
 func RegisterImport(
 	coordinator Coordinator,
-	objectStoreGetter objectstore.ModelObjectStoreGetter,
 	clock clock.Clock,
 	logger logger.Logger,
 ) {
 	coordinator.Add(&importOperation{
-		logger:            logger,
-		clock:             clock,
-		objectStoreGetter: objectStoreGetter})
+		logger: logger,
+		clock:  clock,
+	})
 }
 
 // ImportService provides a subset of the operation domain service methods
@@ -51,9 +49,8 @@ type importOperation struct {
 	modelmigration.BaseOperation
 
 	// injected dependencies.
-	objectStoreGetter objectstore.ModelObjectStoreGetter
-	clock             clock.Clock
-	logger            logger.Logger
+	clock  clock.Clock
+	logger logger.Logger
 
 	// initialized during Setup.
 	service ImportService
@@ -72,7 +69,7 @@ func (i *importOperation) Setup(scope modelmigration.Scope) error {
 		),
 		i.clock,
 		i.logger,
-		i.objectStoreGetter,
+		scope.ModelObjectStoreGetter(),
 		// No leadership service needed for import.
 		nil,
 	)

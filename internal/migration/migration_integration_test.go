@@ -48,14 +48,13 @@ that are needed now.
 func (s *ExportImportSuite) exportImport(c *tc.C, leaders map[string]string) {
 	bytes := []byte(modelYaml)
 	scope := func(model.UUID) modelmigration.Scope {
-		return modelmigration.NewScope(nil, nil, tc.Must0(c, model.NewUUID))
+		return modelmigration.NewScope(nil, nil, nil, tc.Must0(c, model.NewUUID))
 	}
 	importer := migration.NewModelImporter(
 		scope, s.controllerConfigService, s.domainServicesGetter,
 		corestorage.ConstModelStorageRegistry(func() storage.ProviderRegistry {
 			return &storage.StaticProviderRegistry{}
 		}),
-		s.objectStoreGetter,
 		loggertesting.WrapCheckLog(c),
 		clock.WallClock,
 	)

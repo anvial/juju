@@ -12,6 +12,7 @@ import (
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/model"
+	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -63,23 +64,25 @@ type Operation interface {
 	Rollback(context.Context, description.Model) error
 }
 
-// Scope is a collection of database txn runners that can be used by the
+// Scope is a collection of resource accessors that can be used by the
 // operations.
 type Scope struct {
-	controllerDB database.TxnRunnerFactory
-	modelDB      database.TxnRunnerFactory
-	modelUUID    model.UUID
+	controllerDB           database.TxnRunnerFactory
+	modelDB                database.TxnRunnerFactory
+	modelObjectStoreGetter objectstore.ModelObjectStoreGetter
+	modelUUID              model.UUID
 }
 
 // ScopeForModel returns a Scope for the given model UUID.
 type ScopeForModel func(modelUUID model.UUID) Scope
 
 // NewScope creates a new scope with the given database txn runners.
-func NewScope(controllerDB database.TxnRunnerFactory, modelDB database.TxnRunnerFactory, modelUUID model.UUID) Scope {
+func NewScope(controllerDB database.TxnRunnerFactory, modelDB database.TxnRunnerFactory, modelObjectStoreGetter objectstore.ModelObjectStoreGetter, modelUUID model.UUID) Scope {
 	return Scope{
-		controllerDB: controllerDB,
-		modelDB:      modelDB,
-		modelUUID:    modelUUID,
+		controllerDB:           controllerDB,
+		modelDB:                modelDB,
+		modelObjectStoreGetter: modelObjectStoreGetter,
+		modelUUID:              modelUUID,
 	}
 }
 
@@ -96,6 +99,11 @@ func (s Scope) ModelDB() database.TxnRunnerFactory {
 // ModelUUID returns the UUID of the model being migrated.
 func (s Scope) ModelUUID() model.UUID {
 	return s.modelUUID
+}
+
+// ModelObjectStoreGetter returns the object store getter for the model.
+func (s Scope) ModelObjectStoreGetter() objectstore.ModelObjectStoreGetter {
+	return s.modelObjectStoreGetter
 }
 
 // Hook is a callback that is called after the operation is executed.

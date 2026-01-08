@@ -8,7 +8,6 @@ import (
 
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
-	"github.com/juju/juju/core/objectstore"
 	corestorage "github.com/juju/juju/core/storage"
 	access "github.com/juju/juju/domain/access/modelmigration"
 	agentpassword "github.com/juju/juju/domain/agentpassword/modelmigration"
@@ -51,7 +50,6 @@ func ImportOperations(
 	coordinator Coordinator,
 	modelDefaultsProvider modelconfigservice.ModelDefaultsProvider,
 	storageRegistryGetter corestorage.ModelStorageRegistryGetter,
-	objectStoreGetter objectstore.ModelObjectStoreGetter,
 	clock clock.Clock,
 	logger logger.Logger,
 ) {
@@ -93,7 +91,7 @@ func ImportOperations(
 	secret.RegisterImport(coordinator, logger.Child("secret"))
 	cloudimagemetadata.RegisterImport(coordinator, logger.Child("cloudimagemetadata"), clock)
 	unitstate.RegisterImport(coordinator, logger.Child("unitstate"))
-	operation.RegisterImport(coordinator, objectStoreGetter, clock, logger.Child("operation"))
+	operation.RegisterImport(coordinator, clock, logger.Child("operation"))
 
 	// model agent must come after machine and unit
 	modelagent.RegisterImport(coordinator, logger.Child("modelagent"))
