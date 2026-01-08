@@ -80,6 +80,7 @@ type offerDetail struct {
 	EndpointName      string             `db:"endpoint_name"`
 	EndpointRole      charm.RelationRole `db:"endpoint_role"`
 	EndpointInterface string             `db:"endpoint_interface"`
+	EndpointLimit     int                `db:"endpoint_limit"`
 }
 
 type offerFilter struct {
@@ -104,6 +105,7 @@ func (o offerDetails) TransformToOfferDetails() []*crossmodelrelation.OfferDetai
 				Name:      details.EndpointName,
 				Role:      details.EndpointRole,
 				Interface: details.EndpointInterface,
+				Limit:     details.EndpointLimit,
 			})
 			converted[details.OfferUUID] = found
 			continue
@@ -125,6 +127,7 @@ func (o offerDetails) TransformToOfferDetails() []*crossmodelrelation.OfferDetai
 					Name:      details.EndpointName,
 					Role:      details.EndpointRole,
 					Interface: details.EndpointInterface,
+					Limit:     details.EndpointLimit,
 				},
 			},
 			TotalConnections:       details.TotalConnections,
