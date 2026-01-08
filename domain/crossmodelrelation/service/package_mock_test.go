@@ -2165,6 +2165,44 @@ func (c *MockModelMigrationStateImportOffersCall) DoAndReturn(f func(context.Con
 	return c
 }
 
+// ImportRemoteApplications mocks base method.
+func (m *MockModelMigrationState) ImportRemoteApplications(arg0 context.Context, arg1 []crossmodelrelation.RemoteApplicationImport) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportRemoteApplications", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ImportRemoteApplications indicates an expected call of ImportRemoteApplications.
+func (mr *MockModelMigrationStateMockRecorder) ImportRemoteApplications(arg0, arg1 any) *MockModelMigrationStateImportRemoteApplicationsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportRemoteApplications", reflect.TypeOf((*MockModelMigrationState)(nil).ImportRemoteApplications), arg0, arg1)
+	return &MockModelMigrationStateImportRemoteApplicationsCall{Call: call}
+}
+
+// MockModelMigrationStateImportRemoteApplicationsCall wrap *gomock.Call
+type MockModelMigrationStateImportRemoteApplicationsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockModelMigrationStateImportRemoteApplicationsCall) Return(arg0 error) *MockModelMigrationStateImportRemoteApplicationsCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockModelMigrationStateImportRemoteApplicationsCall) Do(f func(context.Context, []crossmodelrelation.RemoteApplicationImport) error) *MockModelMigrationStateImportRemoteApplicationsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockModelMigrationStateImportRemoteApplicationsCall) DoAndReturn(f func(context.Context, []crossmodelrelation.RemoteApplicationImport) error) *MockModelMigrationStateImportRemoteApplicationsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // MockModelRelationNetworkState is a mock of ModelRelationNetworkState interface.
 type MockModelRelationNetworkState struct {
 	ctrl     *gomock.Controller

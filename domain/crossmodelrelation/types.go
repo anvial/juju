@@ -126,6 +126,50 @@ type OfferImport struct {
 	Endpoints       []string
 }
 
+// RemoteApplicationEndpoint contains details about an endpoint on a remote
+// application. This is used during migration to reconstruct the synthetic
+// charm.
+type RemoteApplicationEndpoint struct {
+	Name      string
+	Role      charm.RelationRole
+	Interface string
+}
+
+// RemoteApplicationImport contains details to import a remote application
+// (offerer) during migration. This represents a remote application that this
+// model is consuming from another model.
+type RemoteApplicationImport struct {
+	// Name is the name of the remote application in this model.
+	Name string
+
+	// OfferUUID is the UUID of the offer being consumed.
+	OfferUUID string
+
+	// URL is the offer URL.
+	URL string
+
+	// SourceModelUUID is the UUID of the model offering the application.
+	SourceModelUUID string
+
+	// Macaroon is the authentication macaroon for the offer.
+	Macaroon string
+
+	// SyntheticCharm is the synthetic charm built from the remote endpoints.
+	// This is created in the service layer from the Endpoints field.
+	SyntheticCharm charm.Charm
+
+	// Endpoints are the remote endpoints for creating the synthetic charm.
+	// This is kept for backwards compatibility and service layer processing.
+	Endpoints []RemoteApplicationEndpoint
+
+	// Bindings are the endpoint-to-space bindings.
+	Bindings map[string]string
+
+	// IsConsumerProxy indicates if this is a consumer proxy (on the offerer
+	// side) rather than a remote offerer (on the consumer side).
+	IsConsumerProxy bool
+}
+
 // RemoteApplicationConsumer represents a remote application
 // that is consuming an offer from this model.
 type RemoteApplicationConsumer struct {
