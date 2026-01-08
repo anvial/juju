@@ -15,9 +15,11 @@ import (
 	coredatabase "github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/model"
+	"github.com/juju/juju/core/semversion"
 	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/internal/services"
 	"github.com/juju/juju/internal/worker/gate"
+	"github.com/juju/juju/internal/worker/upgradedatabase/upgradesteps"
 )
 
 // UpgradeStep is a function that performs a single step in the database upgrade
@@ -30,12 +32,13 @@ type ManifoldConfig struct {
 	AgentName           string
 	UpgradeDBGateName   string
 	DBAccessorName      string
-	Logger              logger.Logger
-	Clock               clock.Clock
-	NewWorker           func(Config) (worker.Worker, error)
 	UpgradeServicesName string
 
-	UpgradeSteps []UpgradeStep
+	Logger    logger.Logger
+	Clock     clock.Clock
+	NewWorker func(Config) (worker.Worker, error)
+
+	UpgradeSteps map[VersionWindow][]UpgradeStep
 }
 
 // Validate returns an error if the manifold config is not valid.
@@ -49,14 +52,20 @@ func (cfg ManifoldConfig) Validate() error {
 	if cfg.DBAccessorName == "" {
 		return errors.NotValidf("empty DBAccessorName")
 	}
+	if cfg.UpgradeServicesName == "" {
+		return errors.NotValidf("empty UpgradeServicesName")
+	}
 	if cfg.Logger == nil {
 		return errors.NotValidf("nil Logger")
 	}
 	if cfg.Clock == nil {
 		return errors.NotValidf("nil Clock")
 	}
-	if cfg.UpgradeServicesName == "" {
-		return errors.NotValidf("empty UpgradeServicesName")
+	if cfg.NewWorker == nil {
+		return errors.NotValidf("nil NewWorker")
+	}
+	if cfg.UpgradeSteps == nil {
+		return errors.NotValidf("nil UpgradeSteps")
 	}
 	return nil
 }
@@ -100,7 +109,8 @@ func Manifold(cfg ManifoldConfig) dependency.Manifold {
 
 			currentConfig := controllerAgent.CurrentConfig()
 
-			// Work out where we're upgrading from and, where we want to upgrade to.
+			// Work out where we're upgrading from and, where we want to upgrade
+			// to.
 			fromVersion := currentConfig.UpgradedToVersion()
 			toVersion := jujuversion.Current
 
@@ -111,7 +121,7 @@ func Manifold(cfg ManifoldConfig) dependency.Manifold {
 					ServicesForController().ControllerNode(),
 				UpgradeService: upgradeServicesGetter.
 					ServicesForController().Upgrade(),
-				UpgradeSteps: cfg.UpgradeSteps,
+				UpgradeSteps: filterSteps(cfg.UpgradeSteps, fromVersion),
 				DBGetter:     dbGetter,
 				Tag:          currentConfig.Tag(),
 				FromVersion:  fromVersion,
@@ -121,4 +131,49 @@ func Manifold(cfg ManifoldConfig) dependency.Manifold {
 			})
 		},
 	}
+}
+
+// VersionWindow defines a window of versions from From (inclusive) to To
+// (exclusive).
+type VersionWindow struct {
+	From semversion.Number
+	To   semversion.Number
+}
+
+// Includes returns true if the version window includes the specified version.
+func (w VersionWindow) Includes(v semversion.Number) bool {
+	patch := v.ToPatch()
+	return patch.Compare(w.From) >= 0 && patch.Compare(w.To) < 0
+}
+
+var (
+	window_4_0_0_to_4_0_1 = VersionWindow{
+		From: semversion.MustParse("4.0.0"),
+		To:   semversion.MustParse("4.0.1"),
+	}
+)
+
+// UpgradeSteps returns the mapping of upgrade steps for the database upgrade
+// process.
+//
+// The upgrade steps defines from which version it's upgrading *from*. It's
+// possible you can step over multiple versions in one upgrade (4.0.0 to
+// 4.0.10). As the upgrade process only needs to know what steps to fix, not
+// what versions are required to step through.
+var UpgradeSteps = map[VersionWindow][]UpgradeStep{
+	window_4_0_0_to_4_0_1: {
+		upgradesteps.Step0001_PatchModelConfigCloudType,
+	},
+}
+
+// filterSteps filters the upgrade steps to only those that are applicable
+// for the upgrade from the specified version.
+func filterSteps(allSteps map[VersionWindow][]UpgradeStep, fromVersion semversion.Number) []UpgradeStep {
+	var steps []UpgradeStep
+	for version, upgradeSteps := range allSteps {
+		if version.Includes(fromVersion) {
+			steps = append(steps, upgradeSteps...)
+		}
+	}
+	return steps
 }
