@@ -421,15 +421,15 @@ type ImportUnitArg struct {
 	Password        *PasswordInfo
 	Constraints     constraints.Constraints
 	WorkloadVersion string
-	// Principal contains the name of the units principal unit. If the unit is
-	// not a subordinate, this field is empty.
-	Principal coreunit.Name
 }
 
 // ImportIAASUnitArg is used to import a IAAS unit.
 type ImportIAASUnitArg struct {
 	ImportUnitArg
 	Machine machine.Name
+	// Principal contains the name of the units principal unit. If the unit is
+	// not a subordinate, this field is empty.
+	Principal coreunit.Name
 }
 
 // ImportCAASUnitArg is used to import a CAAS unit.

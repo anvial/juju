@@ -525,7 +525,6 @@ func makeIAASUnitArgs(units []ImportIAASUnitArg, charmUUID corecharm.ID) ([]appl
 	for i, u := range units {
 		arg := application.ImportUnitArg{
 			UnitName:        u.UnitName,
-			Principal:       u.Principal,
 			WorkloadVersion: u.WorkloadVersion,
 		}
 		if u.PasswordHash != nil {
@@ -536,6 +535,7 @@ func makeIAASUnitArgs(units []ImportIAASUnitArg, charmUUID corecharm.ID) ([]appl
 		}
 		unitArgs[i] = application.ImportIAASUnitArg{
 			ImportUnitArg: arg,
+			Principal:     u.Principal,
 			Machine:       u.Machine,
 		}
 	}
@@ -547,7 +547,6 @@ func makeCAASUnitArgs(units []ImportCAASUnitArg, charmUUID corecharm.ID) ([]appl
 	for i, u := range units {
 		arg := application.ImportUnitArg{
 			UnitName:        u.UnitName,
-			Principal:       u.Principal,
 			WorkloadVersion: u.WorkloadVersion,
 		}
 

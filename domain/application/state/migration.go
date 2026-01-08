@@ -414,18 +414,6 @@ func (st *State) importCAASUnit(
 		return errors.Errorf("importing unit for CAAS application %q: %w", appUUID, err)
 	}
 
-	if args.Principal != "" {
-		principalUnitUUID, err := st.GetUnitUUIDByName(ctx, args.Principal)
-		if err != nil {
-			return errors.Errorf(
-				"getting unit uuid for principal unit: %w", err,
-			)
-		}
-		if err = st.recordUnitPrincipal(ctx, tx, principalUnitUUID.String(), unitUUID); err != nil {
-			return errors.Errorf("importing subordinate info for unit %q: %w", args.UnitName, err)
-		}
-	}
-
 	// TODO (TLM): Storage is currently not being set during import migration
 	// of an application. This needs further re-work to be marked as done.
 	// If there is no storage, return early.

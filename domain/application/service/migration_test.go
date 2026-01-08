@@ -549,9 +549,9 @@ func (s *migrationServiceSuite) TestImportIAASApplication(c *tc.C) {
 				PasswordHash:  "passwordhash",
 				HashAlgorithm: 0,
 			}),
-			Principal: "principal/0",
 		},
-		Machine: "0",
+		Principal: "principal/0",
+		Machine:   "0",
 	}}
 	c.Check(receivedUnitArgs, tc.DeepEquals, expectedUnitArgs)
 }
@@ -639,7 +639,6 @@ func (s *migrationServiceSuite) TestImportCAASApplication(c *tc.C) {
 		ImportUnitArg: ImportUnitArg{
 			UnitName:     "ubuntu/666",
 			PasswordHash: ptr("passwordhash"),
-			Principal:    "principal/0",
 		},
 	}
 
@@ -709,7 +708,6 @@ func (s *migrationServiceSuite) TestImportCAASApplication(c *tc.C) {
 				PasswordHash:  "passwordhash",
 				HashAlgorithm: 0,
 			}),
-			Principal: "principal/0",
 		},
 	}}
 	c.Check(receivedUnitArgs, tc.DeepEquals, expectedUnitArgs)
