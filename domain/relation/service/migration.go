@@ -18,11 +18,13 @@ import (
 
 // MigrationState is the state required for migrating relations.
 type MigrationState interface {
-	// GetPeerRelationUUIDByEndpointIdentifiers gets the UUID of a peer
-	// relation specified by a single endpoint identifier.
-	GetPeerRelationUUIDByEndpointIdentifiers(
+	// ImportPeerRelation establishes a peer relation on the endpoint passed as
+	// argument. Used for migration import.
+	ImportPeerRelation(
 		ctx context.Context,
-		endpoint corerelation.EndpointIdentifier,
+		ep corerelation.EndpointIdentifier,
+		id uint64,
+		scope charm.RelationScope,
 	) (corerelation.UUID, error)
 
 	// ImportRelation establishes a relation between two endpoints identified
@@ -102,16 +104,15 @@ func (s *MigrationService) importRelation(ctx context.Context, arg relation.Impo
 
 	switch len(eps) {
 	case 1:
-		// Peer relations are implicitly imported during migration of applications
-		// during the call to CreateApplication.
-		relUUID, err = s.st.GetPeerRelationUUIDByEndpointIdentifiers(ctx, eps[0])
+		relUUID, err = s.st.ImportPeerRelation(ctx, eps[0], uint64(arg.ID), arg.Scope)
 		if err != nil {
-			return relUUID, errors.Errorf("getting peer relation %d by endpoint %q: %w", arg.ID, eps[0], err)
+			return relUUID, errors.Errorf("importing peer relation %d by endpoint %q: %w", arg.ID, eps[0], err)
 		}
 	case 2:
 		relUUID, err = s.st.ImportRelation(ctx, eps[0], eps[1], uint64(arg.ID), arg.Scope)
 		if err != nil {
-			return relUUID, errors.Capture(err)
+			return relUUID, errors.Errorf("importing relation %d between endpoints %q and %q: %w",
+				arg.ID, eps[0], eps[1], err)
 		}
 	default:
 		return relUUID, errors.Errorf("unexpected number of endpoints %d for %q", len(eps), arg.Key)
