@@ -19,6 +19,7 @@ import (
 	corestatus "github.com/juju/juju/core/status"
 	"github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/operation"
+	operationerrors "github.com/juju/juju/domain/operation/errors"
 	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/rpc/params"
 )
@@ -95,6 +96,16 @@ func (a *ActionAPI) EnqueueOperation(ctx context.Context, arg params.Actions) (p
 	}
 
 	result, err := a.operationService.AddActionOperation(ctx, receivers, taskParams)
+	if notDefined, ok := errors.AsType[operationerrors.ActionNotDefined](err); ok {
+		if notDefined.HasActions {
+			return params.EnqueuedActions{}, apiservererrors.ParamsErrorf(
+				params.CodeNotFound,
+				"action %q not defined for unit %q.", taskParams.ActionName, notDefined.UnitName)
+		}
+		return params.EnqueuedActions{}, apiservererrors.ParamsErrorf(
+			params.CodeNotFound,
+			"no actions defined for charm %s.", notDefined.CharmName)
+	}
 	if err != nil {
 		return params.EnqueuedActions{}, errors.Capture(err)
 	}

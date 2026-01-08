@@ -18,6 +18,7 @@ import (
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	"github.com/juju/juju/domain/operation"
+	operationerrors "github.com/juju/juju/domain/operation/errors"
 	"github.com/juju/juju/domain/operation/internal"
 	sequencestate "github.com/juju/juju/domain/sequence/state"
 	"github.com/juju/juju/internal/errors"
@@ -143,6 +144,14 @@ func (st *State) AddActionOperation(ctx context.Context,
 		}
 
 		err = st.insertOperationAction(ctx, tx, operationUUID.String(), charmUUID, args.ActionName)
+		if notDefined, ok := errors.AsType[errActionNotDefined](err); ok {
+			// Translate the error to domain error, enhanced with the unit name
+			return operationerrors.ActionNotDefined{
+				UnitName:   targetUnits[0].String(),
+				CharmName:  notDefined.CharmName,
+				HasActions: notDefined.HasActions,
+			}
+		}
 		if err != nil {
 			return errors.Errorf("inserting operation action: %w", err)
 		}
@@ -378,6 +387,10 @@ func (st *State) insertOperationAction(ctx context.Context, tx *sqlair.TX, opera
 		CharmActionKey: actionName,
 	}
 
+	if err := st.checkActionDefined(ctx, tx, charmUUID, actionName); err != nil {
+		return errors.Capture(err)
+	}
+
 	query := `
 INSERT INTO operation_action (operation_uuid, charm_uuid, charm_action_key)
 VALUES ($insertOperationAction.*)
@@ -389,12 +402,79 @@ VALUES ($insertOperationAction.*)
 
 	err = tx.Query(ctx, stmt, action).Run()
 	if err != nil {
-		// We know that we can have a FK error here if the charm action (
-		// charm_action_key) does not exist for the provided charm, so we return
-		// a user error.
 		return errors.Errorf("inserting action %q for charm %q and operation %q", actionName, charmUUID, operationUUID)
 	}
 	return nil
+}
+
+// errActionNotDefined describes an error that occurs when the given charm does
+// not define the given action.
+type errActionNotDefined struct {
+	// CharmName is the name of the charm missing the action.
+	CharmName string
+	// HasActions is true if the charm defines some actions.
+	HasActions bool
+}
+
+// Error implements builtin.error
+func (a errActionNotDefined) Error() string {
+	return fmt.Sprintf("action not defined for charm %q", a.CharmName)
+}
+
+// checkActionDefined checks if an action is defined for a specific charm by its
+// UUID and action name. Returns nil if the action is defined, an errActionNotDefined
+// if it is not defined, or any error if the query fails.
+func (st *State) checkActionDefined(ctx context.Context, tx *sqlair.TX, charmUUID, name string) error {
+	type search struct {
+		CharmUUID      string `db:"charm_uuid"`
+		CharmActionKey string `db:"charm_action_key"`
+	}
+	type found struct {
+		CharmName   string `db:"charm_name"`
+		ActionCount int    `db:"action_count"`
+	}
+	queryFound := `
+SELECT key AS &search.charm_action_key 
+FROM   charm_action
+WHERE  charm_uuid = $search.charm_uuid 
+AND    "key" = $search.charm_action_key`
+
+	queryInfo := `
+WITH action_count AS (
+    SELECT $search.charm_uuid AS charm_uuid, COUNT(1) AS count 
+    FROM   charm_action AS ca
+    WHERE  ca.charm_uuid = $search.charm_uuid 
+)
+SELECT c.reference_name AS &found.charm_name, ca.count AS &found.action_count
+FROM   charm AS c 
+JOIN   action_count AS ca ON c.uuid = ca.charm_uuid 
+WHERE  c.uuid = $search.charm_uuid`
+
+	input := search{CharmUUID: charmUUID, CharmActionKey: name}
+	stmtFound, err := st.Prepare(queryFound, input)
+	if err != nil {
+		return errors.Capture(err)
+	}
+	stmtCheck, err := st.Prepare(queryInfo, input, found{})
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	if err := tx.Query(ctx, stmtFound, input).Get(&input); err == nil {
+		return nil // found
+	} else if !errors.Is(err, sqlair.ErrNoRows) {
+		return errors.Errorf("querying action %q for charm %q: %w", name, charmUUID, err)
+	}
+
+	var info found
+	if err := tx.Query(ctx, stmtCheck, input).Get(&info); err != nil {
+		return errors.Errorf("querying charm %q info: %w", charmUUID, err)
+	}
+
+	return errActionNotDefined{
+		CharmName:  info.CharmName,
+		HasActions: info.ActionCount > 0,
+	}
 }
 
 func (st *State) addMachineTask(

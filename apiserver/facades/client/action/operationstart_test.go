@@ -23,6 +23,7 @@ import (
 	"github.com/juju/juju/core/unit"
 	blockcommanderrors "github.com/juju/juju/domain/blockcommand/errors"
 	"github.com/juju/juju/domain/operation"
+	operationerrors "github.com/juju/juju/domain/operation/errors"
 	"github.com/juju/juju/internal/testing"
 	"github.com/juju/juju/rpc/params"
 )
@@ -301,6 +302,48 @@ func (s *enqueueSuite) TestEnqueueServiceError(c *tc.C) {
 	_, err := api.EnqueueOperation(c.Context(), params.Actions{Actions: []params.Action{{Receiver: "unit-app-0",
 		Name: "do"}}})
 	c.Assert(err, tc.ErrorMatches, "boom")
+}
+
+// TestEnqueueActionNotDefinedForUnit verifies the error mapping when the
+// requested action is not defined for a charm that does define other actions.
+func (s *enqueueSuite) TestEnqueueActionNotDefinedForUnit(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+	api := s.newActionAPI(c)
+
+	// Arrange: Operation service reports the action is not defined for the unit,
+	// but the charm does define some actions.
+	s.OperationService.EXPECT().AddActionOperation(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		operation.RunResult{},
+		operationerrors.ActionNotDefined{CharmName: "mycharm", UnitName: "app/0", HasActions: true},
+	)
+
+	// Act
+	_, err := api.EnqueueOperation(c.Context(), params.Actions{Actions: []params.Action{{
+		Receiver: "unit-app-0",
+		Name:     "do",
+	}}})
+
+	// Assert
+	c.Assert(err, tc.ErrorMatches, "action \"do\" not defined for unit \"app/0\"\\.")
+}
+
+// TestEnqueueNoActionsDefinedForCharm verifies the error mapping when the
+// charm has no actions defined at all.
+func (s *enqueueSuite) TestEnqueueNoActionsDefinedForCharm(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+	api := s.newActionAPI(c)
+
+	s.OperationService.EXPECT().AddActionOperation(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		operation.RunResult{},
+		operationerrors.ActionNotDefined{CharmName: "mycharm", HasActions: false},
+	)
+
+	_, err := api.EnqueueOperation(c.Context(), params.Actions{Actions: []params.Action{{
+		Receiver: "unit-app-0",
+		Name:     "do",
+	}}})
+
+	c.Assert(err, tc.ErrorMatches, "no actions defined for charm mycharm\\.")
 }
 
 // TestEnqueueUnexpectedExtraResult verifies the behavior when an unexpected
