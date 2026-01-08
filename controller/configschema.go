@@ -25,6 +25,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	IdentityURL:                        schema.String(),
 	IdentityPublicKey:                  schema.String(),
 	IdleConnectionTimeout:              schema.TimeDuration(),
+	HTTPServerReadTimeout:              schema.TimeDuration(),
+	HTTPServerWriteTimeout:             schema.TimeDuration(),
 	SetNUMAControlPolicyKey:            schema.Bool(),
 	AutocertURLKey:                     schema.String(),
 	AutocertDNSNameKey:                 schema.String(),
@@ -81,6 +83,8 @@ var configChecker = schema.FieldMap(schema.Fields{
 	IdentityURL:                        schema.Omit,
 	IdentityPublicKey:                  schema.Omit,
 	IdleConnectionTimeout:              DefaultIdleConnectionTimeout,
+	HTTPServerReadTimeout:              DefaultHTTPServerReadTimeout,
+	HTTPServerWriteTimeout:             DefaultHTTPServerWriteTimeout,
 	SetNUMAControlPolicyKey:            DefaultNUMAControlPolicy,
 	AutocertURLKey:                     schema.Omit,
 	AutocertDNSNameKey:                 schema.Omit,
@@ -178,6 +182,18 @@ var ConfigSchema = configschema.Fields{
 resets of all idle connections. By default, every 10 minutes
 the controller will close all idle connections.
 `,
+	},
+	HTTPServerReadTimeout: {
+		Type: configschema.Tstring,
+		Description: `The maximum duration for reading the entire HTTP request, including the body.
+A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value
+(e.g., 60s) if you need to prevent indefinite reads.`,
+	},
+	HTTPServerWriteTimeout: {
+		Type: configschema.Tstring,
+		Description: `The maximum duration before timing out writes of the HTTP response.
+A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value
+(e.g., 60s) if you need to prevent indefinite writes.`,
 	},
 	LoginTokenRefreshURL: {
 		Type:        configschema.Tstring,

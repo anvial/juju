@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Use LXD cloud with Juju for local development, rapid prototyping, and testing. Learn localhost cloud setup, configuration, and use cases."
+---
+
 (cloud-lxd)=
 # The LXD cloud and Juju
 
@@ -180,7 +186,7 @@ Configuration options:
 
 - `lxd-pool`:  The name to give to the corresponding storage pool in LXD.
 
-Any other parameters will be passed to LXD (e.g. zfs.pool_name). See upstream [LXD storage configuration](https://github.com/lxc/lxd/blob/master/doc/storage.md) for LXD storage parameters.
+Any other parameters will be passed to LXD (e.g. `zfs.pool_name`). See upstream [LXD storage configuration](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/) for LXD storage parameters.
 
 Every LXD-based model comes with a minimum of one LXD-specific Juju storage pool called 'lxd'. If ZFS and/or BTRFS are present when the controller is created then pools 'lxd-zfs' and/or 'lxd-btrfs' will also be available. The following output to the `juju storage-pools` command shows all three Juju LXD-specific pools:
 

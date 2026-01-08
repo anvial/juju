@@ -58,6 +58,11 @@ type addModelCommand struct {
 	CloudRegion    string
 	Config         common.ConfigFlag
 	noSwitch       bool
+	// targetController holds a controller name when adding a model
+	// to a controller managed by JAAS.
+	// A non-empty value for this member causes an error to be returned
+	// to the user if the JAAS plugin is not installed.
+	targetController string
 }
 
 const addModelHelpDoc = `
@@ -124,9 +129,16 @@ func (c *addModelCommand) SetFlags(f *gnuflag.FlagSet) {
 	f.StringVar(&c.CredentialName, "credential", "", "Specify the credential to be used by the model")
 	f.Var(&c.Config, "config", "Specify the path to a YAML model configuration file or individual configuration options (`--config config.yaml [--config key=value ...]`)")
 	f.BoolVar(&c.noSwitch, "no-switch", false, "Choose not to switch to the newly created model")
+	f.StringVar(&c.targetController, "target-controller", "", "The name of a JAAS managed controller to add a model to")
 }
 
 func (c *addModelCommand) Init(args []string) error {
+	// If the JAAS plugin is installed, this error causes the plugin version
+	// of the command to be executed. Otherwise it is returned to the user.
+	if c.targetController != "" {
+		return cmd.ErrCommandMissing
+	}
+
 	if len(args) == 0 {
 		return common.MissingModelNameError("add-model")
 	}

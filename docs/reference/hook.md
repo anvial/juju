@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju hooks reference: charm lifecycle events, hook execution, idempotency, and Ops framework integration for application state management."
+---
+
 (hook)=
 # Hook
 

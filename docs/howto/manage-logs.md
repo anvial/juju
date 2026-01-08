@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Learn how to view, filter, and manage logs from Juju controllers, models, units, and machines for troubleshooting and monitoring."
+---
+
 (manage-logs)=
 # How to manage logs
 
