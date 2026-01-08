@@ -33,6 +33,7 @@ import (
 	"github.com/juju/juju/domain/port/service"
 	"github.com/juju/juju/domain/port/state"
 	changestreamtesting "github.com/juju/juju/internal/changestream/testing"
+	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/logger"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	coretesting "github.com/juju/juju/internal/testing"
@@ -222,9 +223,9 @@ func (s *watcherSuite) TestWatchOpenedPorts(c *tc.C) {
 
 	// open a port on an empty endpoint on a unit on machine 0
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{
 			"ep0": {ssh},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
@@ -232,9 +233,9 @@ func (s *watcherSuite) TestWatchOpenedPorts(c *tc.C) {
 
 	// open a port on an endpoint with opened ports on a unit on machine 0
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{
 			"ep0": {http},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
@@ -242,9 +243,9 @@ func (s *watcherSuite) TestWatchOpenedPorts(c *tc.C) {
 
 	// open a port on a new endpoint on another unit on machine 0
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{
 			"ep1": {http},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[1].String()))
@@ -252,63 +253,44 @@ func (s *watcherSuite) TestWatchOpenedPorts(c *tc.C) {
 
 	// open a port on a endpoint on a unit on machine 1
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[2], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[2], network.GroupedPortRanges{
 			"ep2": {https},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[2].String()))
 	})
 
-	// open a port that's already open
-	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{
-			"ep0": {ssh},
-		}, network.GroupedPortRanges{})
-		c.Assert(err, tc.ErrorIsNil)
-	}, func(w watchertest.WatcherC[[]string]) {
-		w.AssertNoChange()
-	})
-
 	// close a port on an endpoint on a unit on machine 0
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{}, network.GroupedPortRanges{
-			"ep0": {ssh},
-		})
-		c.Assert(err, tc.ErrorIsNil)
+		s.assertClosePort(c, s.unitUUIDs[0].String(), ssh.FromPort, ssh.ToPort)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
 	})
 
 	// close the final open port of an endpoint for a unit on machine 0
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{}, network.GroupedPortRanges{
-			"ep0": {http},
-		})
-		c.Assert(err, tc.ErrorIsNil)
+		s.assertClosePort(c, s.unitUUIDs[0].String(), http.FromPort, http.ToPort)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[0].String()))
 	})
 
 	// close a port range which isn't open
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{}, network.GroupedPortRanges{
-			"ep1": {https},
-		})
-		c.Assert(err, tc.ErrorIsNil)
+		s.assertClosePort(c, s.unitUUIDs[1].String(), https.FromPort, https.ToPort)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.AssertNoChange()
 	})
 
 	// open ports on different machines at the same time
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{
 			"ep3": {https},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
-		err = s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[2], network.GroupedPortRanges{
+		err = s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[2], network.GroupedPortRanges{
 			"ep3": {https},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(watchertest.StringSliceAssert(s.unitUUIDs[1].String(), s.unitUUIDs[2].String()))
@@ -334,9 +316,9 @@ func (s *watcherSuite) TestWatchOpenedPortsForApplication(c *tc.C) {
 
 	// open a port on an empty endpoint on a unit the application
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{
 			"ep1": {http},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[struct{}]) {
 		w.Check(watchertest.SliceAssert(struct{}{}))
@@ -344,9 +326,9 @@ func (s *watcherSuite) TestWatchOpenedPortsForApplication(c *tc.C) {
 
 	// open a port on another unit of the application
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[2], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[2], network.GroupedPortRanges{
 			"ep2": {https},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[struct{}]) {
 		w.Check(watchertest.SliceAssert(struct{}{}))
@@ -354,19 +336,9 @@ func (s *watcherSuite) TestWatchOpenedPortsForApplication(c *tc.C) {
 
 	// open a port on another application
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{
+		err := s.srv.ImportOpenUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{
 			"ep0": {ssh},
-		}, network.GroupedPortRanges{})
-		c.Assert(err, tc.ErrorIsNil)
-	}, func(w watchertest.WatcherC[struct{}]) {
-		w.AssertNoChange()
-	})
-
-	// open a port that's already open
-	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{
-			"ep1": {http},
-		}, network.GroupedPortRanges{})
+		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[struct{}]) {
 		w.AssertNoChange()
@@ -374,33 +346,38 @@ func (s *watcherSuite) TestWatchOpenedPortsForApplication(c *tc.C) {
 
 	// close a port on a unit of the application
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[1], network.GroupedPortRanges{}, network.GroupedPortRanges{
-			"ep1": {http},
-		})
-		c.Assert(err, tc.ErrorIsNil)
+		s.assertClosePort(c, s.unitUUIDs[1].String(), http.FromPort, http.ToPort)
 	}, func(w watchertest.WatcherC[struct{}]) {
 		w.Check(watchertest.SliceAssert(struct{}{}))
 	})
 
 	// close the final open port of an endpoint for the application
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[2], network.GroupedPortRanges{}, network.GroupedPortRanges{
-			"ep2": {https},
-		})
-		c.Assert(err, tc.ErrorIsNil)
+		s.assertClosePort(c, s.unitUUIDs[2].String(), https.FromPort, https.ToPort)
 	}, func(w watchertest.WatcherC[struct{}]) {
 		w.Check(watchertest.SliceAssert(struct{}{}))
 	})
 
 	// close a port on another application
 	harness.AddTest(c, func(c *tc.C) {
-		err := s.srv.UpdateUnitPorts(c.Context(), s.unitUUIDs[0], network.GroupedPortRanges{}, network.GroupedPortRanges{
-			"ep0": {ssh},
-		})
-		c.Assert(err, tc.ErrorIsNil)
+		s.assertClosePort(c, s.unitUUIDs[0].String(), ssh.FromPort, ssh.ToPort)
 	}, func(w watchertest.WatcherC[struct{}]) {
 		w.AssertNoChange()
 	})
 
 	harness.Run(c, struct{}{})
+}
+
+// assertClosePort
+func (s *watcherSuite) assertClosePort(c *tc.C, unitUUID string, from, to int) {
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx,
+			"DELETE FROM port_range WHERE unit_uuid = ? AND from_port = ? AND to_port = ?",
+			unitUUID, from, to,
+		); err != nil {
+			return errors.Capture(err)
+		}
+		return nil
+	})
+	c.Assert(err, tc.ErrorIsNil)
 }
