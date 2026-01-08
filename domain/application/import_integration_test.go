@@ -4,7 +4,7 @@
 package application_test
 
 import (
-	context "context"
+	"context"
 	"testing"
 
 	"github.com/juju/clock"
@@ -20,6 +20,7 @@ import (
 	applicationmodelmigration "github.com/juju/juju/domain/application/modelmigration"
 	"github.com/juju/juju/domain/application/service"
 	"github.com/juju/juju/domain/application/state"
+	migrationtesting "github.com/juju/juju/domain/modelmigration/testing"
 	schematesting "github.com/juju/juju/domain/schema/testing"
 	domaintesting "github.com/juju/juju/domain/testing"
 	internalcharm "github.com/juju/juju/internal/charm"
@@ -72,95 +73,95 @@ func (s *importSuite) TestImportMaximalCharmMetadata(c *tc.C) {
 		Tags:           []string{"alpha", "beta"},
 		Terms:          []string{"terms", "and", "conditions"},
 		Provides: map[string]description.CharmMetadataRelation{
-			"db": relation{
-				name:          "db",
-				role:          "provider",
-				interfaceName: "db",
-				optional:      true,
-				limit:         1,
-				scope:         "global",
+			"db": migrationtesting.Relation{
+				Name_:          "db",
+				Role_:          "provider",
+				InterfaceName_: "db",
+				Optional_:      true,
+				Limit_:         1,
+				Scope_:         "global",
 			},
 		},
 		Peers: map[string]description.CharmMetadataRelation{
-			"restart": relation{
-				name:          "restart",
-				role:          "peer",
-				interfaceName: "restarter",
-				optional:      true,
-				limit:         2,
-				scope:         "global",
+			"restart": migrationtesting.Relation{
+				Name_:          "restart",
+				Role_:          "peer",
+				InterfaceName_: "restarter",
+				Optional_:      true,
+				Limit_:         2,
+				Scope_:         "global",
 			},
 		},
 		Requires: map[string]description.CharmMetadataRelation{
-			"cache": relation{
-				name:          "cache",
-				role:          "requirer",
-				interfaceName: "cache",
-				optional:      true,
-				limit:         3,
-				scope:         "container",
+			"cache": migrationtesting.Relation{
+				Name_:          "cache",
+				Role_:          "requirer",
+				InterfaceName_: "cache",
+				Optional_:      true,
+				Limit_:         3,
+				Scope_:         "container",
 			},
 		},
 		Storage: map[string]description.CharmMetadataStorage{
-			"ebs": storage{
-				name:        "ebs",
-				description: "ebs storage",
-				shared:      false,
-				readonly:    true,
-				countMin:    1,
-				countMax:    1,
-				minimumSize: 10,
-				location:    "/ebs",
-				properties:  []string{"fast", "encrypted"},
-				stype:       "filesystem",
+			"ebs": migrationtesting.Storage{
+				Name_:        "ebs",
+				Description_: "ebs storage",
+				Shared_:      false,
+				Readonly_:    true,
+				CountMin_:    1,
+				CountMax_:    1,
+				MinimumSize_: 10,
+				Location_:    "/ebs",
+				Properties_:  []string{"fast", "encrypted"},
+				Stype_:       "filesystem",
 			},
 		},
 		ExtraBindings: map[string]string{
 			"db-admin": "db-admin",
 		},
 		Devices: map[string]description.CharmMetadataDevice{
-			"gpu": device{
-				name:        "gpu",
-				description: "A GPU device",
-				dtype:       "gpu",
-				countMin:    1,
-				countMax:    2,
+			"gpu": migrationtesting.Device{
+				Name_:        "gpu",
+				Description_: "A GPU device",
+				Dtype_:       "gpu",
+				CountMin_:    1,
+				CountMax_:    2,
 			},
 		},
 		Containers: map[string]description.CharmMetadataContainer{
-			"deadbeef": container{
-				resource: "deadbeef",
-				mounts: []description.CharmMetadataContainerMount{
-					containerMount{
-						storage:  "tmpfs",
-						location: "/tmp",
+			"deadbeef": migrationtesting.Container{
+				Resource_: "deadbeef",
+				Mounts_: []description.CharmMetadataContainerMount{
+					migrationtesting.ContainerMount{
+						Storage_:  "tmpfs",
+						Location_: "/tmp",
 					},
 				},
-				uid: ptr(1000),
-				gid: ptr(1000),
+				Uid_: ptr(1000),
+				Gid_: ptr(1000),
 			},
 		},
 		Resources: map[string]description.CharmMetadataResource{
-			"file1": resourceMeta{
-				name:        "file1",
-				rtype:       "file",
-				description: "A resource file",
-				path:        "resources/deadbeef1",
+			"file1": migrationtesting.ResourceMeta{
+				Name_:        "file1",
+				Rtype_:       "file",
+				Description_: "A resource file",
+				Path_:        "resources/deadbeef1",
 			},
-			"oci2": resourceMeta{
-				name:        "oci2",
-				rtype:       "oci-image",
-				description: "A resource oci image",
-				path:        "resources/deadbeef2",
+			"oci2": migrationtesting.ResourceMeta{
+				Name_:        "oci2",
+				Rtype_:       "oci-image",
+				Description_: "A resource oci image",
+				Path_:        "resources/deadbeef2",
 			},
 		},
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "stable",
-				architectures: []string{"amd64"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
 			},
 		},
 	})
@@ -309,10 +310,10 @@ func (s *importSuite) TestImportMinimalCharmMetadata(c *tc.C) {
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "stable",
-				architectures: []string{"amd64"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
 			},
 		},
 	})
@@ -365,19 +366,19 @@ func (s *importSuite) TestImportMaximalCharmManifest(c *tc.C) {
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:    "ubuntu",
-				channel: "stable",
+			migrationtesting.ManifestBase{
+				Name_:    "ubuntu",
+				Channel_: "stable",
 			},
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "4.0/stable/foo",
-				architectures: []string{"arm64"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "4.0/stable/foo",
+				Architectures_: []string{"arm64"},
 			},
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "latest/stable",
-				architectures: []string{"amd64", "s390x", "ppc64el"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "latest/stable",
+				Architectures_: []string{"amd64", "s390x", "ppc64el"},
 			},
 		},
 	})
@@ -438,9 +439,9 @@ func (s *importSuite) TestImportMinimalCharmManifest(c *tc.C) {
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:    "ubuntu",
-				channel: "stable",
+			migrationtesting.ManifestBase{
+				Name_:    "ubuntu",
+				Channel_: "stable",
 			},
 		},
 	})
@@ -492,19 +493,19 @@ func (s *importSuite) TestImportMinimalCharmConfig(c *tc.C) {
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "stable",
-				architectures: []string{"amd64"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
 			},
 		},
 	})
 	app.SetCharmConfigs(description.CharmConfigsArgs{
 		Configs: map[string]description.CharmConfig{
-			"foo": config{
-				configType:   "string",
-				defaultValue: "bar",
-				description:  "foo description",
+			"foo": migrationtesting.Config{
+				ConfigType_:   "string",
+				DefaultValue_: "bar",
+				Description_:  "foo description",
 			},
 		},
 	})
@@ -555,34 +556,34 @@ func (s *importSuite) TestImportMaximalCharmConfig(c *tc.C) {
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "stable",
-				architectures: []string{"amd64"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
 			},
 		},
 	})
 	app.SetCharmConfigs(description.CharmConfigsArgs{
 		Configs: map[string]description.CharmConfig{
-			"foo": config{
-				configType:   "string",
-				defaultValue: "bar",
-				description:  "foo description",
+			"foo": migrationtesting.Config{
+				ConfigType_:   "string",
+				DefaultValue_: "bar",
+				Description_:  "foo description",
 			},
-			"baz": config{
-				configType:   "int",
-				defaultValue: 42,
-				description:  "baz description",
+			"baz": migrationtesting.Config{
+				ConfigType_:   "int",
+				DefaultValue_: 42,
+				Description_:  "baz description",
 			},
-			"qux": config{
-				configType:   "boolean",
-				defaultValue: true,
-				description:  "qux description",
+			"qux": migrationtesting.Config{
+				ConfigType_:   "boolean",
+				DefaultValue_: true,
+				Description_:  "qux description",
 			},
-			"norf": config{
-				configType:   "secret",
-				defaultValue: "foo-bar-baz",
-				description:  "norf description",
+			"norf": migrationtesting.Config{
+				ConfigType_:   "secret",
+				DefaultValue_: "foo-bar-baz",
+				Description_:  "norf description",
 			},
 		},
 	})
@@ -648,20 +649,20 @@ func (s *importSuite) TestImportMinimalCharmActions(c *tc.C) {
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "stable",
-				architectures: []string{"amd64"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
 			},
 		},
 	})
 	app.SetCharmActions(description.CharmActionsArgs{
 		Actions: map[string]description.CharmAction{
-			"foo": action{
-				description:    "foo description",
-				parallel:       true,
-				executionGroup: "bar",
-				params: map[string]any{
+			"foo": migrationtesting.Action{
+				Description_:    "foo description",
+				Parallel_:       true,
+				ExecutionGroup_: "bar",
+				Params_: map[string]any{
 					"a": int(1),
 				},
 			},
@@ -720,20 +721,20 @@ func (s *importSuite) TestImportMaximalCharmActions(c *tc.C) {
 	})
 	app.SetCharmManifest(description.CharmManifestArgs{
 		Bases: []description.CharmManifestBase{
-			manifestBase{
-				name:          "ubuntu",
-				channel:       "stable",
-				architectures: []string{"amd64"},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
 			},
 		},
 	})
 	app.SetCharmActions(description.CharmActionsArgs{
 		Actions: map[string]description.CharmAction{
-			"foo": action{
-				description:    "foo description",
-				parallel:       true,
-				executionGroup: "bar",
-				params: map[string]any{
+			"foo": migrationtesting.Action{
+				Description_:    "foo description",
+				Parallel_:       true,
+				ExecutionGroup_: "bar",
+				Params_: map[string]any{
 					"a": int(1),
 					"b": "string param",
 					"c": true,
@@ -744,8 +745,8 @@ func (s *importSuite) TestImportMaximalCharmActions(c *tc.C) {
 					},
 				},
 			},
-			"baz": action{
-				description: "baz description",
+			"baz": migrationtesting.Action{
+				Description_: "baz description",
 			},
 		},
 	})
@@ -807,236 +808,6 @@ func (s *importSuite) setupService(c *tc.C) *service.Service {
 	)
 }
 
-type manifestBase struct {
-	name          string
-	channel       string
-	architectures []string
-}
-
-func (m manifestBase) Name() string {
-	return m.name
-}
-func (m manifestBase) Channel() string {
-	return m.channel
-}
-func (m manifestBase) Architectures() []string {
-	return m.architectures
-}
-
-type relation struct {
-	name          string
-	role          string
-	interfaceName string
-	optional      bool
-	limit         int
-	scope         string
-}
-
-func (r relation) Name() string {
-	return r.name
-}
-
-func (r relation) Role() string {
-	return r.role
-}
-
-func (r relation) Interface() string {
-	return r.interfaceName
-}
-
-func (r relation) Optional() bool {
-	return r.optional
-}
-
-func (r relation) Limit() int {
-	return r.limit
-}
-
-func (r relation) Scope() string {
-	return r.scope
-}
-
-type storage struct {
-	name        string
-	stype       string
-	description string
-	shared      bool
-	readonly    bool
-	countMin    int
-	countMax    int
-	minimumSize int
-	location    string
-	properties  []string
-}
-
-func (s storage) Name() string {
-	return s.name
-}
-
-func (s storage) Description() string {
-	return s.description
-}
-
-func (s storage) Type() string {
-	return s.stype
-}
-
-func (s storage) Shared() bool {
-	return s.shared
-}
-
-func (s storage) Readonly() bool {
-	return s.readonly
-}
-
-func (s storage) CountMin() int {
-	return s.countMin
-}
-
-func (s storage) CountMax() int {
-	return s.countMax
-}
-
-func (s storage) MinimumSize() int {
-	return s.minimumSize
-}
-
-func (s storage) Location() string {
-	return s.location
-}
-
-func (s storage) Properties() []string {
-	return s.properties
-}
-
-type device struct {
-	name        string
-	description string
-	dtype       string
-	countMin    int
-	countMax    int
-}
-
-func (d device) Name() string {
-	return d.name
-}
-
-func (d device) Description() string {
-	return d.description
-}
-
-func (d device) Type() string {
-	return d.dtype
-}
-
-func (d device) CountMin() int {
-	return d.countMin
-}
-
-func (d device) CountMax() int {
-	return d.countMax
-}
-
-type container struct {
-	resource string
-	mounts   []description.CharmMetadataContainerMount
-	uid      *int
-	gid      *int
-}
-
-func (c container) Resource() string {
-	return c.resource
-}
-
-func (c container) Mounts() []description.CharmMetadataContainerMount {
-	return c.mounts
-}
-
-func (c container) Uid() *int {
-	return c.uid
-}
-
-func (c container) Gid() *int {
-	return c.gid
-}
-
-type containerMount struct {
-	storage  string
-	location string
-}
-
-func (cm containerMount) Storage() string {
-	return cm.storage
-}
-
-func (cm containerMount) Location() string {
-	return cm.location
-}
-
-type resourceMeta struct {
-	name        string
-	rtype       string
-	description string
-	path        string
-}
-
-func (r resourceMeta) Name() string {
-	return r.name
-}
-
-func (r resourceMeta) Type() string {
-	return r.rtype
-}
-
-func (r resourceMeta) Description() string {
-	return r.description
-}
-
-func (r resourceMeta) Path() string {
-	return r.path
-}
-
 func ptr[T any](i T) *T {
 	return &i
-}
-
-type config struct {
-	configType   string
-	defaultValue any
-	description  string
-}
-
-func (c config) Type() string {
-	return c.configType
-}
-
-func (c config) Default() any {
-	return c.defaultValue
-}
-
-func (c config) Description() string {
-	return c.description
-}
-
-type action struct {
-	description    string
-	parallel       bool
-	executionGroup string
-	params         map[string]any
-}
-
-func (a action) Description() string {
-	return a.description
-}
-
-func (a action) Parallel() bool {
-	return a.parallel
-}
-
-func (a action) ExecutionGroup() string {
-	return a.executionGroup
-}
-
-func (a action) Parameters() map[string]any {
-	return a.params
 }
