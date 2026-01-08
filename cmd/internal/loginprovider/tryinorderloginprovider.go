@@ -12,6 +12,7 @@ import (
 
 	"github.com/juju/juju/api"
 	"github.com/juju/juju/api/base"
+	"github.com/juju/juju/rpc/params"
 )
 
 // NewTryInOrderLoginProvider returns a login provider that will attempt to
@@ -50,6 +51,9 @@ func (p *tryInOrderLoginProviders) Login(ctx context.Context, caller base.APICal
 	for i, provider := range p.providers {
 		result, err := provider.Login(ctx, caller)
 		if err != nil {
+			if params.IsCodeFatalLoginError(err) {
+				return nil, errors.Trace(err)
+			}
 			p.logger.Debugf("login error using provider %d - %s", i, err.Error())
 		} else {
 			p.logger.Debugf("successful login using provider %d", i)

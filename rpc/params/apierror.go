@@ -194,6 +194,7 @@ const (
 	CodeNotValid                  = "not valid"
 	CodeAccessRequired            = "access required"
 	CodeAppShouldNotHaveUnits     = "application should not have units"
+	CodeFatalLoginError           = "fatal login error"
 )
 
 // TranslateWellKnownError translates well known wire error codes into a github.com/juju/errors error
@@ -426,4 +427,10 @@ func IsCodeDeadlineExceeded(err error) bool {
 
 func IsCodeAppShouldNotHaveUnits(err error) bool {
 	return ErrCode(err) == CodeAppShouldNotHaveUnits
+}
+
+// IsCodeFatalLoginError returns true if err includes a FatalLoginError
+// error code.
+func IsCodeFatalLoginError(err error) bool {
+	return ErrCode(err) == CodeFatalLoginError
 }
