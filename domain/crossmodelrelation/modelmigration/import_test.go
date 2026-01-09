@@ -11,6 +11,7 @@ import (
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
+	"github.com/juju/juju/domain/application/charm"
 	"github.com/juju/juju/domain/crossmodelrelation"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/uuid"
@@ -66,6 +67,148 @@ func (s *importSuite) TestImportOffers(c *tc.C) {
 
 	// Act
 	err := s.newImportOperation(c).importOffers(c.Context(), []description.Application{app})
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportRemoteApplications(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	model := description.NewModel(description.ModelArgs{})
+	remoteApp := model.AddRemoteApplication(description.RemoteApplicationArgs{
+		Name:            "remote-mysql",
+		OfferUUID:       "offer-uuid-1234",
+		URL:             "ctrl:admin/model.mysql",
+		SourceModelUUID: "source-model-uuid",
+		Macaroon:        "macaroon-data",
+		Bindings:        map[string]string{"db": "alpha"},
+	})
+	remoteApp.AddEndpoint(description.RemoteEndpointArgs{
+		Name:      "db",
+		Role:      "provider",
+		Interface: "mysql",
+	})
+
+	expected := []crossmodelrelation.RemoteApplicationImport{
+		{
+			Name:            "remote-mysql",
+			OfferUUID:       "offer-uuid-1234",
+			URL:             "ctrl:admin/model.mysql",
+			SourceModelUUID: "source-model-uuid",
+			Macaroon:        "macaroon-data",
+			Endpoints: []crossmodelrelation.RemoteApplicationEndpoint{
+				{
+					Name:      "db",
+					Role:      charm.RoleProvider,
+					Interface: "mysql",
+				},
+			},
+			Bindings:        map[string]string{"db": "alpha"},
+			IsConsumerProxy: false,
+		},
+	}
+	s.importService.EXPECT().ImportRemoteApplications(
+		gomock.Any(),
+		expected,
+	).Return(nil)
+
+	// Act
+	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications())
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportRemoteApplicationsEmpty(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	model := description.NewModel(description.ModelArgs{})
+
+	// Act - no remote applications, no mock expectations needed
+	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications())
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportRemoteApplicationsMultiple(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	model := description.NewModel(description.ModelArgs{})
+
+	remoteApp1 := model.AddRemoteApplication(description.RemoteApplicationArgs{
+		Name:            "remote-mysql",
+		OfferUUID:       "offer-uuid-1",
+		URL:             "ctrl:admin/model.mysql",
+		SourceModelUUID: "source-model-uuid-1",
+	})
+	remoteApp1.AddEndpoint(description.RemoteEndpointArgs{
+		Name:      "db",
+		Role:      "provider",
+		Interface: "mysql",
+	})
+
+	remoteApp2 := model.AddRemoteApplication(description.RemoteApplicationArgs{
+		Name:            "remote-postgresql",
+		OfferUUID:       "offer-uuid-2",
+		URL:             "ctrl:admin/model.postgresql",
+		SourceModelUUID: "source-model-uuid-2",
+	})
+	remoteApp2.AddEndpoint(description.RemoteEndpointArgs{
+		Name:      "db",
+		Role:      "provider",
+		Interface: "pgsql",
+	})
+	remoteApp2.AddEndpoint(description.RemoteEndpointArgs{
+		Name:      "admin",
+		Role:      "requirer",
+		Interface: "admin",
+	})
+
+	expected := []crossmodelrelation.RemoteApplicationImport{
+		{
+			Name:            "remote-mysql",
+			OfferUUID:       "offer-uuid-1",
+			URL:             "ctrl:admin/model.mysql",
+			SourceModelUUID: "source-model-uuid-1",
+			Endpoints: []crossmodelrelation.RemoteApplicationEndpoint{
+				{
+					Name:      "db",
+					Role:      charm.RoleProvider,
+					Interface: "mysql",
+				},
+			},
+		},
+		{
+			Name:            "remote-postgresql",
+			OfferUUID:       "offer-uuid-2",
+			URL:             "ctrl:admin/model.postgresql",
+			SourceModelUUID: "source-model-uuid-2",
+			Endpoints: []crossmodelrelation.RemoteApplicationEndpoint{
+				{
+					Name:      "db",
+					Role:      charm.RoleProvider,
+					Interface: "pgsql",
+				},
+				{
+					Name:      "admin",
+					Role:      charm.RoleRequirer,
+					Interface: "admin",
+				},
+			},
+		},
+	}
+	s.importService.EXPECT().ImportRemoteApplications(
+		gomock.Any(),
+		expected,
+	).Return(nil)
+
+	// Act
+	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications())
 
 	// Assert
 	c.Assert(err, tc.ErrorIsNil)

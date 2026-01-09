@@ -12,6 +12,7 @@ import (
 
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
+	"github.com/juju/juju/domain/application/charm"
 	"github.com/juju/juju/domain/crossmodelrelation"
 	"github.com/juju/juju/domain/crossmodelrelation/service"
 	modelstate "github.com/juju/juju/domain/crossmodelrelation/state/model"
@@ -38,6 +39,10 @@ func RegisterImport(coordinator Coordinator, clock clock.Clock, logger logger.Lo
 type ImportService interface {
 	// ImportOffers adds offers being migrated to the current model.
 	ImportOffers(context.Context, []crossmodelrelation.OfferImport) error
+
+	// ImportRemoteApplications adds remote application offerers being migrated
+	// to the current model.
+	ImportRemoteApplications(context.Context, []crossmodelrelation.RemoteApplicationImport) error
 }
 
 type importOperation struct {
@@ -57,7 +62,6 @@ func (i *importOperation) Name() string {
 // Setup implements Operation.
 func (i *importOperation) Setup(scope modelmigration.Scope) error {
 	i.importService = service.NewMigrationService(
-		// TODO(import) - get model UUID and pass it in here
 		modelstate.NewState(scope.ModelDB(), "", i.clock, i.logger),
 		i.logger,
 	)
@@ -68,6 +72,9 @@ func (i *importOperation) Setup(scope modelmigration.Scope) error {
 func (i *importOperation) Execute(ctx context.Context, model description.Model) error {
 	if err := i.importOffers(ctx, model.Applications()); err != nil {
 		return errors.Errorf("importing offers: %w", err)
+	}
+	if err := i.importRemoteApplications(ctx, model.RemoteApplications()); err != nil {
+		return errors.Errorf("importing remote applications: %w", err)
 	}
 	return nil
 }
@@ -101,4 +108,53 @@ func (i *importOperation) importOffers(ctx context.Context, apps []description.A
 		return nil
 	}
 	return i.importService.ImportOffers(ctx, input)
+}
+
+func (i *importOperation) importRemoteApplications(ctx context.Context, remoteApps []description.RemoteApplication) error {
+	input := make([]crossmodelrelation.RemoteApplicationImport, 0, len(remoteApps))
+	for _, remoteApp := range remoteApps {
+		endpoints := make([]crossmodelrelation.RemoteApplicationEndpoint, 0, len(remoteApp.Endpoints()))
+		for _, ep := range remoteApp.Endpoints() {
+			role, err := parseRelationRole(ep.Role())
+			if err != nil {
+				return errors.Errorf("parsing role for endpoint %q on remote app %q: %w",
+					ep.Name(), remoteApp.Name(), err)
+			}
+			endpoints = append(endpoints, crossmodelrelation.RemoteApplicationEndpoint{
+				Name:      ep.Name(),
+				Role:      role,
+				Interface: ep.Interface(),
+			})
+		}
+
+		imp := crossmodelrelation.RemoteApplicationImport{
+			Name:            remoteApp.Name(),
+			OfferUUID:       remoteApp.OfferUUID(),
+			URL:             remoteApp.URL(),
+			SourceModelUUID: remoteApp.SourceModelUUID(),
+			Macaroon:        remoteApp.Macaroon(),
+			Endpoints:       endpoints,
+			Bindings:        remoteApp.Bindings(),
+			IsConsumerProxy: remoteApp.IsConsumerProxy(),
+		}
+		input = append(input, imp)
+	}
+	if len(input) == 0 {
+		return nil
+	}
+	return i.importService.ImportRemoteApplications(ctx, input)
+}
+
+// parseRelationRole parses a string role to a charm.RelationRole.
+func parseRelationRole(role string) (charm.RelationRole, error) {
+	switch role {
+	case "provider":
+		return charm.RoleProvider, nil
+	case "requirer":
+		return charm.RoleRequirer, nil
+	case "peer":
+		return charm.RolePeer, nil
+	default:
+		return "", errors.Errorf("unknown relation role %q", role)
+	}
 }
