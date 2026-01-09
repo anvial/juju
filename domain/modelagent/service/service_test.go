@@ -21,6 +21,7 @@ import (
 	unittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/core/version"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
+	"github.com/juju/juju/domain/application/architecture"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	modelagenterrors "github.com/juju/juju/domain/modelagent/errors"
@@ -1465,7 +1466,7 @@ func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersion(c *tc.C) {
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
 	version, err := svc.RunPreUpgradeChecksToVersion(c.Context(), desiredVersion)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(version, tc.Equals, currentVersion)
+	c.Check(version, tc.Equals, currentVersion)
 }
 
 // TestRunPreUpgradeChecksToVersionWithStream tests the happy path for running
@@ -1497,7 +1498,7 @@ func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionWithStream(c *tc.C) 
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
 	version, err := svc.RunPreUpgradeChecksToVersionWithStream(c.Context(), desiredVersion, stream)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(version, tc.Equals, currentVersion)
+	c.Check(version, tc.Equals, currentVersion)
 }
 
 // TestRunPreUpgradeChecksToVersionGetAllMachinesWithBaseError tests that an
@@ -1574,7 +1575,7 @@ func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionEmptyMachines(c *tc.
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
 	version, err := svc.RunPreUpgradeChecksToVersion(c.Context(), desiredVersion)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(version, tc.Equals, currentVersion)
+	c.Check(version, tc.Equals, currentVersion)
 }
 
 // TestRunPreUpgradeChecksToVersionWithStreamEmptyMachines tests that when no
@@ -1600,5 +1601,197 @@ func (s *modelUpgradeSuite) TestRunPreUpgradeChecksToVersionWithStreamEmptyMachi
 	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
 	version, err := svc.RunPreUpgradeChecksToVersionWithStream(c.Context(), desiredVersion, stream)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(version, tc.Equals, currentVersion)
+	c.Check(version, tc.Equals, currentVersion)
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsNonMissingInModel(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	machineArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+	foundModelArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
+	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
+	s.modelState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(foundModelArches, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	missingVersion, missingArches, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(missingVersion, tc.Equals, semversion.Zero)
+	c.Check(missingArches, tc.HasLen, 0)
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsNonMissingInController(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	machineArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+	foundModelArches := map[architecture.Architecture]struct{}{
+		architecture.ARM64: {},
+	}
+	foundControllerArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+	}
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
+	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
+	s.modelState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(foundModelArches, nil)
+	s.controllerState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(foundControllerArches, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	missingVersion, missingArches, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(missingVersion, tc.Equals, semversion.Zero)
+	c.Check(missingArches, tc.HasLen, 0)
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsArchMissing(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	machineArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+	foundModelArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+	}
+	foundControllerArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+	}
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
+	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
+	s.modelState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(foundModelArches, nil)
+	s.controllerState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(foundControllerArches, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	missingVersion, missingArches, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(missingVersion, tc.Equals, targetVersion)
+	c.Check(missingArches, tc.DeepEquals, []corearch.Arch{
+		corearch.ARM64,
+	})
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsArchesMissing(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	machineArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+	foundModelArches := map[architecture.Architecture]struct{}{
+		architecture.S390X: {},
+	}
+	foundControllerArches := map[architecture.Architecture]struct{}{
+		architecture.PPC64EL: {},
+	}
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
+	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
+	s.modelState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(foundModelArches, nil)
+	s.controllerState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(foundControllerArches, nil)
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	missingVersion, missingArches, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(missingVersion, tc.Equals, targetVersion)
+	c.Check(missingArches, tc.DeepEquals, []corearch.Arch{
+		corearch.AMD64,
+		corearch.ARM64,
+	})
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsGetModelTargetAgentVersionError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, errors.New("front fell off"))
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	_, _, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorMatches, ".*front fell off.*")
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsGetAllMachinesArchitecturesError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	machineArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
+	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, errors.New("front fell off"))
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	_, _, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorMatches, ".*front fell off.*")
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsModelGetAllMachineTargetAgentVersionByArchesError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	machineArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+	missingModelArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+	}
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
+	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
+	s.modelState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(missingModelArches, errors.New("front fell off"))
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	_, _, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorMatches, ".*front fell off.*")
+}
+
+func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsControllerGetAllMachineTargetAgentVersionByArchesError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	targetVersion := semversion.MustParse("4.0.1")
+
+	machineArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+		architecture.ARM64: {},
+	}
+	missingModelArches := map[architecture.Architecture]struct{}{
+		architecture.AMD64: {},
+	}
+	missingControllerArches := map[architecture.Architecture]struct{}{
+		architecture.ARM64: {},
+	}
+
+	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
+	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
+	s.modelState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(missingModelArches, nil)
+	s.controllerState.EXPECT().GetAllMachineTargetAgentVersionByArches(gomock.Any(), "4.0.1").Return(missingControllerArches, errors.New("front fell off"))
+
+	svc := NewService(s.agentBinaryFinder, s.modelState, s.controllerState)
+	_, _, err := svc.GetMissingAgentTargetVersions(c.Context())
+	c.Assert(err, tc.ErrorMatches, ".*front fell off.*")
 }

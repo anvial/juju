@@ -11,6 +11,7 @@ import (
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/domain"
+	"github.com/juju/juju/domain/application/architecture"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -70,4 +71,57 @@ GROUP  BY version
 	}
 
 	return versions, nil
+}
+
+// GetAllMachineTargetAgentVersionByArches returns all the given machine
+// architectures for a given agent version that have an associated agent binary
+// in the agent binary store.
+// It returns an empty map if no architectures are found.
+func (st *State) GetAllMachineTargetAgentVersionByArches(
+	ctx context.Context,
+	version string,
+) (map[architecture.Architecture]struct{}, error) {
+	db, err := st.DB(ctx)
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	key := agentBinaryStore{
+		Version: version,
+	}
+
+	stmt, err := st.Prepare(`
+SELECT &agentBinaryStore.*
+FROM   agent_binary_store
+WHERE  version = $agentBinaryStore.version 
+`, key)
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	var found []agentBinaryStore
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err := tx.Query(ctx, stmt, key).GetAll(&found)
+		if errors.Is(err, sqlair.ErrNoRows) {
+			return nil
+		} else if err != nil {
+			return errors.Errorf(
+				"getting existing agent binaries for version %q: %w",
+				version, err,
+			)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Capture(err)
+	}
+
+	// Removed the found architectures from the input set. The resulting
+	// set is the missing architectures.
+	result := make(map[architecture.Architecture]struct{})
+	for _, abs := range found {
+		result[architecture.Architecture(abs.ArchitectureID)] = struct{}{}
+	}
+
+	return result, nil
 }
