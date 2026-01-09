@@ -88,6 +88,32 @@ func (s *migrationSuite) TestImportRelation(c *tc.C) {
 	c.Assert(obtainedRelUUID, tc.Equals, foundRelUUID)
 }
 
+func (s *migrationSuite) TestImportPeerRelation(c *tc.C) {
+	// Arrange
+	relPeer := charm.Relation{
+		Name:  "peer",
+		Role:  charm.RolePeer,
+		Scope: charm.ScopeGlobal,
+	}
+
+	charm1 := s.addCharm(c)
+
+	appUUID1 := s.addApplication(c, charm1, "application-1")
+	_ = s.addApplicationEndpointFromRelation(c, charm1, appUUID1, relPeer)
+	expectedRelID := uint64(43)
+
+	// Act
+	obtainedRelUUID, err := s.state.ImportPeerRelation(c.Context(), corerelation.EndpointIdentifier{
+		ApplicationName: "application-1",
+		EndpointName:    "peer",
+	}, expectedRelID, charm.ScopeGlobal)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+	foundRelUUID := s.fetchRelationUUIDByRelationID(c, expectedRelID)
+	c.Assert(obtainedRelUUID, tc.Equals, foundRelUUID)
+}
+
 func (s *migrationSuite) TestGetApplicationUUIDByName(c *tc.C) {
 	obtainedID, err := s.state.GetApplicationUUIDByName(c.Context(), s.fakeApplicationName1)
 	c.Assert(err, tc.ErrorIsNil)

@@ -78,7 +78,7 @@ func (s *migrationServiceSuite) TestImportRelations(c *tc.C) {
 			},
 		},
 	}
-	peerRelUUID := s.expectGetPeerRelationUUIDByEndpointIdentifiers(c, ep1[0])
+	peerRelUUID := s.expectImportPeerRelation(c, ep1[0], uint64(7), charm.ScopeContainer)
 	relUUID := s.expectImportRelation(c, ep2[0], ep2[1], uint64(8), charm.ScopeGlobal)
 	app1ID := s.expectGetApplicationUUIDByName(c, args[0].Endpoints[0].ApplicationName)
 	app2ID := s.expectGetApplicationUUIDByName(c, args[1].Endpoints[0].ApplicationName)
@@ -158,12 +158,14 @@ func (s *migrationServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	return ctrl
 }
 
-func (s *migrationServiceSuite) expectGetPeerRelationUUIDByEndpointIdentifiers(
+func (s *migrationServiceSuite) expectImportPeerRelation(
 	c *tc.C,
 	endpoint corerelation.EndpointIdentifier,
+	id uint64,
+	scope charm.RelationScope,
 ) corerelation.UUID {
 	relUUID := corerelationtesting.GenRelationUUID(c)
-	s.state.EXPECT().GetPeerRelationUUIDByEndpointIdentifiers(gomock.Any(), endpoint).Return(relUUID, nil)
+	s.state.EXPECT().ImportPeerRelation(gomock.Any(), endpoint, id, scope).Return(relUUID, nil)
 	return relUUID
 }
 
