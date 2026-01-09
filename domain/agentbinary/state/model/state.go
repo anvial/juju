@@ -334,12 +334,14 @@ func (s *ModelState) GetAgentBinarySHA256(ctx context.Context, version coreagent
 
 	record := metadataRecord{
 		Version: version.Number.String(),
+		Arch:    version.Arch,
 	}
 
 	stmt, err := s.Prepare(`
 SELECT &metadataRecord.*
 FROM   v_agent_binary_store
-WHERE  version = $metadataRecord.version`, record)
+WHERE  version = $metadataRecord.version
+AND    architecture_name = $metadataRecord.architecture_name`, record)
 	if err != nil {
 		return false, "", errors.Capture(err)
 	}

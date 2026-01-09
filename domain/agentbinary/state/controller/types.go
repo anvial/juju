@@ -41,11 +41,6 @@ type metadataRecord struct {
 	SHA256 string `db:"sha_256"`
 }
 
-// modelAgentStream represents the stream in use for the agent.
-type modelAgentStream struct {
-	StreamID int `db:"stream_id"`
-}
-
 type metadataRecords []metadataRecord
 
 func (m metadataRecords) toMetadata() []agentbinary.Metadata {
