@@ -224,6 +224,112 @@ func (s *migrationSuite) TestImportRemoteApplicationsPeerIgnored(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 }
 
+func (s *migrationSuite) TestImportRemoteApplicationsConsumerProxyFiltered(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange - import both a consumer proxy and a regular remote app
+	// Consumer proxies should be filtered out by the service layer
+	input := []crossmodelrelation.RemoteApplicationImport{
+		{
+			Name:            "remote-consumer-proxy",
+			OfferUUID:       uuid.MustNewUUID().String(),
+			URL:             "ctrl:admin/model.app",
+			SourceModelUUID: uuid.MustNewUUID().String(),
+			Macaroon:        "macaroon-proxy",
+			Endpoints: []crossmodelrelation.RemoteApplicationEndpoint{
+				{
+					Name:      "endpoint",
+					Role:      "provider",
+					Interface: "http",
+				},
+			},
+			IsConsumerProxy: true, // Should be filtered out
+		},
+		{
+			Name:            "remote-normal",
+			OfferUUID:       uuid.MustNewUUID().String(),
+			URL:             "ctrl:admin/model.normal",
+			SourceModelUUID: uuid.MustNewUUID().String(),
+			Macaroon:        "macaroon-normal",
+			Endpoints: []crossmodelrelation.RemoteApplicationEndpoint{
+				{
+					Name:      "endpoint",
+					Role:      "provider",
+					Interface: "http",
+				},
+			},
+			IsConsumerProxy: false, // Should be imported
+		},
+	}
+
+	// Expected: only the non-consumer-proxy should be passed to state
+	expectedToState := []crossmodelrelation.RemoteApplicationImport{input[1]}
+	s.modelMigrationState.EXPECT().ImportRemoteApplications(
+		gomock.Any(),
+		syntheticCharmMatcher{
+			expectedApps: expectedToState,
+		},
+	).Return(nil)
+
+	// Act
+	err := s.service(c).ImportRemoteApplications(c.Context(), input)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *migrationSuite) TestImportRemoteApplicationsAllConsumerProxiesFiltered(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange - all imports are consumer proxies
+	input := []crossmodelrelation.RemoteApplicationImport{
+		{
+			Name:            "remote-consumer-proxy-1",
+			OfferUUID:       uuid.MustNewUUID().String(),
+			URL:             "ctrl:admin/model.app1",
+			SourceModelUUID: uuid.MustNewUUID().String(),
+			Macaroon:        "macaroon-1",
+			Endpoints: []crossmodelrelation.RemoteApplicationEndpoint{
+				{
+					Name:      "endpoint",
+					Role:      "provider",
+					Interface: "http",
+				},
+			},
+			IsConsumerProxy: true,
+		},
+		{
+			Name:            "remote-consumer-proxy-2",
+			OfferUUID:       uuid.MustNewUUID().String(),
+			URL:             "ctrl:admin/model.app2",
+			SourceModelUUID: uuid.MustNewUUID().String(),
+			Macaroon:        "macaroon-2",
+			Endpoints: []crossmodelrelation.RemoteApplicationEndpoint{
+				{
+					Name:      "endpoint",
+					Role:      "provider",
+					Interface: "http",
+				},
+			},
+			IsConsumerProxy: true,
+		},
+	}
+
+	// Expected: empty slice passed to state
+	s.modelMigrationState.EXPECT().ImportRemoteApplications(
+		gomock.Any(),
+		syntheticCharmMatcher{
+			expectedApps: []crossmodelrelation.RemoteApplicationImport{},
+		},
+	).Return(nil)
+
+	// Act
+	err := s.service(c).ImportRemoteApplications(c.Context(), input)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
 // syntheticCharmMatcher is a custom gomock matcher that verifies
 // RemoteApplicationImport slices have correctly built synthetic charms.
 type syntheticCharmMatcher struct {

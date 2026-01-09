@@ -58,11 +58,18 @@ func (s *MigrationService) ImportRemoteApplications(ctx context.Context, imports
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	// Build synthetic charms for each remote application in the service layer.
-	importsWithCharms := make([]crossmodelrelation.RemoteApplicationImport, len(imports))
-	for i, imp := range imports {
-		importsWithCharms[i] = imp
-		importsWithCharms[i].SyntheticCharm = buildSyntheticCharm(imp.Name, imp.Endpoints)
+	// Filter out consumer proxies and build synthetic charms for each
+	// remote application offerer in the service layer.
+	// Consumer proxies represent consumers on the offering side and are
+	// handled differently, so they should not be imported as remote offerers.
+	importsWithCharms := make([]crossmodelrelation.RemoteApplicationImport, 0, len(imports))
+	for _, imp := range imports {
+		// Skip consumer proxies
+		if imp.IsConsumerProxy {
+			continue
+		}
+		imp.SyntheticCharm = buildSyntheticCharm(imp.Name, imp.Endpoints)
+		importsWithCharms = append(importsWithCharms, imp)
 	}
 
 	return errors.Capture(s.modelState.ImportRemoteApplications(ctx, importsWithCharms))

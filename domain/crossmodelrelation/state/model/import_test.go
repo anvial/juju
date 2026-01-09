@@ -335,65 +335,6 @@ func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsMultiple(c *t
 	c.Check(count, tc.Equals, 2)
 }
 
-func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsConsumerProxySkipped(c *tc.C) {
-	// Arrange - import both a consumer proxy and a regular remote app
-	endpoints := []crossmodelrelation.RemoteApplicationEndpoint{
-		{
-			Name:      "endpoint",
-			Role:      appcharm.RoleProvider,
-			Interface: "http",
-		},
-	}
-	args := []crossmodelrelation.RemoteApplicationImport{
-		{
-			Name:            "remote-consumer-proxy",
-			OfferUUID:       internaluuid.MustNewUUID().String(),
-			URL:             "ctrl:admin/model.app",
-			SourceModelUUID: internaluuid.MustNewUUID().String(),
-			Macaroon:        "macaroon-proxy",
-			Endpoints:       endpoints,
-			SyntheticCharm:  buildTestSyntheticCharm("remote-consumer-proxy", endpoints),
-			IsConsumerProxy: true, // Should be skipped
-		},
-		{
-			Name:            "remote-normal",
-			OfferUUID:       internaluuid.MustNewUUID().String(),
-			URL:             "ctrl:admin/model.normal",
-			SourceModelUUID: internaluuid.MustNewUUID().String(),
-			Macaroon:        "macaroon-normal",
-			Endpoints:       endpoints,
-			SyntheticCharm:  buildTestSyntheticCharm("remote-normal", endpoints),
-			IsConsumerProxy: false, // Should be imported
-		},
-	}
-
-	// Act
-	err := s.state.ImportRemoteApplications(c.Context(), args)
-
-	// Assert
-	c.Assert(err, tc.IsNil)
-
-	// Verify only non-consumer-proxy was created
-	var count int
-	err = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		return tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM application_remote_offerer").Scan(&count)
-	})
-	c.Assert(err, tc.IsNil)
-	c.Check(count, tc.Equals, 1, tc.Commentf("Expected only the non-consumer-proxy remote app"))
-
-	// Verify it's the correct one
-	var appName string
-	err = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		return tx.QueryRowContext(ctx, `
-			SELECT a.name
-			FROM application_remote_offerer rao
-			JOIN application a ON rao.application_uuid = a.uuid
-		`).Scan(&appName)
-	})
-	c.Assert(err, tc.IsNil)
-	c.Check(appName, tc.Equals, "remote-normal")
-}
-
 func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsEmpty(c *tc.C) {
 	// Arrange
 	args := []crossmodelrelation.RemoteApplicationImport{}

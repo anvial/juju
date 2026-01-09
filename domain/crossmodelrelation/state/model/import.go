@@ -79,12 +79,6 @@ func (st *State) ImportRemoteApplications(ctx context.Context, imports []crossmo
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		for _, imp := range imports {
-			// Skip consumer proxies - they represent consumers on the
-			// offering side and are handled differently.
-			if imp.IsConsumerProxy {
-				continue
-			}
-
 			// Generate UUIDs for the application, charm, and remote app record.
 			applicationUUID, err := internaluuid.NewUUID()
 			if err != nil {
