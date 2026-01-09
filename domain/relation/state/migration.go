@@ -43,11 +43,6 @@ func (st *State) ImportPeerRelation(
 			return errors.Errorf("inserting new relation: %w", err)
 		}
 
-		// Insert relation status.
-		if err := st.insertNewRelationStatus(ctx, tx, relUUID); err != nil {
-			return errors.Errorf("inserting new status: %w", err)
-		}
-
 		// Insert relation_endpoint
 		if err := st.insertNewRelationEndpoint(ctx, tx, relUUID, endpointUUID); err != nil {
 			return errors.Errorf("inserting relation endpoint %q: %w", epIdentifier.String(), err)
@@ -88,11 +83,6 @@ func (st *State) ImportRelation(
 		relUUID, err = st.insertNewRelation(ctx, tx, id, scope)
 		if err != nil {
 			return errors.Errorf("inserting new relation: %w", err)
-		}
-
-		// Insert relation status.
-		if err := st.insertNewRelationStatus(ctx, tx, relUUID); err != nil {
-			return errors.Errorf("inserting new status: %w", err)
 		}
 
 		// Insert both relation_endpoint from application_endpoint_uuid and relation
