@@ -462,9 +462,11 @@ func (s *unitStateSuite) TestInsertMigratingIAASUnits(c *tc.C) {
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
-	err = s.state.InsertMigratingIAASUnits(c.Context(), appID, application.ImportUnitArg{
-		UnitName: "foo/666",
-		Machine:  "0",
+	err = s.state.InsertMigratingIAASUnits(c.Context(), appID, application.ImportIAASUnitArg{
+		ImportUnitArg: application.ImportUnitArg{
+			UnitName: "foo/666",
+		},
+		Machine: "0",
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -474,30 +476,14 @@ func (s *unitStateSuite) TestInsertMigratingIAASUnits(c *tc.C) {
 func (s *unitStateSuite) TestInsertMigratingCAASUnits(c *tc.C) {
 	appID := s.createIAASApplication(c, "foo", life.Alive)
 
-	err := s.state.InsertMigratingCAASUnits(c.Context(), appID, application.ImportUnitArg{
-		UnitName: "foo/666",
+	err := s.state.InsertMigratingCAASUnits(c.Context(), appID, application.ImportCAASUnitArg{
+		ImportUnitArg: application.ImportUnitArg{
+			UnitName: "foo/666",
+		},
 	})
 	c.Assert(err, tc.ErrorIsNil)
 
 	s.assertInsertMigratingUnits(c, appID)
-}
-
-func (s *unitStateSuite) TestInsertMigratingCAASUnitsSubordinate(c *tc.C) {
-	sub := unittesting.GenNewName(c, "foo/666")
-	_, unitUUIDs := s.createIAASApplicationWithNUnits(c, "bar", life.Alive, 1)
-	subAppID := s.createIAASApplication(c, "foo", life.Alive)
-
-	principal, err := s.state.GetUnitNameForUUID(c.Context(), unitUUIDs[0])
-	c.Assert(err, tc.ErrorIsNil)
-
-	err = s.state.InsertMigratingCAASUnits(c.Context(), subAppID, application.ImportUnitArg{
-		UnitName:  sub,
-		Principal: principal,
-	})
-	c.Assert(err, tc.ErrorIsNil)
-
-	s.assertInsertMigratingUnits(c, subAppID)
-	s.assertUnitPrincipal(c, unitUUIDs[0], sub)
 }
 
 func (s *unitStateSuite) TestInsertMigratingIAASUnitsSubordinate(c *tc.C) {
@@ -508,10 +494,12 @@ func (s *unitStateSuite) TestInsertMigratingIAASUnitsSubordinate(c *tc.C) {
 	principal, err := s.state.GetUnitNameForUUID(c.Context(), unitUUIDs[0])
 	c.Assert(err, tc.ErrorIsNil)
 
-	err = s.state.InsertMigratingIAASUnits(c.Context(), subAppID, application.ImportUnitArg{
-		UnitName:  sub,
-		Machine:   "0",
+	err = s.state.InsertMigratingIAASUnits(c.Context(), subAppID, application.ImportIAASUnitArg{
+		ImportUnitArg: application.ImportUnitArg{
+			UnitName: sub,
+		},
 		Principal: principal,
+		Machine:   "0",
 	})
 	c.Assert(err, tc.ErrorIsNil)
 

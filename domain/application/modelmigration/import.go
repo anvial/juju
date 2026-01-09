@@ -63,10 +63,10 @@ type importOperation struct {
 // from another controller model to this controller.
 type ImportService interface {
 	// ImportApplication registers the existence of an CAAS application in the model.
-	ImportCAASApplication(context.Context, string, service.ImportApplicationArgs) error
+	ImportCAASApplication(context.Context, string, service.ImportCAASApplicationArgs) error
 
 	// ImportIAASApplication registers the existence of an IAAS application in the model.
-	ImportIAASApplication(context.Context, string, service.ImportApplicationArgs) error
+	ImportIAASApplication(context.Context, string, service.ImportIAASApplicationArgs) error
 
 	// GetSpaceUUIDByName returns the UUID of the space with the given name.
 	//
@@ -110,26 +110,6 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 	}
 
 	for _, app := range append(principals, subordinates...) {
-		unitArgs := make([]service.ImportUnitArg, 0, len(app.Units()))
-		for _, unit := range app.Units() {
-			var (
-				unitArg service.ImportUnitArg
-				err     error
-			)
-			switch modelType {
-			case coremodel.CAAS:
-				unitArg, err = i.importCAASUnit(ctx, unit)
-			case coremodel.IAAS:
-				unitArg, err = i.importIAASUnit(ctx, unit)
-			default:
-				return errors.Errorf("unknown model type %q", modelType)
-			}
-			if err != nil {
-				return errors.Errorf("importing unit %q: %w", unit.Name(), err)
-			}
-			unitArgs = append(unitArgs, unitArg)
-		}
-
 		chURL, err := internalcharm.ParseURL(app.CharmURL())
 		if err != nil {
 			return errors.Errorf("parsing charm URL %q: %w", app.CharmURL(), err)
@@ -191,11 +171,9 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 		args := service.ImportApplicationArgs{
 			Charm:                  charm,
 			CharmOrigin:            origin,
-			Units:                  unitArgs,
 			ApplicationConfig:      applicationConfig,
 			ApplicationSettings:    applicationSettings,
 			ApplicationConstraints: i.importApplicationConstraints(app),
-			ScaleState:             scaleState,
 			EndpointBindings:       endpointBindings,
 			ExposedEndpoints:       exposedEndpoints,
 
@@ -209,12 +187,40 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 
 		switch modelType {
 		case coremodel.CAAS:
-			err = i.service.ImportCAASApplication(ctx, app.Name(), args)
+			unitArgs := make([]service.ImportCAASUnitArg, 0, len(app.Units()))
+			for _, unit := range app.Units() {
+				unitArg, err := i.importCAASUnit(ctx, unit)
+				if err != nil {
+					return errors.Errorf("importing unit %q: %w", unit.Name(), err)
+				}
+				unitArgs = append(unitArgs, unitArg)
+			}
+
+			err = i.service.ImportCAASApplication(ctx, app.Name(), service.ImportCAASApplicationArgs{
+				ImportApplicationArgs: args,
+				Units:                 unitArgs,
+				ScaleState:            scaleState,
+			})
+
 		case coremodel.IAAS:
-			err = i.service.ImportIAASApplication(ctx, app.Name(), args)
+			unitArgs := make([]service.ImportIAASUnitArg, 0, len(app.Units()))
+			for _, unit := range app.Units() {
+				unitArg, err := i.importIAASUnit(ctx, unit)
+				if err != nil {
+					return errors.Errorf("importing unit %q: %w", unit.Name(), err)
+				}
+				unitArgs = append(unitArgs, unitArg)
+			}
+
+			err = i.service.ImportIAASApplication(ctx, app.Name(), service.ImportIAASApplicationArgs{
+				ImportApplicationArgs: args,
+				Units:                 unitArgs,
+			})
+
 		default:
 			return errors.Errorf("unknown model type %q for import application", modelType)
 		}
+
 		if err != nil {
 			return errors.Errorf(
 				"import model application %q with %d units: %w",
