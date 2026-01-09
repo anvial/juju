@@ -205,6 +205,44 @@ func (m *MockImportOfferAccessService) EXPECT() *MockImportOfferAccessServiceMoc
 	return m.recorder
 }
 
+// DeletePermissionsByGrantOnUUID mocks base method.
+func (m *MockImportOfferAccessService) DeletePermissionsByGrantOnUUID(arg0 context.Context, arg1 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePermissionsByGrantOnUUID", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePermissionsByGrantOnUUID indicates an expected call of DeletePermissionsByGrantOnUUID.
+func (mr *MockImportOfferAccessServiceMockRecorder) DeletePermissionsByGrantOnUUID(arg0, arg1 any) *MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePermissionsByGrantOnUUID", reflect.TypeOf((*MockImportOfferAccessService)(nil).DeletePermissionsByGrantOnUUID), arg0, arg1)
+	return &MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall{Call: call}
+}
+
+// MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall wrap *gomock.Call
+type MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall) Return(arg0 error) *MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall) Do(f func(context.Context, []string) error) *MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall) DoAndReturn(f func(context.Context, []string) error) *MockImportOfferAccessServiceDeletePermissionsByGrantOnUUIDCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // ImportOfferAccess mocks base method.
 func (m *MockImportOfferAccessService) ImportOfferAccess(arg0 context.Context, arg1 []access.OfferImportAccess) error {
 	m.ctrl.T.Helper()
@@ -301,44 +339,6 @@ func (c *MockImportServiceCreatePermissionCall) Do(f func(context.Context, permi
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockImportServiceCreatePermissionCall) DoAndReturn(f func(context.Context, permission.UserAccessSpec) (permission.UserAccess, error)) *MockImportServiceCreatePermissionCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// ImportOfferAccess mocks base method.
-func (m *MockImportService) ImportOfferAccess(arg0 context.Context, arg1 []access.OfferImportAccess) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImportOfferAccess", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ImportOfferAccess indicates an expected call of ImportOfferAccess.
-func (mr *MockImportServiceMockRecorder) ImportOfferAccess(arg0, arg1 any) *MockImportServiceImportOfferAccessCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportOfferAccess", reflect.TypeOf((*MockImportService)(nil).ImportOfferAccess), arg0, arg1)
-	return &MockImportServiceImportOfferAccessCall{Call: call}
-}
-
-// MockImportServiceImportOfferAccessCall wrap *gomock.Call
-type MockImportServiceImportOfferAccessCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockImportServiceImportOfferAccessCall) Return(arg0 error) *MockImportServiceImportOfferAccessCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockImportServiceImportOfferAccessCall) Do(f func(context.Context, []access.OfferImportAccess) error) *MockImportServiceImportOfferAccessCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockImportServiceImportOfferAccessCall) DoAndReturn(f func(context.Context, []access.OfferImportAccess) error) *MockImportServiceImportOfferAccessCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

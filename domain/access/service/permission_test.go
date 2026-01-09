@@ -264,3 +264,44 @@ func (s *serviceSuite) TestImportOfferAccessFail(c *tc.C) {
 	err := NewService(s.state).ImportOfferAccess(c.Context(), importAccess)
 	c.Assert(err, tc.ErrorMatches, "boom")
 }
+
+func (s *serviceSuite) TestDeletePermissionsByGrantOnUUID(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	offerUUIDs := []string{"one", "two", "three"}
+	s.state.EXPECT().DeletePermissionsByGrantOnUUID(gomock.Any(), offerUUIDs).Return(nil)
+
+	// Act
+	err := NewService(s.state).DeletePermissionsByGrantOnUUID(c.Context(), offerUUIDs)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *serviceSuite) TestDeletePermissionsByGrantOnUUIDFail(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	offerUUIDs := []string{"one", "two", "three"}
+	s.state.EXPECT().DeletePermissionsByGrantOnUUID(gomock.Any(), offerUUIDs).Return(errors.Errorf("boom"))
+
+	// Act
+	err := NewService(s.state).DeletePermissionsByGrantOnUUID(c.Context(), offerUUIDs)
+
+	// Assert
+	c.Assert(err, tc.ErrorMatches, "boom")
+}
+
+func (s *serviceSuite) TestDeletePermissionsByGrantOnUUIDZeroInput(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	offerUUIDs := []string{}
+
+	// Act
+	err := NewService(s.state).DeletePermissionsByGrantOnUUID(c.Context(), offerUUIDs)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
