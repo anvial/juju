@@ -96,18 +96,23 @@ func (s *importSuite) TestImportApplicationOperation(c *tc.C) {
 		Status:    corestatus.Completed.String(),
 	})
 	desc.AddAction(description.ActionArgs{
-		Id:             "a-1",
-		Receiver:       "foo/0",
-		Name:           "do-it",
-		Operation:      "op-1",
+		Id:        "a-1",
+		Receiver:  "foo/0",
+		Name:      "do-it",
+		Operation: "op-1",
+		Parameters: map[string]any{
+			"p1": "v1",
+		},
 		Parallel:       true,
 		ExecutionGroup: "grp-1",
 		Enqueued:       now.Add(-3 * time.Hour),
 		Started:        now.Add(-2 * time.Hour),
 		Completed:      now.Add(-1 * time.Hour),
 		Status:         corestatus.Completed.String(),
-		Parameters: map[string]any{
-			"p1": "v1",
+		Message:        "action completed",
+		Messages: []description.ActionMessage{
+			migrationtesting.ActionMessage{Timestamp_: now.Add(-90 * time.Minute),
+				Message_: "action completed successfully"},
 		},
 	})
 
@@ -142,6 +147,10 @@ func (s *importSuite) TestImportApplicationOperation(c *tc.C) {
 	c.Check(*task.ExecutionGroup, tc.Equals, "grp-1")
 	c.Check(task.IsParallel, tc.IsTrue)
 	c.Check(task.Parameters, tc.DeepEquals, map[string]any{"p1": "v1"})
+	c.Check(task.Log, tc.HasLen, 1)
+	c.Check(task.Log[0].Timestamp.Equal(now.Add(-90*time.Minute)), tc.IsTrue)
+	c.Check(task.Log[0].Message, tc.Equals, "action completed successfully")
+	c.Check(task.Message, tc.Equals, "action completed")
 }
 
 func (s *importSuite) TestImportMachineOperation(c *tc.C) {
