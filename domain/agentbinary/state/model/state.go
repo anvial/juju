@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package state
+package model
 
 import (
 	"context"
@@ -339,7 +339,7 @@ func (s *ModelState) GetAgentBinarySHA256(ctx context.Context, version coreagent
 	stmt, err := s.Prepare(`
 SELECT &metadataRecord.*
 FROM   v_agent_binary_store
-WHERE version = $metadataRecord.version`, record)
+WHERE  version = $metadataRecord.version`, record)
 	if err != nil {
 		return false, "", errors.Capture(err)
 	}
@@ -351,8 +351,8 @@ WHERE version = $metadataRecord.version`, record)
 			return nil
 		} else if err != nil {
 			return errors.Errorf(
-				"checking database to see if agent binary for version %q exists: %w",
-				version.Number.String(), err,
+				"checking database to see if agent binary for version %q and architecture %q exists: %w",
+				version.Number.String(), version.Arch, err,
 			)
 		}
 		exists = true
