@@ -72,10 +72,6 @@ INSERT INTO offer (*) VALUES ($nameAndUUID.*)`, nameAndUUID{})
 // the current model. These are applications that this model is consuming from
 // other models.
 func (st *State) ImportRemoteApplications(ctx context.Context, imports []crossmodelrelation.RemoteApplicationImport) error {
-	if len(imports) == 0 {
-		return nil
-	}
-
 	db, err := st.DB(ctx)
 	if err != nil {
 		return errors.Capture(err)

@@ -68,14 +68,6 @@ func (s *MigrationService) ImportRemoteApplications(ctx context.Context, imports
 	return errors.Capture(s.modelState.ImportRemoteApplications(ctx, importsWithCharms))
 }
 
-// BuildSyntheticCharmForTest creates a synthetic charm from the remote application's
-// endpoints. This is used during migration to recreate the charm that
-// represents a remote application.
-// This is exported for testing purposes.
-func BuildSyntheticCharmForTest(appName string, endpoints []crossmodelrelation.RemoteApplicationEndpoint) charm.Charm {
-	return buildSyntheticCharm(appName, endpoints)
-}
-
 // buildSyntheticCharm creates a synthetic charm from the remote application's
 // endpoints. This is used during migration to recreate the charm that
 // represents a remote application.

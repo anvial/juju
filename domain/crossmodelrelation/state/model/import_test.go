@@ -12,10 +12,40 @@ import (
 
 	appcharm "github.com/juju/juju/domain/application/charm"
 	"github.com/juju/juju/domain/crossmodelrelation"
-	"github.com/juju/juju/domain/crossmodelrelation/service"
-	"github.com/juju/juju/internal/charm"
+	internalcharm "github.com/juju/juju/internal/charm"
 	internaluuid "github.com/juju/juju/internal/uuid"
 )
+
+// buildTestSyntheticCharm creates a synthetic charm from remote endpoints for testing.
+func buildTestSyntheticCharm(appName string, endpoints []crossmodelrelation.RemoteApplicationEndpoint) appcharm.Charm {
+	provides := make(map[string]appcharm.Relation)
+	requires := make(map[string]appcharm.Relation)
+
+	for _, ep := range endpoints {
+		rel := appcharm.Relation{
+			Name:      ep.Name,
+			Role:      ep.Role,
+			Interface: ep.Interface,
+			Scope:     appcharm.ScopeGlobal,
+		}
+		switch ep.Role {
+		case appcharm.RoleProvider:
+			provides[ep.Name] = rel
+		case appcharm.RoleRequirer:
+			requires[ep.Name] = rel
+		}
+	}
+
+	return appcharm.Charm{
+		Metadata: appcharm.Metadata{
+			Name:     appName,
+			Provides: provides,
+			Requires: requires,
+		},
+		Source:        appcharm.CMRSource,
+		ReferenceName: appName,
+	}
+}
 
 type importOfferSuite struct {
 	baseSuite
@@ -29,25 +59,25 @@ func (s *importOfferSuite) TestImportOffers(c *tc.C) {
 	// Arrange
 	charmUUID := s.addCharm(c)
 	s.addCharmMetadata(c, charmUUID, false)
-	relation := charm.Relation{
+	relation := internalcharm.Relation{
 		Name:      "db",
-		Role:      charm.RoleProvider,
+		Role:      internalcharm.RoleProvider,
 		Interface: "db",
-		Scope:     charm.ScopeGlobal,
+		Scope:     internalcharm.ScopeGlobal,
 	}
 	relationUUID := s.addCharmRelation(c, charmUUID, relation)
-	relation2 := charm.Relation{
+	relation2 := internalcharm.Relation{
 		Name:      "log",
-		Role:      charm.RoleProvider,
+		Role:      internalcharm.RoleProvider,
 		Interface: "log",
-		Scope:     charm.ScopeGlobal,
+		Scope:     internalcharm.ScopeGlobal,
 	}
 	relationUUID2 := s.addCharmRelation(c, charmUUID, relation2)
-	relation3 := charm.Relation{
+	relation3 := internalcharm.Relation{
 		Name:      "public",
-		Role:      charm.RoleProvider,
+		Role:      internalcharm.RoleProvider,
 		Interface: "public",
-		Scope:     charm.ScopeGlobal,
+		Scope:     internalcharm.ScopeGlobal,
 	}
 	relationUUID3 := s.addCharmRelation(c, charmUUID, relation3)
 
@@ -107,11 +137,11 @@ func (s *importOfferSuite) TestImportOffersMultipleApplications(c *tc.C) {
 	// Arrange
 	charmUUID1 := s.addCharm(c)
 	s.addCharmMetadata(c, charmUUID1, false)
-	relation1 := charm.Relation{
+	relation1 := internalcharm.Relation{
 		Name:      "db",
-		Role:      charm.RoleProvider,
+		Role:      internalcharm.RoleProvider,
 		Interface: "mysql",
-		Scope:     charm.ScopeGlobal,
+		Scope:     internalcharm.ScopeGlobal,
 	}
 	relationUUID1 := s.addCharmRelation(c, charmUUID1, relation1)
 	appName1 := "app1"
@@ -120,11 +150,11 @@ func (s *importOfferSuite) TestImportOffersMultipleApplications(c *tc.C) {
 
 	charmUUID2 := s.addCharm(c)
 	s.addCharmMetadata(c, charmUUID2, false)
-	relation2 := charm.Relation{
+	relation2 := internalcharm.Relation{
 		Name:      "endpoint",
-		Role:      charm.RoleProvider,
+		Role:      internalcharm.RoleProvider,
 		Interface: "http",
-		Scope:     charm.ScopeGlobal,
+		Scope:     internalcharm.ScopeGlobal,
 	}
 	relationUUID2 := s.addCharmRelation(c, charmUUID2, relation2)
 	appName2 := "app2"
@@ -203,7 +233,7 @@ func (s *importRemoteApplicationSuite) TestImportRemoteApplications(c *tc.C) {
 			SourceModelUUID: internaluuid.MustNewUUID().String(),
 			Macaroon:        "test-macaroon-data",
 			Endpoints:       endpoints,
-			SyntheticCharm:  service.BuildSyntheticCharmForTest("remote-kafka", endpoints),
+			SyntheticCharm:  buildTestSyntheticCharm("remote-kafka", endpoints),
 			Bindings:        map[string]string{"client": "alpha", "zookeeper": "beta"},
 			IsConsumerProxy: false,
 		},
@@ -275,7 +305,7 @@ func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsMultiple(c *t
 			SourceModelUUID: internaluuid.MustNewUUID().String(),
 			Macaroon:        "macaroon1",
 			Endpoints:       endpoints1,
-			SyntheticCharm:  service.BuildSyntheticCharmForTest("remote-mysql", endpoints1),
+			SyntheticCharm:  buildTestSyntheticCharm("remote-mysql", endpoints1),
 			IsConsumerProxy: false,
 		},
 		{
@@ -285,7 +315,7 @@ func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsMultiple(c *t
 			SourceModelUUID: internaluuid.MustNewUUID().String(),
 			Macaroon:        "macaroon2",
 			Endpoints:       endpoints2,
-			SyntheticCharm:  service.BuildSyntheticCharmForTest("remote-postgres", endpoints2),
+			SyntheticCharm:  buildTestSyntheticCharm("remote-postgres", endpoints2),
 			IsConsumerProxy: false,
 		},
 	}
@@ -322,7 +352,7 @@ func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsConsumerProxy
 			SourceModelUUID: internaluuid.MustNewUUID().String(),
 			Macaroon:        "macaroon-proxy",
 			Endpoints:       endpoints,
-			SyntheticCharm:  service.BuildSyntheticCharmForTest("remote-consumer-proxy", endpoints),
+			SyntheticCharm:  buildTestSyntheticCharm("remote-consumer-proxy", endpoints),
 			IsConsumerProxy: true, // Should be skipped
 		},
 		{
@@ -332,7 +362,7 @@ func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsConsumerProxy
 			SourceModelUUID: internaluuid.MustNewUUID().String(),
 			Macaroon:        "macaroon-normal",
 			Endpoints:       endpoints,
-			SyntheticCharm:  service.BuildSyntheticCharmForTest("remote-normal", endpoints),
+			SyntheticCharm:  buildTestSyntheticCharm("remote-normal", endpoints),
 			IsConsumerProxy: false, // Should be imported
 		},
 	}

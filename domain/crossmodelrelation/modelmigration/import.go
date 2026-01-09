@@ -62,7 +62,6 @@ func (i *importOperation) Name() string {
 // Setup implements Operation.
 func (i *importOperation) Setup(scope modelmigration.Scope) error {
 	i.importService = service.NewMigrationService(
-		// TODO(import) - get model UUID and pass it in here
 		modelstate.NewState(scope.ModelDB(), "", i.clock, i.logger),
 		i.logger,
 	)
