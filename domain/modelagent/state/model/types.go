@@ -7,7 +7,6 @@ import (
 	"database/sql"
 
 	coreunit "github.com/juju/juju/core/unit"
-	"github.com/juju/juju/domain/application/architecture"
 	"github.com/juju/juju/domain/life"
 )
 
@@ -48,8 +47,6 @@ type agentBinaryStore struct {
 type architectureID struct {
 	ID int `db:"id"`
 }
-
-type architectures []architecture.Architecture
 
 // machineAgentVersion represents a record from the reported machine agent
 // table.
