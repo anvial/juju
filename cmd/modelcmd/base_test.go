@@ -366,6 +366,7 @@ func (s *BaseCommandSuite) TestNewAPIRoot_OIDCLogin_SessionToken(c *gc.C) {
 		func(_ context.Context, _ base.APICaller) {
 			tokenCallbackFunc("new-token")
 		}).Return(nil, nil)
+	sessionLoginProvider.EXPECT().String().Return("mock-session-login-provider").AnyTimes()
 
 	s.store.Controllers["foo"] = jujuclient.ControllerDetails{
 		APIEndpoints: []string{"testing.invalid:1234"},

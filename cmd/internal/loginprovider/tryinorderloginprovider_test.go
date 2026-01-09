@@ -61,6 +61,10 @@ type mockLoginProvider struct {
 	header http.Header
 }
 
+func (p *mockLoginProvider) String() string {
+	return "MockLoginProvider"
+}
+
 func (p *mockLoginProvider) AuthHeader() (http.Header, error) {
 	return p.header, nil
 }
