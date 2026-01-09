@@ -148,6 +148,7 @@ type insertOperationTask struct {
 type insertTaskStatus struct {
 	TaskUUID  string    `db:"task_uuid"`
 	Status    string    `db:"status"`
+	Message   string    `db:"message"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 

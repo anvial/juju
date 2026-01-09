@@ -528,7 +528,7 @@ func (st *State) addMachineTaskWithID(
 			TaskID: taskID, EnqueuedAt: now}); err != nil {
 			return errors.Errorf("inserting operation task: %w", err)
 		}
-		if err := st.insertOperationTaskStatus(ctx, tx, taskUUID, corestatus.Pending); err != nil {
+		if err := st.insertOperationTaskStatus(ctx, tx, taskUUID, corestatus.Pending, ""); err != nil {
 			return errors.Errorf("inserting operation task status: %w", err)
 		}
 		machineUUID, err := st.getMachineUUID(ctx, tx, machineName)
@@ -586,7 +586,7 @@ func (st *State) addUnitTaskWithID(ctx context.Context, tx *sqlair.TX, taskID st
 			return errors.Errorf("inserting operation task: %w", err)
 		}
 
-		if err := st.insertOperationTaskStatus(ctx, tx, taskUUID, corestatus.Pending); err != nil {
+		if err := st.insertOperationTaskStatus(ctx, tx, taskUUID, corestatus.Pending, ""); err != nil {
 			return errors.Errorf("inserting operation task status: %w", err)
 		}
 
@@ -628,16 +628,17 @@ VALUES ($insertOperationTask.*)
 	return errors.Capture(tx.Query(ctx, stmt, task).Run())
 }
 
-func (st *State) insertOperationTaskStatus(ctx context.Context, tx *sqlair.TX, taskUUID string, status corestatus.Status) error {
+func (st *State) insertOperationTaskStatus(ctx context.Context, tx *sqlair.TX, taskUUID string, status corestatus.Status, message string) error {
 	statusValue := insertTaskStatus{
 		TaskUUID:  taskUUID,
 		Status:    string(status),
+		Message:   message,
 		UpdatedAt: time.Now().UTC(),
 	}
 
 	query := `
-INSERT INTO operation_task_status (task_uuid, status_id, updated_at) 
-SELECT $insertTaskStatus.task_uuid, id, $insertTaskStatus.updated_at
+INSERT INTO operation_task_status (task_uuid, status_id, message, updated_at) 
+SELECT $insertTaskStatus.task_uuid, id, $insertTaskStatus.message, $insertTaskStatus.updated_at
 FROM operation_task_status_value 
 WHERE status = $insertTaskStatus.status`
 	stmt, err := st.Prepare(query, statusValue)

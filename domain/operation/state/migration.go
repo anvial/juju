@@ -101,7 +101,7 @@ func (st *State) InsertMigratingOperations(ctx context.Context, args internal.Im
 						task.ID, task.StorePath, ops.ID, err)
 				}
 
-				err = st.insertOperationTaskStatus(ctx, tx, task.UUID, task.Status)
+				err = st.insertOperationTaskStatus(ctx, tx, task.UUID, task.Status, task.Message)
 				if err != nil {
 					return errors.Errorf("inserting task %q status at operation %q: %w", task.ID, ops.ID, err)
 				}
