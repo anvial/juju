@@ -209,3 +209,31 @@ func (s *RemoveSuite) TestRunWhenSpacesAPIFails(c *gc.C) {
 	c.Assert(ctx.Stdout.(*bytes.Buffer).String(), gc.Equals, "")
 
 }
+
+func (s *RemoveSuite) TestRunWithModelConstraintOnly(c *gc.C) {
+	ctrl, api := setUpMocks(c)
+	defer ctrl.Finish()
+
+	spaceName := "myspace"
+	// Model tag in Constraints list, but no other constraints.
+	// This simulates the scenario where convertEntitiesToStringAndSkipModel returns empty [],
+	// but hasModelConstraint returns true.
+	spaceRemove := params.RemoveSpaceResult{
+		Constraints:        []params.Entity{{Tag: "model-f47ac10b-58cc-4372-a567-0e02b2c3d479"}},
+		Bindings:           nil,
+		ControllerSettings: nil,
+	}
+	api.EXPECT().RemoveSpace(spaceName, false, false).Return(spaceRemove, nil)
+	expectedErrMsg := `
+Cannot remove space "myspace"
+
+- "myspace" is used as a model constraint: bar/currentfoo
+
+Use --force to remove space
+`[1:]
+
+	ctx, _, err := s.runCommand(c, api, spaceName)
+
+	c.Assert(cmdtesting.Stderr(ctx), gc.Equals, "")
+	c.Assert(err.Error(), gc.Equals, expectedErrMsg)
+}
