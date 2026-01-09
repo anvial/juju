@@ -19,6 +19,7 @@ import (
 	"github.com/juju/juju/core/semversion"
 	controllernodeservice "github.com/juju/juju/domain/controllernode/service"
 	upgradeservice "github.com/juju/juju/domain/upgrade/service"
+	"github.com/juju/juju/internal/worker/upgradedatabase/upgradesteps"
 )
 
 type manifoldSuite struct {
@@ -89,6 +90,46 @@ func (s *manifoldSuite) TestValidateConfig(c *tc.C) {
 	cfg = s.getConfig()
 	cfg.Clock = nil
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
+
+	cfg = s.getConfig()
+	cfg.NewWorker = nil
+	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
+
+	cfg = s.getConfig()
+	cfg.UpgradeSteps = nil
+	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
+}
+
+func (s *manifoldSuite) TestVersionWindowIncludes(c *tc.C) {
+	window := VersionWindow{
+		From: semversion.MustParse("4.0.0"),
+		To:   semversion.MustParse("4.0.10"),
+	}
+
+	c.Check(window.Includes(semversion.MustParse("4.0.0")), tc.Equals, true)
+	c.Check(window.Includes(semversion.MustParse("4.0.5")), tc.Equals, true)
+	c.Check(window.Includes(semversion.MustParse("4.0.9")), tc.Equals, true)
+
+	c.Check(window.Includes(semversion.MustParse("3.9.9")), tc.Equals, false)
+	c.Check(window.Includes(semversion.MustParse("4.0.10")), tc.Equals, false)
+	c.Check(window.Includes(semversion.MustParse("4.1.0")), tc.Equals, false)
+}
+
+func (s *manifoldSuite) TestFilterSteps(c *tc.C) {
+	allSteps := map[VersionWindow][]UpgradeStep{
+		window_4_0_0_to_4_0_1: {
+			upgradesteps.Step0001_PatchModelConfigCloudType,
+		},
+	}
+
+	steps := filterSteps(allSteps, semversion.MustParse("4.0.0"))
+	c.Check(steps, tc.HasLen, 1)
+
+	steps = filterSteps(allSteps, semversion.MustParse("4.0.5"))
+	c.Check(steps, tc.HasLen, 0)
+
+	steps = filterSteps(allSteps, semversion.MustParse("4.0.10"))
+	c.Check(steps, tc.HasLen, 0)
 }
 
 func (s *manifoldSuite) getConfig() ManifoldConfig {
@@ -100,6 +141,7 @@ func (s *manifoldSuite) getConfig() ManifoldConfig {
 		Logger:              s.logger,
 		Clock:               clock.WallClock,
 		NewWorker:           func(Config) (worker.Worker, error) { return s.worker, nil },
+		UpgradeSteps:        map[VersionWindow][]UpgradeStep{},
 	}
 }
 

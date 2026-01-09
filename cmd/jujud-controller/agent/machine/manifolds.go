@@ -415,6 +415,7 @@ func commonManifolds(config ManifoldsConfig) dependency.Manifolds {
 			NewWorker:           upgradedatabase.NewUpgradeDatabaseWorker,
 			Logger:              internallogger.GetLogger("juju.worker.upgradedatabase"),
 			Clock:               config.Clock,
+			UpgradeSteps:        upgradedatabase.UpgradeSteps,
 		})),
 
 		// The upgrade services worker provides domain services for upgrading

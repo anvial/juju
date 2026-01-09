@@ -5,6 +5,7 @@ package upgradedatabase
 
 import (
 	"context"
+	"sync"
 	stdtesting "testing"
 	"time"
 
@@ -871,6 +872,246 @@ func (s *workerSuite) TestReportControllerNodeAgentVersionFails(c *tc.C) {
 	c.Check(err, tc.ErrorIs, settingError)
 }
 
+func (s *workerSuite) TestUpgradeModelsWithUpgradeSteps(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
+	// Ensure that the update hasn't already happened.
+	s.lock.EXPECT().IsUnlocked().Return(false)
+
+	cfg := s.getConfig()
+
+	ch := make(chan struct{})
+
+	watcher := watchertest.NewMockNotifyWatcher(ch)
+	defer workertest.DirtyKill(c, watcher)
+
+	// Walk through the upgrade process:
+	//  - Create Upgrade.
+	//  - Set the controller ready for upgrade.
+	//  - Wait for the upgrade to be ready. This means, all the controller nodes
+	//    are synced and ready to be upgraded.
+	//  - Start the upgrade, we're the leader.
+	//  - Upgrade the controller db.
+	//  - Upgrade all the model dbs with upgrade steps.
+	//  - Set the db upgrade complete.
+	//  - Unlock the lock.
+
+	s.expectStartUpgrade(cfg.FromVersion, cfg.ToVersion, watcher)
+
+	// Controller upgrade.
+	s.expectControllerDBUpgrade()
+
+	// Model upgrade with upgrade steps.
+	modelUUID := tc.Must(c, coremodel.NewUUID)
+	s.upgradeService.EXPECT().GetAllModelUUIDs(gomock.Any()).Return(
+		[]coremodel.UUID{modelUUID}, nil,
+	)
+
+	// Set up a custom expectation for model DB upgrade without the controller
+	// DB expectation, since we'll handle it separately with the upgrade step.
+	modelTxnRunner, _ := s.OpenDB(c)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), modelUUID.String()).Return(modelTxnRunner, nil)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), coredatabase.ControllerNS).Return(s.TxnRunner(), nil)
+
+	// Track that the upgrade step was called with the correct arguments.
+	upgradeStepCalled := make(chan struct{})
+	var capturedModelUUID coremodel.UUID
+
+	cfg.UpgradeSteps = []UpgradeStep{
+		func(ctx context.Context, controllerDB, modelDB coredatabase.TxnRunner, uuid coremodel.UUID) error {
+			capturedModelUUID = uuid
+			close(upgradeStepCalled)
+			return nil
+		},
+	}
+
+	s.expectDBCompleted()
+	done := s.expectUnlock()
+
+	w, err := NewUpgradeDatabaseWorker(cfg)
+	c.Assert(err, tc.ErrorIsNil)
+	defer workertest.DirtyKill(c, w)
+
+	// Dispatch the initial event.
+	s.dispatchChange(c, ch)
+	s.dispatchChange(c, ch)
+
+	select {
+	case <-upgradeStepCalled:
+	case <-time.After(testing.LongWait):
+		c.Fatalf("timed out waiting for upgrade step to be called")
+	}
+
+	c.Check(capturedModelUUID, tc.Equals, modelUUID)
+
+	select {
+	case <-done:
+	case <-time.After(testing.LongWait):
+		c.Fatalf("timed out waiting for unlock")
+	}
+
+	err = workertest.CheckKill(c, w)
+	c.Check(err, tc.ErrorIs, dependency.ErrUninstall)
+}
+
+func (s *workerSuite) TestUpgradeModelsWithUpgradeStepsMultipleModels(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
+	// Ensure that the update hasn't already happened.
+	s.lock.EXPECT().IsUnlocked().Return(false)
+
+	cfg := s.getConfig()
+
+	ch := make(chan struct{})
+
+	watcher := watchertest.NewMockNotifyWatcher(ch)
+	defer workertest.DirtyKill(c, watcher)
+
+	s.expectStartUpgrade(cfg.FromVersion, cfg.ToVersion, watcher)
+
+	// Controller upgrade.
+	s.expectControllerDBUpgrade()
+
+	// Model upgrade with upgrade steps for multiple models.
+	modelUUID1 := tc.Must(c, coremodel.NewUUID)
+	modelUUID2 := tc.Must(c, coremodel.NewUUID)
+	s.upgradeService.EXPECT().GetAllModelUUIDs(gomock.Any()).Return(
+		[]coremodel.UUID{modelUUID1, modelUUID2}, nil,
+	)
+
+	// Set up expectations for both model DB upgrades.
+	modelTxnRunner1, _ := s.OpenDB(c)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), modelUUID1.String()).Return(modelTxnRunner1, nil)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), coredatabase.ControllerNS).Return(s.TxnRunner(), nil)
+
+	modelTxnRunner2, _ := s.OpenDB(c)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), modelUUID2.String()).Return(modelTxnRunner2, nil)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), coredatabase.ControllerNS).Return(s.TxnRunner(), nil)
+
+	// Track that the upgrade step was called for each model.
+	var capturedModelUUIDs []coremodel.UUID
+	var mu sync.Mutex
+
+	cfg.UpgradeSteps = []UpgradeStep{
+		func(ctx context.Context, controllerDB, modelDB coredatabase.TxnRunner, uuid coremodel.UUID) error {
+			mu.Lock()
+			capturedModelUUIDs = append(capturedModelUUIDs, uuid)
+			mu.Unlock()
+			return nil
+		},
+	}
+
+	s.expectDBCompleted()
+	done := s.expectUnlock()
+
+	w, err := NewUpgradeDatabaseWorker(cfg)
+	c.Assert(err, tc.ErrorIsNil)
+	defer workertest.DirtyKill(c, w)
+
+	// Dispatch the initial event.
+	s.dispatchChange(c, ch)
+	s.dispatchChange(c, ch)
+
+	select {
+	case <-done:
+	case <-time.After(testing.LongWait):
+		c.Fatalf("timed out waiting for unlock")
+	}
+
+	c.Check(capturedModelUUIDs, tc.SameContents, []coremodel.UUID{modelUUID1, modelUUID2})
+
+	err = workertest.CheckKill(c, w)
+	c.Check(err, tc.ErrorIs, dependency.ErrUninstall)
+}
+
+func (s *workerSuite) TestUpgradeModelsWithUpgradeStepFailure(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.controllerNodeService.EXPECT().SetControllerNodeReportedAgentVersion(
+		gomock.Any(),
+		"0",
+		coreagentbinary.Version{
+			Number: jujuversion.Current,
+			Arch:   arch.HostArch(),
+		},
+	)
+
+	// Ensure that the update hasn't already happened.
+	s.lock.EXPECT().IsUnlocked().Return(false)
+
+	cfg := s.getConfig()
+
+	ch := make(chan struct{})
+
+	watcher := watchertest.NewMockNotifyWatcher(ch)
+	defer workertest.DirtyKill(c, watcher)
+
+	s.expectStartUpgrade(cfg.FromVersion, cfg.ToVersion, watcher)
+
+	// Controller upgrade.
+	s.expectControllerDBUpgrade()
+
+	// Model upgrade with a failing upgrade step.
+	modelUUID := tc.Must(c, coremodel.NewUUID)
+	s.upgradeService.EXPECT().GetAllModelUUIDs(gomock.Any()).Return(
+		[]coremodel.UUID{modelUUID}, nil,
+	)
+
+	// Set up expectations for model DB upgrade.
+	modelTxnRunner, _ := s.OpenDB(c)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), modelUUID.String()).Return(modelTxnRunner, nil)
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), coredatabase.ControllerNS).Return(s.TxnRunner(), nil)
+
+	stepError := errors.New("upgrade step failed")
+	done := make(chan struct{})
+
+	cfg.UpgradeSteps = []UpgradeStep{
+		func(ctx context.Context, controllerDB, modelDB coredatabase.TxnRunner, uuid coremodel.UUID) error {
+			defer close(done)
+			return stepError
+		},
+	}
+
+	// When the upgrade step fails, the upgrade should be marked as failed.
+	s.upgradeService.EXPECT().SetDBUpgradeFailed(gomock.Any(), s.upgradeUUID).Return(nil)
+
+	w, err := NewUpgradeDatabaseWorker(cfg)
+	c.Assert(err, tc.ErrorIsNil)
+	defer workertest.DirtyKill(c, w)
+
+	// Dispatch the initial event.
+	s.dispatchChange(c, ch)
+	s.dispatchChange(c, ch)
+
+	select {
+	case <-done:
+	case <-time.After(testing.LongWait):
+		c.Fatalf("timed out waiting for upgrade step to be called")
+	}
+
+	err = workertest.CheckKill(c, w)
+	// The worker aborts with the error from the upgrade step.
+	c.Check(err, tc.ErrorMatches, ".*upgrade step failed.*")
+}
+
 func (s *workerSuite) getConfig() Config {
 	return Config{
 		DBUpgradeCompleteLock: s.lock,
@@ -906,6 +1147,8 @@ func (s *workerSuite) expectControllerDBUpgrade() {
 func (s *workerSuite) expectModelDBUpgrade(c *tc.C, modelUUID coremodel.UUID) coredatabase.TxnRunner {
 	txnRunner, _ := s.OpenDB(c)
 	s.dbGetter.EXPECT().GetDB(gomock.Any(), modelUUID.String()).Return(txnRunner, nil)
+	// After schema upgrade, the worker also fetches the controller DB to run upgrade steps.
+	s.dbGetter.EXPECT().GetDB(gomock.Any(), coredatabase.ControllerNS).Return(s.TxnRunner(), nil)
 	return txnRunner
 }
 

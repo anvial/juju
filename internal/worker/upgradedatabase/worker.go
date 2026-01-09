@@ -100,6 +100,9 @@ type Config struct {
 	// UpgradeService is the upgrade service used to drive the upgrade.
 	UpgradeService UpgradeService
 
+	// UpgradeSteps is the list of upgrade steps to perform during the upgrade.
+	UpgradeSteps []UpgradeStep
+
 	// DBGetter is the database getter used to get the database for each model.
 	DBGetter coredatabase.DBGetter
 
@@ -153,6 +156,8 @@ type upgradeDBWorker struct {
 	fromVersion semversion.Number
 	toVersion   semversion.Number
 
+	upgradeSteps []UpgradeStep
+
 	dbGetter coredatabase.DBGetter
 
 	upgradeService        UpgradeService
@@ -172,6 +177,8 @@ func NewUpgradeDatabaseWorker(config Config) (worker.Worker, error) {
 		dbUpgradeCompleteLock: config.DBUpgradeCompleteLock,
 
 		controllerID: config.Tag.Id(),
+
+		upgradeSteps: config.UpgradeSteps,
 
 		fromVersion: config.FromVersion,
 		toVersion:   config.ToVersion,
@@ -497,17 +504,41 @@ func (w *upgradeDBWorker) upgradeModels(ctx context.Context) error {
 }
 
 func (w *upgradeDBWorker) upgradeModel(ctx context.Context, modelUUID coremodel.UUID) error {
-	db, err := w.dbGetter.GetDB(ctx, modelUUID.String())
+	modelDB, err := w.dbGetter.GetDB(ctx, modelUUID.String())
 	if err != nil {
 		return errors.Annotatef(err, "model db %s", modelUUID)
 	}
 
 	ddl := schema.ModelDDL()
-	changeSet, err := ddl.Ensure(ctx, db)
+	changeSet, err := ddl.Ensure(ctx, modelDB)
 	if err != nil {
 		return errors.Annotatef(err, "applying model schema %s", modelUUID)
 	}
 	w.logger.Infof(ctx, "applied model schema changes from: %d to: %d for model %s", changeSet.Post, changeSet.Current, modelUUID)
+
+	// Perform any data migrations required for this upgrade.
+	// We should note, that this is not performed in the same transaction
+	// as the schema changes. This is because we need to access both the
+	// controller and model databases to perform the data migrations.
+	// If possible we should always try to perform data migrations in a
+	// the .PATCH files within the schema package. This will ensure that
+	// the schema and data migrations are performed in a single transaction.
+	// For the very few cases where this is not possible, we can use the
+	// upgrade steps here.
+	// Note: the ensure above is idempotent, so if the data migration
+	// fails halfway through, when we retry the upgrade, the schema
+	// ensure will be a no-op.
+	controllerDB, err := w.dbGetter.GetDB(ctx, coredatabase.ControllerNS)
+	if err != nil {
+		return errors.Annotatef(err, "controller db")
+	}
+
+	for _, upgradeStep := range w.upgradeSteps {
+		if err := upgradeStep(ctx, controllerDB, modelDB, modelUUID); err != nil {
+			return errors.Annotatef(err, "performing data migration for model %s", modelUUID)
+		}
+	}
+
 	return nil
 }
 
