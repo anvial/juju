@@ -1,4 +1,3 @@
-
 ---
 myst:
   html_meta:
@@ -35,7 +34,7 @@ Use Multipass to create an isolated environment:
 ``````{tabs}
 `````{group-tab} automatically
 
-Launch a VM called `my-juju-vm` using the `charm-dev` blueprint:
+Launch a Juju-ready VM called `my-juju-vm`:
 
 ```{note}
 This step may take a few minutes to complete (e.g., 10 mins).
@@ -47,7 +46,13 @@ However, once it’s done, you’ll have everything you’ll need – all in a n
 ```
 
 ```text
-$ multipass launch --cpus 4 --memory 8G --disk 50G --name my-juju-vm charm-dev
+$ multipass launch 24.04 \
+  --name my-juju-vm \
+  --cpus 4 \
+  --memory 8G \
+  --disk 50G \
+  --timeout 1800 \
+  --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-charm-dev.yaml
 
 ```
 
@@ -65,7 +70,7 @@ Open a shell into the VM:
 
 ```text
 $ multipass shell my-juju-vm
-Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-100-generic x86_64)
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.8.0-90-generic x86_64)
 # ...
 # Type any further commands after the VM shell prompt:
 ubuntu@my-juju-vm:~$
