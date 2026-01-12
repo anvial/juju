@@ -281,6 +281,62 @@ func (s *importRemoteApplicationSuite) TestImportRemoteApplications(c *tc.C) {
 	c.Check(endpointCount, tc.Equals, 2, tc.Commentf("Expected 2 user-defined endpoints"))
 }
 
+func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsWithUnits(c *tc.C) {
+	// Arrange - import a remote application with synthetic units
+	endpoints := []crossmodelrelation.RemoteApplicationEndpoint{
+		{
+			Name:      "db",
+			Role:      appcharm.RoleProvider,
+			Interface: "mysql",
+		},
+	}
+	args := []crossmodelrelation.RemoteApplicationImport{
+		{
+			Name:            "remote-mysql",
+			OfferUUID:       internaluuid.MustNewUUID().String(),
+			URL:             "ctrl:admin/prod.mysql",
+			SourceModelUUID: internaluuid.MustNewUUID().String(),
+			Macaroon:        "test-macaroon",
+			Endpoints:       endpoints,
+			SyntheticCharm:  buildTestSyntheticCharm("remote-mysql", endpoints),
+			IsConsumerProxy: false,
+			Units:           []string{"remote-mysql/0", "remote-mysql/1"},
+		},
+	}
+
+	// Act
+	err := s.state.ImportRemoteApplications(c.Context(), args)
+
+	// Assert
+	c.Assert(err, tc.IsNil)
+
+	// Verify synthetic units were created
+	var unitNames []string
+	err = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, `
+			SELECT u.name
+			FROM unit u
+			JOIN application a ON u.application_uuid = a.uuid
+			WHERE a.name = ?
+			ORDER BY u.name
+		`, args[0].Name)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var name string
+			if err := rows.Scan(&name); err != nil {
+				return err
+			}
+			unitNames = append(unitNames, name)
+		}
+		return rows.Err()
+	})
+	c.Assert(err, tc.IsNil)
+	c.Check(unitNames, tc.DeepEquals, []string{"remote-mysql/0", "remote-mysql/1"})
+}
+
 func (s *importRemoteApplicationSuite) TestImportRemoteApplicationsMultiple(c *tc.C) {
 	// Arrange - import multiple remote applications
 	endpoints1 := []crossmodelrelation.RemoteApplicationEndpoint{

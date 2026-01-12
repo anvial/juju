@@ -168,6 +168,11 @@ type RemoteApplicationImport struct {
 	// IsConsumerProxy indicates if this is a consumer proxy (on the offerer
 	// side) rather than a remote offerer (on the consumer side).
 	IsConsumerProxy bool
+
+	// Units are the unit names for the remote application that need to be
+	// created as synthetic units. These are extracted from relation endpoints
+	// during migration import.
+	Units []string
 }
 
 // RemoteApplicationConsumer represents a remote application

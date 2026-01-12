@@ -103,6 +103,15 @@ func (st *State) ImportRemoteApplications(ctx context.Context, imports []crossmo
 				return errors.Errorf("inserting application %q: %w", imp.Name, err)
 			}
 
+			// Create synthetic units for this remote application.
+			// These units are needed for relations to be imported successfully.
+			for _, unitName := range imp.Units {
+				if err := st.insertUnit(ctx, tx, unitName, applicationUUID.String(), charmUUID.String()); err != nil {
+					return errors.Errorf("inserting synthetic unit %q for application %q: %w",
+						unitName, imp.Name, err)
+				}
+			}
+
 			// Insert the remote application offerer record.
 			remoteApp := remoteApplicationOfferer{
 				UUID:             remoteAppUUID.String(),
