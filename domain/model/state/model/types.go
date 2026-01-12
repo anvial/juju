@@ -13,6 +13,12 @@ import (
 	"github.com/juju/juju/internal/uuid"
 )
 
+// count represents a database model that contains a single integer field,
+// typically used for counting records in queries.
+type count struct {
+	Count int `db:"count"`
+}
+
 // dbEntityUUID represents a generic uuid column from a given table in the
 // model's database.
 type dbEntityUUID struct {

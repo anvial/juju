@@ -1,0 +1,813 @@
+// Copyright 2025 Canonical Ltd.
+// Licensed under the AGPLv3, see LICENCE file for details.
+
+package application_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/juju/clock"
+	"github.com/juju/description/v11"
+	"github.com/juju/tc"
+
+	"github.com/juju/juju/core/database"
+	"github.com/juju/juju/core/model"
+	"github.com/juju/juju/core/modelmigration"
+	"github.com/juju/juju/core/semversion"
+	"github.com/juju/juju/domain"
+	"github.com/juju/juju/domain/application/charm"
+	applicationmodelmigration "github.com/juju/juju/domain/application/modelmigration"
+	"github.com/juju/juju/domain/application/service"
+	"github.com/juju/juju/domain/application/state"
+	migrationtesting "github.com/juju/juju/domain/modelmigration/testing"
+	schematesting "github.com/juju/juju/domain/schema/testing"
+	domaintesting "github.com/juju/juju/domain/testing"
+	internalcharm "github.com/juju/juju/internal/charm"
+	"github.com/juju/juju/internal/charm/assumes"
+	"github.com/juju/juju/internal/charm/resource"
+	loggertesting "github.com/juju/juju/internal/logger/testing"
+)
+
+type importSuite struct {
+	schematesting.ModelSuite
+}
+
+func TestImportSuite(t *testing.T) {
+	tc.Run(t, &importSuite{})
+}
+
+func (s *importSuite) TestImportMaximalCharmMetadata(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	// Create a charm description and write it into the model, then import
+	// it using the model migration framework. Verify that the charm has been
+	// imported correctly into the database.
+
+	// This skips both Payloads and LXD profiles, as it's not longer used, so
+	// can be skipped.
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name:           "foo",
+		Summary:        "summary foo",
+		Description:    "description foo",
+		Subordinate:    false,
+		MinJujuVersion: "4.0.0",
+		RunAs:          "root",
+		Assumes:        "[]",
+		Categories:     []string{"bar", "baz"},
+		Tags:           []string{"alpha", "beta"},
+		Terms:          []string{"terms", "and", "conditions"},
+		Provides: map[string]description.CharmMetadataRelation{
+			"db": migrationtesting.Relation{
+				Name_:          "db",
+				Role_:          "provider",
+				InterfaceName_: "db",
+				Optional_:      true,
+				Limit_:         1,
+				Scope_:         "global",
+			},
+		},
+		Peers: map[string]description.CharmMetadataRelation{
+			"restart": migrationtesting.Relation{
+				Name_:          "restart",
+				Role_:          "peer",
+				InterfaceName_: "restarter",
+				Optional_:      true,
+				Limit_:         2,
+				Scope_:         "global",
+			},
+		},
+		Requires: map[string]description.CharmMetadataRelation{
+			"cache": migrationtesting.Relation{
+				Name_:          "cache",
+				Role_:          "requirer",
+				InterfaceName_: "cache",
+				Optional_:      true,
+				Limit_:         3,
+				Scope_:         "container",
+			},
+		},
+		Storage: map[string]description.CharmMetadataStorage{
+			"ebs": migrationtesting.Storage{
+				Name_:        "ebs",
+				Description_: "ebs storage",
+				Shared_:      false,
+				Readonly_:    true,
+				CountMin_:    1,
+				CountMax_:    1,
+				MinimumSize_: 10,
+				Location_:    "/ebs",
+				Properties_:  []string{"fast", "encrypted"},
+				Stype_:       "filesystem",
+			},
+		},
+		ExtraBindings: map[string]string{
+			"db-admin": "db-admin",
+		},
+		Devices: map[string]description.CharmMetadataDevice{
+			"gpu": migrationtesting.Device{
+				Name_:        "gpu",
+				Description_: "A GPU device",
+				Dtype_:       "gpu",
+				CountMin_:    1,
+				CountMax_:    2,
+			},
+		},
+		Containers: map[string]description.CharmMetadataContainer{
+			"deadbeef": migrationtesting.Container{
+				Resource_: "deadbeef",
+				Mounts_: []description.CharmMetadataContainerMount{
+					migrationtesting.ContainerMount{
+						Storage_:  "tmpfs",
+						Location_: "/tmp",
+					},
+				},
+				Uid_: ptr(1000),
+				Gid_: ptr(1000),
+			},
+		},
+		Resources: map[string]description.CharmMetadataResource{
+			"file1": migrationtesting.ResourceMeta{
+				Name_:        "file1",
+				Rtype_:       "file",
+				Description_: "A resource file",
+				Path_:        "resources/deadbeef1",
+			},
+			"oci2": migrationtesting.ResourceMeta{
+				Name_:        "oci2",
+				Rtype_:       "oci-image",
+				Description_: "A resource oci image",
+				Path_:        "resources/deadbeef2",
+			},
+		},
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(),
+		nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	metadata, err := svc.GetCharmMetadata(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(metadata, tc.DeepEquals, internalcharm.Meta{
+		Name:           "foo",
+		Summary:        "summary foo",
+		Description:    "description foo",
+		Subordinate:    false,
+		MinJujuVersion: semversion.MustParse("4.0.0"),
+		CharmUser:      internalcharm.RunAsRoot,
+		Assumes: &assumes.ExpressionTree{
+			Expression: assumes.CompositeExpression{
+				ExprType:       assumes.AllOfExpression,
+				SubExpressions: []assumes.Expression{},
+			},
+		},
+		Categories: []string{"bar", "baz"},
+		Tags:       []string{"alpha", "beta"},
+		Terms:      []string{"terms", "and", "conditions"},
+		Provides: map[string]internalcharm.Relation{
+			"db": {
+				Name:      "db",
+				Role:      internalcharm.RoleProvider,
+				Interface: "db",
+				Optional:  true,
+				Limit:     1,
+				Scope:     "global",
+			},
+			"juju-info": {
+				Name:      "juju-info",
+				Role:      internalcharm.RoleProvider,
+				Interface: "juju-info",
+				Scope:     "global",
+			},
+		},
+		Peers: map[string]internalcharm.Relation{
+			"restart": {
+				Name:      "restart",
+				Role:      internalcharm.RolePeer,
+				Interface: "restarter",
+				Optional:  true,
+				Limit:     2,
+				Scope:     "global",
+			},
+		},
+		Requires: map[string]internalcharm.Relation{
+			"cache": {
+				Name:      "cache",
+				Role:      internalcharm.RoleRequirer,
+				Interface: "cache",
+				Optional:  true,
+				Limit:     3,
+				Scope:     "container",
+			},
+		},
+		Storage: map[string]internalcharm.Storage{
+			"ebs": {
+				Name:        "ebs",
+				Type:        internalcharm.StorageFilesystem,
+				Description: "ebs storage",
+				Shared:      false,
+				ReadOnly:    true,
+				CountMin:    1,
+				CountMax:    1,
+				MinimumSize: 10,
+				Location:    "/ebs",
+				Properties:  []string{"fast", "encrypted"},
+			},
+		},
+		ExtraBindings: map[string]internalcharm.ExtraBinding{
+			"db-admin": {Name: "db-admin"},
+		},
+		Devices: map[string]internalcharm.Device{
+			"gpu": {
+				Name:        "gpu",
+				Description: "A GPU device",
+				Type:        "gpu",
+				CountMin:    1,
+				CountMax:    2,
+			},
+		},
+		Containers: map[string]internalcharm.Container{
+			"deadbeef": {
+				Resource: "deadbeef",
+				Mounts: []internalcharm.Mount{
+					{
+						Storage:  "tmpfs",
+						Location: "/tmp",
+					},
+				},
+				Uid: ptr(1000),
+				Gid: ptr(1000),
+			},
+		},
+		Resources: map[string]resource.Meta{
+			"file1": {
+				Name:        "file1",
+				Type:        resource.TypeFile,
+				Description: "A resource file",
+				Path:        "resources/deadbeef1",
+			},
+			"oci2": {
+				Name:        "oci2",
+				Type:        resource.TypeContainerImage,
+				Description: "A resource oci image",
+				Path:        "resources/deadbeef2",
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMinimalCharmMetadata(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	metadata, err := svc.GetCharmMetadata(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(metadata, tc.DeepEquals, internalcharm.Meta{
+		Name: "foo",
+		Provides: map[string]internalcharm.Relation{
+			"juju-info": {
+				Name:      "juju-info",
+				Role:      internalcharm.RoleProvider,
+				Interface: "juju-info",
+				Scope:     "global",
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMaximalCharmManifest(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:    "ubuntu",
+				Channel_: "stable",
+			},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "4.0/stable/foo",
+				Architectures_: []string{"arm64"},
+			},
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "latest/stable",
+				Architectures_: []string{"amd64", "s390x", "ppc64el"},
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	manifest, err := svc.GetCharmManifest(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(manifest, tc.DeepEquals, internalcharm.Manifest{
+		Bases: []internalcharm.Base{
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Risk: "stable"},
+				Architectures: []string{"amd64"},
+			},
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Track: "4.0", Risk: "stable", Branch: "foo"},
+				Architectures: []string{"arm64"},
+			},
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Track: "latest", Risk: "stable"},
+				Architectures: []string{"amd64", "s390x", "ppc64el"},
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMinimalCharmManifest(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:    "ubuntu",
+				Channel_: "stable",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil,
+		model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	manifest, err := svc.GetCharmManifest(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(manifest, tc.DeepEquals, internalcharm.Manifest{
+		Bases: []internalcharm.Base{
+			{
+				Name:          "ubuntu",
+				Channel:       internalcharm.Channel{Risk: "stable"},
+				Architectures: []string{"amd64"},
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMinimalCharmConfig(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmConfigs(description.CharmConfigsArgs{
+		Configs: map[string]description.CharmConfig{
+			"foo": migrationtesting.Config{
+				ConfigType_:   "string",
+				DefaultValue_: "bar",
+				Description_:  "foo description",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	config, err := svc.GetCharmConfig(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(config, tc.DeepEquals, internalcharm.ConfigSpec{
+		Options: map[string]internalcharm.Option{
+			"foo": {
+				Type:        "string",
+				Default:     "bar",
+				Description: "foo description",
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMaximalCharmConfig(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmConfigs(description.CharmConfigsArgs{
+		Configs: map[string]description.CharmConfig{
+			"foo": migrationtesting.Config{
+				ConfigType_:   "string",
+				DefaultValue_: "bar",
+				Description_:  "foo description",
+			},
+			"baz": migrationtesting.Config{
+				ConfigType_:   "int",
+				DefaultValue_: 42,
+				Description_:  "baz description",
+			},
+			"qux": migrationtesting.Config{
+				ConfigType_:   "boolean",
+				DefaultValue_: true,
+				Description_:  "qux description",
+			},
+			"norf": migrationtesting.Config{
+				ConfigType_:   "secret",
+				DefaultValue_: "foo-bar-baz",
+				Description_:  "norf description",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	config, err := svc.GetCharmConfig(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(config, tc.DeepEquals, internalcharm.ConfigSpec{
+		Options: map[string]internalcharm.Option{
+			"foo": {
+				Type:        "string",
+				Default:     "bar",
+				Description: "foo description",
+			},
+			"baz": {
+				Type:        "int",
+				Default:     42,
+				Description: "baz description",
+			},
+			"qux": {
+				Type:        "boolean",
+				Default:     true,
+				Description: "qux description",
+			},
+			"norf": {
+				Type:        "secret",
+				Default:     "foo-bar-baz",
+				Description: "norf description",
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMinimalCharmActions(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmActions(description.CharmActionsArgs{
+		Actions: map[string]description.CharmAction{
+			"foo": migrationtesting.Action{
+				Description_:    "foo description",
+				Parallel_:       true,
+				ExecutionGroup_: "bar",
+				Params_: map[string]any{
+					"a": int(1),
+				},
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	actions, err := svc.GetCharmActions(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(actions, tc.DeepEquals, internalcharm.Actions{
+		ActionSpecs: map[string]internalcharm.ActionSpec{
+			"foo": {
+				Description:    "foo description",
+				Parallel:       true,
+				ExecutionGroup: "bar",
+				Params: map[string]any{
+					// All params are marshalled to JSON to try and keep all
+					// types consistent when there are complex types. But, the
+					// downside is that numbers become float64.
+					"a": float64(1),
+				},
+			},
+		},
+	})
+}
+
+func (s *importSuite) TestImportMaximalCharmActions(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+	app.SetCharmActions(description.CharmActionsArgs{
+		Actions: map[string]description.CharmAction{
+			"foo": migrationtesting.Action{
+				Description_:    "foo description",
+				Parallel_:       true,
+				ExecutionGroup_: "bar",
+				Params_: map[string]any{
+					"a": int(1),
+					"b": "string param",
+					"c": true,
+					"d": 3.14,
+					"e": []any{1, 2.0, "x"},
+					"f": map[string]any{
+						"nested": "value",
+					},
+				},
+			},
+			"baz": migrationtesting.Action{
+				Description_: "baz description",
+			},
+		},
+	})
+
+	coordinator := modelmigration.NewCoordinator(loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := coordinator.Perform(c.Context(), modelmigration.NewScope(nil, s.TxnRunnerFactory(), nil, model.UUID(s.ModelUUID())), desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	svc := s.setupService(c)
+	actions, err := svc.GetCharmActions(c.Context(), charm.CharmLocator{
+		Name:     "foo",
+		Revision: 1,
+		Source:   charm.CharmHubSource,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(actions, tc.DeepEquals, internalcharm.Actions{
+		ActionSpecs: map[string]internalcharm.ActionSpec{
+			"foo": {
+				Description:    "foo description",
+				Parallel:       true,
+				ExecutionGroup: "bar",
+				Params: map[string]any{
+					// All params are marshalled to JSON to try and keep all
+					// types consistent when there are complex types. But, the
+					// downside is that numbers become float64.
+					"a": float64(1),
+					"b": "string param",
+					"c": true,
+					"d": 3.14,
+					"e": []any{float64(1), 2.0, "x"},
+					"f": map[string]any{
+						"nested": "value",
+					},
+				},
+			},
+			"baz": {
+				Description: "baz description",
+			},
+		},
+	})
+}
+
+func (s *importSuite) setupService(c *tc.C) *service.Service {
+	modelDB := func(context.Context) (database.TxnRunner, error) {
+		return s.ModelTxnRunner(), nil
+	}
+	modelUUID := model.UUID(s.ModelUUID())
+
+	return service.NewService(
+		state.NewState(modelDB, modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c)),
+		domaintesting.NoopLeaderEnsurer(),
+		nil,
+		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		modelUUID,
+		clock.WallClock,
+		loggertesting.WrapCheckLog(c),
+	)
+}
+
+func ptr[T any](i T) *T {
+	return &i
+}

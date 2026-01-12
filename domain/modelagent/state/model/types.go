@@ -39,6 +39,15 @@ type architectureMap struct {
 	Name string `db:"name"`
 }
 
+type agentBinaryStore struct {
+	Version        string `db:"version"`
+	ArchitectureID int    `db:"architecture_id"`
+}
+
+type architectureID struct {
+	ID int `db:"id"`
+}
+
 // machineAgentVersion represents a record from the reported machine agent
 // table.
 type machineAgentVersion struct {
@@ -150,9 +159,9 @@ type unitAgentBinaryMetadata struct {
 // unitAgentVersion represents a record from the reported unit agent
 // version table.
 type unitAgentVersion struct {
-	UnitUUID      string `db:"unit_uuid"`
-	Version       string `db:"version"`
-	ArchtectureID int    `db:"architecture_id"`
+	UnitUUID       string `db:"unit_uuid"`
+	Version        string `db:"version"`
+	ArchitectureID int    `db:"architecture_id"`
 }
 
 // unitAgentVersionInfo represents a record from the unit agent version table.

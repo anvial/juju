@@ -179,11 +179,6 @@ type ApplicationService interface {
 	// GetUnitRefreshAttributes returns the refresh attributes for the unit.
 	GetUnitRefreshAttributes(context.Context, coreunit.Name) (domainapplication.UnitAttributes, error)
 
-	// AddIAASSubordinateUnit adds a IAAS unit to the specified subordinate
-	// application to the application on the same machine as the given principal
-	// unit and records the principal-subordinate relationship.
-	AddIAASSubordinateUnit(ctx context.Context, subordinateAppID coreapplication.UUID, principalUnitName coreunit.Name) error
-
 	// SetUnitWorkloadVersion sets the workload version for the given unit.
 	SetUnitWorkloadVersion(ctx context.Context, unitName coreunit.Name, version string) error
 
@@ -329,6 +324,9 @@ type StatusService interface {
 // UnitStateService describes the ability to retrieve and persist
 // unit agent state for informing hook reconciliation.
 type UnitStateService interface {
+	// CommitHookChanges persists a set of changes after a hook successfully
+	// completes and executes them in a single transaction.
+	CommitHookChanges(ctx context.Context, arg unitstate.CommitHookChangesArg) error
 	// SetState persists the input unit state.
 	SetState(context.Context, unitstate.UnitState) error
 	// GetState returns the full unit state. The state may be empty.
@@ -337,9 +335,6 @@ type UnitStateService interface {
 
 // PortService describes the ability to open and close port ranges for units.
 type PortService interface {
-	// UpdateUnitPorts opens and closes ports for the endpoints of a given unit.
-	UpdateUnitPorts(ctx context.Context, unitUUID coreunit.UUID, openPorts, closePorts network.GroupedPortRanges) error
-
 	// GetMachineOpenedPorts returns the opened ports for all the units on the
 	// machine. Opened ports are grouped first by unit name and then by
 	// endpoint.
@@ -440,20 +435,23 @@ type RelationService interface {
 	// overwritten in the relation according to the supplied map.
 	//
 	// If there is a subordinate application related to the unit entering scope
-	// that needs a subordinate unit creating, then the subordinate unit will be
-	// created with the provided createSubordinate function.
+	// that needs a subordinate unit created, then the subordinate unit will be
+	// created.
 	//
 	// The following error types can be expected to be returned:
 	//   - [relationerrors.PotentialRelationUnitNotValid] if the unit entering
 	//     scope is a subordinate and the endpoint scope is charm.ScopeContainer
 	//     where the other application is a principal, but not in the current
 	//     relation.
+	//   - [relationerrors.CannotEnterScopeNotAlive] if the unit or relation is not
+	//     alive.
+	//   - [relationerrors.CannotEnterScopeSubordinateNotAlive] if a subordinate
+	//     unit is needed but already exists and is not alive.
 	EnterScope(
 		ctx context.Context,
 		relationUUID corerelation.UUID,
 		unitName coreunit.Name,
 		settings map[string]string,
-		createSubordinate relation.SubordinateCreator,
 	) error
 
 	// GetGoalStateRelationDataForApplication returns GoalStateRelationData for

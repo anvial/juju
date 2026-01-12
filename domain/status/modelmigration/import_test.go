@@ -10,10 +10,11 @@ import (
 
 	"github.com/juju/clock"
 	"github.com/juju/clock/testclock"
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
+	coremachine "github.com/juju/juju/core/machine"
 	coremodel "github.com/juju/juju/core/model"
 	corestatus "github.com/juju/juju/core/status"
 	coreunit "github.com/juju/juju/core/unit"
@@ -34,6 +35,84 @@ func (s *importSuite) TestImportBlank(c *tc.C) {
 	defer s.setUpMocks(c).Finish()
 
 	model := description.NewModel(description.ModelArgs{})
+
+	importOp := importOperation{
+		serviceGetter: func(u coremodel.UUID) ImportService {
+			return s.importService
+		},
+		clock: clock.WallClock,
+	}
+
+	err := importOp.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportMachineStatus(c *tc.C) {
+	defer s.setUpMocks(c).Finish()
+
+	now := time.Now().UTC()
+
+	model := description.NewModel(description.ModelArgs{})
+	m0 := model.AddMachine(description.MachineArgs{
+		Id: "0",
+	})
+	m0.SetInstance(description.CloudInstanceArgs{})
+
+	m0.SetStatus(description.StatusArgs{
+		Value:   "running",
+		Message: "machine is running",
+		Data:    map[string]any{"baz": "qux"},
+		Updated: now,
+	})
+	m0.Instance().SetStatus(description.StatusArgs{
+		Value:   "active",
+		Message: "instance is active",
+		Data:    map[string]any{"biz": "qax"},
+		Updated: now,
+	})
+
+	m1 := model.AddMachine(description.MachineArgs{
+		Id: "1",
+	})
+	m1.SetInstance(description.CloudInstanceArgs{})
+
+	m1.SetStatus(description.StatusArgs{
+		Value:   "stopped",
+		Message: "machine is stopped",
+		Data:    map[string]any{"buz": "qix"},
+		Updated: now,
+	})
+	m1.Instance().SetStatus(description.StatusArgs{
+		Value:   "error",
+		Message: "instance is error",
+		Data:    map[string]any{"boz": "qox"},
+		Updated: now,
+	})
+
+	s.importService.EXPECT().SetMachineStatus(gomock.Any(), coremachine.Name("0"), corestatus.StatusInfo{
+		Status:  corestatus.Running,
+		Message: "machine is running",
+		Data:    map[string]any{"baz": "qux"},
+		Since:   ptr(now),
+	})
+	s.importService.EXPECT().SetInstanceStatus(gomock.Any(), coremachine.Name("0"), corestatus.StatusInfo{
+		Status:  corestatus.Status("active"),
+		Message: "instance is active",
+		Data:    map[string]any{"biz": "qax"},
+		Since:   ptr(now),
+	})
+	s.importService.EXPECT().SetMachineStatus(gomock.Any(), coremachine.Name("1"), corestatus.StatusInfo{
+		Status:  corestatus.Stopped,
+		Message: "machine is stopped",
+		Data:    map[string]any{"buz": "qix"},
+		Since:   ptr(now),
+	})
+	s.importService.EXPECT().SetInstanceStatus(gomock.Any(), coremachine.Name("1"), corestatus.StatusInfo{
+		Status:  corestatus.Error,
+		Message: "instance is error",
+		Data:    map[string]any{"boz": "qox"},
+		Since:   ptr(now),
+	})
 
 	importOp := importOperation{
 		serviceGetter: func(u coremodel.UUID) ImportService {
@@ -206,6 +285,156 @@ func (s *importSuite) TestImportRelationStatus(c *tc.C) {
 			return s.importService
 		},
 		clock: clock,
+	}
+
+	err := importOp.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportRemoteApplicationOffererStatus(c *tc.C) {
+	defer s.setUpMocks(c).Finish()
+
+	now := time.Now().UTC()
+
+	model := description.NewModel(description.ModelArgs{})
+	remoteApp1 := model.AddRemoteApplication(description.RemoteApplicationArgs{
+		Name: "remote-app",
+	})
+	remoteApp1.SetStatus(description.StatusArgs{
+		Value:   "active",
+		Message: "bar",
+		Data:    map[string]any{"baz": "qux"},
+		Updated: now,
+	})
+
+	remoteApp2 := model.AddRemoteApplication(description.RemoteApplicationArgs{
+		Name: "remote-app-2",
+	})
+	remoteApp2.SetStatus(description.StatusArgs{
+		Value:   "blocked",
+		Message: "bar2",
+		Data:    map[string]any{"baz2": "qux2"},
+		Updated: now,
+	})
+
+	s.importService.EXPECT().SetRemoteApplicationOffererStatus(gomock.Any(), "remote-app", corestatus.StatusInfo{
+		Status:  corestatus.Active,
+		Message: "bar",
+		Data:    map[string]any{"baz": "qux"},
+		Since:   ptr(now),
+	})
+	s.importService.EXPECT().SetRemoteApplicationOffererStatus(gomock.Any(), "remote-app-2", corestatus.StatusInfo{
+		Status:  corestatus.Blocked,
+		Message: "bar2",
+		Data:    map[string]any{"baz2": "qux2"},
+		Since:   ptr(now),
+	})
+
+	importOp := importOperation{
+		serviceGetter: func(u coremodel.UUID) ImportService {
+			return s.importService
+		},
+		clock: clock.WallClock,
+	}
+
+	err := importOp.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportFilesystemStatus(c *tc.C) {
+	defer s.setUpMocks(c).Finish()
+
+	now := time.Now().UTC()
+
+	model := description.NewModel(description.ModelArgs{})
+	fs1 := model.AddFilesystem(description.FilesystemArgs{
+		ID: "fs-1",
+	})
+	fs1.SetStatus(description.StatusArgs{
+		Value:   "active",
+		Message: "active is available",
+		Data:    map[string]any{"baz": "qux"},
+		Updated: now,
+	})
+
+	fs2 := model.AddFilesystem(description.FilesystemArgs{
+		ID: "fs-2",
+	})
+	fs2.SetStatus(description.StatusArgs{
+		Value:   "error",
+		Message: "error occurred",
+		Data:    map[string]any{"baz2": "qux2"},
+		Updated: now,
+	})
+
+	s.importService.EXPECT().SetFilesystemStatus(gomock.Any(), "fs-1", corestatus.StatusInfo{
+		Status:  corestatus.Active,
+		Message: "active is available",
+		Data:    map[string]any{"baz": "qux"},
+		Since:   ptr(now),
+	})
+	s.importService.EXPECT().SetFilesystemStatus(gomock.Any(), "fs-2", corestatus.StatusInfo{
+		Status:  corestatus.Error,
+		Message: "error occurred",
+		Data:    map[string]any{"baz2": "qux2"},
+		Since:   ptr(now),
+	})
+
+	importOp := importOperation{
+		serviceGetter: func(u coremodel.UUID) ImportService {
+			return s.importService
+		},
+		clock: clock.WallClock,
+	}
+
+	err := importOp.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportVolumeStatus(c *tc.C) {
+	defer s.setUpMocks(c).Finish()
+
+	now := time.Now().UTC()
+
+	model := description.NewModel(description.ModelArgs{})
+	vol1 := model.AddVolume(description.VolumeArgs{
+		ID: "vol-1",
+	})
+	vol1.SetStatus(description.StatusArgs{
+		Value:   "active",
+		Message: "volume is active",
+		Data:    map[string]any{"baz": "qux"},
+		Updated: now,
+	})
+
+	vol2 := model.AddVolume(description.VolumeArgs{
+		ID: "vol-2",
+	})
+	vol2.SetStatus(description.StatusArgs{
+		Value:   "pending",
+		Message: "volume is pending",
+		Data:    map[string]any{"baz2": "qux2"},
+		Updated: now,
+	})
+
+	s.importService.EXPECT().SetVolumeStatus(gomock.Any(), "vol-1", corestatus.StatusInfo{
+		Status:  corestatus.Active,
+		Message: "volume is active",
+		Data:    map[string]any{"baz": "qux"},
+		Since:   ptr(now),
+	})
+	s.importService.EXPECT().SetVolumeStatus(gomock.Any(), "vol-2", corestatus.StatusInfo{
+		Status:  corestatus.Pending,
+		Message: "volume is pending",
+		Data:    map[string]any{"baz2": "qux2"},
+		Since:   ptr(now),
+	})
+
+	importOp := importOperation{
+		serviceGetter: func(u coremodel.UUID) ImportService {
+			return s.importService
+		},
+		clock: clock.WallClock,
 	}
 
 	err := importOp.Execute(c.Context(), model)

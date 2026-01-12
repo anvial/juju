@@ -11,6 +11,7 @@ import (
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/core/application"
+	corecharm "github.com/juju/juju/core/charm"
 	domainapplicationerrors "github.com/juju/juju/domain/application/errors"
 	domainlife "github.com/juju/juju/domain/life"
 	domainnetwork "github.com/juju/juju/domain/network"
@@ -20,6 +21,24 @@ import (
 	"github.com/juju/juju/domain/storageprovisioning/internal"
 	domaintesting "github.com/juju/juju/domain/storageprovisioning/testing"
 )
+
+// applicationContainerParams represents the type to add a new application
+// container to the DB. This is part of seeding the DB with data for the tests
+// to run.
+type applicationContainerParams struct {
+	appName           string
+	containerKey      string
+	containerResource string
+	containerMounts   []mounts
+}
+
+// mounts represents the mount point a container is requesting.
+type mounts struct {
+	index        string
+	containerKey string
+	storageName  string
+	location     string
+}
 
 // filesystemSuite provides a set of tests for asserting the state interface
 // for filesystems in the model.
@@ -1037,7 +1056,59 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMachineAttached(c *tc
 		CharmStorageCountMax: 3,
 		CharmStorageLocation: "/var/ory/keystore",
 		CharmStorageReadOnly: false,
+		CAASInstanceID:       "",
 		MachineInstanceID:    "machine-id-123",
+		// We don't expect a mount point to have been set yet.
+		MountPoint:           "",
+		Provider:             "canonical",
+		FilesystemProviderID: "provider-id",
+	})
+}
+
+// TestGetFilesystemAttachmentParamsK8sPodAttached is testing when a k8s_pod
+// entry exists for this attachment, then the CAASInstanceID will be populated.
+func (s *filesystemSuite) TestGetFilesystemAttachmentParamsK8sPodAttached(c *tc.C) {
+	// Construct the net node machine
+	netNodeUUID := s.newNetNode(c)
+
+	// Construct the application
+	appUUID, charmUUID := s.newApplication(c, "testapp")
+	unitUUID, _ := s.newUnitWithNetNode(c, "testapp/0", appUUID, netNodeUUID)
+
+	// Construct the pod
+	s.newK8sPod(c, unitUUID, "testapp-k8s-0")
+
+	// Construct the storage pool
+	poolUUID := s.newStoragePool(c, "thebigpool", "canonical", map[string]string{
+		"foo": "bar",
+	})
+
+	// Construct the charm storage
+	s.newFilesystemCharmStorageWithLocationAndCount(
+		c, charmUUID, "keystore", "/var/ory/keystore", 1, 3,
+	)
+
+	// Construct storage instance, filesystem, filesystem attachment
+	suuid, _ := s.newStorageInstanceForCharmWithPool(c, charmUUID, poolUUID, "keystore")
+	fsUUID, _ := s.newMachineFilesystem(c)
+	s.setFilesystemProviderID(c, fsUUID, "provider-id")
+	fsaUUID := s.newMachineFilesystemAttachment(c, fsUUID, netNodeUUID)
+	s.newStorageInstanceFilesystem(c, suuid, fsUUID)
+
+	// Attach the storage instance to the unit. This is what draws in all the
+	// information for the attachment params.
+	_ = s.newStorageAttachment(c, suuid, unitUUID)
+
+	st := NewState(s.TxnRunnerFactory())
+	params, err := st.GetFilesystemAttachmentParams(c.Context(), fsaUUID)
+
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(params, tc.DeepEquals, storageprovisioning.FilesystemAttachmentParams{
+		CharmStorageCountMax: 3,
+		CharmStorageLocation: "/var/ory/keystore",
+		CharmStorageReadOnly: false,
+		CAASInstanceID:       "testapp-k8s-0",
+		MachineInstanceID:    "",
 		// We don't expect a mount point to have been set yet.
 		MountPoint:           "",
 		Provider:             "canonical",
@@ -1087,6 +1158,7 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsUnitAttached(c *tc.C)
 		CharmStorageCountMax: 1,
 		CharmStorageLocation: "/var/ory/keystore",
 		CharmStorageReadOnly: false,
+		CAASInstanceID:       "",
 		MachineInstanceID:    "",
 		Provider:             "canonical",
 		FilesystemProviderID: "",
@@ -1137,11 +1209,68 @@ func (s *filesystemSuite) TestGetFilesystemAttachmentParamsMountPointSet(c *tc.C
 		CharmStorageCountMax: 0,
 		CharmStorageLocation: "/var/ory/keystore",
 		CharmStorageReadOnly: false,
+		CAASInstanceID:       "",
 		MachineInstanceID:    "machine-id-123",
 		MountPoint:           mountPoint,
 		Provider:             "canonical",
 		FilesystemProviderID: "provider-id",
 	})
+}
+
+// TestGetContainerMountsForCharm tests fetching the container mounts for
+// a given charm UUID.
+func (s *filesystemSuite) TestGetContainerMountsForApplication(c *tc.C) {
+	appUUID, _ := s.newApplicationContainer(c, applicationContainerParams{
+		appName:           "web",
+		containerKey:      "web-server",
+		containerResource: "web-resource",
+		containerMounts: []mounts{
+			{
+				index:        "0",
+				containerKey: "web-server",
+				storageName:  "cert",
+				location:     "/data/cert",
+			},
+			{
+				index:        "1",
+				containerKey: "web-server",
+				storageName:  "config",
+				location:     "/data/config",
+			},
+		},
+	})
+
+	st := NewState(s.TxnRunnerFactory())
+
+	mounts, err := st.GetContainerMountsForApplication(c.Context(), appUUID)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(mounts, tc.HasLen, 2)
+	c.Check(mounts["config"], tc.SameContents, []internal.ContainerMount{
+		{
+			ContainerKey: "web-server",
+			StorageName:  "config",
+			MountPoint:   "/data/config",
+		},
+	})
+	c.Check(mounts["cert"], tc.SameContents, []internal.ContainerMount{
+		{
+			ContainerKey: "web-server",
+			StorageName:  "cert",
+			MountPoint:   "/data/cert",
+		},
+	})
+}
+
+// TestGetContainerMountsForApplicationMissingApplication tests fetching the
+// container mounts for a given charm UUID but in the unfortunate circumstance
+// the application doesn't exist.
+func (s *filesystemSuite) TestGetContainerMountsForApplicationMissingApplication(c *tc.C) {
+	appUUID := tc.Must(c, application.NewUUID)
+
+	st := NewState(s.TxnRunnerFactory())
+
+	_, err := st.GetContainerMountsForApplication(c.Context(), appUUID)
+	c.Check(err, tc.ErrorIs, domainapplicationerrors.ApplicationNotFound)
 }
 
 // changeFilesystemLife is a utility function for updating the life value of a
@@ -1342,4 +1471,26 @@ VALUES (?, ?, 0, 0)
 	c.Assert(err, tc.ErrorIsNil)
 
 	return fsUUID, fsID
+}
+
+// newApplicationContainer creates a new charm container and its mount locations.
+// The application and charm UUID is returned.
+func (s *filesystemSuite) newApplicationContainer(c *tc.C, param applicationContainerParams) (application.UUID, corecharm.ID) {
+	applicationUUID, charmUUID := s.newApplication(c, param.appName)
+
+	_, err := s.DB().Exec(`
+INSERT INTO charm_container (charm_uuid, "key", resource)
+VALUES (?, ?, ?)
+`, charmUUID, param.containerKey, param.containerResource)
+	c.Check(err, tc.ErrorIsNil)
+
+	for _, mount := range param.containerMounts {
+		_, err = s.DB().Exec(`
+INSERT INTO charm_container_mount (array_index, charm_uuid, charm_container_key, storage, location)
+VALUES (?, ?, ?, ?, ?)
+`, mount.index, charmUUID, mount.containerKey, mount.storageName, mount.location)
+		c.Check(err, tc.ErrorIsNil)
+	}
+
+	return application.UUID(applicationUUID), corecharm.ID(charmUUID)
 }

@@ -42,7 +42,7 @@ func TestApplicationRefreshSuite(t *testing.T) {
 func (s *applicationRefreshSuite) SetUpTest(c *tc.C) {
 	s.baseSuite.SetUpTest(c)
 
-	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	s.state = NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 }
 
 func (s *applicationRefreshSuite) TestSetApplicationCharm(c *tc.C) {

@@ -209,6 +209,18 @@ type FilesystemState interface {
 	SetFilesystemAttachmentProvisionedInfo(ctx context.Context, filesystemAttachmentUUID storageprovisioning.FilesystemAttachmentUUID, info storageprovisioning.FilesystemAttachmentProvisionedInfo) error
 }
 
+// CharmState defines the methods required to fetch the mount points for charm
+// containers.
+type CharmState interface {
+	// GetContainerMountsForApplication returns the map of mount locations for
+	// an application. The map entry is keyed by the storage name.
+	// An empty map will be returned if there are no records.
+	GetContainerMountsForApplication(
+		context.Context,
+		coreapplication.UUID,
+	) (map[string][]internal.ContainerMount, error)
+}
+
 // CheckFilesystemForIDExists checks if a filesystem exists for the supplied
 // filesystem ID. True is returned when a filesystem exists.
 func (s *Service) CheckFilesystemForIDExists(
@@ -388,7 +400,7 @@ func (s *Service) GetFilesystemAttachmentParams(
 // location and singleton status.
 func calculateFilesystemAttachmentMountPoint(
 	charmSuggestedLocation string,
-	isSingelton bool,
+	isSingleton bool,
 	id string,
 ) string {
 	refLocation := charmSuggestedLocation
@@ -397,17 +409,17 @@ func calculateFilesystemAttachmentMountPoint(
 		// We purposely disable singleton storage when using the default
 		// location. This ensures that multiple attachments for different
 		// storage do not collide.
-		isSingelton = false
+		isSingleton = false
 	}
 
 	// If only one attachment of this storage can ever be made then we return
 	// the verbatim refLocation asked for.
-	if isSingelton {
+	if isSingleton {
 		return refLocation
 	}
 
 	// Multiple attachments are expected for this storage so we append the
-	// attachement id to form a unique mount point.
+	// attachment id to form a unique mount point.
 	return path.Join(refLocation, id)
 }
 
@@ -419,6 +431,7 @@ func calculateFilesystemAttachmentTemplates(
 	isSingleton bool,
 	readOnly bool,
 	count int,
+	attachTo string,
 ) []storageprovisioning.FilesystemAttachmentTemplate {
 	retVal := make([]storageprovisioning.FilesystemAttachmentTemplate, 0, count)
 	for i := range count {
@@ -433,10 +446,41 @@ func calculateFilesystemAttachmentTemplates(
 		)
 
 		retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
-			MountPoint: mountPoint,
-			ReadOnly:   readOnly,
+			MountPoint:   mountPoint,
+			ReadOnly:     readOnly,
+			ContainerKey: attachTo,
 		})
 	}
+	return retVal
+}
+
+// calculateFilesystemAttachmentTemplatesForContainers calculates all the
+// [storageprovisioning.FilesystemAttachmentTemplate]s for the supplied args.
+// This is specifically used for a container that has specified mount
+// points.
+func calculateFilesystemAttachmentTemplatesForContainers(
+	location string,
+	readOnly bool,
+	count int,
+	attachTo string,
+) []storageprovisioning.FilesystemAttachmentTemplate {
+	retVal := make([]storageprovisioning.FilesystemAttachmentTemplate, 0, count)
+
+	// We are strongly assuming it's a singleton storage so we use the location
+	// what's defined by the charm. At the moment, the behaviour for when it's a
+	// non-singleton instance is undefined. We don't have a pre-defined contract
+	// with charm authors on how this work.
+	// In theory, we can follow what
+	// [calculateFilesystemAttachmentTemplates] does but will require a future
+	// effort. See https://github.com/juju/juju/issues/21465.
+	mountPoint := calculateFilesystemAttachmentMountPoint(
+		location, true, "",
+	)
+	retVal = append(retVal, storageprovisioning.FilesystemAttachmentTemplate{
+		MountPoint:   mountPoint,
+		ReadOnly:     readOnly,
+		ContainerKey: attachTo,
+	})
 	return retVal
 }
 
@@ -824,6 +868,13 @@ func (s *Service) GetFilesystemTemplatesForApplication(
 		)
 	}
 
+	containerMounts, err := s.st.GetContainerMountsForApplication(ctx, appUUID)
+	if err != nil {
+		return nil, errors.Errorf(
+			"getting container mounts id for app %q: %w", appUUID, err,
+		)
+	}
+
 	retVal := make([]storageprovisioning.FilesystemTemplate, 0, len(fsTemplates))
 	for _, fsTemplate := range fsTemplates {
 		attachments := calculateFilesystemAttachmentTemplates(
@@ -832,7 +883,18 @@ func (s *Service) GetFilesystemTemplatesForApplication(
 			fsTemplate.MaxCount == 1,
 			fsTemplate.ReadOnly,
 			fsTemplate.Count,
+			"charm",
 		)
+
+		for _, mount := range containerMounts[fsTemplate.StorageName] {
+			containerAttachments := calculateFilesystemAttachmentTemplatesForContainers(
+				mount.MountPoint,
+				fsTemplate.ReadOnly,
+				fsTemplate.Count,
+				mount.ContainerKey,
+			)
+			attachments = append(attachments, containerAttachments...)
+		}
 
 		mountTemplate := storageprovisioning.FilesystemTemplate{
 			Attachments:  attachments,

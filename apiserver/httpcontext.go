@@ -27,15 +27,25 @@ type httpContext struct {
 	srv *Server
 }
 
-// domainServicesForRequest returns a domain services appropriate for using
+// domainServicesForRequestContext returns a domain services appropriate for using
 // for the model implicit in the given context supplied from a request without
 // checking any authentication information.
-func (ctxt *httpContext) domainServicesForRequest(ctx context.Context) (services.DomainServices, error) {
+func (ctxt *httpContext) domainServicesForRequestContext(ctx context.Context) (services.DomainServices, error) {
 	modelUUID, valid := httpcontext.RequestModelUUID(ctx)
 	if !valid {
 		return nil, errors.Trace(apiservererrors.ErrPerm)
 	}
 	return ctxt.srv.shared.domainServicesGetter.ServicesForModel(ctx, model.UUID(modelUUID))
+}
+
+// domainServicesForRequest returns a domain services appropriate for using
+// for the model implicit in the given request without checking any
+// authentication information.
+func (ctxt *httpContext) domainServicesForRequest(req *http.Request) (services.DomainServices, error) {
+	if req == nil {
+		return nil, errors.New("nil request")
+	}
+	return ctxt.domainServicesForRequestContext(req.Context())
 }
 
 // objectStoreForRequest returns an object store instance

@@ -88,7 +88,7 @@ func (e *Exporter) ExportOperations(registry corestorage.ModelStorageRegistryGet
 	status.RegisterExport(e.coordinator, e.clock, e.logger.Child("status"))
 	resource.RegisterExport(e.coordinator, e.clock, e.logger.Child("resource"))
 	cloudimagemetadata.RegisterExport(e.coordinator, e.logger.Child("cloudimagemetadata"), e.clock)
-	unitstate.RegisterExport(e.coordinator)
+	unitstate.RegisterExport(e.coordinator, e.logger.Child("unitstate"))
 
 	// model agent must come after machine and unit
 	modelagent.RegisterExport(e.coordinator, e.logger.Child("modelagent"))

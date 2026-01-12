@@ -926,7 +926,7 @@ func (m *stateSuite) TestDeleteModel(c *tc.C) {
 	err = row.Scan(&val)
 	c.Assert(err, tc.ErrorIs, sql.ErrNoRows)
 
-	modelUUIDS, err := modelSt.ListModelUUIDs(c.Context())
+	modelUUIDS, err := modelSt.GetModelUUIDs(c.Context())
 	c.Check(err, tc.ErrorIsNil)
 	c.Check(modelUUIDS, tc.DeepEquals, []coremodel.UUID{m.controllerModelUUID})
 
@@ -947,9 +947,9 @@ func (m *stateSuite) TestDeleteModelNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
-// TestListModelUUIDs is testing that once we have created several models calling
+// TestGetModelUUIDs is testing that once we have created several models calling
 // list returns all the models created.
-func (m *stateSuite) TestListModelUUIDs(c *tc.C) {
+func (m *stateSuite) TestGetModelUUIDs(c *tc.C) {
 	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
 	m.createModel(c, m.uuid, m.userUUID)
 
@@ -1000,11 +1000,74 @@ func (m *stateSuite) TestListModelUUIDs(c *tc.C) {
 	err = modelSt.Activate(c.Context(), uuid2)
 	c.Assert(err, tc.ErrorIsNil)
 
-	uuids, err := modelSt.ListModelUUIDs(c.Context())
+	uuids, err := modelSt.GetModelUUIDs(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(uuids, tc.HasLen, 4)
 	c.Check(uuids, tc.SameContents, []coremodel.UUID{
 		m.controllerModelUUID,
+		m.uuid,
+		uuid1,
+		uuid2,
+	})
+}
+
+// TestGetHostedModelUUIDs is testing that once we have created several models
+// calling list returns all the models created.
+func (m *stateSuite) TestGetHostedModelUUIDs(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	uuid1 := tc.Must(c, coremodel.NewUUID)
+	modelSt := NewState(m.TxnRunnerFactory())
+	err := modelSt.Create(
+		c.Context(),
+		uuid1,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "listtest1",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	err = modelSt.Activate(c.Context(), uuid1)
+	c.Assert(err, tc.ErrorIsNil)
+
+	uuid2 := tc.Must(c, coremodel.NewUUID)
+	err = modelSt.Create(
+		c.Context(),
+		uuid2,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "listtest2",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	err = modelSt.Activate(c.Context(), uuid2)
+	c.Assert(err, tc.ErrorIsNil)
+
+	uuids, err := modelSt.GetHostedModelUUIDs(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(uuids, tc.HasLen, 3)
+	c.Check(uuids, tc.SameContents, []coremodel.UUID{
 		m.uuid,
 		uuid1,
 		uuid2,
@@ -1177,12 +1240,12 @@ func (m *stateSuite) TestModelsForNonExistantUser(c *tc.C) {
 	c.Check(len(models), tc.Equals, 0)
 }
 
-func (m *stateSuite) TestAllModels(c *tc.C) {
+func (m *stateSuite) TestGetAllModels(c *tc.C) {
 	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
 	m.createModel(c, m.uuid, m.userUUID)
 
 	modelSt := NewState(m.TxnRunnerFactory())
-	models, err := modelSt.ListAllModels(c.Context())
+	models, err := modelSt.GetAllModels(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 
 	c.Check(models, tc.DeepEquals, []coremodel.Model{
@@ -2292,4 +2355,196 @@ func (m *stateSuite) createModelUser(
 	)
 	c.Assert(err, tc.ErrorIsNil)
 	return userUUID
+}
+
+func (m *stateSuite) TestImportModel(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	modelSt := NewState(m.TxnRunnerFactory())
+	testUUID := tc.Must(c, coremodel.NewUUID)
+	err := modelSt.ImportModel(
+		c.Context(),
+		testUUID,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "import-test",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the model was created
+	runner, err := m.TxnRunnerFactory()(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+
+	var modelUUID string
+	err = runner.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
+		stmt, err := sqlair.Prepare(`SELECT &M.uuid FROM model WHERE uuid = $M.uuid`, sqlair.M{})
+		if err != nil {
+			return err
+		}
+		result := sqlair.M{}
+		err = tx.Query(ctx, stmt, sqlair.M{"uuid": testUUID.String()}).Get(&result)
+		if err != nil {
+			return err
+		}
+		modelUUID = result["uuid"].(string)
+		return nil
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(modelUUID, tc.Equals, testUUID.String())
+
+	// Verify an entry was added to model_migration_import table
+	var migrationUUID string
+	err = runner.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
+		stmt, err := sqlair.Prepare(`SELECT &M.uuid FROM model_migration_import WHERE model_uuid = $M.model_uuid`, sqlair.M{})
+		if err != nil {
+			return err
+		}
+		result := sqlair.M{}
+		err = tx.Query(ctx, stmt, sqlair.M{"model_uuid": testUUID.String()}).Get(&result)
+		if err != nil {
+			return err
+		}
+		migrationUUID = result["uuid"].(string)
+		return nil
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(migrationUUID, tc.Not(tc.Equals), "")
+}
+
+func (m *stateSuite) TestImportModelWithSameNameAndOwner(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	modelSt := NewState(m.TxnRunnerFactory())
+
+	// First create and activate a model with the same name/qualifier
+	existingUUID := tc.Must(c, coremodel.NewUUID)
+	err := modelSt.Create(
+		c.Context(),
+		existingUUID,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:         "my-cloud",
+			CloudRegion:   "my-region",
+			Name:          "duplicate-model",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+
+	err = modelSt.Activate(c.Context(), existingUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Now try to import a model with the same name/qualifier
+	testUUID := tc.Must(c, coremodel.NewUUID)
+	err = modelSt.ImportModel(
+		c.Context(),
+		testUUID,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:         "my-cloud",
+			CloudRegion:   "my-region",
+			Name:          "duplicate-model",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorMatches, `.*already exists.*`)
+}
+
+func (m *stateSuite) TestImportModelVerifyPermissionSet(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	modelSt := NewState(m.TxnRunnerFactory())
+	testUUID := tc.Must(c, coremodel.NewUUID)
+	ctx := c.Context()
+	err := modelSt.ImportModel(
+		ctx,
+		testUUID,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:       "my-cloud",
+			CloudRegion: "my-region",
+			Credential: corecredential.Key{
+				Cloud: "my-cloud",
+				Owner: usertesting.GenNewName(c, "test-user"),
+				Name:  "foobar",
+			},
+			Name:          "import-perm-test",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify admin permissions were set
+	accessSt := accessstate.NewState(m.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+	access, err := accessSt.ReadUserAccessLevelForTarget(ctx, m.userName, permission.ID{
+		ObjectType: permission.Model,
+		Key:        testUUID.String(),
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(access, tc.Equals, permission.AdminAccess)
+}
+
+func (m *stateSuite) TestImportModelWithInvalidCloud(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	modelSt := NewState(m.TxnRunnerFactory())
+	testUUID := tc.Must(c, coremodel.NewUUID)
+	err := modelSt.ImportModel(
+		c.Context(),
+		testUUID,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:         "invalid-cloud",
+			CloudRegion:   "my-region",
+			Name:          "import-invalid-cloud",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{m.userUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorMatches, `.*not found.*`)
+}
+
+func (m *stateSuite) TestImportModelWithNonExistentOwner(c *tc.C) {
+	m.createControllerModel(c, m.controllerModelUUID, m.userUUID)
+	m.createModel(c, m.uuid, m.userUUID)
+
+	modelSt := NewState(m.TxnRunnerFactory())
+	testUUID := tc.Must(c, coremodel.NewUUID)
+	fakeUserUUID := usertesting.GenUserUUID(c)
+	err := modelSt.ImportModel(
+		c.Context(),
+		testUUID,
+		coremodel.IAAS,
+		model.GlobalModelCreationArgs{
+			Cloud:         "my-cloud",
+			CloudRegion:   "my-region",
+			Name:          "import-nonexistent-owner",
+			Qualifier:     "prod",
+			AdminUsers:    []user.UUID{fakeUserUUID},
+			SecretBackend: juju.BackendName,
+		},
+	)
+	c.Assert(err, tc.ErrorMatches, `.*not found.*`)
 }

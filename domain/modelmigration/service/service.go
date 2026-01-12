@@ -54,31 +54,52 @@ type Service struct {
 
 	// resourceProviderGetter is a getter for getting access to the model's
 	// [ResourceProvider]
-	resourceProviderGettter func(context.Context) (ResourceProvider, error)
+	resourceProviderGetter func(context.Context) (ResourceProvider, error)
 
-	st State
+	controllerState ControllerState
+	modelState      ModelState
+	modelUUID       string
 }
 
-// State defines the interface required for accessing the underlying state of
+// ControllerState defines the interface required for accessing the underlying state of
 // the model during migration.
-type State interface {
+type ControllerState interface {
+	// DeleteModelImportingStatus removes the entry from the model_migrating
+	// table in the model database, indicating that the model import has
+	// completed or been aborted.
+	DeleteModelImportingStatus(ctx context.Context, modelUUID string) error
+}
+
+// ModelState defines the interface required for accessing the underlying state
+// of the model during migration.
+type ModelState interface {
+	// GetControllerUUID returns the UUID of the controller that owns this
+	// model.
 	GetControllerUUID(context.Context) (string, error)
 	// GetAllInstanceIDs returns all instance IDs from the current model as
 	// juju/collections set.
 	GetAllInstanceIDs(ctx context.Context) (set.Strings, error)
+	// DeleteModelImportingStatus removes the entry from the model_migrating
+	// table in the model database, indicating that the model import has
+	// completed or been aborted.
+	DeleteModelImportingStatus(ctx context.Context) error
 }
 
 // NewService is responsible for constructing a new [Service] to handle model migration
 // tasks.
 func NewService(
+	controllerState ControllerState,
+	modelState ModelState,
+	modelUUID string,
 	instanceProviderGetter providertracker.ProviderGetter[InstanceProvider],
 	resourceProviderGetter providertracker.ProviderGetter[ResourceProvider],
-	st State,
 ) *Service {
 	return &Service{
-		instanceProviderGetter:  instanceProviderGetter,
-		resourceProviderGettter: resourceProviderGetter,
-		st:                      st,
+		controllerState:        controllerState,
+		modelState:             modelState,
+		instanceProviderGetter: instanceProviderGetter,
+		resourceProviderGetter: resourceProviderGetter,
+		modelUUID:              modelUUID,
 	}
 }
 
@@ -91,7 +112,7 @@ func (s *Service) AdoptResources(
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	provider, err := s.resourceProviderGettter(ctx)
+	provider, err := s.resourceProviderGetter(ctx)
 
 	// Provider doesn't support adopting resources and this is ok!
 	if errors.Is(err, coreerrors.NotSupported) {
@@ -103,7 +124,7 @@ func (s *Service) AdoptResources(
 		)
 	}
 
-	controllerUUID, err := s.st.GetControllerUUID(ctx)
+	controllerUUID, err := s.modelState.GetControllerUUID(ctx)
 	if err != nil {
 		return errors.Errorf(
 			"cannot get controller uuid while adopting model cloud resources: %w",
@@ -164,7 +185,7 @@ func (s *Service) CheckMachines(
 		providerInstanceIDsSet.Add(instance.Id().String())
 	}
 
-	instanceIDsSet, err := s.st.GetAllInstanceIDs(ctx)
+	instanceIDsSet, err := s.modelState.GetAllInstanceIDs(ctx)
 	if err != nil {
 		return nil, errors.Errorf("cannot get all instance IDs for model when checking machines: %w", err)
 	}
@@ -277,18 +298,38 @@ func (s *Service) MinionReports(ctx context.Context) (migration.MinionReports, e
 	return migration.MinionReports{}, errors.ConstError("getting minion reports is not implemented")
 }
 
-// AbortImport stops the import of the model.
-func (s *Service) AbortImport(ctx context.Context) error {
-	_, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-	// TODO(modelmigration): implement aborting model import.
-	return errors.ConstError("aborting the import of a model is not implemented")
-}
-
-// ActivateImport finalises the import of the model.
+// ActivateImport finalises the import of the model by clearing the
+// model_migrating table entry in the model database.
 func (s *Service) ActivateImport(ctx context.Context) error {
-	_, span := trace.Start(ctx, trace.NameFromFunc())
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
-	// TODO(modelmigration): implement activate imported model.
-	return errors.ConstError("activating an imported model is not implemented")
+
+	// Delete the migration importing status from the model database. This
+	// should ensure that the model is no longer considered to be importing.
+
+	// As we need to affect both the controller and model databases, we need to
+	// attempt this is a best effort manner. The state layer should ensure
+	// idempotency, so if one operation succeeds and the other fails, we can
+	// retry safely.
+
+	// Attempt to delete the importing status from the model database first, as
+	// that should allow the model to be considered active in this controller.
+	// The controller database entry can be removed later if this step fails,
+	// it shouldn't prevent the model from being used (in theory).
+
+	if err := s.modelState.DeleteModelImportingStatus(ctx); err != nil {
+		return errors.Errorf(
+			"deleting model importing status from model database: %w",
+			err,
+		)
+	}
+
+	if err := s.controllerState.DeleteModelImportingStatus(ctx, s.modelUUID); err != nil {
+		return errors.Errorf(
+			"deleting model importing status from controller database: %w",
+			err,
+		)
+	}
+
+	return nil
 }

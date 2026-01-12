@@ -10,6 +10,7 @@ import (
 	"github.com/juju/tc"
 
 	coreapplication "github.com/juju/juju/core/application"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/application/architecture"
 	"github.com/juju/juju/domain/application/charm"
@@ -46,6 +47,7 @@ func (s *applicationStorageSuite) createApplicationWithStorageDirectives(
 ) coreapplication.UUID {
 	state := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		tc.Must0(c, model.NewUUID),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -155,6 +157,7 @@ func (s *applicationStorageSuite) TestGetApplicationStorageDirectives(c *tc.C) {
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		tc.Must0(c, model.NewUUID),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -197,6 +200,7 @@ func (s *applicationStorageSuite) TestGetApplicationStorageDirectivesEmpty(c *tc
 
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		tc.Must0(c, model.NewUUID),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -212,6 +216,7 @@ func (s *applicationStorageSuite) TestGetApplicationStorageDirectivesNotFound(c 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
 	st := NewState(
 		s.ModelSuite.TxnRunnerFactory(),
+		tc.Must0(c, model.NewUUID),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

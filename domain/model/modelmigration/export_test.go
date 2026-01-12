@@ -6,13 +6,12 @@ package modelmigration
 import (
 	stdtesting "testing"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
 	"github.com/juju/juju/core/constraints"
 	coremodel "github.com/juju/juju/core/model"
-	"github.com/juju/juju/core/model/testing"
 )
 
 type exportSuite struct {
@@ -39,7 +38,7 @@ func (e *exportSuite) setupMocks(c *tc.C) *gomock.Controller {
 func (e *exportSuite) TestModelEnvironVersionExport(c *tc.C) {
 	defer e.setupMocks(c).Finish()
 
-	newUUID := testing.GenModelUUID(c)
+	newUUID := tc.Must0(c, coremodel.NewUUID)
 	model := description.NewModel(description.ModelArgs{
 		EnvironVersion: 5,
 		Config: map[string]interface{}{
@@ -64,7 +63,7 @@ func (e *exportSuite) TestModelEnvironVersionExport(c *tc.C) {
 func (e *exportSuite) TestModelConstraintsExport(c *tc.C) {
 	defer e.setupMocks(c).Finish()
 
-	newUUID := testing.GenModelUUID(c)
+	newUUID := tc.Must0(c, coremodel.NewUUID)
 	model := description.NewModel(description.ModelArgs{
 		EnvironVersion: 5,
 		Config: map[string]interface{}{

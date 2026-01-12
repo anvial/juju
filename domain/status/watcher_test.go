@@ -15,6 +15,7 @@ import (
 	"github.com/juju/juju/core/changestream"
 	"github.com/juju/juju/core/database"
 	coremachine "github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/offer"
 	"github.com/juju/juju/core/status"
 	coreunit "github.com/juju/juju/core/unit"
@@ -251,7 +252,7 @@ func (s *watcherSuite) createIAASApplication(
 		return s.ModelTxnRunner(), nil
 	}
 	appState := applicationstate.NewState(
-		modelDB, clock.WallClock, loggertesting.WrapCheckLog(c),
+		modelDB, model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c),
 	)
 
 	platform := deployment.Platform{

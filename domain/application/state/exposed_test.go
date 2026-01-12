@@ -33,7 +33,7 @@ func TestExposedStateSuite(t *testing.T) {
 func (s *exposedStateSuite) SetUpTest(c *tc.C) {
 	s.baseSuite.SetUpTest(c)
 
-	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	s.state = NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 }
 
 func (s *exposedStateSuite) TestApplicationNotExposed(c *tc.C) {

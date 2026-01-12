@@ -64,7 +64,6 @@ func (st *State) AddMachine(ctx context.Context, args domainmachine.AddMachineAr
 		return "", nil, errors.Capture(err)
 	}
 
-	var machineNames []machine.Name
 	machineUUID, err := machine.NewUUID()
 	if err != nil {
 		return "", nil, errors.Errorf(
@@ -85,10 +84,12 @@ func (st *State) AddMachine(ctx context.Context, args domainmachine.AddMachineAr
 		MachineUUID:             machineUUID,
 		NetNodeUUID:             netNodeUUID,
 		Nonce:                   args.Nonce,
+		InstanceID:              args.InstanceID,
 		HardwareCharacteristics: args.HardwareCharacteristics,
 	}
-	st.logger.Debugf(ctx, "placing machine with args: %#v", placeArgs)
+	st.logger.Debugf(ctx, "adding machine %q with args: %#v", machineUUID, placeArgs)
 
+	var machineNames []machine.Name
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		machineNames, err = PlaceMachine(ctx, tx, st, st.clock, placeArgs)
 		return err

@@ -1,17 +1,16 @@
 // Copyright 2020 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package common_test
+package uniter
 
 import (
-	"testing"
+	stdtesting "testing"
 
 	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 
-	apitesting "github.com/juju/juju/api/base/testing"
-	"github.com/juju/juju/api/common"
+	"github.com/juju/juju/api/base/testing"
 	apiservererrors "github.com/juju/juju/apiserver/errors"
 	"github.com/juju/juju/internal/testhelpers"
 	"github.com/juju/juju/rpc/params"
@@ -22,7 +21,7 @@ type unitStateSuite struct {
 	tag names.UnitTag
 }
 
-func TestUnitStateSuite(t *testing.T) {
+func TestUnitStateSuite(t *stdtesting.T) {
 	tc.Run(t, &unitStateSuite{})
 }
 
@@ -31,20 +30,20 @@ func (s *unitStateSuite) SetUpTest(c *tc.C) {
 }
 
 func (s *unitStateSuite) TestSetStateSingleResult(c *tc.C) {
-	facadeCaller := apitesting.StubFacadeCaller{Stub: &testhelpers.Stub{}}
-	facadeCaller.FacadeCallFn = func(name string, args, response interface{}) error {
-		c.Assert(name, tc.Equals, "SetState")
-		c.Assert(args.(params.SetUnitStateArgs).Args, tc.HasLen, 1)
-		c.Assert(args.(params.SetUnitStateArgs).Args[0].Tag, tc.Equals, s.tag.String())
-		c.Assert(*args.(params.SetUnitStateArgs).Args[0].CharmState, tc.DeepEquals, map[string]string{"one": "two"})
-		*(response.(*params.ErrorResults)) = params.ErrorResults{
+	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {
+		c.Check(objType, tc.Equals, "Uniter")
+		c.Check(request, tc.Equals, "SetState")
+		c.Check(arg.(params.SetUnitStateArgs).Args, tc.HasLen, 1)
+		c.Check(arg.(params.SetUnitStateArgs).Args[0].Tag, tc.Equals, s.tag.String())
+		c.Check(*arg.(params.SetUnitStateArgs).Args[0].CharmState, tc.DeepEquals, map[string]string{"one": "two"})
+		*(result.(*params.ErrorResults)) = params.ErrorResults{
 			Results: []params.ErrorResult{{
 				Error: nil,
 			}},
 		}
 		return nil
-	}
-	api := common.NewUniterStateAPI(&facadeCaller, s.tag)
+	})
+	api := NewClient(&apiCaller, s.tag)
 	err := api.SetState(c.Context(), params.SetUnitStateArg{
 		CharmState: &map[string]string{"one": "two"},
 	})
@@ -52,17 +51,17 @@ func (s *unitStateSuite) TestSetStateSingleResult(c *tc.C) {
 }
 
 func (s *unitStateSuite) TestSetStateReturnsQuotaExceededError(c *tc.C) {
-	facadeCaller := apitesting.StubFacadeCaller{Stub: &testhelpers.Stub{}}
-	facadeCaller.FacadeCallFn = func(name string, args, response interface{}) error {
-		result := response.(*params.ErrorResults)
-		result.Results = []params.ErrorResult{{
+	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {
+		c.Check(objType, tc.Equals, "Uniter")
+		res := result.(*params.ErrorResults)
+		res.Results = []params.ErrorResult{{
 			Error: apiservererrors.ServerError(errors.NewQuotaLimitExceeded(nil, "cake slice limit exceeded; try again later")),
 		}}
 		return nil
-	}
+	})
 
 	// The client should reconstruct the quota error from the server response
-	api := common.NewUniterStateAPI(&facadeCaller, s.tag)
+	api := NewClient(&apiCaller, s.tag)
 	err := api.SetState(c.Context(), params.SetUnitStateArg{
 		CharmState: &map[string]string{"one": "two"},
 	})
@@ -70,22 +69,22 @@ func (s *unitStateSuite) TestSetStateReturnsQuotaExceededError(c *tc.C) {
 }
 
 func (s *unitStateSuite) TestSetStateMultipleReturnsError(c *tc.C) {
-	facadeCaller := apitesting.StubFacadeCaller{Stub: &testhelpers.Stub{}}
-	facadeCaller.FacadeCallFn = func(name string, args, response interface{}) error {
-		c.Assert(name, tc.Equals, "SetState")
-		c.Assert(args.(params.SetUnitStateArgs).Args, tc.HasLen, 1)
-		c.Assert(args.(params.SetUnitStateArgs).Args[0].Tag, tc.Equals, s.tag.String())
-		c.Assert(*args.(params.SetUnitStateArgs).Args[0].CharmState, tc.DeepEquals, map[string]string{"one": "two"})
-		*(response.(*params.ErrorResults)) = params.ErrorResults{
+	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {
+		c.Check(objType, tc.Equals, "Uniter")
+		c.Check(request, tc.Equals, "SetState")
+		c.Check(arg.(params.SetUnitStateArgs).Args, tc.HasLen, 1)
+		c.Check(arg.(params.SetUnitStateArgs).Args[0].Tag, tc.Equals, s.tag.String())
+		c.Check(*arg.(params.SetUnitStateArgs).Args[0].CharmState, tc.DeepEquals, map[string]string{"one": "two"})
+		*(result.(*params.ErrorResults)) = params.ErrorResults{
 			Results: []params.ErrorResult{
 				{Error: nil},
 				{Error: nil},
 			},
 		}
 		return nil
-	}
+	})
 
-	api := common.NewUniterStateAPI(&facadeCaller, s.tag)
+	api := NewClient(&apiCaller, s.tag)
 	err := api.SetState(c.Context(), params.SetUnitStateArg{
 		CharmState: &map[string]string{"one": "two"},
 	})
@@ -99,18 +98,18 @@ func (s *unitStateSuite) TestStateSingleResult(c *tc.C) {
 	}
 	expectedUniterState := "testing"
 
-	facadeCaller := apitesting.StubFacadeCaller{Stub: &testhelpers.Stub{}}
-	facadeCaller.FacadeCallFn = func(name string, args, response interface{}) error {
-		c.Assert(name, tc.Equals, "State")
-		*(response.(*params.UnitStateResults)) = params.UnitStateResults{
+	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {
+		c.Check(objType, tc.Equals, "Uniter")
+		c.Check(request, tc.Equals, "State")
+		*(result.(*params.UnitStateResults)) = params.UnitStateResults{
 			Results: []params.UnitStateResult{{
 				UniterState: expectedUniterState,
 				CharmState:  expectedCharmState,
 			}}}
 		return nil
-	}
+	})
 
-	api := common.NewUniterStateAPI(&facadeCaller, s.tag)
+	api := NewClient(&apiCaller, s.tag)
 	obtainedUnitState, err := api.State(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(expectedCharmState, tc.DeepEquals, obtainedUnitState.CharmState)
@@ -118,18 +117,18 @@ func (s *unitStateSuite) TestStateSingleResult(c *tc.C) {
 }
 
 func (s *unitStateSuite) TestStateMultipleReturnsError(c *tc.C) {
-	facadeCaller := apitesting.StubFacadeCaller{Stub: &testhelpers.Stub{}}
-	facadeCaller.FacadeCallFn = func(name string, args, response interface{}) error {
-		c.Assert(name, tc.Equals, "State")
-		*(response.(*params.UnitStateResults)) = params.UnitStateResults{
+	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {
+		c.Check(objType, tc.Equals, "Uniter")
+		c.Check(request, tc.Equals, "State")
+		*(result.(*params.UnitStateResults)) = params.UnitStateResults{
 			Results: []params.UnitStateResult{
 				{Error: &params.Error{Code: params.CodeNotFound, Message: `testing`}},
 				{Error: &params.Error{Code: params.CodeNotFound, Message: `other`}},
 			}}
 		return nil
-	}
+	})
 
-	api := common.NewUniterStateAPI(&facadeCaller, s.tag)
+	api := NewClient(&apiCaller, s.tag)
 	_, err := api.State(c.Context())
 	c.Assert(err, tc.ErrorMatches, "expected 1 result, got 2")
 }

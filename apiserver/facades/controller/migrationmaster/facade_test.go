@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/juju/collections/transform"
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
@@ -26,7 +26,6 @@ import (
 	"github.com/juju/juju/controller"
 	coremigration "github.com/juju/juju/core/migration"
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/semversion"
 	usertesting "github.com/juju/juju/core/user/testing"
 	jujuversion "github.com/juju/juju/core/version"
@@ -73,7 +72,7 @@ func TestSuite(t *testing.T) {
 func (s *Suite) SetUpTest(c *tc.C) {
 	s.BaseSuite.SetUpTest(c)
 
-	s.controllerModelUUID = modeltesting.GenModelUUID(c)
+	s.controllerModelUUID = tc.Must0(c, model.NewUUID)
 	s.controllerUUID = uuid.MustNewUUID().String()
 	s.modelUUID = uuid.MustNewUUID().String()
 

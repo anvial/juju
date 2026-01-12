@@ -6,12 +6,13 @@ package modelmigration
 import (
 	"context"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	"github.com/juju/juju/core/database"
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/model"
+	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -63,23 +64,25 @@ type Operation interface {
 	Rollback(context.Context, description.Model) error
 }
 
-// Scope is a collection of database txn runners that can be used by the
+// Scope is a collection of resource accessors that can be used by the
 // operations.
 type Scope struct {
-	controllerDB database.TxnRunnerFactory
-	modelDB      database.TxnRunnerFactory
-	modelDeleter database.DBDeleter
+	controllerDB           database.TxnRunnerFactory
+	modelDB                database.TxnRunnerFactory
+	modelObjectStoreGetter objectstore.ModelObjectStoreGetter
+	modelUUID              model.UUID
 }
 
 // ScopeForModel returns a Scope for the given model UUID.
 type ScopeForModel func(modelUUID model.UUID) Scope
 
 // NewScope creates a new scope with the given database txn runners.
-func NewScope(controllerDB, modelDB database.TxnRunnerFactory, modelDeleter database.DBDeleter) Scope {
+func NewScope(controllerDB database.TxnRunnerFactory, modelDB database.TxnRunnerFactory, modelObjectStoreGetter objectstore.ModelObjectStoreGetter, modelUUID model.UUID) Scope {
 	return Scope{
-		controllerDB: controllerDB,
-		modelDB:      modelDB,
-		modelDeleter: modelDeleter,
+		controllerDB:           controllerDB,
+		modelDB:                modelDB,
+		modelObjectStoreGetter: modelObjectStoreGetter,
+		modelUUID:              modelUUID,
 	}
 }
 
@@ -93,9 +96,14 @@ func (s Scope) ModelDB() database.TxnRunnerFactory {
 	return s.modelDB
 }
 
-// ModelDeleter returns the database deleter for the model.
-func (s Scope) ModelDeleter() database.DBDeleter {
-	return s.modelDeleter
+// ModelUUID returns the UUID of the model being migrated.
+func (s Scope) ModelUUID() model.UUID {
+	return s.modelUUID
+}
+
+// ModelObjectStoreGetter returns the object store getter for the model.
+func (s Scope) ModelObjectStoreGetter() objectstore.ModelObjectStoreGetter {
+	return s.modelObjectStoreGetter
 }
 
 // Hook is a callback that is called after the operation is executed.
@@ -138,14 +146,14 @@ func (m *Coordinator) Perform(ctx context.Context, scope Scope, model descriptio
 	var current int
 	defer func() {
 		if err != nil {
-			m.logger.Errorf(context.TODO(), "import failed: %s", err.Error())
+			m.logger.Errorf(ctx, "import failed: %s", err.Error())
 
 			for ; current >= 0; current-- {
 				op := m.operations[current]
 
-				m.logger.Infof(context.TODO(), "rolling back operation: %s", op.Name())
+				m.logger.Infof(ctx, "rolling back operation: %s", op.Name())
 				if rollbackErr := op.Rollback(ctx, model); rollbackErr != nil {
-					m.logger.Errorf(context.TODO(), "rollback operation for %s failed: %s", op.Name(), rollbackErr)
+					m.logger.Errorf(ctx, "rollback operation for %s failed: %s", op.Name(), rollbackErr)
 					err = errors.Errorf("rollback operation at %d with %v: %w", current, rollbackErr, err)
 				}
 			}
@@ -155,7 +163,7 @@ func (m *Coordinator) Perform(ctx context.Context, scope Scope, model descriptio
 	var op Operation
 	for current, op = range m.operations {
 		opName := op.Name()
-		m.logger.Infof(context.TODO(), "running operation: %s", opName)
+		m.logger.Infof(ctx, "running operation: %s", opName)
 
 		if err := op.Setup(scope); err != nil {
 			return errors.Errorf("setup operation %s: %w", opName, err)

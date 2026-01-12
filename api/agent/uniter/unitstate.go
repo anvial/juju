@@ -1,40 +1,25 @@
 // Copyright 2020 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package common
+package uniter
 
 import (
 	"context"
 
 	"github.com/juju/errors"
-	"github.com/juju/names/v6"
 
-	"github.com/juju/juju/api/base"
 	apiservererrors "github.com/juju/juju/apiserver/errors"
 	"github.com/juju/juju/rpc/params"
 )
 
-// UnitStateAPI provides common agent-side API functions to
-// call into apiserver.common/UnitState
-type UnitStateAPI struct {
-	facade base.FacadeCaller
-	tag    names.UnitTag
-}
-
-// NewUniterStateAPI creates a UnitStateAPI that uses the provided FacadeCaller
-// for making calls.
-func NewUniterStateAPI(facade base.FacadeCaller, tag names.UnitTag) *UnitStateAPI {
-	return &UnitStateAPI{facade: facade, tag: tag}
-}
-
 // State returns the state persisted by the charm running in this unit
 // and the state internal to the uniter for this unit.
-func (u *UnitStateAPI) State(ctx context.Context) (params.UnitStateResult, error) {
+func (client *Client) State(ctx context.Context) (params.UnitStateResult, error) {
 	var results params.UnitStateResults
 	args := params.Entities{
-		Entities: []params.Entity{{Tag: u.tag.String()}},
+		Entities: []params.Entity{{Tag: client.unitTag.String()}},
 	}
-	err := u.facade.FacadeCall(ctx, "State", args, &results)
+	err := client.facade.FacadeCall(ctx, "State", args, &results)
 	if err != nil {
 		return params.UnitStateResult{}, errors.Trace(apiservererrors.RestoreError(err))
 	}
@@ -50,13 +35,13 @@ func (u *UnitStateAPI) State(ctx context.Context) (params.UnitStateResult, error
 
 // SetState sets the state persisted by the charm running in this unit
 // and the state internal to the uniter for this unit.
-func (u *UnitStateAPI) SetState(ctx context.Context, unitState params.SetUnitStateArg) error {
-	unitState.Tag = u.tag.String()
+func (client *Client) SetState(ctx context.Context, unitState params.SetUnitStateArg) error {
+	unitState.Tag = client.unitTag.String()
 	var results params.ErrorResults
 	args := params.SetUnitStateArgs{
 		Args: []params.SetUnitStateArg{unitState},
 	}
-	err := u.facade.FacadeCall(ctx, "SetState", args, &results)
+	err := client.facade.FacadeCall(ctx, "SetState", args, &results)
 	if err != nil {
 		return errors.Trace(apiservererrors.RestoreError(err))
 	}

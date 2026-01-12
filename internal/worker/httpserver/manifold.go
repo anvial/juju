@@ -145,15 +145,17 @@ func (config ManifoldConfig) start(ctx context.Context, getter dependency.Getter
 	)
 
 	w, err := config.NewWorker(Config{
-		AgentName:             config.AgentName,
-		Clock:                 config.Clock,
-		TLSConfig:             tlsConfig,
-		Mux:                   mux,
-		MuxShutdownWait:       config.MuxShutdownWait,
-		LogDir:                config.LogDir,
-		Logger:                config.Logger,
-		APIPort:               controllerConfig.APIPort(),
-		IdleConnectionTimeout: controllerConfig.IdleConnectionTimeout(),
+		AgentName:              config.AgentName,
+		Clock:                  config.Clock,
+		TLSConfig:              tlsConfig,
+		Mux:                    mux,
+		MuxShutdownWait:        config.MuxShutdownWait,
+		LogDir:                 config.LogDir,
+		Logger:                 config.Logger,
+		APIPort:                controllerConfig.APIPort(),
+		IdleConnectionTimeout:  controllerConfig.IdleConnectionTimeout(),
+		HTTPServerReadTimeout:  controllerConfig.HTTPServerReadTimeout(),
+		HTTPServerWriteTimeout: controllerConfig.HTTPServerWriteTimeout(),
 	})
 	return w, errors.Trace(err)
 }

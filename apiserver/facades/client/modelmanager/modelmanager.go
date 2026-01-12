@@ -482,7 +482,7 @@ func (m *ModelManagerAPI) ListModelSummaries(ctx context.Context, req params.Mod
 // for all the models known to the controller.
 func (m *ModelManagerAPI) listAllModelSummaries(ctx context.Context) (params.ModelSummaryResults, error) {
 	result := params.ModelSummaryResults{}
-	modelUUIDs, err := m.modelService.ListModelUUIDs(ctx)
+	modelUUIDs, err := m.modelService.GetModelUUIDs(ctx)
 	if err != nil {
 		return result, apiservererrors.ServerError(err)
 	}
@@ -715,7 +715,7 @@ func (m *ModelManagerAPI) ListModels(ctx context.Context, userEntity params.Enti
 	// If the currently logged in user is an admin we list all models in the
 	// controller.
 	if m.isAdmin {
-		models, err = m.modelService.ListAllModels(ctx)
+		models, err = m.modelService.GetAllModels(ctx)
 	} else {
 		models, err = m.modelService.ListModelsForUser(ctx, userUUID)
 	}

@@ -6,6 +6,7 @@ package highavailability_test
 import (
 	"testing"
 
+	"github.com/juju/errors"
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
@@ -46,4 +47,25 @@ func (s *clientSuite) TestControllerDetails(c *tc.C) {
 			APIEndpoints: []string{"address"},
 		},
 	})
+}
+
+func (s *clientSuite) TestControllerDetailsNotSupported(c *tc.C) {
+	ctrl := gomock.NewController(c)
+	defer ctrl.Finish()
+
+	res := new(params.ControllerDetailsResults)
+	results := params.ControllerDetailsResults{
+		Results: []params.ControllerDetails{{
+			ControllerId: "666",
+			APIAddresses: []string{"address"},
+		}}}
+
+	mockFacadeCaller := basemocks.NewMockFacadeCaller(ctrl)
+	mockFacadeCaller.EXPECT().FacadeCall(gomock.Any(), "ControllerDetails", nil, res).SetArg(3, results).Return(params.Error{Code: params.CodeNotSupported})
+	mockClient := basemocks.NewMockClientFacade(ctrl)
+	mockClient.EXPECT().BestAPIVersion().Return(3)
+	client := highavailability.NewClientFromCaller(mockFacadeCaller, mockClient)
+
+	_, err := client.ControllerDetails(c.Context())
+	c.Assert(err, tc.ErrorIs, errors.NotSupported)
 }

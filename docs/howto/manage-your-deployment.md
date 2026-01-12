@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Complete lifecycle guide for Juju deployments: set up, harden, troubleshoot, upgrade, and tear down cloud deployments."
+---
+
 (manage-your-deployment)=
 # How to manage your Juju deployment
 

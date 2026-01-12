@@ -237,11 +237,28 @@ func Open(ctx context.Context, info *Info, opts DialOpts) (Connection, error) {
 	}
 	c.broken = make(chan struct{})
 
+	// Allow the ping monitor parameters to be overridden via DialOpts, so
+	// that for certain scenarios we can adjust the frequency and timeouts
+	// of the pings.
+	monitorPingPeriod := PingPeriod
+	if value := opts.PingPeriod; value != nil {
+		if *value <= time.Second*10 {
+			return nil, fmt.Errorf("ping period %s is too small", *value)
+		}
+		monitorPingPeriod = *value
+	}
+	monitorPingTimeout := pingTimeout
+	if value := opts.PingTimeout; value != nil {
+		if *value <= time.Second {
+			return nil, fmt.Errorf("ping timeout %s is too small", *value)
+		}
+	}
+
 	go (&monitor{
 		clock:       opts.Clock,
 		ping:        c.ping,
-		pingPeriod:  PingPeriod,
-		pingTimeout: pingTimeout,
+		pingPeriod:  monitorPingPeriod,
+		pingTimeout: monitorPingTimeout,
 		closed:      c.closed,
 		dead:        client.Dead(),
 		broken:      c.broken,

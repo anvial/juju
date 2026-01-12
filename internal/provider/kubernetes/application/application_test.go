@@ -347,8 +347,15 @@ func (s *applicationSuite) assertEnsure(c *tc.C, app caas.Application,
 				Size:        100,
 				Provider:    "kubernetes",
 				Attributes:  map[string]interface{}{"storage-class": "workload-storage"},
-				Attachment: &storage.KubernetesFilesystemAttachmentParams{
-					Path: "path/to/here",
+				Attachments: []storage.KubernetesFilesystemAttachmentParams{
+					{
+						Path:          "path/to/here",
+						ContainerName: "charm",
+					},
+					{
+						Path:          "path/in/workload-container",
+						ContainerName: "gitlab",
+					},
 				},
 				ResourceTags: map[string]string{"foo": "bar"},
 			},
@@ -809,9 +816,12 @@ func (s *applicationSuite) TestEnsureStatefulRootlessWithTempFSStorage(c *tc.C) 
 					"juju-controller-uuid": "37bc1df6-6287-45b9-895c-4184b037b2e3",
 					"juju-model-uuid":      "00d137c4-69b1-4122-807c-1a1d605a4a6e",
 				},
-				Attachment: &storage.KubernetesFilesystemAttachmentParams{
-					ReadOnly: false,
-					Path:     "/var/lib/postgresql/data",
+				Attachments: []storage.KubernetesFilesystemAttachmentParams{
+					{
+						ReadOnly:      false,
+						Path:          "/var/lib/postgresql/data",
+						ContainerName: "charm",
+					},
 				},
 			})
 		}, func() {

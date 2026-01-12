@@ -94,57 +94,6 @@ func (s *firewallerSuite) TestWatchModelMachines(c *tc.C) {
 	c.Check(callCount, tc.Equals, 1)
 }
 
-func (s *firewallerSuite) TestWatchEgressAddressesForRelation(c *tc.C) {
-	var callCount int
-	relationTag := names.NewRelationTag("mediawiki:db mysql:db")
-	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {
-		c.Check(objType, tc.Equals, "Firewaller")
-		c.Check(version, tc.Equals, 0)
-		c.Check(id, tc.Equals, "")
-		c.Check(request, tc.Equals, "WatchEgressAddressesForRelations")
-		c.Assert(arg, tc.DeepEquals, params.Entities{Entities: []params.Entity{{Tag: relationTag.String()}}})
-		c.Assert(result, tc.FitsTypeOf, &params.StringsWatchResults{})
-		*(result.(*params.StringsWatchResults)) = params.StringsWatchResults{
-			Results: []params.StringsWatchResult{{
-				Error: &params.Error{Message: "FAIL"},
-			}},
-		}
-		callCount++
-		return nil
-	})
-	client, err := firewaller.NewClient(apiCaller)
-	c.Assert(err, tc.ErrorIsNil)
-	_, err = client.WatchEgressAddressesForRelation(c.Context(), relationTag)
-	c.Check(err, tc.ErrorMatches, "FAIL")
-	c.Check(callCount, tc.Equals, 1)
-}
-
-func (s *firewallerSuite) TestWatchIngressAddressesForRelation(c *tc.C) {
-	c.Skip("Re-enable this test whenever CMR will be fully implemented and the related watcher rewired.")
-	var callCount int
-	relationTag := names.NewRelationTag("mediawiki:db mysql:db")
-	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {
-		c.Check(objType, tc.Equals, "Firewaller")
-		c.Check(version, tc.Equals, 0)
-		c.Check(id, tc.Equals, "")
-		c.Check(request, tc.Equals, "WatchIngressAddressesForRelations")
-		c.Assert(arg, tc.DeepEquals, params.Entities{Entities: []params.Entity{{Tag: relationTag.String()}}})
-		c.Assert(result, tc.FitsTypeOf, &params.StringsWatchResults{})
-		*(result.(*params.StringsWatchResults)) = params.StringsWatchResults{
-			Results: []params.StringsWatchResult{{
-				Error: &params.Error{Message: "FAIL"},
-			}},
-		}
-		callCount++
-		return nil
-	})
-	client, err := firewaller.NewClient(apiCaller)
-	c.Assert(err, tc.ErrorIsNil)
-	_, err = client.WatchIngressAddressesForRelation(c.Context(), relationTag)
-	c.Check(err, tc.ErrorMatches, "FAIL")
-	c.Check(callCount, tc.Equals, 1)
-}
-
 func (s *firewallerSuite) TestControllerAPIInfoForModel(c *tc.C) {
 	var callCount int
 	apiCaller := testing.APICallerFunc(func(objType string, version int, id, request string, arg, result interface{}) error {

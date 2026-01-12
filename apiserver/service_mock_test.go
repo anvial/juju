@@ -45,6 +45,45 @@ func (m *MockRelationService) EXPECT() *MockRelationServiceMockRecorder {
 	return m.recorder
 }
 
+// GetConsumerRelationUnitsChange mocks base method.
+func (m *MockRelationService) GetConsumerRelationUnitsChange(arg0 context.Context, arg1 relation.UUID, arg2 application.UUID) (relation0.ConsumerRelationUnitsChange, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConsumerRelationUnitsChange", arg0, arg1, arg2)
+	ret0, _ := ret[0].(relation0.ConsumerRelationUnitsChange)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConsumerRelationUnitsChange indicates an expected call of GetConsumerRelationUnitsChange.
+func (mr *MockRelationServiceMockRecorder) GetConsumerRelationUnitsChange(arg0, arg1, arg2 any) *MockRelationServiceGetConsumerRelationUnitsChangeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConsumerRelationUnitsChange", reflect.TypeOf((*MockRelationService)(nil).GetConsumerRelationUnitsChange), arg0, arg1, arg2)
+	return &MockRelationServiceGetConsumerRelationUnitsChangeCall{Call: call}
+}
+
+// MockRelationServiceGetConsumerRelationUnitsChangeCall wrap *gomock.Call
+type MockRelationServiceGetConsumerRelationUnitsChangeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockRelationServiceGetConsumerRelationUnitsChangeCall) Return(arg0 relation0.ConsumerRelationUnitsChange, arg1 error) *MockRelationServiceGetConsumerRelationUnitsChangeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockRelationServiceGetConsumerRelationUnitsChangeCall) Do(f func(context.Context, relation.UUID, application.UUID) (relation0.ConsumerRelationUnitsChange, error)) *MockRelationServiceGetConsumerRelationUnitsChangeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockRelationServiceGetConsumerRelationUnitsChangeCall) DoAndReturn(f func(context.Context, relation.UUID, application.UUID) (relation0.ConsumerRelationUnitsChange, error)) *MockRelationServiceGetConsumerRelationUnitsChangeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetFullRelationUnitChange mocks base method.
 func (m *MockRelationService) GetFullRelationUnitChange(arg0 context.Context, arg1 relation.UUID, arg2 application.UUID) (relation0.FullRelationUnitChange, error) {
 	m.ctrl.T.Helper()

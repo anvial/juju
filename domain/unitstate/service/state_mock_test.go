@@ -13,8 +13,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	unit "github.com/juju/juju/core/unit"
 	unitstate "github.com/juju/juju/domain/unitstate"
+	internal "github.com/juju/juju/domain/unitstate/internal"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,8 +41,46 @@ func (m *MockState) EXPECT() *MockStateMockRecorder {
 	return m.recorder
 }
 
+// CommitHookChanges mocks base method.
+func (m *MockState) CommitHookChanges(arg0 context.Context, arg1 internal.CommitHookChangesArg) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CommitHookChanges", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CommitHookChanges indicates an expected call of CommitHookChanges.
+func (mr *MockStateMockRecorder) CommitHookChanges(arg0, arg1 any) *MockStateCommitHookChangesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitHookChanges", reflect.TypeOf((*MockState)(nil).CommitHookChanges), arg0, arg1)
+	return &MockStateCommitHookChangesCall{Call: call}
+}
+
+// MockStateCommitHookChangesCall wrap *gomock.Call
+type MockStateCommitHookChangesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStateCommitHookChangesCall) Return(arg0 error) *MockStateCommitHookChangesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStateCommitHookChangesCall) Do(f func(context.Context, internal.CommitHookChangesArg) error) *MockStateCommitHookChangesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStateCommitHookChangesCall) DoAndReturn(f func(context.Context, internal.CommitHookChangesArg) error) *MockStateCommitHookChangesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetUnitState mocks base method.
-func (m *MockState) GetUnitState(arg0 context.Context, arg1 unit.Name) (unitstate.RetrievedUnitState, error) {
+func (m *MockState) GetUnitState(arg0 context.Context, arg1 string) (unitstate.RetrievedUnitState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUnitState", arg0, arg1)
 	ret0, _ := ret[0].(unitstate.RetrievedUnitState)
@@ -69,13 +107,13 @@ func (c *MockStateGetUnitStateCall) Return(arg0 unitstate.RetrievedUnitState, ar
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateGetUnitStateCall) Do(f func(context.Context, unit.Name) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
+func (c *MockStateGetUnitStateCall) Do(f func(context.Context, string) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateGetUnitStateCall) DoAndReturn(f func(context.Context, unit.Name) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
+func (c *MockStateGetUnitStateCall) DoAndReturn(f func(context.Context, string) (unitstate.RetrievedUnitState, error)) *MockStateGetUnitStateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

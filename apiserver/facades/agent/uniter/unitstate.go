@@ -1,7 +1,7 @@
 // Copyright 2020 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package common
+package uniter
 
 import (
 	"context"
@@ -10,51 +10,14 @@ import (
 	"github.com/juju/names/v6"
 
 	apiservererrors "github.com/juju/juju/apiserver/errors"
-	corelogger "github.com/juju/juju/core/logger"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/unitstate"
 	"github.com/juju/juju/rpc/params"
 )
 
-// UnitStateService describes the ability to retrieve and persist
-// remote state for informing hook reconciliation.
-type UnitStateService interface {
-	// SetState persists the input unit state.
-	SetState(context.Context, unitstate.UnitState) error
-	// GetState returns the internal state of the unit. The return data will be
-	// empty if no hook has been run for this unit.
-	GetState(ctx context.Context, name coreunit.Name) (unitstate.RetrievedUnitState, error)
-}
-
-type UnitStateAPI struct {
-	controllerConfigService ControllerConfigService
-	unitStateService        UnitStateService
-
-	AccessMachine GetAuthFunc
-	accessUnit    GetAuthFunc
-
-	logger corelogger.Logger
-}
-
-// NewUnitStateAPI returns a new UnitStateAPI. Currently both
-// GetAuthFuncs can used to determine current permissions.
-func NewUnitStateAPI(
-	controllerConfigService ControllerConfigService,
-	unitStateService UnitStateService,
-	accessUnit GetAuthFunc,
-	logger corelogger.Logger,
-) *UnitStateAPI {
-	return &UnitStateAPI{
-		controllerConfigService: controllerConfigService,
-		unitStateService:        unitStateService,
-		accessUnit:              accessUnit,
-		logger:                  logger,
-	}
-}
-
 // State returns the state persisted by the charm running in this unit
 // and the state internal to the uniter for this unit.
-func (u *UnitStateAPI) State(ctx context.Context, args params.Entities) (params.UnitStateResults, error) {
+func (u *UniterAPI) State(ctx context.Context, args params.Entities) (params.UnitStateResults, error) {
 	canAccess, err := u.accessUnit(ctx)
 	if err != nil {
 		return params.UnitStateResults{}, errors.Trace(err)
@@ -98,7 +61,7 @@ func (u *UnitStateAPI) State(ctx context.Context, args params.Entities) (params.
 
 // SetState sets the state persisted by the charm running in this unit
 // and the state internal to the uniter for this unit.
-func (u *UnitStateAPI) SetState(ctx context.Context, args params.SetUnitStateArgs) (params.ErrorResults, error) {
+func (u *UniterAPI) SetState(ctx context.Context, args params.SetUnitStateArgs) (params.ErrorResults, error) {
 	canAccess, err := u.accessUnit(ctx)
 	if err != nil {
 		return params.ErrorResults{}, errors.Trace(err)
@@ -136,7 +99,7 @@ func (u *UnitStateAPI) SetState(ctx context.Context, args params.SetUnitStateArg
 		}
 
 		if err := u.unitStateService.SetState(ctx, unitstate.UnitState{
-			Name:          unitName,
+			Name:          unitName.String(),
 			CharmState:    arg.CharmState,
 			UniterState:   arg.UniterState,
 			RelationState: arg.RelationState,

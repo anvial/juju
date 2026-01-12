@@ -20,9 +20,9 @@ import (
 
 // ModelService provides access to the model service.
 type ModelService interface {
-	// ListAllModels returns all models registered in the controller. If no
+	// GetAllModels returns all models registered in the controller. If no
 	// models exist a zero value slice will be returned.
-	ListAllModels(context.Context) ([]coremodel.Model, error)
+	GetAllModels(context.Context) ([]coremodel.Model, error)
 	// Model returns the model associated with the provided uuid.
 	Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Model, error)
 }

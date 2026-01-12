@@ -9,7 +9,6 @@ import (
 
 	"github.com/juju/clock"
 
-	coreapplication "github.com/juju/juju/core/application"
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/leadership"
 	"github.com/juju/juju/core/logger"
@@ -456,11 +455,7 @@ func (s *SecretService) UpdateUserSecret(ctx context.Context, uri *secrets.URI, 
 			}()
 		}
 
-		// TODO (manadart 2024-11-29): This context naming is nasty,
-		// but will be removed with RunAtomic.
-		err := s.secretState.RunAtomic(innerCtx, func(innerInnerCtx domain.AtomicContext) error {
-			return s.updateSecret(innerInnerCtx, uri, p)
-		})
+		err := s.secretState.UpdateSecret(innerCtx, uri, p)
 		if err != nil {
 			return errors.Errorf("updating user secret %q: %w", uri.ID, err)
 		}
@@ -538,11 +533,7 @@ func (s *SecretService) UpdateCharmSecret(ctx context.Context, uri *secrets.URI,
 			}()
 		}
 
-		// TODO (manadart 2024-11-29): This context naming is nasty,
-		// but will be removed with RunAtomic.
-		err := s.secretState.RunAtomic(innerCtx, func(innerInnerCtx domain.AtomicContext) error {
-			return s.updateSecret(innerInnerCtx, uri, p)
-		})
+		err := s.secretState.UpdateSecret(innerCtx, uri, p)
 		if err != nil {
 			return errors.Errorf("cannot update charm secret %q: %w", uri.ID, err)
 		}
@@ -606,36 +597,6 @@ func (s *SecretService) createSecret(
 		return errors.Errorf("secret with label %q is already being used: %w", *params.Label, secreterrors.SecretLabelAlreadyExists)
 	}
 	return errors.Capture(createSecret())
-}
-
-func (s *SecretService) updateSecret(ctx domain.AtomicContext, uri *secrets.URI, params domainsecret.UpsertSecretParams) error {
-	if params.Label != nil && *params.Label != "" {
-		// Check to be sure a duplicate label won't be used.
-		owner, err := s.secretState.GetSecretOwner(ctx, uri)
-		if err != nil {
-			return errors.Capture(err)
-		}
-		var labelExists bool
-		switch kind := owner.Kind; kind {
-		case domainsecret.ApplicationOwner:
-			labelExists, err = s.secretState.CheckApplicationSecretLabelExists(ctx, coreapplication.UUID(owner.UUID), *params.Label)
-		case domainsecret.UnitOwner:
-			labelExists, err = s.secretState.CheckUnitSecretLabelExists(ctx, coreunit.UUID(owner.UUID), *params.Label)
-		case domainsecret.ModelOwner:
-			labelExists, err = s.secretState.CheckUserSecretLabelExists(ctx, *params.Label)
-		default:
-			// Should never happen.
-			return errors.Errorf("unexpected secret owner kind %q for secret %q", kind, uri.ID)
-		}
-		if err != nil {
-			return errors.Capture(err)
-		}
-		if labelExists {
-			return errors.Errorf("secret with label %q is already being used: %w", *params.Label, secreterrors.SecretLabelAlreadyExists)
-		}
-	}
-	err := s.secretState.UpdateSecret(ctx, uri, params)
-	return errors.Capture(err)
 }
 
 // ListSecrets returns the secrets matching the specified terms.

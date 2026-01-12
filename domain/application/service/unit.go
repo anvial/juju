@@ -48,7 +48,7 @@ type UnitState interface {
 	// [applicationerrors.ApplicationNotFound] is returned. If any of the units
 	// already exists, an error satisfying [applicationerrors.UnitAlreadyExists]
 	// is returned.
-	InsertMigratingIAASUnits(context.Context, coreapplication.UUID, ...application.ImportUnitArg) error
+	InsertMigratingIAASUnits(context.Context, coreapplication.UUID, ...application.ImportIAASUnitArg) error
 
 	// InsertMigratingCAASUnits inserts the fully formed units for the specified
 	// CAAS application. This is only used when inserting units during model
@@ -56,7 +56,7 @@ type UnitState interface {
 	// [applicationerrors.ApplicationNotFound] is returned. If any of the units
 	// already exists, an error satisfying [applicationerrors.UnitAlreadyExists]
 	// is returned.
-	InsertMigratingCAASUnits(context.Context, coreapplication.UUID, ...application.ImportUnitArg) error
+	InsertMigratingCAASUnits(context.Context, coreapplication.UUID, ...application.ImportCAASUnitArg) error
 
 	// RegisterCAASUnit registers the specified CAAS application unit. The
 	// following errors can be expected:
@@ -159,11 +159,6 @@ type UnitState interface {
 
 	// GetUnitNamesForNetNode returns a slice of the unit names for the given net node
 	GetUnitNamesForNetNode(context.Context, string) ([]coreunit.Name, error)
-
-	// AddIAASubordinateUnit adds a new unit to the subordinate application. On
-	// IAAS, the new unit will be colocated on machine with the principal unit.
-	// The principal-subordinate relationship is also recorded.
-	AddIAASSubordinateUnit(context.Context, application.SubordinateUnitArg) (coreunit.Name, []coremachine.Name, error)
 
 	// GetMachineNetNodeUUIDFromName returns the net node UUID for the named
 	// machine. The following errors may be returned: -
@@ -360,79 +355,6 @@ func (s *Service) makeUnitStatusArgs(workloadMessage string) application.UnitSta
 			Since:   now,
 		},
 	}
-}
-
-// AddSubordinateUnit adds a new unit to the subordinate application. On
-// IAAS, the new unit will be colocated on machine with the principal unit.
-// The principal-subordinate relationship is also recorded.
-//
-// If there is already a subordinate unit of the application for the principal
-// unit then this is a no-op.
-//
-// The following error types can be expected:
-// - [applicationerrors.MachineNotFound] when the model type is IAAS and the
-// principal unit does not have a machine.
-// - [applicationerrors.SubordinateUnitAlreadyExists] when the principal unit
-// already has a subordinate from this application
-// - [applicationerrors.UnitNotFound] when the principal unit does not exist.
-func (s *Service) AddIAASSubordinateUnit(
-	ctx context.Context,
-	subordinateAppID coreapplication.UUID,
-	principalUnitName coreunit.Name,
-) error {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	if err := subordinateAppID.Validate(); err != nil {
-		return errors.Capture(err)
-	}
-	if err := principalUnitName.Validate(); err != nil {
-		return errors.Capture(err)
-	}
-
-	isSub, err := s.st.IsSubordinateApplication(ctx, subordinateAppID)
-	if err != nil {
-		return errors.Errorf("checking app is subordinate: %w", err)
-	} else if !isSub {
-		return applicationerrors.ApplicationNotSubordinate
-	}
-
-	princiaplUnitUUID, principalNetNodeUUID, err :=
-		s.st.GetUnitUUIDAndNetNodeForName(ctx, principalUnitName)
-	if errors.Is(err, applicationerrors.UnitNotFound) {
-		return errors.Errorf(
-			"principal unit for name %q does not exist", principalUnitName,
-		).Add(applicationerrors.UnitNotFound)
-	} else if err != nil {
-		return errors.Errorf(
-			"getting principal unit %q uuid and netnode: %w",
-			principalUnitName, err,
-		)
-	}
-
-	statusArg := s.makeIAASUnitStatusArgs()
-	unitName, machineNames, err := s.st.AddIAASSubordinateUnit(
-		ctx,
-		application.SubordinateUnitArg{
-			// TODO(storage): create storage args for subordinate unit.
-			SubordinateAppID:  subordinateAppID,
-			NetNodeUUID:       principalNetNodeUUID,
-			PrincipalUnitUUID: princiaplUnitUUID.String(),
-			UnitStatusArg:     statusArg,
-		},
-	)
-	if errors.Is(err, applicationerrors.UnitAlreadyHasSubordinate) {
-		return nil
-	} else if err != nil {
-		return errors.Capture(err)
-	}
-
-	if err := s.recordUnitStatusHistory(ctx, unitName, statusArg); err != nil {
-		return errors.Errorf("recording status history: %w", err)
-	}
-	s.recordInitMachinesStatusHistory(ctx, machineNames)
-
-	return nil
 }
 
 // UpdateCAASUnit updates the specified CAAS unit, returning an error satisfying

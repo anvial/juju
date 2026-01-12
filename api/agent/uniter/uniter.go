@@ -11,7 +11,6 @@ import (
 	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 
-	"github.com/juju/juju/api"
 	"github.com/juju/juju/api/base"
 	"github.com/juju/juju/api/common"
 	"github.com/juju/juju/api/types"
@@ -38,7 +37,6 @@ const uniterFacade = "Uniter"
 type Client struct {
 	*common.ModelConfigWatcher
 	*common.APIAddresser
-	*common.UnitStateAPI
 	*StorageAccessor
 
 	facade base.FacadeCaller
@@ -60,22 +58,10 @@ func NewClient(
 	return &Client{
 		ModelConfigWatcher: common.NewModelConfigWatcher(facadeCaller),
 		APIAddresser:       common.NewAPIAddresser(facadeCaller),
-		UnitStateAPI:       common.NewUniterStateAPI(facadeCaller, authTag),
 		StorageAccessor:    NewStorageAccessor(facadeCaller),
 		facade:             facadeCaller,
 		unitTag:            authTag,
 	}
-}
-
-// NewFromConnection returns a version of the Connection that provides
-// functionality required by the uniter worker if possible else a non-nil error.
-func NewFromConnection(c api.Connection) (*Client, error) {
-	authTag := c.AuthTag()
-	unitTag, ok := authTag.(names.UnitTag)
-	if !ok {
-		return nil, errors.Errorf("expected UnitTag, got %T %v", authTag, authTag)
-	}
-	return NewClient(c, unitTag), nil
 }
 
 // BestAPIVersion returns the API version that we were able to

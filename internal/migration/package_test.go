@@ -20,7 +20,7 @@ import (
 //go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination migration_mock_test.go github.com/juju/juju/internal/migration AgentBinaryStore,ControllerConfigService,UpgradeService,ApplicationService,CredentialService,RelationService,StatusService,OperationExporter,Coordinator,ModelAgentService,CharmService,ModelService,ModelMigrationService,MachineService
 //go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination domainservices_mock_test.go github.com/juju/juju/internal/services DomainServicesGetter,DomainServices
 //go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination storage_mock_test.go github.com/juju/juju/core/storage ModelStorageRegistryGetter
-//go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination description_mock_test.go github.com/juju/description/v10 Model
+//go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination description_mock_test.go github.com/juju/description/v11 Model
 //go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination objectstore_mock_test.go github.com/juju/juju/core/objectstore ModelObjectStoreGetter
 
 type precheckBaseSuite struct {
@@ -79,7 +79,7 @@ func (s *precheckBaseSuite) expectNoMachines() {
 }
 
 func (s *precheckBaseSuite) expectNoModels() {
-	s.modelService.EXPECT().ListAllModels(gomock.Any()).Return(nil, nil)
+	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(nil, nil)
 }
 
 func (s *precheckBaseSuite) expectAllAppsAndUnitsAlive() {

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju secret reference: manage sensitive data like credentials, API keys, and certificates. Learn charm secrets, user secrets, and secret backends."
+---
+
 (secret)=
 # Secret
 

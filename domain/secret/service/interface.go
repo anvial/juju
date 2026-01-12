@@ -25,10 +25,8 @@ import (
 type AtomicState interface {
 	domain.AtomicStateBase
 
-	DeleteSecret(ctx domain.AtomicContext, uri *secrets.URI, revs []int) error
 	GetApplicationUUID(ctx domain.AtomicContext, appName string) (coreapplication.UUID, error)
 	GetUnitUUID(ctx domain.AtomicContext, name coreunit.Name) (coreunit.UUID, error)
-	GetSecretOwner(ctx domain.AtomicContext, uri *secrets.URI) (domainsecret.Owner, error)
 
 	CheckUserSecretLabelExists(ctx domain.AtomicContext, label string) (bool, error)
 	CheckApplicationSecretLabelExists(ctx domain.AtomicContext, appUUID coreapplication.UUID, label string) (bool, error)
@@ -42,7 +40,6 @@ type AtomicState interface {
 	CreateCharmUnitSecret(
 		ctx domain.AtomicContext, version int, uri *secrets.URI, unitUUID coreunit.UUID, secret domainsecret.UpsertSecretParams,
 	) error
-	UpdateSecret(ctx domain.AtomicContext, uri *secrets.URI, secret domainsecret.UpsertSecretParams) error
 }
 
 // State describes retrieval and persistence methods needed for
@@ -51,6 +48,7 @@ type State interface {
 	AtomicState
 
 	GetModelUUID(ctx context.Context) (coremodel.UUID, error)
+	DeleteSecret(ctx context.Context, uri *secrets.URI, revs []int) error
 	DeleteObsoleteUserSecretRevisions(ctx context.Context) ([]string, error)
 	GetSecret(ctx context.Context, uri *secrets.URI) (*secrets.SecretMetadata, error)
 	GetLatestRevision(ctx context.Context, uri *secrets.URI) (int, error)
@@ -95,6 +93,7 @@ type State interface {
 	) ([]string, error)
 	GetApplicationUUIDsForNames(ctx context.Context, names domainsecret.ApplicationOwners) ([]string, error)
 	GetUnitUUIDsForNames(ctx context.Context, names domainsecret.UnitOwners) ([]string, error)
+	UpdateSecret(ctx context.Context, uri *secrets.URI, secret domainsecret.UpsertSecretParams) error
 
 	// For watching obsolete secret revision changes.
 	InitialWatchStatementForObsoleteRevision(

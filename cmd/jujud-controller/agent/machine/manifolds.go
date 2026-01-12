@@ -71,6 +71,7 @@ import (
 	lxdbroker "github.com/juju/juju/internal/worker/containerbroker"
 	"github.com/juju/juju/internal/worker/containerprovisioner"
 	"github.com/juju/juju/internal/worker/controlleragentconfig"
+	"github.com/juju/juju/internal/worker/controllerpresence"
 	"github.com/juju/juju/internal/worker/controlsocket"
 	"github.com/juju/juju/internal/worker/credentialvalidator"
 	"github.com/juju/juju/internal/worker/dbaccessor"
@@ -414,6 +415,7 @@ func commonManifolds(config ManifoldsConfig) dependency.Manifolds {
 			NewWorker:           upgradedatabase.NewUpgradeDatabaseWorker,
 			Logger:              internallogger.GetLogger("juju.worker.upgradedatabase"),
 			Clock:               config.Clock,
+			UpgradeSteps:        upgradedatabase.UpgradeSteps,
 		})),
 
 		// The upgrade services worker provides domain services for upgrading
@@ -577,7 +579,6 @@ func commonManifolds(config ManifoldsConfig) dependency.Manifolds {
 			// to remove databases corresponding to destroyed/migrated models.
 			DomainServicesName: domainServicesName,
 			ChangeStreamName:   changeStreamName,
-			DBAccessorName:     dbAccessorName,
 
 			PrometheusRegisterer:              config.PrometheusRegisterer,
 			RegisterIntrospectionHTTPHandlers: config.RegisterIntrospectionHTTPHandlers,
@@ -883,6 +884,16 @@ func commonManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Logger:                  internallogger.GetLogger("juju.worker.apiremotecaller"),
 			NewWorker:               apiremotecaller.NewWorker,
 		})),
+
+		controllerPresenceName: controllerpresence.Manifold(controllerpresence.ManifoldConfig{
+			APIRemoteCallerName:         apiRemoteCallerName,
+			DomainServicesName:          domainServicesName,
+			GetDomainServices:           controllerpresence.GetDomainServices,
+			GetControllerDomainServices: controllerpresence.GetControllerDomainServices,
+			NewWorker:                   controllerpresence.NewWorker,
+			Logger:                      internallogger.GetLogger("juju.worker.controllerpresence"),
+			Clock:                       config.Clock,
+		}),
 
 		apiRemoteRelationCallerName: apiremoterelationcaller.Manifold(apiremoterelationcaller.ManifoldConfig{
 			DomainServicesName:          domainServicesName,
@@ -1351,6 +1362,7 @@ const (
 	changeStreamName              = "change-stream"
 	changeStreamPrunerName        = "change-stream-pruner"
 	controllerAgentConfigName     = "controller-agent-config"
+	controllerPresenceName        = "controller-presence"
 	controlSocketName             = "control-socket"
 	dbAccessorName                = "db-accessor"
 	deployerName                  = "deployer"

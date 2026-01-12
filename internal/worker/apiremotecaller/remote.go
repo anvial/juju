@@ -27,6 +27,9 @@ const (
 type RemoteConnection interface {
 	// Connection returns the connection to the remote API server.
 	Connection(context.Context, func(context.Context, api.Connection) error) error
+
+	// ControllerID returns the controller ID of the remote API server.
+	ControllerID() string
 }
 
 // RemoteServer represents the public interface of the worker
@@ -90,6 +93,11 @@ func newRemoteServer(config RemoteServerConfig, internalStates chan string) Remo
 	}
 	w.tomb.Go(w.loop)
 	return w
+}
+
+// ControllerID returns the controller ID of the remote API server.
+func (w *remoteServer) ControllerID() string {
+	return w.controllerID
 }
 
 // Connection returns the current connection to the remote API server if it's
@@ -367,7 +375,7 @@ func (w *remoteServer) connect(ctx context.Context, addresses []string) (api.Con
 		},
 		Attempts:    retry.UnlimitedAttempts,
 		Delay:       1 * time.Second,
-		MaxDelay:    time.Minute,
+		MaxDelay:    time.Second * 30,
 		BackoffFunc: retry.DoubleDelay,
 		Stop:        ctx.Done(),
 		Clock:       w.clock,
@@ -451,4 +459,15 @@ var dialOpts = api.DialOpts{
 	// API servers, see bug #1733256.
 	Timeout:    10 * time.Second,
 	RetryDelay: 1 * time.Second,
+
+	// For controller to controller connections, we want to ping more frequently
+	// to detect broken connections faster.
+	// We want to ping more frequently to detect broken connections faster, but
+	// keep the default timeout for a ping to happen (30 seconds). The worst
+	// case would be 1 minute to detect a broken connection.
+	PingPeriod: ptr(30 * time.Second),
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }

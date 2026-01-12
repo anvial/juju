@@ -850,7 +850,7 @@ func (s *watcherSuite) setupApplicationService(c *tc.C, factory domain.Watchable
 			return internalstorage.NotImplementedProviderRegistry{}
 		},
 	)
-	state := applicationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := applicationstate.NewState(modelDB, model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 	storageSvc := applicationstorageservice.NewService(
 		state,
 		applicationstorageservice.NewStoragePoolProvider(
@@ -869,6 +869,7 @@ func (s *watcherSuite) setupApplicationService(c *tc.C, factory domain.Watchable
 		caasProviderGetter,
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		model.UUID(s.ModelUUID()),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

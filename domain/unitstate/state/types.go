@@ -3,19 +3,108 @@
 
 package state
 
-import "github.com/juju/juju/core/unit"
+import (
+	"github.com/juju/juju/core/network"
+)
 
 // unitUUID identifies a unit.
 type unitUUID struct {
 	// UUID is the universally unique identifier for a unit.
-	UUID unit.UUID `db:"uuid"`
+	UUID string `db:"uuid"`
 }
 
 // unitName identifies a unit.
 type unitName struct {
 	// Name uniquely identifies a unit and indicates its application.
 	// For example, postgresql/3.
-	Name unit.Name `db:"name"`
+	Name string `db:"name"`
+}
+
+// portRange represents a range of ports for a given protocol.
+type portRange struct {
+	Protocol string `db:"protocol"`
+	FromPort int    `db:"from_port"`
+	ToPort   int    `db:"to_port"`
+}
+
+// decode returns the network.PortRange representation of the portRange.
+func (pr portRange) decode() network.PortRange {
+	return network.PortRange{
+		Protocol: pr.Protocol,
+		FromPort: pr.FromPort,
+		ToPort:   pr.ToPort,
+	}
+}
+
+// endpoint represents a network endpoint and its UUID.
+type endpoint struct {
+	UUID     string `db:"uuid"`
+	Endpoint string `db:"endpoint"`
+}
+
+// endpointName represents a network endpoint's name.
+type endpointName struct {
+	Endpoint string `db:"endpoint"`
+}
+
+// endpoints represents a list of network endpoints.
+type endpoints []string
+
+type portRangeUUIDs []string
+
+// endpointPortRangeUUID represents an endpointPortRange with the port range
+// UUID.
+type endpointPortRangeUUID struct {
+	UUID     string `db:"uuid"`
+	Protocol string `db:"protocol"`
+	FromPort int    `db:"from_port"`
+	ToPort   int    `db:"to_port"`
+	Endpoint string `db:"endpoint"`
+}
+
+// decode returns the network.PortRange representation of the endpointPortRangeUUID.
+func (p endpointPortRangeUUID) decode() network.PortRange {
+	return network.PortRange{
+		Protocol: p.Protocol,
+		FromPort: p.FromPort,
+		ToPort:   p.ToPort,
+	}
+}
+
+// endpointPortRange represents a range of ports for a give protocol for a
+// given endpoint.
+type endpointPortRange struct {
+	Protocol string `db:"protocol"`
+	FromPort int    `db:"from_port"`
+	ToPort   int    `db:"to_port"`
+	Endpoint string `db:"endpoint"`
+}
+
+// protocol represents a network protocol type and its ID in DQLite.
+type protocol struct {
+	ID   int    `db:"id"`
+	Name string `db:"protocol"`
+}
+
+// unitPortRange represents a range of ports for a given protocol by id for a
+// given unit's endpoint by uuid.
+type unitPortRange struct {
+	UUID         string `db:"uuid"`
+	ProtocolID   int    `db:"protocol_id"`
+	FromPort     int    `db:"from_port"`
+	ToPort       int    `db:"to_port"`
+	RelationUUID string `db:"relation_uuid,omitempty"`
+	UnitUUID     string `db:"unit_uuid"`
+}
+
+// unitEndpointPortRange represents a range of ports for a given protocol for
+// a given unit's endpoint, and unit name.
+type unitEndpointPortRange struct {
+	UnitName string `db:"unit_name"`
+	Protocol string `db:"protocol"`
+	FromPort int    `db:"from_port"`
+	ToPort   int    `db:"to_port"`
+	Endpoint string `db:"endpoint"`
 }
 
 // unitState contains a YAML string representing the
@@ -32,9 +121,9 @@ type unitState struct {
 // unitStateVal is a type for holding a key/value pair that is
 // a constituent in unit state for charm and relation.
 type unitStateKeyVal[T comparable] struct {
-	UUID  unit.UUID `db:"unit_uuid"`
-	Key   T         `db:"key"`
-	Value string    `db:"value"`
+	UUID  string `db:"unit_uuid"`
+	Key   T      `db:"key"`
+	Value string `db:"value"`
 }
 
 type unitCharmStateKeyVal unitStateKeyVal[string]

@@ -7,11 +7,12 @@ import (
 	"context"
 
 	"github.com/juju/clock"
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
 	corerelation "github.com/juju/juju/core/relation"
+	applicationstate "github.com/juju/juju/domain/application/state"
 	"github.com/juju/juju/domain/relation"
 	"github.com/juju/juju/domain/relation/service"
 	"github.com/juju/juju/domain/relation/state"
@@ -60,11 +61,13 @@ func (i *importOperation) Name() string {
 
 // Setup implements Operation.
 func (i *importOperation) Setup(scope modelmigration.Scope) error {
+	unitState := applicationstate.NewInsertIAASUnitState(scope.ModelDB(), i.clock, i.logger)
 	i.service = service.NewMigrationService(
 		state.NewState(
 			scope.ModelDB(),
 			i.clock,
 			i.logger,
+			unitState,
 		),
 	)
 	return nil

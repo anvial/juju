@@ -14,7 +14,6 @@ import (
 	"github.com/juju/juju/core/instance"
 	corelife "github.com/juju/juju/core/life"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/user"
 	usertesting "github.com/juju/juju/core/user/testing"
@@ -53,7 +52,7 @@ func (s *modelSuite) createTestModel(c *tc.C) coremodel.UUID {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	id := modeltesting.GenModelUUID(c)
+	id := tc.Must0(c, coremodel.NewUUID)
 	args := model.ModelDetailArgs{
 		UUID:               id,
 		AgentStream:        domainagentbinary.AgentStreamReleased,
@@ -78,7 +77,7 @@ func (s *modelSuite) TestCreateAndReadModel(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	id := modeltesting.GenModelUUID(c)
+	id := tc.Must0(c, coremodel.NewUUID)
 	args := model.ModelDetailArgs{
 		UUID:               id,
 		AgentStream:        domainagentbinary.AgentStreamReleased,
@@ -147,7 +146,7 @@ func (s *modelSuite) TestCreateModelMultipleTimesWithSameUUID(c *tc.C) {
 
 	// Ensure that we can't create the same model twice.
 
-	id := modeltesting.GenModelUUID(c)
+	id := tc.Must0(c, coremodel.NewUUID)
 	args := model.ModelDetailArgs{
 		UUID:               id,
 		AgentStream:        domainagentbinary.AgentStreamReleased,
@@ -174,7 +173,7 @@ func (s *modelSuite) TestCreateModelMultipleTimesWithDifferentUUID(c *tc.C) {
 	// Ensure that you can only ever insert one model.
 
 	err := state.Create(c.Context(), model.ModelDetailArgs{
-		UUID:               modeltesting.GenModelUUID(c),
+		UUID:               tc.Must0(c, coremodel.NewUUID),
 		AgentStream:        domainagentbinary.AgentStreamReleased,
 		AgentVersion:       jujuversion.Current,
 		LatestAgentVersion: jujuversion.Current,
@@ -188,7 +187,7 @@ func (s *modelSuite) TestCreateModelMultipleTimesWithDifferentUUID(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	err = state.Create(c.Context(), model.ModelDetailArgs{
-		UUID:               modeltesting.GenModelUUID(c),
+		UUID:               tc.Must0(c, coremodel.NewUUID),
 		AgentStream:        domainagentbinary.AgentStreamReleased,
 		AgentVersion:       jujuversion.Current,
 		LatestAgentVersion: jujuversion.Current,
@@ -208,7 +207,7 @@ func (s *modelSuite) TestCreateModelAndUpdate(c *tc.C) {
 
 	// Ensure that you can't update it.
 
-	id := modeltesting.GenModelUUID(c)
+	id := tc.Must0(c, coremodel.NewUUID)
 	err := state.Create(c.Context(), model.ModelDetailArgs{
 		UUID:               id,
 		AgentStream:        domainagentbinary.AgentStreamReleased,
@@ -235,7 +234,7 @@ func (s *modelSuite) TestCreateModelAndDelete(c *tc.C) {
 
 	// Ensure that you can't update it.
 
-	id := modeltesting.GenModelUUID(c)
+	id := tc.Must0(c, coremodel.NewUUID)
 	err := state.Create(c.Context(), model.ModelDetailArgs{
 		UUID:               id,
 		AgentStream:        domainagentbinary.AgentStreamReleased,
@@ -551,7 +550,7 @@ func (s *modelSuite) TestGetModelCloudType(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	id := modeltesting.GenModelUUID(c)
+	id := tc.Must0(c, coremodel.NewUUID)
 	cloudType := "ec2"
 	args := model.ModelDetailArgs{
 		UUID:               id,
@@ -588,7 +587,7 @@ func (s *modelSuite) TestGetModelCloudRegionAndCredential(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	cloudType := "ec2"
 	args := model.ModelDetailArgs{
 		UUID:               uuid,
@@ -625,7 +624,7 @@ func (s *modelSuite) TestGetModelCloudRegionAndCredentialNotFound(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	_, _, _, err := state.GetModelCloudRegionAndCredential(c.Context(), uuid)
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
@@ -634,7 +633,7 @@ func (s *modelSuite) TestIsControllerModelTrue(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	cloudType := "ec2"
 	args := model.ModelDetailArgs{
 		UUID:               uuid,
@@ -664,7 +663,7 @@ func (s *modelSuite) TestIsControllerModelFalse(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	cloudType := "ec2"
 	args := model.ModelDetailArgs{
 		UUID:               uuid,
@@ -716,7 +715,7 @@ func (s *modelSuite) TestGetControllerUUID(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	cloudType := "ec2"
 	args := model.ModelDetailArgs{
 		UUID:               uuid,
@@ -748,7 +747,7 @@ func (s *modelSuite) TestGetModelType(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	cloudType := "ec2"
 	args := model.ModelDetailArgs{
 		UUID:               uuid,
@@ -791,7 +790,7 @@ func (s *modelSuite) TestGetModelInfoSummary(c *tc.C) {
 	runner := s.TxnRunnerFactory()
 	state := NewState(runner, loggertesting.WrapCheckLog(c))
 
-	uuid := modeltesting.GenModelUUID(c)
+	uuid := tc.Must0(c, coremodel.NewUUID)
 	cloudType := "ec2"
 	args := model.ModelDetailArgs{
 		UUID:               uuid,
@@ -1195,4 +1194,45 @@ func (s *modelSuite) TestSetModelStoragePoolsPoolNotFound(c *tc.C) {
 
 	err := st.SetModelStoragePools(c.Context(), setArgs)
 	c.Check(err, tc.ErrorIs, storageerrors.PoolNotFoundError)
+}
+
+func (s *modelSuite) TestIsImportingModelNotImporting(c *tc.C) {
+	// Populate the model table in the model database
+	modelUUID := uuid.MustNewUUID().String()
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+	err := s.ModelTxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type) 
+VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
+		`, modelUUID, "controller-uuid")
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	isImporting, err := st.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(isImporting, tc.Equals, false)
+}
+
+func (s *modelSuite) TestIsImportingModelImporting(c *tc.C) {
+	// Populate the model table in the model database
+	modelUUID := uuid.MustNewUUID().String()
+	st := NewState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+	err := s.ModelTxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO model (uuid, controller_uuid, name, qualifier, type, cloud, cloud_type) 
+VALUES (?, ?, 'test-model', 'admin', 'iaas', 'test-cloud', 'ec2')
+		`, modelUUID, "controller-uuid"); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `
+INSERT INTO model_migrating (uuid, model_uuid) VALUES (?, ?)
+		`, uuid.MustNewUUID().String(), modelUUID)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	isImporting, err := st.IsImportingModel(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(isImporting, tc.Equals, true)
 }

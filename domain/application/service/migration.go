@@ -306,11 +306,11 @@ func (s *MigrationService) GetApplicationScaleState(ctx context.Context, name st
 // if required, returning an error satisfying
 // [applicationerrors.ApplicationAlreadyExists] if the application already
 // exists.
-func (s *MigrationService) ImportCAASApplication(ctx context.Context, name string, args ImportApplicationArgs) error {
+func (s *MigrationService) ImportCAASApplication(ctx context.Context, name string, args ImportCAASApplicationArgs) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	appID, charmUUID, err := s.importApplication(ctx, name, args)
+	appID, charmUUID, err := s.importCAASApplication(ctx, name, args)
 	if err != nil {
 		return errors.Errorf("importing application %q: %w", name, err)
 	}
@@ -326,7 +326,7 @@ func (s *MigrationService) ImportCAASApplication(ctx context.Context, name strin
 		return errors.Errorf("setting desired scale for application %q: %w", name, err)
 	}
 
-	unitArgs, err := makeUnitArgs(args.Units, charmUUID)
+	unitArgs, err := makeCAASUnitArgs(args.Units, charmUUID)
 	if err != nil {
 		return errors.Errorf("creating unit args: %w", err)
 	}
@@ -338,16 +338,16 @@ func (s *MigrationService) ImportCAASApplication(ctx context.Context, name strin
 // if required, returning an error satisfying
 // [applicationerrors.ApplicationAlreadyExists] if the application already
 // exists.
-func (s *MigrationService) ImportIAASApplication(ctx context.Context, name string, args ImportApplicationArgs) error {
+func (s *MigrationService) ImportIAASApplication(ctx context.Context, name string, args ImportIAASApplicationArgs) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	appID, charmUUID, err := s.importApplication(ctx, name, args)
+	appID, charmUUID, err := s.importIAASApplication(ctx, name, args)
 	if err != nil {
 		return errors.Errorf("importing application %q: %w", name, err)
 	}
 
-	unitArgs, err := makeUnitArgs(args.Units, charmUUID)
+	unitArgs, err := makeIAASUnitArgs(args.Units, charmUUID)
 	if err != nil {
 		return errors.Errorf("creating unit args: %w", err)
 	}
@@ -355,16 +355,50 @@ func (s *MigrationService) ImportIAASApplication(ctx context.Context, name strin
 	return s.st.InsertMigratingIAASUnits(ctx, appID, unitArgs...)
 }
 
-func (s *MigrationService) importApplication(
+func (s *MigrationService) importIAASApplication(
 	ctx context.Context,
 	name string,
-	args ImportApplicationArgs,
+	args ImportIAASApplicationArgs,
 ) (coreapplication.UUID, corecharm.ID, error) {
 	if err := validateCharmAndApplicationParams(name, args.ReferenceName, args.Charm, args.CharmOrigin); err != nil {
 		return "", "", errors.Errorf("invalid application args: %w", err)
 	}
 
-	appArg, err := makeInsertApplicationArg(args)
+	appArg, err := makeInsertApplicationArg(args.ImportApplicationArgs)
+	if err != nil {
+		return "", "", errors.Errorf("creating application args: %w", err)
+	}
+
+	appID, err := s.st.InsertMigratingApplication(ctx, name, appArg)
+	if err != nil {
+		return "", "", errors.Errorf("creating application %q: %w", name, err)
+	}
+
+	charmUUID, err := s.st.GetCharmIDByApplicationName(ctx, name)
+	if err != nil {
+		return "", "", errors.Errorf("getting charm ID for application %q: %w", name, err)
+	}
+
+	if err := s.st.MergeExposeSettings(ctx, appID, args.ExposedEndpoints); err != nil {
+		return "", "", errors.Errorf("setting expose settings for application %q: %w", name, err)
+	}
+	if err := s.st.SetApplicationConstraints(ctx, appID, constraints.DecodeConstraints(args.ApplicationConstraints)); err != nil {
+		return "", "", errors.Errorf("setting application constraints for application %q: %w", name, err)
+	}
+
+	return appID, charmUUID, nil
+}
+
+func (s *MigrationService) importCAASApplication(
+	ctx context.Context,
+	name string,
+	args ImportCAASApplicationArgs,
+) (coreapplication.UUID, corecharm.ID, error) {
+	if err := validateCharmAndApplicationParams(name, args.ReferenceName, args.Charm, args.CharmOrigin); err != nil {
+		return "", "", errors.Errorf("invalid application args: %w", err)
+	}
+
+	appArg, err := makeInsertApplicationArg(args.ImportApplicationArgs)
 	if err != nil {
 		return "", "", errors.Errorf("creating application args: %w", err)
 	}
@@ -486,17 +520,12 @@ func (s *MigrationService) GetSpaceUUIDByName(ctx context.Context, name string) 
 	return s.st.GetSpaceUUIDByName(ctx, name)
 }
 
-func makeUnitArgs(units []ImportUnitArg, charmUUID corecharm.ID) ([]application.ImportUnitArg, error) {
-	unitArgs := make([]application.ImportUnitArg, len(units))
+func makeIAASUnitArgs(units []ImportIAASUnitArg, charmUUID corecharm.ID) ([]application.ImportIAASUnitArg, error) {
+	unitArgs := make([]application.ImportIAASUnitArg, len(units))
 	for i, u := range units {
-
 		arg := application.ImportUnitArg{
-			UnitName:  u.UnitName,
-			Machine:   u.Machine,
-			Principal: u.Principal,
-		}
-		if u.CloudContainer != nil {
-			arg.CloudContainer = makeCloudContainerArg(u.UnitName, *u.CloudContainer)
+			UnitName:        u.UnitName,
+			WorkloadVersion: u.WorkloadVersion,
 		}
 		if u.PasswordHash != nil {
 			arg.Password = &application.PasswordInfo{
@@ -504,7 +533,39 @@ func makeUnitArgs(units []ImportUnitArg, charmUUID corecharm.ID) ([]application.
 				HashAlgorithm: application.HashAlgorithmSHA256,
 			}
 		}
-		unitArgs[i] = arg
+		unitArgs[i] = application.ImportIAASUnitArg{
+			ImportUnitArg: arg,
+			Principal:     u.Principal,
+			Machine:       u.Machine,
+		}
+	}
+	return unitArgs, nil
+}
+
+func makeCAASUnitArgs(units []ImportCAASUnitArg, charmUUID corecharm.ID) ([]application.ImportCAASUnitArg, error) {
+	unitArgs := make([]application.ImportCAASUnitArg, len(units))
+	for i, u := range units {
+		arg := application.ImportUnitArg{
+			UnitName:        u.UnitName,
+			WorkloadVersion: u.WorkloadVersion,
+		}
+
+		if u.PasswordHash != nil {
+			arg.Password = &application.PasswordInfo{
+				PasswordHash:  *u.PasswordHash,
+				HashAlgorithm: application.HashAlgorithmSHA256,
+			}
+		}
+
+		var cloudContainer *application.CloudContainer
+		if u.CloudContainer != nil {
+			cloudContainer = makeCloudContainerArg(u.UnitName, *u.CloudContainer)
+		}
+
+		unitArgs[i] = application.ImportCAASUnitArg{
+			ImportUnitArg:  arg,
+			CloudContainer: cloudContainer,
+		}
 	}
 	return unitArgs, nil
 }

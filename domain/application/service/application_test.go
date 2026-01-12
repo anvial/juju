@@ -23,6 +23,7 @@ import (
 	coreerrors "github.com/juju/juju/core/errors"
 	corelife "github.com/juju/juju/core/life"
 	machine "github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/network"
 	networktesting "github.com/juju/juju/core/network/testing"
 	objectstoretesting "github.com/juju/juju/core/objectstore/testing"
@@ -1543,6 +1544,8 @@ func (s *applicationWatcherServiceSuite) setupMocks(c *tc.C) *gomock.Controller 
 	s.watcherFactory = NewMockWatcherFactory(ctrl)
 	s.storageService = NewMockStorageService(ctrl)
 
+	modelUUID := tc.Must(c, model.NewUUID)
+
 	s.clock = testclock.NewClock(time.Time{})
 	s.service = NewWatchableService(
 		s.state,
@@ -1554,6 +1557,7 @@ func (s *applicationWatcherServiceSuite) setupMocks(c *tc.C) *gomock.Controller 
 		nil,
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		modelUUID,
 		s.clock,
 		loggertesting.WrapCheckLog(c),
 	)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/juju/clock/testclock"
 	"github.com/juju/collections/transform"
+	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
@@ -41,6 +42,7 @@ import (
 	"github.com/juju/juju/domain/removal"
 	"github.com/juju/juju/domain/resolve"
 	resolveerrors "github.com/juju/juju/domain/resolve/errors"
+	"github.com/juju/juju/domain/unitstate"
 	"github.com/juju/juju/internal/charm"
 	internalerrors "github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -51,12 +53,14 @@ import (
 type uniterSuite struct {
 	testhelpers.IsolationSuite
 
-	badTag names.Tag
+	badTag  names.Tag
+	authTag names.Tag
 
 	applicationService *MockApplicationService
 	machineService     *MockMachineService
 	operationService   *MockOperationService
 	networkService     *MockNetworkService
+	portService        *MockPortService
 	resolveService     *MockResolveService
 	removalService     *MockRemovalService
 	watcherRegistry    *MockWatcherRegistry
@@ -1418,6 +1422,109 @@ func (s *uniterSuite) TestLogActionsMessages(c *tc.C) {
 	}})
 }
 
+func (s *uniterSuite) TestOpenedMachinePortRangesByEndpoint(c *tc.C) {
+	s.badTag = names.NewMachineTag("1")
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	machine0UUID := tc.Must(c, coremachine.NewUUID)
+	s.machineService.EXPECT().GetMachineUUID(gomock.Any(), coremachine.Name("0")).Return(machine0UUID, nil)
+	returnedPortRanges := map[coreunit.Name]network.GroupedPortRanges{
+		"mysql/1": {
+			"server": []network.PortRange{{FromPort: 3306, ToPort: 3306, Protocol: "tcp"}},
+		},
+		"wordpress/0": {
+			"":                []network.PortRange{{FromPort: 100, ToPort: 200, Protocol: "tcp"}},
+			"monitoring-port": []network.PortRange{{FromPort: 10, ToPort: 20, Protocol: "udp"}},
+		},
+	}
+	s.portService.EXPECT().GetMachineOpenedPorts(gomock.Any(), machine0UUID).Return(returnedPortRanges, nil)
+
+	args := params.Entities{Entities: []params.Entity{
+		{Tag: "unit-mysql-0"},
+		{Tag: "machine-0"},
+		{Tag: "machine-1"},
+		{Tag: "unit-foo-42"},
+		{Tag: "application-wordpress"},
+	}}
+	expectPortRanges := map[string][]params.OpenUnitPortRangesByEndpoint{
+		"unit-mysql-1": {
+			{
+				Endpoint:   "server",
+				PortRanges: []params.PortRange{{FromPort: 3306, ToPort: 3306, Protocol: "tcp"}},
+			},
+		},
+		"unit-wordpress-0": {
+			{
+				Endpoint:   "",
+				PortRanges: []params.PortRange{{FromPort: 100, ToPort: 200, Protocol: "tcp"}},
+			},
+			{
+				Endpoint:   "monitoring-port",
+				PortRanges: []params.PortRange{{FromPort: 10, ToPort: 20, Protocol: "udp"}},
+			},
+		},
+	}
+
+	// Act
+	result, err := s.uniter.OpenedMachinePortRangesByEndpoint(c.Context(), args)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.DeepEquals, params.OpenPortRangesByEndpointResults{
+		Results: []params.OpenPortRangesByEndpointResult{
+			{Error: apiservertesting.ErrUnauthorized},
+			{
+				UnitPortRanges: expectPortRanges,
+			},
+			{Error: apiservertesting.ErrUnauthorized},
+			{Error: apiservertesting.ErrUnauthorized},
+			{Error: apiservertesting.ErrUnauthorized},
+		},
+	})
+}
+
+func (s *uniterSuite) TestOpenedPortRangesByEndpoint(c *tc.C) {
+	s.authTag = names.NewUnitTag("mysql/1")
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	mysqlUnitUUID := tc.Must(c, coreunit.NewUUID)
+	s.applicationService.EXPECT().GetUnitUUID(gomock.Any(), coreunit.Name("mysql/1")).Return(mysqlUnitUUID, nil)
+	mysqlResults := network.GroupedPortRanges{
+		"":   []network.PortRange{{FromPort: 1000, ToPort: 1000, Protocol: "tcp"}},
+		"db": []network.PortRange{{FromPort: 1111, ToPort: 1111, Protocol: "udp"}},
+	}
+	s.portService.EXPECT().GetUnitOpenedPorts(gomock.Any(), mysqlUnitUUID).Return(mysqlResults, nil)
+
+	// Get the open port ranges
+	expectPortRanges := []params.OpenUnitPortRangesByEndpoint{
+		{
+			Endpoint:   "",
+			PortRanges: []params.PortRange{{FromPort: 1000, ToPort: 1000, Protocol: "tcp"}},
+		},
+		{
+			Endpoint:   "db",
+			PortRanges: []params.PortRange{{FromPort: 1111, ToPort: 1111, Protocol: "udp"}},
+		},
+	}
+
+	// Act
+	result, err := s.uniter.OpenedPortRangesByEndpoint(c.Context())
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(result, tc.DeepEquals, params.OpenPortRangesByEndpointResults{
+		Results: []params.OpenPortRangesByEndpointResult{
+			{
+				UnitPortRanges: map[string][]params.OpenUnitPortRangesByEndpoint{
+					"unit-mysql-1": expectPortRanges,
+				},
+			},
+		},
+	})
+}
+
 func (s *uniterSuite) expectedGetConfigSettings(unitName coreunit.Name, settings map[string]any, err error) {
 	s.applicationService.EXPECT().GetApplicationUUIDByUnitName(gomock.Any(), unitName).Return(coreapplication.UUID(unitName.Application()), err)
 	if err == nil {
@@ -1450,10 +1557,16 @@ func (s *uniterSuite) expectGetHasSubordinates(c *tc.C, unitName coreunit.Name, 
 func (s *uniterSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 
+	authorizer := &apiservertesting.FakeAuthorizer{
+		Tag:        s.authTag,
+		Controller: true,
+	}
+
 	s.applicationService = NewMockApplicationService(ctrl)
 	s.machineService = NewMockMachineService(ctrl)
 	s.networkService = NewMockNetworkService(ctrl)
 	s.operationService = NewMockOperationService(ctrl)
+	s.portService = NewMockPortService(ctrl)
 	s.resolveService = NewMockResolveService(ctrl)
 	s.removalService = NewMockRemovalService(ctrl)
 	s.watcherRegistry = NewMockWatcherRegistry(ctrl)
@@ -1463,23 +1576,29 @@ func (s *uniterSuite) setupMocks(c *tc.C) *gomock.Controller {
 			return tag != s.badTag
 		}, nil
 	}
+
 	s.uniter = &UniterAPI{
 		applicationService: s.applicationService,
 		machineService:     s.machineService,
 		networkService:     s.networkService,
 		operationService:   s.operationService,
+		portService:        s.portService,
 		resolveService:     s.resolveService,
 		removalService:     s.removalService,
-		accessUnit:         authFunc,
+		auth:               authorizer,
 		accessApplication:  authFunc,
+		accessMachine:      authFunc,
+		accessUnit:         authFunc,
 		watcherRegistry:    s.watcherRegistry,
 	}
 
 	c.Cleanup(func() {
+		s.uniter = nil
 		s.applicationService = nil
 		s.machineService = nil
 		s.networkService = nil
 		s.operationService = nil
+		s.portService = nil
 		s.resolveService = nil
 		s.removalService = nil
 		s.watcherRegistry = nil
@@ -1501,6 +1620,9 @@ func (s *uniterSuite) expectWatchUnitResolveMode(
 	s.watcherRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(watcherID, nil).AnyTimes()
 }
 
+// leadershipSettings is a set of methods no longer supported by
+// the uniter API. With API version 20, their functionality has
+// been removed, though they must exist and return empty values.
 type leadershipSettings interface {
 	// Merge merges in the provided leadership settings. Only leaders for
 	// the given service may perform this operation.
@@ -1515,6 +1637,10 @@ type leadershipSettings interface {
 	WatchLeadershipSettings(ctx context.Context, bulkArgs params.Entities) (params.NotifyWatchResults, error)
 }
 
+//func TestLeadershipUniterSuite(t *testing.T) {
+//	tc.Run(t, &leadershipUniterSuite{})
+//}
+
 type leadershipUniterSuite struct {
 	testhelpers.IsolationSuite
 
@@ -1523,59 +1649,6 @@ type leadershipUniterSuite struct {
 	uniter leadershipSettings
 
 	setupMocks func(c *tc.C) *gomock.Controller
-}
-
-func (s *leadershipUniterSuite) TestLeadershipSettingsMerge(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	results, err := s.uniter.Merge(c.Context(), params.MergeLeadershipSettingsBulkParams{
-		Params: []params.MergeLeadershipSettingsParam{
-			{
-				ApplicationTag: "app1",
-				Settings: params.Settings{
-					"key1": "value1",
-				},
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(results, tc.DeepEquals, params.ErrorResults{
-		Results: []params.ErrorResult{{}},
-	})
-}
-
-func (s *leadershipUniterSuite) TestLeadershipSettingsRead(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	results, err := s.uniter.Read(c.Context(), params.Entities{
-		Entities: []params.Entity{
-			{
-				Tag: "app1",
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(results, tc.DeepEquals, params.GetLeadershipSettingsBulkResults{
-		Results: []params.GetLeadershipSettingsResult{{}},
-	})
-}
-
-func (s *leadershipUniterSuite) TestLeadershipSettingsWatchLeadershipSettings(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	results, err := s.uniter.WatchLeadershipSettings(c.Context(), params.Entities{
-		Entities: []params.Entity{
-			{
-				Tag: "app1",
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(results, tc.DeepEquals, params.NotifyWatchResults{
-		Results: []params.NotifyWatchResult{{
-			NotifyWatcherId: "watcher1",
-		}},
-	})
 }
 
 type uniterv19Suite struct {
@@ -1630,6 +1703,59 @@ func (s *uniterv20Suite) SetUpTest(c *tc.C) {
 
 		return ctrl
 	}
+}
+
+func (s *uniterv20Suite) TestLeadershipSettingsMerge(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	results, err := s.uniter.Merge(c.Context(), params.MergeLeadershipSettingsBulkParams{
+		Params: []params.MergeLeadershipSettingsParam{
+			{
+				ApplicationTag: "app1",
+				Settings: params.Settings{
+					"key1": "value1",
+				},
+			},
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.ErrorResults{
+		Results: []params.ErrorResult{{}},
+	})
+}
+
+func (s *uniterv20Suite) TestLeadershipSettingsRead(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	results, err := s.uniter.Read(c.Context(), params.Entities{
+		Entities: []params.Entity{
+			{
+				Tag: "app1",
+			},
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.GetLeadershipSettingsBulkResults{
+		Results: []params.GetLeadershipSettingsResult{{}},
+	})
+}
+
+func (s *uniterv20Suite) TestLeadershipSettingsWatchLeadershipSettings(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	results, err := s.uniter.WatchLeadershipSettings(c.Context(), params.Entities{
+		Entities: []params.Entity{
+			{
+				Tag: "app1",
+			},
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(results, tc.DeepEquals, params.NotifyWatchResults{
+		Results: []params.NotifyWatchResult{{
+			NotifyWatcherId: "watcher1",
+		}},
+	})
 }
 
 type uniterRelationSuite struct {
@@ -2855,7 +2981,7 @@ func (s *uniterRelationSuite) expectSetRelationStatus(unitName string, relUUID c
 }
 
 func (s *uniterRelationSuite) expectEnterScope(uuid corerelation.UUID, name coreunit.Name, settings map[string]string, err error) {
-	s.relationService.EXPECT().EnterScope(gomock.Any(), uuid, name, settings, gomock.Any()).Return(err)
+	s.relationService.EXPECT().EnterScope(gomock.Any(), uuid, name, settings).Return(err)
 }
 
 func (s *uniterRelationSuite) expectWatchRelationUnitApplicationLifeSuspendedStatus(unitUUID coreunit.UUID, watch watcher.StringsWatcher, err error) {
@@ -2902,12 +3028,82 @@ type commitHookChangesSuite struct {
 	applicationService *MockApplicationService
 	networkService     *MockNetworkService
 	relationService    *MockRelationService
+	unitStateService   *MockUnitStateService
 
 	uniter *UniterAPI
 }
 
 func TestCommitHookChangesSuite(t *testing.T) {
 	tc.Run(t, &commitHookChangesSuite{})
+}
+
+func (s *commitHookChangesSuite) TestCommitHookChangesOneTxn(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange: setup basics
+	unitName, _ := coreunit.NewName("wordpress/0")
+	unitTag := names.NewUnitTag(unitName.String())
+
+	// Arrange: SetUnitStateArg
+	arg := params.CommitHookChangesArg{
+		Tag: unitTag.String(),
+		SetUnitState: &params.SetUnitStateArg{
+			Tag:        unitTag.String(),
+			CharmState: &map[string]string{"key": "value"},
+		},
+		ClosePorts: []params.EntityPortRange{{
+			Tag: unitTag.String(), Protocol: "icmp", FromPort: 22, ToPort: 22, Endpoint: "ep0",
+		}},
+		OpenPorts: []params.EntityPortRange{{
+			Tag: unitTag.String(), Protocol: "icmp", FromPort: 80, ToPort: 80, Endpoint: "ep1",
+		}},
+	}
+
+	// Arrange: CommitHookChanges service call
+	domainArg := unitstate.CommitHookChangesArg{
+		UnitName:   unitName,
+		CharmState: arg.SetUnitState.CharmState,
+		ClosePorts: network.GroupedPortRanges{
+			"ep0": []network.PortRange{{
+				Protocol: "icmp", FromPort: 22, ToPort: 22,
+			}},
+		},
+		OpenPorts: network.GroupedPortRanges{
+			"ep1": []network.PortRange{{
+				Protocol: "icmp", FromPort: 80, ToPort: 80,
+			}},
+		},
+	}
+	s.unitStateService.EXPECT().CommitHookChanges(gomock.Any(), domainArg).Return(nil)
+
+	// Act
+	err := s.uniter.commitHookChangesForOneUnit(c.Context(), unitTag, arg, nil, nil)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *commitHookChangesSuite) TestCommitHookChangesOpenPortFail(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange: setup basics
+	unitName, _ := coreunit.NewName("wordpress/0")
+	unitTag := names.NewUnitTag(unitName.String())
+
+	// Arrange: SetUnitStateArg, ensure it's a CAAS model to fail icmp.
+	arg := params.CommitHookChangesArg{
+		Tag: unitTag.String(),
+		OpenPorts: []params.EntityPortRange{{
+			Tag: unitTag.String(), Protocol: "icmp", FromPort: 80, ToPort: 80, Endpoint: "ep1",
+		}},
+	}
+	s.uniter.modelType = coremodel.CAAS
+
+	// Act
+	err := s.uniter.commitHookChangesForOneUnit(c.Context(), unitTag, arg, nil, nil)
+
+	// Assert
+	c.Assert(err, tc.ErrorIs, errors.NotSupported)
 }
 
 func (s *commitHookChangesSuite) TestUpdateUnitAndApplicationSettings(c *tc.C) {
@@ -3175,6 +3371,7 @@ func (s *commitHookChangesSuite) setupMocks(c *tc.C) *gomock.Controller {
 	s.applicationService = NewMockApplicationService(ctrl)
 	s.relationService = NewMockRelationService(ctrl)
 	s.networkService = NewMockNetworkService(ctrl)
+	s.unitStateService = NewMockUnitStateService(ctrl)
 
 	s.uniter = &UniterAPI{
 		logger: loggertesting.WrapCheckLog(c),
@@ -3182,6 +3379,7 @@ func (s *commitHookChangesSuite) setupMocks(c *tc.C) *gomock.Controller {
 		applicationService: s.applicationService,
 		networkService:     s.networkService,
 		relationService:    s.relationService,
+		unitStateService:   s.unitStateService,
 	}
 
 	c.Cleanup(func() {
@@ -3189,6 +3387,7 @@ func (s *commitHookChangesSuite) setupMocks(c *tc.C) *gomock.Controller {
 		s.networkService = nil
 		s.relationService = nil
 		s.uniter = nil
+		s.unitStateService = nil
 	})
 
 	return ctrl

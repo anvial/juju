@@ -18,7 +18,6 @@ import (
 	"github.com/juju/juju/apiserver/facades/controller/crossmodelsecrets"
 	"github.com/juju/juju/core/application"
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/offer"
 	"github.com/juju/juju/core/relation"
 	coresecrets "github.com/juju/juju/core/secrets"
@@ -90,7 +89,7 @@ func (s *CrossModelSecretsSuite) SetUpTest(c *tc.C) {
 func (s *CrossModelSecretsSuite) setup(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 
-	s.modelUUID = modeltesting.GenModelUUID(c)
+	s.modelUUID = tc.Must0(c, model.NewUUID)
 
 	s.authenticator = NewMockMacaroonAuthenticator(ctrl)
 	s.authContext = NewMockCrossModelAuthContext(ctrl)

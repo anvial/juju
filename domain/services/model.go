@@ -65,7 +65,8 @@ import (
 	modeldefaultsservice "github.com/juju/juju/domain/modeldefaults/service"
 	modeldefaultsstate "github.com/juju/juju/domain/modeldefaults/state"
 	modelmigrationservice "github.com/juju/juju/domain/modelmigration/service"
-	modelmigrationstate "github.com/juju/juju/domain/modelmigration/state"
+	modelmigrationstatecontroller "github.com/juju/juju/domain/modelmigration/state/controller"
+	modelmigrationstatemodel "github.com/juju/juju/domain/modelmigration/state/model"
 	modelproviderservice "github.com/juju/juju/domain/modelprovider/service"
 	modelproviderstate "github.com/juju/juju/domain/modelprovider/state"
 	networkservice "github.com/juju/juju/domain/network/service"
@@ -223,10 +224,12 @@ func (s *ModelServices) Config() *modelconfigservice.WatchableService {
 			changestream.NewTxnRunnerFactory(s.controllerDB),
 		)).ModelDefaultsProvider(s.modelUUID)
 
+	st := modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB))
 	return modelconfigservice.NewWatchableService(
 		defaultsProvider,
 		config.ModelValidator(),
-		modelconfigstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
+		modelconfigservice.ProviderModelConfigGetter(context.Background(), st),
+		st,
 		s.modelWatcherFactory("modelconfig"),
 	)
 }
@@ -259,7 +262,7 @@ func (s *ModelServices) BlockDevice() *blockdeviceservice.WatchableService {
 func (s *ModelServices) Application() *applicationservice.WatchableService {
 	logger := s.logger.Child("application")
 	state := applicationstate.NewState(
-		changestream.NewTxnRunnerFactory(s.modelDB), s.clock, logger,
+		changestream.NewTxnRunnerFactory(s.modelDB), s.modelUUID, s.clock, logger,
 	)
 
 	storageSvc := applicationstorageservice.NewService(
@@ -280,6 +283,7 @@ func (s *ModelServices) Application() *applicationservice.WatchableService {
 		providertracker.ProviderRunner[applicationservice.CAASProvider](s.providerFactory, s.modelUUID.String()),
 		charmstore.NewCharmStore(s.modelObjectStoreGetter, logger.Child("charmstore")),
 		domain.NewStatusHistory(logger, s.clock),
+		s.modelUUID,
 		s.clock,
 		logger,
 	)
@@ -401,9 +405,11 @@ func (s *ModelServices) Secret() *secretservice.WatchableService {
 // operations.
 func (s *ModelServices) ModelMigration() *modelmigrationservice.Service {
 	return modelmigrationservice.NewService(
+		modelmigrationstatecontroller.New(changestream.NewTxnRunnerFactory(s.controllerDB)),
+		modelmigrationstatemodel.New(changestream.NewTxnRunnerFactory(s.modelDB), s.modelUUID),
+		s.modelUUID.String(),
 		providertracker.ProviderRunner[modelmigrationservice.InstanceProvider](s.providerFactory, s.modelUUID.String()),
 		providertracker.ProviderRunner[modelmigrationservice.ResourceProvider](s.providerFactory, s.modelUUID.String()),
-		modelmigrationstate.New(changestream.NewTxnRunnerFactory(s.modelDB)),
 	)
 }
 
@@ -455,10 +461,14 @@ func (s *ModelServices) Proxy() *proxy.Service {
 
 // UnitState returns the service for persisting and retrieving remote unit
 // state. This is used to reconcile with local state to determine which
-// hooks to run, and is saved upon hook completion.
-func (s *ModelServices) UnitState() *unitstateservice.Service {
-	return unitstateservice.NewService(
-		unitstatestate.NewState(changestream.NewTxnRunnerFactory(s.modelDB)),
+// hooks to run, and is saved upon hook completion. The service also persists
+// changes made by the charm while a hook was being run.
+func (s *ModelServices) UnitState() *unitstateservice.LeadershipService {
+	log := s.logger.Child("unitstate")
+	return unitstateservice.NewLeadershipService(
+		unitstatestate.NewState(changestream.NewTxnRunnerFactory(s.modelDB), log),
+		domain.NewLeaseService(s.leaseManager),
+		log,
 	)
 }
 
@@ -514,10 +524,13 @@ func (s *ModelServices) Resource() *resourceservice.Service {
 // for the current model.
 func (s *ModelServices) Relation() *relationservice.WatchableService {
 	log := s.logger.Child("relation")
+	factory := changestream.NewTxnRunnerFactory(s.modelDB)
+	unitState := applicationstate.NewInsertIAASUnitState(factory, s.clock, log)
 	return relationservice.NewWatchableService(
-		relationstate.NewState(changestream.NewTxnRunnerFactory(s.modelDB), s.clock, log),
+		relationstate.NewState(factory, s.clock, log, unitState),
 		s.modelWatcherFactory("relation.watcher"),
 		domain.NewLeaseService(s.leaseManager),
+		domain.NewStatusHistory(log, s.clock),
 		log,
 	)
 }

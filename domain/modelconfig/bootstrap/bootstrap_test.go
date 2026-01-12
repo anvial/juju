@@ -12,7 +12,6 @@ import (
 	"github.com/juju/juju/cloud"
 	"github.com/juju/juju/core/credential"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/permission"
 	coreuser "github.com/juju/juju/core/user"
 	accessstate "github.com/juju/juju/domain/access/state"
@@ -91,7 +90,7 @@ func (s *bootstrapSuite) SetUpTest(c *tc.C) {
 
 	testing.CreateInternalSecretBackend(c, s.ControllerTxnRunner())
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	modelFn := modelbootstrap.CreateGlobalModelRecord(
 		modelUUID,
 		model.GlobalModelCreationArgs{
@@ -121,13 +120,6 @@ func (s *bootstrapSuite) TestSetModelConfig(c *tc.C) {
 		}, nil
 	}
 
-	//cfg, err := config.New(config.NoDefaults, map[string]any{
-	//	"name": "wallyworld",
-	//	"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
-	//	"type": "sometype",
-	//})
-	//c.Assert(err, tc.ErrorIsNil)
-
 	err := SetModelConfig(s.modelID, nil, defaults)(c.Context(), s.ControllerTxnRunner(), s.ModelTxnRunner(c, string(s.modelID)))
 	c.Assert(err, tc.ErrorIsNil)
 
@@ -150,7 +142,7 @@ func (s *bootstrapSuite) TestSetModelConfig(c *tc.C) {
 	c.Assert(configVals, tc.DeepEquals, map[string]string{
 		"name":           "test",
 		"uuid":           s.modelID.String(),
-		"type":           "iaas",
+		"type":           "ec2",
 		"foo":            "bar",
 		"logging-config": "<root>=INFO",
 	})

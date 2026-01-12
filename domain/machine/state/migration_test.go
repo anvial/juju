@@ -15,6 +15,7 @@ import (
 	"github.com/juju/juju/domain/deployment"
 	"github.com/juju/juju/domain/machine"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
+	"github.com/juju/juju/domain/network"
 	schematesting "github.com/juju/juju/domain/schema/testing"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 )
@@ -99,6 +100,27 @@ func (s *migrationStateSuite) TestInsertImportingMachineAlreadyExists(c *tc.C) {
 		MachineUUID: machineUUID,
 	})
 	c.Assert(err, tc.ErrorIs, machineerrors.MachineAlreadyExists)
+}
+
+func (s *migrationStateSuite) TestInsertMigratingMachine(c *tc.C) {
+	netNodeUUID := tc.Must(c, network.NewNetNodeUUID)
+
+	machineUUID := tc.Must(c, coremachine.NewUUID)
+
+	err := s.state.InsertMigratingMachine(c.Context(), "777", machine.CreateMachineArgs{
+		MachineUUID: machineUUID,
+		NetNodeUUID: netNodeUUID,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the machine was created with the correct net node UUID.
+	var retrievedNetNodeUUID string
+	err = s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, "SELECT net_node_uuid FROM machine WHERE uuid = ?", machineUUID.String())
+		return row.Scan(&retrievedNetNodeUUID)
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(retrievedNetNodeUUID, tc.Equals, netNodeUUID.String())
 }
 
 func (s *migrationStateSuite) addMachine(c *tc.C) (coremachine.UUID, coremachine.Name) {

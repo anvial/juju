@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/names/v6"
 	"github.com/vallerion/rscanner"
 
@@ -80,9 +80,6 @@ type ModelMigrationService interface {
 	// any discrepancies.
 	CheckMachines(context.Context) ([]modelmigration.MigrationMachineDiscrepancy, error)
 
-	// AbortImport stops the import of the model.
-	AbortImport(ctx context.Context) error
-
 	// ActivateImport finalises the import of the model.
 	ActivateImport(ctx context.Context) error
 
@@ -117,6 +114,10 @@ type ModelAgentService interface {
 // [ModelMigrationService] for a given model id.
 type ModelMigrationServiceGetter func(context.Context, coremodel.UUID) (ModelMigrationService, error)
 
+// RemovalServiceGetter describes a function that is able to return the
+// [RemovalService] for a given model id.
+type RemoveServiceGetter func(context.Context, coremodel.UUID) (RemovalService, error)
+
 // ModelAgentServiceGetter describes a function that is able to return the
 // [ModelAgentService] for a given model id.
 type ModelAgentServiceGetter func(context.Context, coremodel.UUID) (ModelAgentService, error)
@@ -141,9 +142,9 @@ type StatusService interface {
 
 // ModelService defines the methods to get models hosted on this controller.
 type ModelService interface {
-	// ListAllModels  lists all models in the controller. If no models exist then
+	// GetAllModels  lists all models in the controller. If no models exist then
 	// an empty slice is returned.
-	ListAllModels(ctx context.Context) ([]coremodel.Model, error)
+	GetAllModels(ctx context.Context) ([]coremodel.Model, error)
 	// Model returns the model associated with the provided uuid.
 	Model(ctx context.Context, uuid coremodel.UUID) (coremodel.Model, error)
 }
@@ -160,6 +161,13 @@ type MachineService interface {
 	// The following errors may be returned:
 	// - [machineerrors.MachineNotFound] if the machine does not exist.
 	GetMachineBase(ctx context.Context, mName machine.Name) (base.Base, error)
+}
+
+// RemovalService defines the methods required to remove an importing model
+// that has failed to import completely.
+type RemovalService interface {
+	// RemoveMigratingModel removes the model that is in the importing state.
+	RemoveMigratingModel(ctx context.Context, modelUUID coremodel.UUID) error
 }
 
 // APIV4 implements the APIV4.
@@ -192,12 +200,13 @@ type API struct {
 	externalControllerService   ExternalControllerService
 	modelAgentServiceGetter     ModelAgentServiceGetter
 	modelMigrationServiceGetter ModelMigrationServiceGetter
-
-	authorizer facade.Authorizer
+	removalServiceGetter        RemoveServiceGetter
+	authorizer                  facade.Authorizer
 
 	requiredMigrationFacadeVersions facades.FacadeVersions
 
 	logDir string
+	logger corelogger.Logger
 }
 
 // NewAPI returns a new migration target api. Accepts a NewEnvironFunc and
@@ -213,8 +222,10 @@ func NewAPI(
 	machineService MachineService,
 	modelAgentServiceGetter ModelAgentServiceGetter,
 	modelMigrationServiceGetter ModelMigrationServiceGetter,
+	removalServiceGetter RemoveServiceGetter,
 	requiredMigrationFacadeVersions facades.FacadeVersions,
 	logDir string,
+	logger corelogger.Logger,
 ) (*API, error) {
 	return &API{
 		controllerModelUUID:             ctx.ControllerModelUUID(),
@@ -227,9 +238,11 @@ func NewAPI(
 		machineService:                  machineService,
 		modelAgentServiceGetter:         modelAgentServiceGetter,
 		modelMigrationServiceGetter:     modelMigrationServiceGetter,
+		removalServiceGetter:            removalServiceGetter,
 		authorizer:                      authorizer,
 		requiredMigrationFacadeVersions: requiredMigrationFacadeVersions,
 		logDir:                          logDir,
+		logger:                          logger,
 	}, nil
 }
 
@@ -337,13 +350,15 @@ func (api *API) Abort(ctx context.Context, args params.ModelArgs) error {
 		return errors.Capture(err)
 	}
 
+	api.logger.Debugf(ctx, "Abort migrating model %q", args.ModelTag)
+
 	modelUUID := coremodel.UUID(modelTag.Id())
-	modelMigrationService, err := api.modelMigrationServiceGetter(ctx, modelUUID)
+	removalServiceGetter, err := api.removalServiceGetter(ctx, modelUUID)
 	if err != nil {
 		return errors.Capture(err)
 	}
 
-	err = modelMigrationService.AbortImport(ctx)
+	err = removalServiceGetter.RemoveMigratingModel(ctx, modelUUID)
 	if err != nil {
 		return errors.Capture(err)
 	}
@@ -360,6 +375,8 @@ func (api *API) Activate(ctx context.Context, args params.ActivateModelArgs) err
 	if err != nil {
 		return errors.Capture(err)
 	}
+
+	api.logger.Debugf(ctx, "Activate migrating model %q", args.ModelTag)
 
 	modelUUID := coremodel.UUID(modelTag.Id())
 	modelMigrationService, err := api.modelMigrationServiceGetter(ctx, modelUUID)
@@ -396,10 +413,12 @@ func (api *API) Activate(ctx context.Context, args params.ActivateModelArgs) err
 		}
 	}
 
-	err = modelMigrationService.ActivateImport(ctx)
-	if err != nil {
+	// Activate the import, this will clear any migration flags and allow the
+	// model to be used normally.
+	if err := modelMigrationService.ActivateImport(ctx); err != nil {
 		return errors.Capture(err)
 	}
+
 	return nil
 }
 

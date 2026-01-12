@@ -1568,32 +1568,13 @@ func (s *facadeSuite) TestWatchRelationChanges(c *tc.C) {
 	s.crossModelRelationService.EXPECT().GetOfferingApplicationToken(gomock.Any(), relUUID).Return(appUUID, nil)
 
 	// Setup watcher call
-	ch := make(chan struct{})
+	ch := make(chan struct{}, 1)
+	// Queue initial event
+	ch <- struct{}{}
 	mockWatcher := NewMockNotifyWatcher(ctrl)
 	mockWatcher.EXPECT().Wait().Return(nil).AnyTimes()
 	mockWatcher.EXPECT().Changes().Return(ch).AnyTimes()
 	s.relationService.EXPECT().WatchRelationUnits(gomock.Any(), relUUID, appUUID).Return(mockWatcher, nil)
-
-	// Initial call to GetConsumerRelationUnitsChange when the
-	// relationChangesWatcher loop starts.
-	s.relationService.EXPECT().GetConsumerRelationUnitsChange(gomock.Any(), relUUID, appUUID).
-		DoAndReturn(func(context.Context, corerelation.UUID, application.UUID) (domainrelation.ConsumerRelationUnitsChange, error) {
-			// Trigger RelationUnits watcher for the EnsureRegisterWatcher call.
-			time.AfterFunc(testhelpers.ShortWait, func() {
-				// Send initial event.
-				select {
-				case ch <- struct{}{}:
-				case <-c.Context().Done():
-					c.Fatalf("timed out waiting to send change event")
-				}
-			})
-			return domainrelation.ConsumerRelationUnitsChange{}, nil
-		})
-	// Second call to GetConsumerRelationUnitsChange when the RelationUnits
-	// watcher sends an event. Return value must be different from initial
-	// value for the relationChangesWatcher to send an event.
-	s.relationService.EXPECT().GetConsumerRelationUnitsChange(gomock.Any(), relUUID, appUUID).
-		Return(domainrelation.ConsumerRelationUnitsChange{AppSettingsVersion: map[string]int64{"one": 88}}, nil)
 
 	// Real change data returned from the facade method WatchRelationChanges
 	expected := domainrelation.FullRelationUnitChange{

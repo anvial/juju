@@ -10,7 +10,7 @@ import (
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
-	modeltesting "github.com/juju/juju/core/model/testing"
+	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/domain/life"
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	"github.com/juju/juju/domain/removal"
@@ -29,7 +29,7 @@ func TestModelSuite(t *testing.T) {
 func (s *modelSuite) TestRemoveModelNoForceSuccess(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	when := time.Now()
 	s.clock.EXPECT().Now().Return(when)
@@ -66,7 +66,7 @@ func (s *modelSuite) TestRemoveModelNoForceSuccess(c *tc.C) {
 func (s *modelSuite) TestRemoveModelControllerModel(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	mExp := s.modelState.EXPECT()
 	mExp.IsControllerModel(gomock.Any(), mUUID.String()).Return(true, nil)
@@ -78,7 +78,7 @@ func (s *modelSuite) TestRemoveModelControllerModel(c *tc.C) {
 func (s *modelSuite) TestRemoveModelNoForceSuccessControllerModel(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	when := time.Now()
 	s.clock.EXPECT().Now().Return(when)
@@ -115,7 +115,7 @@ func (s *modelSuite) TestRemoveModelNoForceSuccessControllerModel(c *tc.C) {
 func (s *modelSuite) TestRemoveModelForceNoWaitSuccess(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	when := time.Now()
 	s.clock.EXPECT().Now().Return(when)
@@ -138,7 +138,7 @@ func (s *modelSuite) TestRemoveModelForceNoWaitSuccess(c *tc.C) {
 func (s *modelSuite) TestRemoveModelForceWaitSuccess(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	when := time.Now()
 	s.clock.EXPECT().Now().Return(when).MinTimes(1)
@@ -166,7 +166,7 @@ func (s *modelSuite) TestRemoveModelForceWaitSuccess(c *tc.C) {
 func (s *modelSuite) TestRemoveModelNotFoundInModelButInController(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	when := time.Now()
 	s.clock.EXPECT().Now().Return(when)
@@ -188,7 +188,7 @@ func (s *modelSuite) TestRemoveModelNotFoundInModelButInController(c *tc.C) {
 func (s *modelSuite) TestRemoveModelNotFoundInControllerButInModel(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	when := time.Now()
 	s.clock.EXPECT().Now().Return(when)
@@ -210,7 +210,7 @@ func (s *modelSuite) TestRemoveModelNotFoundInControllerButInModel(c *tc.C) {
 func (s *modelSuite) TestRemoveModelNotFoundInBothControllerAndModel(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	mUUID := modeltesting.GenModelUUID(c)
+	mUUID := tc.Must0(c, coremodel.NewUUID)
 
 	cExp := s.controllerState.EXPECT()
 	cExp.ModelExists(gomock.Any(), mUUID.String()).Return(false, nil)
@@ -224,10 +224,48 @@ func (s *modelSuite) TestRemoveModelNotFoundInBothControllerAndModel(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
+func (s *modelSuite) TestRemoveMigratingModel(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	cExp := s.controllerState.EXPECT()
+	cExp.IsMigratingModel(gomock.Any(), "some-model-uuid").Return(true, nil)
+	cExp.MarkMigratingModelAsDead(gomock.Any(), "some-model-uuid").Return(nil)
+
+	mExp := s.modelState.EXPECT()
+	mExp.IsControllerModel(gomock.Any(), "some-model-uuid").Return(false, nil)
+
+	err := s.newService(c).RemoveMigratingModel(c.Context(), "some-model-uuid")
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *modelSuite) TestRemoveMigratingModelControllerModel(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	mExp := s.modelState.EXPECT()
+	mExp.IsControllerModel(gomock.Any(), "some-model-uuid").Return(true, nil)
+
+	err := s.newService(c).RemoveMigratingModel(c.Context(), "some-model-uuid")
+	c.Assert(err, tc.ErrorMatches, `.*cannot remove controller model.*`)
+}
+
+func (s *modelSuite) TestRemoveMigratingModelNotImporting(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	cExp := s.controllerState.EXPECT()
+	cExp.IsMigratingModel(gomock.Any(), "some-model-uuid").Return(false, nil)
+
+	mExp := s.modelState.EXPECT()
+	mExp.IsControllerModel(gomock.Any(), "some-model-uuid").Return(false, nil)
+
+	err := s.newService(c).RemoveMigratingModel(c.Context(), "some-model-uuid")
+	c.Assert(err, tc.ErrorMatches, `.*is not importing`)
+}
+
 func (s *modelSuite) TestDeleteModel(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	cExp := s.controllerState.EXPECT()
+	cExp.IsMigratingModel(gomock.Any(), "some-model-uuid").Return(false, nil)
 	cExp.GetModelLife(gomock.Any(), "some-model-uuid").Return(life.Dead, nil)
 	cExp.DeleteModel(gomock.Any(), "some-model-uuid").Return(nil)
 
@@ -237,10 +275,22 @@ func (s *modelSuite) TestDeleteModel(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 }
 
+func (s *modelSuite) TestDeleteModelIsMigrating(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	cExp := s.controllerState.EXPECT()
+	cExp.IsMigratingModel(gomock.Any(), "some-model-uuid").Return(true, nil)
+	cExp.DeleteModel(gomock.Any(), "some-model-uuid").Return(nil)
+
+	err := s.newService(c).DeleteModel(c.Context(), "some-model-uuid")
+	c.Assert(err, tc.ErrorIsNil)
+}
+
 func (s *modelSuite) TestDeleteModelControllerAlive(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	cExp := s.controllerState.EXPECT()
+	cExp.IsMigratingModel(gomock.Any(), "some-model-uuid").Return(false, nil)
 	cExp.GetModelLife(gomock.Any(), "some-model-uuid").Return(life.Alive, nil)
 
 	err := s.newService(c).DeleteModel(c.Context(), "some-model-uuid")
@@ -251,6 +301,7 @@ func (s *modelSuite) TestDeleteModelControllerGetModelLifeError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	cExp := s.controllerState.EXPECT()
+	cExp.IsMigratingModel(gomock.Any(), "some-model-uuid").Return(false, nil)
 	cExp.GetModelLife(gomock.Any(), "some-model-uuid").Return(life.Dead, errors.Errorf("the front fell off"))
 
 	err := s.newService(c).DeleteModel(c.Context(), "some-model-uuid")
@@ -261,6 +312,7 @@ func (s *modelSuite) TestDeleteModelControllerGetModelLifeNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	cExp := s.controllerState.EXPECT()
+	cExp.IsMigratingModel(gomock.Any(), "some-model-uuid").Return(false, nil)
 	cExp.GetModelLife(gomock.Any(), "some-model-uuid").Return(-1, modelerrors.NotFound)
 	cExp.DeleteModel(gomock.Any(), "some-model-uuid").Return(nil)
 
@@ -568,6 +620,6 @@ func newModelJob(c *tc.C) removal.Job {
 	return removal.Job{
 		UUID:        jUUID,
 		RemovalType: removal.ModelJob,
-		EntityUUID:  modeltesting.GenModelUUID(c).String(),
+		EntityUUID:  tc.Must0(c, coremodel.NewUUID).String(),
 	}
 }

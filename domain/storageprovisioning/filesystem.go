@@ -120,6 +120,13 @@ type FilesystemAttachmentParams struct {
 	// machine or no cloud instance id exists a zero value will be supplied.
 	MachineInstanceID string
 
+	// CAASInstanceID is similar to MachineInstanceID but slightly differs in
+	// that it's not attached to a machine but to a CAAS resource. If the
+	// attachment is not onto a CAAS resource then a zero value will be supplied.
+	// There will only be a non-zero value for either a MachineInstanceID or
+	// CAASInstanceID.
+	CAASInstanceID string
+
 	// MountPoint is the path at which this filesystem attachment is mounted at.
 	// Should the attachment not be mounted yet the zero value will be set.
 	MountPoint string
@@ -174,6 +181,10 @@ type FilesystemAttachmentTemplate struct {
 	// MountPoint is the location where the filesystem attachment should be
 	// made.
 	MountPoint string
+
+	// ContainerKey is the identifier of the container this attachment
+	// should be mounted to.
+	ContainerKey string
 }
 
 // FilesystemProvisionedInfo is information set by the storage provisioner for

@@ -58,7 +58,7 @@ func (s *ExportSuite) setupMocks(c *tc.C) *gomock.Controller {
 func (s *ExportSuite) TestExportValidates(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	scope := modelmigration.NewScope(nil, nil, nil)
+	scope := modelmigration.NewScope(nil, nil, nil, tc.Must0(c, model.NewUUID))
 
 	// The order of the expectations is important here. We expect that the
 	// validation is the last thing that happens.
@@ -83,7 +83,7 @@ func (s *ExportSuite) TestExportValidates(c *tc.C) {
 func (s *ExportSuite) TestExportValidationFails(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	scope := modelmigration.NewScope(nil, nil, nil)
+	scope := modelmigration.NewScope(nil, nil, nil, tc.Must0(c, model.NewUUID))
 
 	s.operationsExporter.EXPECT().ExportOperations(s.storageRegistryGetter)
 	s.model.EXPECT().Validate().Return(errors.New("boom"))
@@ -122,13 +122,14 @@ func (s *ImportSuite) setupMocks(c *tc.C) *gomock.Controller {
 
 func (s *ImportSuite) TestBadBytes(c *tc.C) {
 	bytes := []byte("not a model")
-	scope := func(model.UUID) modelmigration.Scope { return modelmigration.NewScope(nil, nil, nil) }
+	scope := func(model.UUID) modelmigration.Scope {
+		return modelmigration.NewScope(nil, nil, nil, tc.Must0(c, model.NewUUID))
+	}
 	importer := migration.NewModelImporter(
 		scope, nil, nil,
 		corestorage.ConstModelStorageRegistry(func() storage.ProviderRegistry {
 			return nil
 		}),
-		nil,
 		loggertesting.WrapCheckLog(c),
 		clock.WallClock,
 	)

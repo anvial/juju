@@ -13,7 +13,7 @@ import (
 
 //go:generate go run go.uber.org/mock/mockgen -typed -package modelmigration -destination getter_mock_test.go github.com/juju/juju/core/database DBGetter,TxnRunner
 //go:generate go run go.uber.org/mock/mockgen -typed -package modelmigration -destination op_mock_test.go github.com/juju/juju/core/modelmigration Operation
-//go:generate go run go.uber.org/mock/mockgen -typed -package modelmigration -destination description_mock_test.go github.com/juju/description/v10 Model
+//go:generate go run go.uber.org/mock/mockgen -typed -package modelmigration -destination description_mock_test.go github.com/juju/description/v11 Model
 
 type ImportTest struct{}
 
@@ -32,12 +32,22 @@ func (*ImportTest) TestImports(c *tc.C) {
 		"core/errors",
 		"core/life",
 		"core/logger",
+		"core/migration",
 		"core/model",
+		"core/network",
+		"core/objectstore",
 		"core/permission",
+		"core/resource",
+		"core/secrets",
 		"core/semversion",
 		"core/status",
+		"core/trace",
+		"core/unit",
 		"core/user",
+		"core/watcher",
+		"internal/charm/resource",
 		"internal/errors",
+		"internal/logger",
 		"internal/uuid",
 	})
 }

@@ -1,7 +1,13 @@
+---
+myst:
+  html_meta:
+    description: "Juju 2.x release notes archive: versions before 2.9 that are end-of-life, including Juju 2.8 and earlier releases."
+---
+
 (juju2xx)=
 # **Before Juju 2.9 (all EOL)**
 
-### 🔸 **Juju 2.8**
+## 🔸 **Juju 2.8**
 
 
 ```{caution}
@@ -24,7 +30,7 @@ Juju 2.8 series is EOL
 
 
 
-### 🔸 **Juju 2.7**
+## 🔸 **Juju 2.7**
 
 
 ```{caution}
@@ -43,7 +49,7 @@ Juju 2.7 series is EOL
 - [2.7.0](https://discourse.jujucharms.com/t/juju-2-7-release-notes/2380)
 
 
-### 🔸 **Juju 2.6**
+## 🔸 **Juju 2.6**
 
 
 ```{caution}
@@ -62,7 +68,7 @@ Juju 2.6 series is EOL
 - [2.6.1](https://discourse.jujucharms.com/t/juju-2-6-1-release-notes/1473)
 
 
-### 🔸 **Juju 2.5**
+## 🔸 **Juju 2.5**
 
 
 ```{caution}
@@ -79,7 +85,7 @@ Juju 2.5 series is EOL
 - [2.5.0](https://discourse.jujucharms.com/t/2-5-0-release-notes/1177)
 
 
-### 🔸 **Juju 2.4**
+## 🔸 **Juju 2.4**
 
 
 ```{caution}

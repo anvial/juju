@@ -14,7 +14,7 @@ import (
 	"github.com/juju/juju/core/changestream"
 	coreerrors "github.com/juju/juju/core/errors"
 	machinetesting "github.com/juju/juju/core/machine/testing"
-	modeltesting "github.com/juju/juju/core/model/testing"
+	coremodel "github.com/juju/juju/core/model"
 	unittesting "github.com/juju/juju/core/unit/testing"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	"github.com/juju/juju/domain/blockdevice"
@@ -96,7 +96,7 @@ func (s *serviceSuite) TestGetStorageResourceTagsForModel(c *tc.C) {
 
 	ri := storageprovisioning.ModelResourceTagInfo{
 		BaseResourceTags: "a=x b=y juju-drop-me=bad",
-		ModelUUID:        modeltesting.GenModelUUID(c).String(),
+		ModelUUID:        tc.Must0(c, coremodel.NewUUID).String(),
 		ControllerUUID:   uuid.MustNewUUID().String(),
 	}
 	s.state.EXPECT().GetStorageResourceTagInfoForModel(gomock.Any(), "resource-tags").Return(

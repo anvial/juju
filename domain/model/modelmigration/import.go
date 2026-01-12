@@ -6,13 +6,12 @@ package modelmigration
 import (
 	"context"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/names/v6"
 
 	"github.com/juju/juju/core/agentbinary"
 	coreconstraints "github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/credential"
-	coredatabase "github.com/juju/juju/core/database"
 	coreerrors "github.com/juju/juju/core/errors"
 	coreinstance "github.com/juju/juju/core/instance"
 	"github.com/juju/juju/core/logger"
@@ -24,7 +23,6 @@ import (
 	accessservice "github.com/juju/juju/domain/access/service"
 	accessstate "github.com/juju/juju/domain/access/state"
 	domainmodel "github.com/juju/juju/domain/model"
-	modelerrors "github.com/juju/juju/domain/model/errors"
 	modelservice "github.com/juju/juju/domain/model/service"
 	modelmigrationservice "github.com/juju/juju/domain/model/service/migration"
 	statecontroller "github.com/juju/juju/domain/model/state/controller"
@@ -39,9 +37,9 @@ type Coordinator interface {
 	Add(modelmigration.Operation)
 }
 
-// RegisterImport register's a new model migration importer into the supplied
-// coordinator.
-func RegisterImport(coordinator Coordinator, logger logger.Logger) {
+// RegisterModelImport register's a new model migration importer into the
+// supplied coordinator.
+func RegisterModelImport(coordinator Coordinator, logger logger.Logger) {
 	// The model import operation must always come first!
 	coordinator.Add(&importModelOperation{
 		logger: logger,
@@ -51,15 +49,24 @@ func RegisterImport(coordinator Coordinator, logger logger.Logger) {
 	})
 }
 
+// RegisterModelActivationImport register's a new model migration importer that
+// only handles model activation into the supplied coordinator.
+func RegisterModelActivationImport(coordinator Coordinator, logger logger.Logger) {
+	coordinator.Add(&importModelActivatorOperation{
+		logger: logger,
+	})
+}
+
 // ModelImportService defines the model service used to import models from
 // another controller to this one.
 type ModelImportService interface {
 	// ImportModel is responsible for creating a new model that is being
 	// imported.
-	ImportModel(context.Context, domainmodel.ModelImportArgs) (func(context.Context) error, error)
+	ImportModel(context.Context, domainmodel.ModelImportArgs) error
 
-	// DeleteModel is responsible for removing a model from the system.
-	DeleteModel(context.Context, coremodel.UUID) error
+	// ActivateModel marks the model as active after a successful import or
+	// migration.
+	ActivateModel(context.Context, coremodel.UUID) error
 }
 
 // ModelDetailService defines a service for interacting with the
@@ -73,6 +80,18 @@ type ModelDetailService interface {
 	// supported.
 	// - [coreerrors.NotValid] when the agent stream is not valid.
 	CreateModelWithAgentVersionStream(context.Context, semversion.Number, agentbinary.AgentStream) error
+
+	// CreateImportingModelWithAgentVersionStream is responsible for creating a new
+	// model within the model database during model import, using the input agent
+	// version and agent stream. This method creates the model and marks it as
+	// importing in a single atomic transaction.
+	//
+	// The following error types can be expected to be returned:
+	// - [modelerrors.AlreadyExists] when the model uuid is already in use.
+	// - [modelerrors.AgentVersionNotSupported] when the agent version is not
+	// supported.
+	// - [coreerrors.NotValid] when the agent stream is not valid.
+	CreateImportingModelWithAgentVersionStream(context.Context, semversion.Number, agentbinary.AgentStream) error
 
 	// SetModelConstraints sets the model constraints to the new values removing
 	// any previously set constraints.
@@ -138,7 +157,6 @@ func (i *importModelOperation) Name() string {
 func (i *importModelOperation) Setup(scope modelmigration.Scope) error {
 	i.modelImportService = modelmigrationservice.NewMigrationService(
 		statecontroller.NewState(scope.ControllerDB()),
-		scope.ModelDeleter(),
 		i.logger,
 	)
 
@@ -155,27 +173,27 @@ func (i *importModelOperation) Setup(scope modelmigration.Scope) error {
 // If the user specified for the model cannot be found an error satisfying
 // [accesserrors.NotFound] will be returned.
 func (i *importModelOperation) Execute(ctx context.Context, model description.Model) error {
-	modelName, modelID, err := i.getModelNameAndUUID(model)
+	modelName, modelUUID, err := getModelNameAndUUID(model)
 	if err != nil {
-		return errors.Errorf("importing model during migration %w", coreerrors.NotValid)
+		return errors.Errorf("%w", err).Add(coreerrors.NotValid)
 	}
 
 	owner, err := coreuser.NewName(model.Owner())
 	if err != nil {
 		return errors.Errorf(
 			"importing model %q with uuid %q: invalid owner: %w",
-			modelName, modelID, err)
+			modelName, modelUUID, err)
 
 	}
 	user, err := i.userService.GetUserByName(ctx, owner)
 	if errors.Is(err, accesserrors.UserNotFound) {
 		return errors.Errorf("importing model %q with uuid %q, %w for name %q",
-			modelName, modelID, accesserrors.UserNotFound, model.Owner(),
+			modelName, modelUUID, accesserrors.UserNotFound, model.Owner(),
 		)
 	} else if err != nil {
 		return errors.Errorf(
 			"importing model %q with uuid %q during migration, finding user %q: %w",
-			modelName, modelID, model.Owner(), err,
+			modelName, modelUUID, model.Owner(), err,
 		)
 	}
 
@@ -188,7 +206,7 @@ func (i *importModelOperation) Execute(ctx context.Context, model description.Mo
 		if err != nil {
 			return errors.Errorf(
 				"importing model %q with uuid %q: model cloud credential owner: %w",
-				modelName, modelID, err)
+				modelName, modelUUID, err)
 		}
 	}
 
@@ -198,13 +216,13 @@ func (i *importModelOperation) Execute(ctx context.Context, model description.Mo
 	if !ok {
 		return errors.Errorf(
 			"importing model %q with uuid %q: agent-version missing from model config",
-			modelName, modelID)
+			modelName, modelUUID)
 	}
 	agentVersion, err := semversion.Parse(agentVersionStr)
 	if err != nil {
 		return errors.Errorf(
 			"importing model %q with uuid %q: cannot parse agent-version: %w",
-			modelName, modelID, err)
+			modelName, modelUUID, err)
 	}
 
 	// If no agent stream exists in the model config we will default to
@@ -223,16 +241,13 @@ func (i *importModelOperation) Execute(ctx context.Context, model description.Mo
 			Qualifier:   coremodel.QualifierFromUserTag(names.NewUserTag(model.Owner())),
 			AdminUsers:  []coreuser.UUID{user.UUID},
 		},
-		UUID: modelID,
+		UUID: modelUUID,
 	}
 
-	// NOTE: Try to get all things that can fail before creating the model in
-	// the database.
-	activator, err := i.modelImportService.ImportModel(ctx, args)
-	if err != nil {
+	if err := i.modelImportService.ImportModel(ctx, args); err != nil {
 		return errors.Errorf(
 			"importing model %q with id %q during migration: %w",
-			modelName, modelID, err,
+			modelName, modelUUID, err,
 		)
 	}
 
@@ -240,16 +255,10 @@ func (i *importModelOperation) Execute(ctx context.Context, model description.Mo
 	// consider adding a rollback operation to undo the changes made by the
 	// import operation.
 
-	// activator needs to be called as the last operation to say that we are
-	// happy that the model is ready to rock and roll.
-	if err := activator(ctx); err != nil {
-		return errors.Errorf(
-			"activating imported model %q with uuid %q: %w", modelName, modelID, err,
-		)
-	}
-
 	// We need to establish the read only model information in the model database.
-	err = i.modelDetailServiceFunc(modelID).CreateModelWithAgentVersionStream(ctx, agentVersion, agentStream)
+	// This also marks the model as importing in the model_migrating table so that
+	// charm uploads during the migration can be properly handled.
+	err = i.modelDetailServiceFunc(modelUUID).CreateImportingModelWithAgentVersionStream(ctx, agentVersion, agentStream)
 	if err != nil {
 		return errors.Errorf(
 			"importing read only model %q with uuid %q during migration: %w",
@@ -258,47 +267,6 @@ func (i *importModelOperation) Execute(ctx context.Context, model description.Mo
 	}
 
 	return nil
-}
-
-// Rollback will attempt to roll back the import operation if it was
-// unsuccessful.
-func (i *importModelOperation) Rollback(ctx context.Context, model description.Model) error {
-	// Attempt to roll back the model database if it was created.
-	modelName, modelID, err := i.getModelNameAndUUID(model)
-	if err != nil {
-		return errors.Errorf("rollback of model during migration %w", coreerrors.NotValid)
-	}
-
-	// If the model isn't found, we can simply ignore the error.
-	if err := i.modelImportService.DeleteModel(ctx, modelID); err != nil &&
-		!errors.Is(err, modelerrors.NotFound) &&
-		!errors.Is(err, coredatabase.ErrDBNotFound) {
-		return errors.Errorf(
-			"rollback of model %q with uuid %q during migration: %w",
-			modelName, modelID, err,
-		)
-	}
-
-	return nil
-}
-
-func (i *importModelOperation) getModelNameAndUUID(model description.Model) (string, coremodel.UUID, error) {
-	modelConfig := model.Config()
-	if modelConfig == nil {
-		return "", "", errors.New("model config is empty")
-	}
-
-	modelName, ok := modelConfig[config.NameKey].(string)
-	if !ok {
-		return "", "", errors.Errorf("no model name found in model config")
-	}
-
-	uuid, ok := modelConfig[config.UUIDKey].(string)
-	if !ok {
-		return "", "", errors.Errorf("no model uuid found in model config")
-	}
-
-	return modelName, coremodel.UUID(uuid), nil
 }
 
 // importModelConstraintsOperation implements the steps to import a model's
@@ -391,4 +359,67 @@ func (i *importModelConstraintsOperation) Execute(
 	}
 
 	return nil
+}
+
+type importModelActivatorOperation struct {
+	modelmigration.BaseOperation
+
+	modelImportService ModelImportService
+
+	logger logger.Logger
+}
+
+// Name returns the name of this operation.
+func (i *importModelActivatorOperation) Name() string {
+	return "import model activator"
+}
+
+// Setup is responsible for taking the model migration scope and creating the
+// needed services used during import.
+func (i *importModelActivatorOperation) Setup(scope modelmigration.Scope) error {
+	i.modelImportService = modelmigrationservice.NewMigrationService(
+		statecontroller.NewState(scope.ControllerDB()),
+		i.logger,
+	)
+	return nil
+}
+
+// Execute will attempt to activate the model in the current system based on
+// the description received.
+//
+// If model name or uuid are undefined or are not strings in the model config an
+// error satisfying [errors.NotValid] will be returned.
+func (i *importModelActivatorOperation) Execute(ctx context.Context, model description.Model) error {
+	modelName, modelUUID, err := getModelNameAndUUID(model)
+	if err != nil {
+		return errors.Errorf("importing model during migration %w", coreerrors.NotValid)
+	}
+
+	if err := i.modelImportService.ActivateModel(ctx, modelUUID); err != nil {
+		return errors.Errorf(
+			"activating model %q with id %q during migration: %w",
+			modelName, modelUUID, err,
+		)
+	}
+
+	return nil
+}
+
+func getModelNameAndUUID(model description.Model) (string, coremodel.UUID, error) {
+	modelConfig := model.Config()
+	if modelConfig == nil {
+		return "", "", errors.New("model config is empty")
+	}
+
+	modelName, ok := modelConfig[config.NameKey].(string)
+	if !ok {
+		return "", "", errors.Errorf("no model name found in model config")
+	}
+
+	uuid, ok := modelConfig[config.UUIDKey].(string)
+	if !ok {
+		return "", "", errors.Errorf("no model uuid found in model config")
+	}
+
+	return modelName, coremodel.UUID(uuid), nil
 }

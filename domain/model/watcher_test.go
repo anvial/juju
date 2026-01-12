@@ -18,7 +18,6 @@ import (
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/logger"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/user"
 	usertesting "github.com/juju/juju/core/user/testing"
 	"github.com/juju/juju/core/watcher/watchertest"
@@ -103,7 +102,7 @@ func insertModelDependencies(c *tc.C, dbTxnRunnerFactory database.TxnRunnerFacto
 	err = bootstrap.CreateDefaultBackends(coremodel.IAAS)(c.Context(), dbTxnRunner, dbTxnRunner)
 	c.Assert(err, tc.ErrorIsNil)
 
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	err = dbTxnRunner.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
 		err := statecontroller.Create(
 			ctx,
@@ -295,7 +294,7 @@ func (s *watcherSuite) TestWatchModelCloudCredential(c *tc.C) {
 		Owner: s.userName,
 		Name:  "my-cloud-credential",
 	}
-	modelUUID := modeltesting.GenModelUUID(c)
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
 	err = st.Create(
 		c.Context(),
 		modelUUID,

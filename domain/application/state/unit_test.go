@@ -23,7 +23,6 @@ import (
 	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/application/charm"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
-	internalapplication "github.com/juju/juju/domain/application/internal"
 	"github.com/juju/juju/domain/constraints"
 	"github.com/juju/juju/domain/deployment"
 	"github.com/juju/juju/domain/ipaddress"
@@ -50,7 +49,7 @@ func TestUnitStateSuite(t *stdtesting.T) {
 func (s *unitStateSuite) SetUpTest(c *tc.C) {
 	s.baseSuite.SetUpTest(c)
 
-	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	s.state = NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 }
 
 func (s *unitStateSuite) assertContainerAddressValues(
@@ -1482,54 +1481,6 @@ func (s *unitStateSuite) GetAllUnitCloudContainerIDsForApplication(c *tc.C) {
 	})
 }
 
-// TestGetUnitMachineUUIDandNetNodeUnitNotFound wants to see that when a caller
-// calls [State.getUnitMachineIdentifiers] with a unit uuid that does not
-// exist in the model the caller gets back an error satisfying
-// [applicationerrors.UnitNotFound].
-func (s *unitStateSuite) TestGetUnitMachineIdentifiersUnitNotFound(c *tc.C) {
-	unitUUID := coreunittesting.GenUnitUUID(c)
-
-	err := s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		_, err := s.state.getUnitMachineIdentifiers(
-			ctx, tx, unitUUID.String(),
-		)
-		return err
-	})
-	c.Check(err, tc.ErrorIs, applicationerrors.UnitNotFound)
-}
-
-// TestGetUnitMachineUUIDandNetNodeUnit is a happy path test for
-// [State.getUnitMachineIdentifiers].
-func (s *unitStateSuite) TestGetUnitMachineIdentifiers(c *tc.C) {
-	machineUUID := machinetesting.GenUUID(c)
-	netNodeUUID := tc.Must(c, domainnetwork.NewNetNodeUUID)
-	appUUID := s.createIAASApplication(c, "myapp", life.Alive, application.AddIAASUnitArg{
-		MachineNetNodeUUID: netNodeUUID,
-		MachineUUID:        machineUUID,
-		AddUnitArg: application.AddUnitArg{
-			NetNodeUUID: netNodeUUID,
-		},
-	})
-
-	unitUUIDs := s.getApplicationUnits(c, appUUID)
-	c.Assert(unitUUIDs, tc.HasLen, 1)
-
-	var recievedIdentifiers internalapplication.MachineIdentifiers
-	err := s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
-		var err error
-		recievedIdentifiers, err = s.state.getUnitMachineIdentifiers(
-			ctx, tx, unitUUIDs[0].String(),
-		)
-		return err
-	})
-	c.Check(err, tc.ErrorIsNil)
-	c.Check(recievedIdentifiers, tc.Equals, internalapplication.MachineIdentifiers{
-		Name:        coremachine.Name("0"),
-		NetNodeUUID: netNodeUUID,
-		UUID:        machineUUID,
-	})
-}
-
 // TestGetUnitUUIDAndNetNodeForNameNotFound tests that asking for the uuid and
 // netnode for a unit name that does not exist in the model results in a
 // [applicationerrors.UnitNotFound] error.
@@ -1591,175 +1542,7 @@ func TestUnitStateSubordinateSuite(t *stdtesting.T) {
 func (s *unitStateSubordinateSuite) SetUpTest(c *tc.C) {
 	s.baseSuite.SetUpTest(c)
 
-	s.state = NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
-}
-
-func (s *unitStateSubordinateSuite) createPrincipalUnit(
-	c *tc.C,
-) (coreunit.UUID, domainnetwork.NetNodeUUID) {
-	uuid, netNodeUUID := s.createNPrincipalUnits(c, 1)
-	return uuid[0], netNodeUUID[0]
-}
-
-func (s *unitStateSubordinateSuite) createNPrincipalUnits(
-	c *tc.C, n int,
-) ([]coreunit.UUID, []domainnetwork.NetNodeUUID) {
-	netNodeUUIDs := make([]domainnetwork.NetNodeUUID, 0, n)
-	args := make([]application.AddIAASUnitArg, 0, n)
-
-	for range n {
-		netNodeUUID := tc.Must(c, domainnetwork.NewNetNodeUUID)
-		args = append(args, application.AddIAASUnitArg{
-			AddUnitArg: application.AddUnitArg{
-				NetNodeUUID: netNodeUUID,
-			},
-			MachineNetNodeUUID: netNodeUUID,
-			MachineUUID:        machinetesting.GenUUID(c),
-		})
-		netNodeUUIDs = append(netNodeUUIDs, netNodeUUID)
-	}
-
-	appUUID := s.createIAASApplication(c, "principal", life.Alive, args...)
-
-	unitUUIDs := s.getApplicationUnits(c, appUUID)
-	c.Assert(unitUUIDs, tc.HasLen, n)
-
-	return unitUUIDs, netNodeUUIDs
-}
-
-func (s *unitStateSubordinateSuite) TestAddIAASSubordinateUnit(c *tc.C) {
-	// Arrange:
-	pUnitUUID, netNodeUUID := s.createPrincipalUnit(c)
-
-	sAppID := s.createSubordinateApplication(c, "subordinate", life.Alive)
-
-	// Act:
-	sUnitName, machineNames, err := s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		NetNodeUUID:       netNodeUUID,
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: pUnitUUID.String(),
-	})
-
-	// Assert
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(sUnitName, tc.Equals, coreunittesting.GenNewName(c, "subordinate/0"))
-
-	sUnitUUID, err := s.state.GetUnitUUIDByName(c.Context(), sUnitName)
-	c.Assert(err, tc.ErrorIsNil)
-	s.assertUnitPrincipal(c, pUnitUUID, sUnitName)
-	s.assertUnitMachinesMatch(c, pUnitUUID, sUnitUUID)
-
-	c.Assert(machineNames, tc.HasLen, 1)
-	c.Check(machineNames[0], tc.Equals, coremachine.Name("0"))
-}
-
-// TestAddIAASSubordinateUnitSecondSubordinate tests that a second subordinate unit
-// can be added to an app with no issues.
-func (s *unitStateSubordinateSuite) TestAddIAASSubordinateUnitSecondSubordinate(c *tc.C) {
-	// Arrange: add subordinate application.
-	sAppID := s.createSubordinateApplication(c, "subordinate", life.Alive)
-	principalUUIDs, netNodeUUIDs := s.createNPrincipalUnits(c, 2)
-
-	_, _, err := s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		NetNodeUUID:       netNodeUUIDs[0],
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: principalUUIDs[0].String(),
-	})
-	c.Assert(err, tc.ErrorIsNil)
-
-	// Act: Add a second subordinate unit
-	sUnitName2, machineNames, err := s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		NetNodeUUID:       netNodeUUIDs[1],
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: principalUUIDs[1].String(),
-	})
-
-	// Assert
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(sUnitName2, tc.Equals, coreunittesting.GenNewName(c, "subordinate/1"))
-
-	sUnitUUID2, err := s.state.GetUnitUUIDByName(c.Context(), sUnitName2)
-	c.Assert(err, tc.ErrorIsNil)
-	s.assertUnitPrincipal(c, principalUUIDs[1], sUnitName2)
-	s.assertUnitMachinesMatch(c, principalUUIDs[1], sUnitUUID2)
-
-	c.Assert(machineNames, tc.HasLen, 1)
-	c.Check(machineNames[0], tc.Equals, coremachine.Name("1"))
-}
-
-func (s *unitStateSubordinateSuite) TestAddIAASSubordinateUnitTwiceToSameUnit(c *tc.C) {
-	// Arrange:
-	pUnitUUID, netNodeUUID := s.createPrincipalUnit(c)
-
-	sAppID := s.createSubordinateApplication(c, "subordinate", life.Alive)
-
-	// Arrange: Add the first subordinate.
-	_, _, err := s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		NetNodeUUID:       netNodeUUID,
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: pUnitUUID.String(),
-	})
-	c.Assert(err, tc.ErrorIsNil)
-
-	// Act: try adding a second subordinate to the same unit.
-	_, _, err = s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		NetNodeUUID:       netNodeUUID,
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: pUnitUUID.String(),
-	})
-
-	// Assert
-	c.Assert(err, tc.ErrorIs, applicationerrors.UnitAlreadyHasSubordinate)
-}
-
-func (s *unitStateSubordinateSuite) TestAddIAASSubordinateUnitWithoutMachine(c *tc.C) {
-	// Arrange:
-	pUnitName := coreunittesting.GenNewName(c, "foo/666")
-	pAppUUID := s.createIAASApplication(c, "principal", life.Alive)
-	pUnitUUID := s.addUnit(c, pUnitName, pAppUUID)
-
-	sAppID := s.createSubordinateApplication(c, "subordinate", life.Alive)
-
-	// Act:
-	_, _, err := s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: pUnitUUID.String(),
-	})
-
-	// Assert
-	c.Assert(err, tc.ErrorIs, applicationerrors.UnitMachineNotAssigned)
-}
-
-func (s *unitStateSubordinateSuite) TestAddIAASSubordinateUnitApplicationNotAlive(c *tc.C) {
-	// Arrange:§
-	pUnitUUID := coreunittesting.GenUnitUUID(c)
-
-	sAppID := s.createSubordinateApplication(c, "subordinate", life.Dying)
-
-	// Act:
-	_, _, err := s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: pUnitUUID.String(),
-	})
-
-	// Assert
-	c.Assert(err, tc.ErrorIs, applicationerrors.ApplicationNotAlive)
-}
-
-func (s *unitStateSubordinateSuite) TestAddIAASSubordinateUnitPrincipalNotFound(c *tc.C) {
-	// Arrange:
-	pUnitUUID := coreunittesting.GenUnitUUID(c)
-
-	sAppID := s.createSubordinateApplication(c, "subordinate", life.Alive)
-
-	// Act:
-	_, _, err := s.state.AddIAASSubordinateUnit(c.Context(), application.SubordinateUnitArg{
-		SubordinateAppID:  sAppID,
-		PrincipalUnitUUID: pUnitUUID.String(),
-	})
-
-	// Assert
-	c.Assert(err, tc.ErrorIs, applicationerrors.UnitNotFound)
+	s.state = NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 }
 
 func (s *unitStateSubordinateSuite) TestIsSubordinateApplication(c *tc.C) {
@@ -1879,28 +1662,6 @@ func (s *unitStateSubordinateSuite) TestGetUnitSubordinatesNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, applicationerrors.UnitNotFound)
 }
 
-func (s *unitStateSubordinateSuite) assertUnitMachinesMatch(c *tc.C, unit1, unit2 coreunit.UUID) {
-	m1 := s.getUnitMachine(c, unit1)
-	m2 := s.getUnitMachine(c, unit2)
-	c.Assert(m1, tc.Equals, m2)
-}
-
-func (s *unitStateSubordinateSuite) getUnitMachine(c *tc.C, unitUUID coreunit.UUID) string {
-	var machineUUID string
-	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-
-		err := tx.QueryRow(`
-SELECT machine.uuid
-FROM unit
-JOIN machine ON unit.net_node_uuid = machine.net_node_uuid
-WHERE unit.uuid = ?
-`, unitUUID).Scan(&machineUUID)
-		return err
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	return machineUUID
-}
-
 func (s *unitStateSubordinateSuite) addUnitPrincipal(c *tc.C, principal, sub coreunit.UUID) {
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.Exec(`
@@ -1913,7 +1674,7 @@ VALUES (?, ?)
 }
 
 func (s *unitStateSubordinateSuite) createSubordinateApplication(c *tc.C, name string, l life.Life) coreapplication.UUID {
-	state := NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	appID, machineNames, err := state.CreateIAASApplication(c.Context(), name, application.AddIAASApplicationArg{
 		BaseAddApplicationArg: application.BaseAddApplicationArg{

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Technical reference for Juju: APIs, specifications, CLI commands, architecture, and comprehensive documentation of all Juju components."
+---
+
 (reference)=
 # Reference
 

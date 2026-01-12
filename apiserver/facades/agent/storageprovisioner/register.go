@@ -25,6 +25,13 @@ func Register(registry facade.FacadeRegistry) {
 		func(stdCtx context.Context, ctx facade.ModelContext) (facade.Facade, error) {
 			return newFacadeV5(stdCtx, ctx)
 		},
+		reflect.TypeOf((*StorageProvisionerAPIv5)(nil)),
+	)
+	registry.MustRegister(
+		"StorageProvisioner", 6,
+		func(stdCtx context.Context, ctx facade.ModelContext) (facade.Facade, error) {
+			return newFacadeV6(stdCtx, ctx)
+		},
 		reflect.TypeOf((*StorageProvisionerAPI)(nil)),
 	)
 
@@ -42,8 +49,8 @@ func Register(registry facade.FacadeRegistry) {
 	)
 }
 
-// newFacadeV5 provides the signature required for facade registration.
-func newFacadeV5(stdCtx context.Context, ctx facade.ModelContext) (*StorageProvisionerAPI, error) {
+// newFacadeV6 provides the signature required for facade registration.
+func newFacadeV6(stdCtx context.Context, ctx facade.ModelContext) (*StorageProvisionerAPI, error) {
 	domainServices := ctx.DomainServices()
 
 	return NewStorageProvisionerAPI(
@@ -63,6 +70,28 @@ func newFacadeV5(stdCtx context.Context, ctx facade.ModelContext) (*StorageProvi
 	)
 }
 
+// newFacadeV5 provides the signature required for facade registration.
+func newFacadeV5(stdCtx context.Context, ctx facade.ModelContext) (*StorageProvisionerAPIv5, error) {
+	domainServices := ctx.DomainServices()
+
+	storageProvisionerAPI, err := NewStorageProvisionerAPI(
+		stdCtx,
+		ctx.WatcherRegistry(),
+		ctx.Clock(),
+		domainServices.BlockDevice(),
+		domainServices.Machine(),
+		domainServices.Application(),
+		domainServices.Removal(),
+		ctx.Auth(),
+		domainServices.Status(),
+		domainServices.StorageProvisioning(),
+		ctx.Logger().Child("storageprovisioner"),
+		ctx.ModelUUID(),
+		ctx.ControllerUUID(),
+	)
+	return &StorageProvisionerAPIv5{storageProvisionerAPI}, err
+}
+
 // newFacadeV4 provides the signature required for facade registration.
 func newFacadeV4(stdCtx context.Context, ctx facade.ModelContext) (*StorageProvisionerAPIv4, error) {
 	v5, err := newFacadeV5(stdCtx, ctx)
@@ -70,6 +99,6 @@ func newFacadeV4(stdCtx context.Context, ctx facade.ModelContext) (*StorageProvi
 		return nil, errors.Capture(err)
 	}
 	return &StorageProvisionerAPIv4{
-		StorageProvisionerAPI: v5,
+		StorageProvisionerAPIv5: v5,
 	}, nil
 }

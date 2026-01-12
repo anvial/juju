@@ -16,6 +16,43 @@ import (
 	"github.com/juju/juju/internal/errors"
 )
 
+// ImportPeerRelation establishes a peer relation on the endpoint passed as
+// argument. Used for migration import.
+func (st *State) ImportPeerRelation(
+	ctx context.Context,
+	epIdentifier corerelation.EndpointIdentifier,
+	id uint64,
+	scope charm.RelationScope,
+) (corerelation.UUID, error) {
+	var relUUID corerelation.UUID
+	db, err := st.DB(ctx)
+	if err != nil {
+		return relUUID, errors.Capture(err)
+	}
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		// Get endpoint uuid for the application.
+		endpointUUID, err := st.getApplicationEndpointUUID(ctx, tx, epIdentifier.ApplicationName, epIdentifier.EndpointName)
+		if err != nil {
+			return err
+		}
+
+		// Insert a new relation with a new relation UUID.
+		relUUID, err = st.insertNewRelation(ctx, tx, id, scope)
+		if err != nil {
+			return errors.Errorf("inserting new relation: %w", err)
+		}
+
+		// Insert relation_endpoint
+		if err := st.insertNewRelationEndpoint(ctx, tx, relUUID, endpointUUID); err != nil {
+			return errors.Errorf("inserting relation endpoint %q: %w", epIdentifier.String(), err)
+		}
+
+		return nil
+	})
+	return relUUID, errors.Capture(err)
+}
+
 // ImportRelation establishes a relation between two endpoints identified
 // by ep1 and ep2 and returns the relation UUID. Used for migration
 // import.
@@ -45,21 +82,16 @@ func (st *State) ImportRelation(
 		// Insert a new relation with a new relation UUID.
 		relUUID, err = st.insertNewRelation(ctx, tx, id, scope)
 		if err != nil {
-			return errors.Errorf("setting new relation: %s %s: %w", epIdentifier1, epIdentifier2, err)
-		}
-
-		// Insert relation status.
-		if err := st.insertNewRelationStatus(ctx, tx, relUUID); err != nil {
-			return errors.Errorf("setting new relation status: %s %s: %w", epIdentifier1, epIdentifier2, err)
+			return errors.Errorf("inserting new relation: %w", err)
 		}
 
 		// Insert both relation_endpoint from application_endpoint_uuid and relation
 		// uuid.
 		if err := st.insertNewRelationEndpoint(ctx, tx, relUUID, endpointUUID1); err != nil {
-			return errors.Errorf("setting new relation endpoint for %q: %w", epIdentifier1.String(), err)
+			return errors.Errorf("inserting relation endpoint %q: %w", epIdentifier1.String(), err)
 		}
 		if err := st.insertNewRelationEndpoint(ctx, tx, relUUID, endpointUUID2); err != nil {
-			return errors.Errorf("setting new relation endpoint for %q: %w", epIdentifier2.String(), err)
+			return errors.Errorf("inserting relation endpoint %q: %w", epIdentifier2.String(), err)
 		}
 
 		return nil

@@ -239,9 +239,11 @@ func (s *provisionerSuite) TestFilesystemProvisioningInfo(c *tc.C) {
 				Size:         1024,
 				Attributes:   map[string]interface{}{"storage-class": "fast"},
 				ResourceTags: map[string]string{"env": "prod"},
-				Attachment: &storage.KubernetesFilesystemAttachmentParams{
-					ReadOnly: false,
-					Path:     "/data",
+				Attachments: []storage.KubernetesFilesystemAttachmentParams{
+					{
+						ReadOnly: false,
+						Path:     "/data",
+					},
 				},
 			},
 		},

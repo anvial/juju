@@ -15,6 +15,7 @@ import (
 
 	"github.com/juju/juju/core/changestream"
 	corecharm "github.com/juju/juju/core/charm"
+	model "github.com/juju/juju/core/model"
 	coresecrets "github.com/juju/juju/core/secrets"
 	corestorage "github.com/juju/juju/core/storage"
 	"github.com/juju/juju/core/unit"
@@ -124,31 +125,15 @@ func (s *watcherSuite) TestWatchObsoleteForAppsAndUnitsOwned(c *tc.C) {
 	})
 
 	// We create a new revision 2, then the old revision 1 of each secret should become obsolete.
-	harness.AddTest(c, func(c *tc.C) {
-		createNewRevisions(c, st, uri1, uri2, uri3, uri4)
-	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(
-			watchertest.StringSliceAssert(
-				revID(uri1, 1),
-				revID(uri2, 1),
-				revID(uri3, 1),
-				revID(uri4, 1),
-			),
-		)
-	})
+	checkObsoleteSecretEvent(c, st, harness, uri1, ptr(1))
+	checkObsoleteSecretEvent(c, st, harness, uri2, ptr(1))
+	checkObsoleteSecretEvent(c, st, harness, uri3, ptr(1))
+	checkObsoleteSecretEvent(c, st, harness, uri4, ptr(1))
 
 	//  We create a new revision 3, then the old revision 2 of each secret should become obsolete.
-	harness.AddTest(c, func(c *tc.C) {
-		createNewRevisions(c, st, uri1, uri2, uri3)
-	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(
-			watchertest.StringSliceAssert(
-				revID(uri1, 2),
-				revID(uri2, 2),
-				revID(uri3, 2),
-			),
-		)
-	})
+	checkObsoleteSecretEvent(c, st, harness, uri1, ptr(2))
+	checkObsoleteSecretEvent(c, st, harness, uri2, ptr(2))
+	checkObsoleteSecretEvent(c, st, harness, uri3, ptr(2))
 
 	harness.Run(c, []string(nil))
 }
@@ -192,27 +177,14 @@ func (s *watcherSuite) TestWatchObsoleteForAppsOwned(c *tc.C) {
 
 	// We create a new revision 2, then the old revision 1 of each secret should become obsolete.
 	// We watch for the application owned secrets, so the unit owned secret uri2 should not be included.
-	harness.AddTest(c, func(c *tc.C) {
-		createNewRevisions(c, st, uri1, uri2)
-	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(
-			watchertest.StringSliceAssert(
-				revID(uri1, 1),
-			),
-		)
-	})
+	checkObsoleteSecretEvent(c, st, harness, uri1, ptr(1))
+	checkObsoleteSecretEvent(c, st, harness, uri2, nil)
 
 	// We create a new revision 3, then the old revision 2 of each secret should become obsolete.
 	// We watch for the application owned secrets, so the unit owned secret uri2 should not be included.
-	harness.AddTest(c, func(c *tc.C) {
-		createNewRevisions(c, st, uri1, uri2)
-	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(
-			watchertest.StringSliceAssert(
-				revID(uri1, 2),
-			),
-		)
-	})
+	checkObsoleteSecretEvent(c, st, harness, uri1, ptr(2))
+	checkObsoleteSecretEvent(c, st, harness, uri2, nil)
+
 	harness.Run(c, []string(nil))
 }
 
@@ -255,15 +227,8 @@ func (s *watcherSuite) TestWatchObsoleteForUnitsOwned(c *tc.C) {
 
 	// We create a new revision 2, then the old revision 1 of each secret should become obsolete.
 	// We watch for the unit owned secrets, so the application owned secret uri1 should not be included.
-	harness.AddTest(c, func(c *tc.C) {
-		createNewRevisions(c, st, uri1, uri2)
-	}, func(w watchertest.WatcherC[[]string]) {
-		w.Check(
-			watchertest.StringSliceAssert(
-				revID(uri2, 1),
-			),
-		)
-	})
+	checkObsoleteSecretEvent(c, st, harness, uri1, nil)
+	checkObsoleteSecretEvent(c, st, harness, uri2, ptr(1))
 
 	harness.Run(c, []string(nil))
 }
@@ -301,25 +266,15 @@ func (s *watcherSuite) TestWatchObsoleteUserSecretsToPrune(c *tc.C) {
 
 	// We create a new revision 2, then the old revision 1 of uri1 should become obsolete.
 	// There is no event has been fired because the auto prune is not turned on for uri1.
-	harness.AddTest(c, func(c *tc.C) {
-		createNewRevisions(c, st, uri1)
-	}, func(w watchertest.WatcherC[struct{}]) {
-		w.AssertNoChange()
-	})
+	checkObsoleteUserSecretToPruneEvent(c, st, harness, uri1, 0)
 
 	// We create a new revision 2, then the old revision 1 of uri2 should become obsolete.
 	// An event is fired because the auto prune is turned on for uri2.
-	harness.AddTest(c, func(c *tc.C) {
-		createNewRevisions(c, st, uri2)
-	}, func(w watchertest.WatcherC[struct{}]) {
-		w.AssertNChanges(2)
-	})
+	checkObsoleteUserSecretToPruneEvent(c, st, harness, uri2, 2)
 
 	harness.AddTest(c, func(c *tc.C) {
-		err = st.RunAtomic(c.Context(), func(ctx domain.AtomicContext) error {
-			return st.UpdateSecret(ctx, uri1, secret.UpsertSecretParams{
-				AutoPrune: ptr(true),
-			})
+		err = st.UpdateSecret(c.Context(), uri1, secret.UpsertSecretParams{
+			AutoPrune: ptr(true),
 		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[struct{}]) {
@@ -380,7 +335,7 @@ func (s *watcherSuite) TestWatchDeletedForAppOwnedSecret(c *tc.C) {
 		sp.RevisionID = ptr(uuid.MustNewUUID().String())
 		err = createCharmApplicationSecret(ctx, st, 1, uri2, "mysql", sp)
 		c.Assert(err, tc.ErrorIsNil)
-		createNewRevisions(c, st, uri2)
+		createNewRevision(c, st, uri2)
 
 		sp.RevisionID = ptr(uuid.MustNewUUID().String())
 		err = createCharmUnitSecret(ctx, st, 1, uri3, "mysql/0", sp)
@@ -390,23 +345,37 @@ func (s *watcherSuite) TestWatchDeletedForAppOwnedSecret(c *tc.C) {
 	})
 
 	harness.AddTest(c, func(c *tc.C) {
-		removeSecrets(c, ctx, st,
-			// Delete the application owned secret.
-			secretRev{uri: uri1},
-			// Delete an application owned revision.
-			secretRev{uri: uri2, revs: []int{1}},
-			// Delete the unit owned secret.
-			secretRev{uri: uri3},
-		)
+		// Delete the application owned secret.
+		err := st.DeleteSecret(ctx, uri1, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
 			watchertest.StringSliceAssert(
-				// We only receive the application owned secret events.
 				uri1.ID,
-				uri2.ID+"/1",
 			),
 		)
 	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete an application owned revision.
+		err := st.DeleteSecret(ctx, uri2, []int{1})
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert(
+				uri2.ID + "/1",
+			),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete the unit owned secret.
+		err := st.DeleteSecret(ctx, uri3, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.AssertNoChange()
+	})
+
 	harness.Run(c, []string(nil))
 }
 
@@ -440,32 +409,55 @@ func (s *watcherSuite) TestWatchDeletedSecretRemovesRevisionFromChangeSet(c *tc.
 		err := createCharmApplicationSecret(ctx, st, 1, uri1, "mysql", sp)
 		c.Assert(err, tc.ErrorIsNil)
 
-		// Create another app owned secret with an extra revision.
+		// Create another app owned secret with a few extra revisions.
 		sp.RevisionID = ptr(uuid.MustNewUUID().String())
 		err = createCharmApplicationSecret(ctx, st, 1, uri2, "mysql", sp)
 		c.Assert(err, tc.ErrorIsNil)
-		createNewRevisions(c, st, uri2)
+		createNewRevision(c, st, uri2)
+		createNewRevision(c, st, uri2)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.AssertNoChange()
 	})
 
 	harness.AddTest(c, func(c *tc.C) {
-		removeSecrets(c, ctx, st,
-			// Delete the application owned secret.
-			secretRev{uri: uri1},
-			// Delete an application owned revision.
-			secretRev{uri: uri2, revs: []int{1}},
-			// Delete the secret for the above revision.
-			secretRev{uri: uri2},
-		)
+		// Delete the application owned secret.
+		err := st.DeleteSecret(ctx, uri1, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
 			watchertest.StringSliceAssert(
 				uri1.ID,
+			),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete few application owned revisions.
+		err := st.DeleteSecret(ctx, uri2, []int{1, 3})
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert(
+				uri2.ID+"/1",
+				uri2.ID+"/3",
+			),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete the extra revision of the above secret
+		err := st.DeleteSecret(ctx, uri2, []int{2})
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert(
+				// the latest revision has been removed, so the whole secret is
+				// reported in event
 				uri2.ID,
 			),
 		)
 	})
+
 	harness.Run(c, []string(nil))
 }
 
@@ -508,16 +500,20 @@ func (s *watcherSuite) TestWatchDeletedForUnitsOwnedSecret(c *tc.C) {
 	})
 
 	harness.AddTest(c, func(c *tc.C) {
-		removeSecrets(c, ctx, st,
-			// Delete the application owned secret.
-			secretRev{uri: uri1},
-			// Delete the unit owned secret.
-			secretRev{uri: uri2},
-		)
+		// Delete the application owned secret.
+		err := st.DeleteSecret(ctx, uri1, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.AssertNoChange()
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Delete the unit owned secret.
+		err := st.DeleteSecret(ctx, uri2, nil)
+		tc.Assert(c, err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
 			watchertest.StringSliceAssert(
-				// We only receive the unit owned secret event.
 				uri2.ID,
 			),
 		)
@@ -578,7 +574,7 @@ func (s *watcherSuite) TestWatchConsumedSecretsChanges(c *tc.C) {
 	// A consumed secret change event of uri1 should be fired.
 	harness.AddTest(c, func(c *tc.C) {
 		// create revision 2.
-		createNewRevisions(c, st, uri1)
+		createNewRevision(c, st, uri1)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
 			watchertest.StringSliceAssert(
@@ -749,7 +745,7 @@ func (s *watcherSuite) TestWatchSecretsRotationChanges(c *tc.C) {
 		sp.RevisionID = ptr(uuid.MustNewUUID().String())
 		err = createCharmUnitSecret(ctx, st, 1, uri2, "mediawiki/0", sp)
 		c.Assert(err, tc.ErrorIsNil)
-		createNewRevisions(c, st, uri2)
+		createNewRevision(c, st, uri2)
 	}, func(w watchertest.WatcherC[[]corewatcher.SecretTriggerChange]) {
 		w.AssertNoChange()
 	})
@@ -867,12 +863,10 @@ func (s *watcherSuite) TestWatchSecretsRevisionExpiryChanges(c *tc.C) {
 		})
 		c.Assert(err, tc.ErrorIsNil)
 
-		err = st.RunAtomic(c.Context(), func(ctx domain.AtomicContext) error {
-			return st.UpdateSecret(ctx, uri2, secret.UpsertSecretParams{
-				Data:       coresecrets.SecretData{"foo-new": "bar-new"},
-				ExpireTime: ptr(now.Add(2 * time.Hour)),
-				RevisionID: ptr(uuid.MustNewUUID().String()),
-			})
+		err = st.UpdateSecret(c.Context(), uri2, secret.UpsertSecretParams{
+			Data:       coresecrets.SecretData{"foo-new": "bar-new"},
+			ExpireTime: ptr(now.Add(2 * time.Hour)),
+			RevisionID: ptr(uuid.MustNewUUID().String()),
 		})
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]corewatcher.SecretTriggerChange]) {
@@ -932,7 +926,7 @@ func (s *watcherSuite) TestWatchSecretsRevisionExpiryChanges(c *tc.C) {
 
 func (s *watcherSuite) setupUnits(c *tc.C, appName string) string {
 	logger := loggertesting.WrapCheckLog(c)
-	st := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, logger)
+	st := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, logger)
 	storageProviderRegistryGetter := corestorage.ConstModelStorageRegistry(
 		func() internalstorage.ProviderRegistry {
 			return internalstorage.NotImplementedProviderRegistry{}
@@ -959,6 +953,7 @@ func (s *watcherSuite) setupUnits(c *tc.C, appName string) string {
 		},
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		model.UUID(s.ModelUUID()),
 		clock.WallClock,
 		logger,
 	)
@@ -1003,21 +998,47 @@ func revID(uri *coresecrets.URI, rev int) string {
 	return fmt.Sprintf("%s/%d", uri.ID, rev)
 }
 
-func createNewRevisions(c *tc.C, st *state.State, uris ...*coresecrets.URI) {
-	err := st.RunAtomic(c.Context(), func(ctx domain.AtomicContext) error {
-		for _, uri := range uris {
-			sp := secret.UpsertSecretParams{
-				Data:       coresecrets.SecretData{"foo-new": "bar-new"},
-				RevisionID: ptr(uuid.MustNewUUID().String()),
-			}
-			err := st.UpdateSecret(ctx, uri, sp)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+func createNewRevision(c *tc.C, st *state.State, uri *coresecrets.URI) {
+	sp := secret.UpsertSecretParams{
+		Data:       coresecrets.SecretData{"foo-new": "bar-new"},
+		RevisionID: ptr(uuid.MustNewUUID().String()),
+	}
+	err := st.UpdateSecret(c.Context(), uri, sp)
 	c.Assert(err, tc.ErrorIsNil)
+}
+
+func checkObsoleteSecretEvent(c *tc.C, st *state.State, harness *watchertest.Harness[[]string], uri *coresecrets.URI, rev *int) {
+	harness.AddTest(c, func(c *tc.C) {
+		createNewRevision(c, st, uri)
+	}, func(w watchertest.WatcherC[[]string]) {
+		if rev != nil {
+			w.Check(
+				watchertest.StringSliceAssert(
+					revID(uri, *rev),
+				),
+			)
+		} else {
+			w.AssertNoChange()
+		}
+	})
+}
+
+func checkObsoleteUserSecretToPruneEvent(c *tc.C, st *state.State, harness *watchertest.Harness[struct{}],
+	uri *coresecrets.URI, changeCount int) {
+	harness.AddTest(c, func(c *tc.C) {
+		sp := secret.UpsertSecretParams{
+			Data:       coresecrets.SecretData{"foo-new": "bar-new"},
+			RevisionID: ptr(uuid.MustNewUUID().String()),
+		}
+		err := st.UpdateSecret(c.Context(), uri, sp)
+		c.Assert(err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[struct{}]) {
+		if changeCount > 0 {
+			w.AssertNChanges(changeCount)
+		} else {
+			w.AssertNoChange()
+		}
+	})
 }
 
 func createUserSecret(ctx context.Context, st *state.State, version int, uri *coresecrets.URI, secret secret.UpsertSecretParams) error {
@@ -1044,23 +1065,6 @@ func createCharmUnitSecret(ctx context.Context, st *state.State, version int, ur
 		}
 		return st.CreateCharmUnitSecret(ctx, version, uri, unitUUID, secret)
 	})
-}
-
-type secretRev struct {
-	uri  *coresecrets.URI
-	revs []int
-}
-
-func removeSecrets(c *tc.C, ctx context.Context, st *state.State, secrets ...secretRev) {
-	err := st.RunAtomic(ctx, func(ctx domain.AtomicContext) error {
-		for _, sr := range secrets {
-			if err := st.DeleteSecret(ctx, sr.uri, sr.revs); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	c.Assert(err, tc.ErrorIsNil)
 }
 
 type stubCharm struct{}

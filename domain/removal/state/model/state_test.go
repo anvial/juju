@@ -215,7 +215,7 @@ func (s *baseSuite) setupApplicationService(c *tc.C) *applicationservice.Provide
 			return internalstorage.NotImplementedProviderRegistry{}
 		},
 	)
-	state := applicationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c))
+	state := applicationstate.NewState(modelDB, coremodel.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 	storageSvc := applicationstorageservice.NewService(
 		state,
 		applicationstorageservice.NewStoragePoolProvider(
@@ -225,7 +225,7 @@ func (s *baseSuite) setupApplicationService(c *tc.C) *applicationservice.Provide
 	)
 
 	return applicationservice.NewProviderService(
-		applicationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c)),
+		applicationstate.NewState(modelDB, coremodel.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c)),
 		storageSvc,
 		domaintesting.NoopLeaderEnsurer(),
 		nil,
@@ -233,6 +233,7 @@ func (s *baseSuite) setupApplicationService(c *tc.C) *applicationservice.Provide
 		caasProviderGetter,
 		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
+		coremodel.UUID(s.ModelUUID()),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -244,7 +245,8 @@ func (s *baseSuite) setupRelationService(c *tc.C) *relationservice.Service {
 	}
 
 	return relationservice.NewService(
-		relationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c)),
+		relationstate.NewState(modelDB, clock.WallClock, loggertesting.WrapCheckLog(c), nil),
+		nil,
 		loggertesting.WrapCheckLog(c),
 	)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/juju/tc"
 
 	coremachine "github.com/juju/juju/core/machine"
+	"github.com/juju/juju/core/model"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/application/architecture"
@@ -455,7 +456,7 @@ func (s *stateSuite) TestClearResolvedNoHooks(c *tc.C) {
 }
 
 func (s *stateSuite) createApplication(c *tc.C, name string, units ...application.AddIAASUnitArg) []coreunit.UUID {
-	appState := applicationstate.NewState(s.TxnRunnerFactory(), clock.WallClock, loggertesting.WrapCheckLog(c))
+	appState := applicationstate.NewState(s.TxnRunnerFactory(), model.UUID(s.ModelUUID()), clock.WallClock, loggertesting.WrapCheckLog(c))
 
 	platform := deployment.Platform{
 		Channel:      "22.04/stable",

@@ -756,6 +756,7 @@ func (s *modelOfferSuite) setupForGetOfferDetails(c *tc.C) []*crossmodelrelation
 		Role:      charm.RoleProvider,
 		Interface: "db",
 		Scope:     charm.ScopeGlobal,
+		Limit:     4,
 	}
 	relationUUID := s.addCharmRelation(c, charmUUID, relation)
 
@@ -796,6 +797,7 @@ func (s *modelOfferSuite) setupForGetOfferDetails(c *tc.C) []*crossmodelrelation
 					Name:      relation.Name,
 					Role:      domaincharm.RoleProvider,
 					Interface: relation.Interface,
+					Limit:     relation.Limit,
 				},
 			},
 			TotalConnections:       2,

@@ -8,7 +8,6 @@ import (
 
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
-	"github.com/juju/juju/core/objectstore"
 	corestorage "github.com/juju/juju/core/storage"
 	access "github.com/juju/juju/domain/access/modelmigration"
 	agentpassword "github.com/juju/juju/domain/agentpassword/modelmigration"
@@ -51,7 +50,6 @@ func ImportOperations(
 	coordinator Coordinator,
 	modelDefaultsProvider modelconfigservice.ModelDefaultsProvider,
 	storageRegistryGetter corestorage.ModelStorageRegistryGetter,
-	objectStoreGetter objectstore.ModelObjectStoreGetter,
 	clock clock.Clock,
 	logger logger.Logger,
 ) {
@@ -66,7 +64,7 @@ func ImportOperations(
 	lease.RegisterImport(coordinator, logger.Child("lease"))
 	externalcontroller.RegisterImport(coordinator)
 	credential.RegisterImport(coordinator, logger.Child("credential"))
-	model.RegisterImport(coordinator, logger.Child("model"))
+	model.RegisterModelImport(coordinator, logger.Child("model"))
 
 	// Domain services is available for all the following services, but only
 	// after the model has been imported and activated.
@@ -92,8 +90,8 @@ func ImportOperations(
 	storage.RegisterImport(coordinator, storageRegistryGetter, logger.Child("storage"))
 	secret.RegisterImport(coordinator, logger.Child("secret"))
 	cloudimagemetadata.RegisterImport(coordinator, logger.Child("cloudimagemetadata"), clock)
-	unitstate.RegisterImport(coordinator)
-	operation.RegisterImport(coordinator, objectStoreGetter, clock, logger.Child("operation"))
+	unitstate.RegisterImport(coordinator, logger.Child("unitstate"))
+	operation.RegisterImport(coordinator, clock, logger.Child("operation"))
 
 	// model agent must come after machine and unit
 	modelagent.RegisterImport(coordinator, logger.Child("modelagent"))
@@ -102,4 +100,8 @@ func ImportOperations(
 	// any block commands from being executed before all the other operations
 	// have been completed.
 	blockcommand.RegisterImport(coordinator, logger.Child("blockcommand"))
+
+	// Finally, we need to activate the model after all other operations
+	// have been completed.
+	model.RegisterModelActivationImport(coordinator, logger.Child("model"))
 }

@@ -114,6 +114,7 @@ type filesystemAttachmentParams struct {
 	CharmStorageCountMax           int              `db:"charm_storage_count_max"`
 	CharmStorageLocation           sql.Null[string] `db:"charm_storage_location"`
 	CharmStorageReadOnly           sql.Null[bool]   `db:"charm_storage_read_only"`
+	CAASInstanceID                 sql.Null[string] `db:"caas_instance_id"`
 	MachineInstanceID              sql.Null[string] `db:"machine_instance_id"`
 	MountPoint                     sql.Null[string] `db:"mount_point"`
 	FilesystemProviderID           sql.Null[string] `db:"filesystem_provider_id"`
@@ -438,4 +439,11 @@ type storageAttachmentInfo struct {
 	Life                  life.Life `db:"life_id"`
 	FilesystemMountPoint  string    `db:"mount_point"`
 	BlockDeviceUUID       string    `db:"block_device_uuid"`
+}
+
+// containerMount represents the charm container mount from the database.
+type containerMount struct {
+	CharmContainerKey string `db:"charm_container_key"`
+	Storage           string `db:"storage"`
+	Location          string `db:"location"`
 }

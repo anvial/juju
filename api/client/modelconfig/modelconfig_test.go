@@ -14,7 +14,7 @@ import (
 	basemocks "github.com/juju/juju/api/base/mocks"
 	"github.com/juju/juju/api/client/modelconfig"
 	"github.com/juju/juju/core/constraints"
-	modeltesting "github.com/juju/juju/core/model/testing"
+	coremodel "github.com/juju/juju/core/model"
 	modelerrors "github.com/juju/juju/domain/model/errors"
 	secretbackenderrors "github.com/juju/juju/domain/secretbackend/errors"
 	"github.com/juju/juju/environs/config"
@@ -35,7 +35,7 @@ func (s *modelconfigSuite) TestModelGet(c *tc.C) {
 	res := new(params.ModelConfigResults)
 	results := params.ModelConfigResults{
 		Config: map[string]params.ConfigValue{
-			"foo": {"bar", "model"},
+			"foo": {Value: "bar", Source: "model"},
 		},
 	}
 	mockFacadeCaller := basemocks.NewMockFacadeCaller(ctrl)
@@ -56,7 +56,7 @@ func (s *modelconfigSuite) TestModelGetWithMetadata(c *tc.C) {
 	res := new(params.ModelConfigResults)
 	results := params.ModelConfigResults{
 		Config: map[string]params.ConfigValue{
-			"foo": {"bar", "model"},
+			"foo": {Value: "bar", Source: "model"},
 		},
 	}
 	mockFacadeCaller := basemocks.NewMockFacadeCaller(ctrl)
@@ -65,7 +65,7 @@ func (s *modelconfigSuite) TestModelGetWithMetadata(c *tc.C) {
 	result, err := client.ModelGetWithMetadata(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(result, tc.DeepEquals, config.ConfigValues{
-		"foo": {"bar", "model"},
+		"foo": {Value: "bar", Source: "model"},
 	})
 }
 
@@ -170,7 +170,7 @@ func (s *modelconfigSuite) TestGetModelSecretBackendModelNotFound(c *tc.C) {
 	ctrl := gomock.NewController(c)
 	defer ctrl.Finish()
 
-	modelID := modeltesting.GenModelUUID(c)
+	modelID := tc.Must(c, coremodel.NewUUID)
 	mockFacadeCaller := basemocks.NewMockFacadeCaller(ctrl)
 	mockFacadeCaller.EXPECT().BestAPIVersion().Return(4)
 	results := params.StringResult{
@@ -231,7 +231,7 @@ func (s *modelconfigSuite) TestSetModelSecretBackend(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 }
 
-func (s *modelconfigSuite) TestSetModelSecretBackendFaildBackendNotFound(c *tc.C) {
+func (s *modelconfigSuite) TestSetModelSecretBackendFailedBackendNotFound(c *tc.C) {
 	ctrl := gomock.NewController(c)
 	defer ctrl.Finish()
 
@@ -250,7 +250,7 @@ func (s *modelconfigSuite) TestSetModelSecretBackendFaildBackendNotFound(c *tc.C
 	c.Assert(err, tc.ErrorIs, secretbackenderrors.NotFound)
 }
 
-func (s *modelconfigSuite) TestSetModelSecretBackendFaildBackendNotValid(c *tc.C) {
+func (s *modelconfigSuite) TestSetModelSecretBackendFailedBackendNotValid(c *tc.C) {
 	ctrl := gomock.NewController(c)
 	defer ctrl.Finish()
 
@@ -269,11 +269,11 @@ func (s *modelconfigSuite) TestSetModelSecretBackendFaildBackendNotValid(c *tc.C
 	c.Assert(err, tc.ErrorIs, secretbackenderrors.NotValid)
 }
 
-func (s *modelconfigSuite) TestSetModelSecretBackendFaildModelNotFound(c *tc.C) {
+func (s *modelconfigSuite) TestSetModelSecretBackendFailedModelNotFound(c *tc.C) {
 	ctrl := gomock.NewController(c)
 	defer ctrl.Finish()
 
-	modelID := modeltesting.GenModelUUID(c)
+	modelID := tc.Must(c, coremodel.NewUUID)
 	mockFacadeCaller := basemocks.NewMockFacadeCaller(ctrl)
 	mockFacadeCaller.EXPECT().BestAPIVersion().Return(4)
 	results := params.ErrorResult{

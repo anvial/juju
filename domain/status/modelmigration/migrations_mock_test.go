@@ -118,6 +118,158 @@ func (c *MockImportServiceSetApplicationStatusCall) DoAndReturn(f func(context.C
 	return c
 }
 
+// SetFilesystemStatus mocks base method.
+func (m *MockImportService) SetFilesystemStatus(arg0 context.Context, arg1 string, arg2 status.StatusInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetFilesystemStatus", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetFilesystemStatus indicates an expected call of SetFilesystemStatus.
+func (mr *MockImportServiceMockRecorder) SetFilesystemStatus(arg0, arg1, arg2 any) *MockImportServiceSetFilesystemStatusCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFilesystemStatus", reflect.TypeOf((*MockImportService)(nil).SetFilesystemStatus), arg0, arg1, arg2)
+	return &MockImportServiceSetFilesystemStatusCall{Call: call}
+}
+
+// MockImportServiceSetFilesystemStatusCall wrap *gomock.Call
+type MockImportServiceSetFilesystemStatusCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockImportServiceSetFilesystemStatusCall) Return(arg0 error) *MockImportServiceSetFilesystemStatusCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockImportServiceSetFilesystemStatusCall) Do(f func(context.Context, string, status.StatusInfo) error) *MockImportServiceSetFilesystemStatusCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockImportServiceSetFilesystemStatusCall) DoAndReturn(f func(context.Context, string, status.StatusInfo) error) *MockImportServiceSetFilesystemStatusCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetInstanceStatus mocks base method.
+func (m *MockImportService) SetInstanceStatus(arg0 context.Context, arg1 machine.Name, arg2 status.StatusInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetInstanceStatus", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetInstanceStatus indicates an expected call of SetInstanceStatus.
+func (mr *MockImportServiceMockRecorder) SetInstanceStatus(arg0, arg1, arg2 any) *MockImportServiceSetInstanceStatusCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceStatus", reflect.TypeOf((*MockImportService)(nil).SetInstanceStatus), arg0, arg1, arg2)
+	return &MockImportServiceSetInstanceStatusCall{Call: call}
+}
+
+// MockImportServiceSetInstanceStatusCall wrap *gomock.Call
+type MockImportServiceSetInstanceStatusCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockImportServiceSetInstanceStatusCall) Return(arg0 error) *MockImportServiceSetInstanceStatusCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockImportServiceSetInstanceStatusCall) Do(f func(context.Context, machine.Name, status.StatusInfo) error) *MockImportServiceSetInstanceStatusCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockImportServiceSetInstanceStatusCall) DoAndReturn(f func(context.Context, machine.Name, status.StatusInfo) error) *MockImportServiceSetInstanceStatusCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetMachineStatus mocks base method.
+func (m *MockImportService) SetMachineStatus(arg0 context.Context, arg1 machine.Name, arg2 status.StatusInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMachineStatus", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetMachineStatus indicates an expected call of SetMachineStatus.
+func (mr *MockImportServiceMockRecorder) SetMachineStatus(arg0, arg1, arg2 any) *MockImportServiceSetMachineStatusCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMachineStatus", reflect.TypeOf((*MockImportService)(nil).SetMachineStatus), arg0, arg1, arg2)
+	return &MockImportServiceSetMachineStatusCall{Call: call}
+}
+
+// MockImportServiceSetMachineStatusCall wrap *gomock.Call
+type MockImportServiceSetMachineStatusCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockImportServiceSetMachineStatusCall) Return(arg0 error) *MockImportServiceSetMachineStatusCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockImportServiceSetMachineStatusCall) Do(f func(context.Context, machine.Name, status.StatusInfo) error) *MockImportServiceSetMachineStatusCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockImportServiceSetMachineStatusCall) DoAndReturn(f func(context.Context, machine.Name, status.StatusInfo) error) *MockImportServiceSetMachineStatusCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetRemoteApplicationOffererStatus mocks base method.
+func (m *MockImportService) SetRemoteApplicationOffererStatus(arg0 context.Context, arg1 string, arg2 status.StatusInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetRemoteApplicationOffererStatus", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetRemoteApplicationOffererStatus indicates an expected call of SetRemoteApplicationOffererStatus.
+func (mr *MockImportServiceMockRecorder) SetRemoteApplicationOffererStatus(arg0, arg1, arg2 any) *MockImportServiceSetRemoteApplicationOffererStatusCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRemoteApplicationOffererStatus", reflect.TypeOf((*MockImportService)(nil).SetRemoteApplicationOffererStatus), arg0, arg1, arg2)
+	return &MockImportServiceSetRemoteApplicationOffererStatusCall{Call: call}
+}
+
+// MockImportServiceSetRemoteApplicationOffererStatusCall wrap *gomock.Call
+type MockImportServiceSetRemoteApplicationOffererStatusCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockImportServiceSetRemoteApplicationOffererStatusCall) Return(arg0 error) *MockImportServiceSetRemoteApplicationOffererStatusCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockImportServiceSetRemoteApplicationOffererStatusCall) Do(f func(context.Context, string, status.StatusInfo) error) *MockImportServiceSetRemoteApplicationOffererStatusCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockImportServiceSetRemoteApplicationOffererStatusCall) DoAndReturn(f func(context.Context, string, status.StatusInfo) error) *MockImportServiceSetRemoteApplicationOffererStatusCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetUnitAgentStatus mocks base method.
 func (m *MockImportService) SetUnitAgentStatus(arg0 context.Context, arg1 unit.Name, arg2 status.StatusInfo) error {
 	m.ctrl.T.Helper()
@@ -190,6 +342,44 @@ func (c *MockImportServiceSetUnitWorkloadStatusCall) Do(f func(context.Context, 
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockImportServiceSetUnitWorkloadStatusCall) DoAndReturn(f func(context.Context, unit.Name, status.StatusInfo) error) *MockImportServiceSetUnitWorkloadStatusCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetVolumeStatus mocks base method.
+func (m *MockImportService) SetVolumeStatus(arg0 context.Context, arg1 string, arg2 status.StatusInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetVolumeStatus", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetVolumeStatus indicates an expected call of SetVolumeStatus.
+func (mr *MockImportServiceMockRecorder) SetVolumeStatus(arg0, arg1, arg2 any) *MockImportServiceSetVolumeStatusCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVolumeStatus", reflect.TypeOf((*MockImportService)(nil).SetVolumeStatus), arg0, arg1, arg2)
+	return &MockImportServiceSetVolumeStatusCall{Call: call}
+}
+
+// MockImportServiceSetVolumeStatusCall wrap *gomock.Call
+type MockImportServiceSetVolumeStatusCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockImportServiceSetVolumeStatusCall) Return(arg0 error) *MockImportServiceSetVolumeStatusCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockImportServiceSetVolumeStatusCall) Do(f func(context.Context, string, status.StatusInfo) error) *MockImportServiceSetVolumeStatusCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockImportServiceSetVolumeStatusCall) DoAndReturn(f func(context.Context, string, status.StatusInfo) error) *MockImportServiceSetVolumeStatusCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/juju/tc"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	coreapplication "github.com/juju/juju/core/application"
 	corerelation "github.com/juju/juju/core/relation"
@@ -15,6 +15,7 @@ import (
 	coreunit "github.com/juju/juju/core/unit"
 	coreunittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/domain/relation"
+	"github.com/juju/juju/domain/relation/internal"
 	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/testhelpers"
@@ -77,7 +78,7 @@ func (s *migrationServiceSuite) TestImportRelations(c *tc.C) {
 			},
 		},
 	}
-	peerRelUUID := s.expectGetPeerRelationUUIDByEndpointIdentifiers(c, ep1[0])
+	peerRelUUID := s.expectImportPeerRelation(c, ep1[0], uint64(7), charm.ScopeContainer)
 	relUUID := s.expectImportRelation(c, ep2[0], ep2[1], uint64(8), charm.ScopeGlobal)
 	app1ID := s.expectGetApplicationUUIDByName(c, args[0].Endpoints[0].ApplicationName)
 	app2ID := s.expectGetApplicationUUIDByName(c, args[1].Endpoints[0].ApplicationName)
@@ -157,12 +158,14 @@ func (s *migrationServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 	return ctrl
 }
 
-func (s *migrationServiceSuite) expectGetPeerRelationUUIDByEndpointIdentifiers(
+func (s *migrationServiceSuite) expectImportPeerRelation(
 	c *tc.C,
 	endpoint corerelation.EndpointIdentifier,
+	id uint64,
+	scope charm.RelationScope,
 ) corerelation.UUID {
 	relUUID := corerelationtesting.GenRelationUUID(c)
-	s.state.EXPECT().GetPeerRelationUUIDByEndpointIdentifiers(gomock.Any(), endpoint).Return(relUUID, nil)
+	s.state.EXPECT().ImportPeerRelation(gomock.Any(), endpoint, id, scope).Return(relUUID, nil)
 	return relUUID
 }
 
@@ -198,5 +201,6 @@ func (s *migrationServiceSuite) expectEnterScope(
 	settings map[string]interface{},
 ) {
 	unitSettings, _ := settingsMap(settings)
-	s.state.EXPECT().EnterScope(gomock.Any(), uuid, name, unitSettings).Return(nil)
+	data := internal.SubordinateUnitStatusHistoryData{}
+	s.state.EXPECT().EnterScope(gomock.Any(), uuid, name, unitSettings).Return(data, nil)
 }

@@ -277,27 +277,46 @@ func appAlive(ctx context.Context, appName string, appUUID coreapplication.UUID,
 	}
 
 	storageUniqueID := getStorageUniqueID(appUUID)
-	filesystems := []internalstorage.KubernetesFilesystemParams{}
-	for _, fst := range pi.FilesystemTemplates {
-		for _, attachment := range fst.Attachments {
-			fsp := internalstorage.KubernetesFilesystemParams{
-				StorageName: fst.StorageName,
-				Size:        fst.SizeMiB,
-				Provider:    internalstorage.ProviderType(fst.ProviderType),
-				Attributes: transform.Map(fst.Attributes, func(k, v string) (string, any) {
-					return k, v
-				}),
-				Attachment: &internalstorage.KubernetesFilesystemAttachmentParams{
-					ReadOnly: attachment.ReadOnly,
-					Path:     attachment.MountPoint,
-				},
-				ResourceTags: pi.StorageResourceTags,
+
+	makeKubernetesFilesystemParams := func(
+		fst storageprovisioning.FilesystemTemplate,
+		attachments []storageprovisioning.FilesystemAttachmentTemplate,
+		forWorkload bool,
+	) internalstorage.KubernetesFilesystemParams {
+		k8sFileSystemParamAttachments := make(
+			[]internalstorage.KubernetesFilesystemAttachmentParams,
+			len(attachments),
+		)
+
+		for i, attachment := range attachments {
+			k8sFileSystemParamAttachments[i] = internalstorage.KubernetesFilesystemAttachmentParams{
+				ReadOnly:      attachment.ReadOnly,
+				Path:          attachment.MountPoint,
+				ContainerName: attachment.ContainerKey,
 			}
-			filesystems = append(filesystems, fsp)
+		}
+
+		return internalstorage.KubernetesFilesystemParams{
+			StorageName: fst.StorageName,
+			Size:        fst.SizeMiB,
+			Provider:    internalstorage.ProviderType(fst.ProviderType),
+			Attributes: transform.Map(fst.Attributes, func(k, v string) (string, any) {
+				return k, v
+			}),
+			Attachments:  k8sFileSystemParamAttachments,
+			ResourceTags: pi.StorageResourceTags,
 		}
 	}
 
-	// TODO(sidecar): container.Mounts[*].Path <= consolidate? => provisionInfo.Filesystems[*].Attachment.Path
+	filesystems := []internalstorage.KubernetesFilesystemParams{}
+	for _, fst := range pi.FilesystemTemplates {
+		filesystems = append(filesystems, makeKubernetesFilesystemParams(
+			fst,
+			fst.Attachments,
+			false,
+		))
+	}
+
 	config := caas.ApplicationConfig{
 		IsPrivateImageRepo:   pi.ImageDetails.IsPrivate(),
 		IntroductionSecret:   password,
@@ -443,7 +462,7 @@ func updateState(
 			return nil, errors.Trace(err)
 		}
 		now := clk.Now()
-		err = statusService.SetApplicationStatus(ctx, appName, status.StatusInfo{
+		err = statusService.SetOperatorStatus(ctx, appName, status.StatusInfo{
 			Status:  svc.Status.Status,
 			Message: svc.Status.Message,
 			Data:    svc.Status.Data,
@@ -788,7 +807,7 @@ func setApplicationStatus(
 ) error {
 	logger.Tracef(ctx, "updating application %q status to %q, %q, %v", appName, s, reason, data)
 	now := clk.Now()
-	return statusService.SetApplicationStatus(ctx, appName, status.StatusInfo{
+	return statusService.SetOperatorStatus(ctx, appName, status.StatusInfo{
 		Status:  s,
 		Message: reason,
 		Data:    data,

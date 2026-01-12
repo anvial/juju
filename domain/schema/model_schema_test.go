@@ -51,7 +51,7 @@ func (s *modelSchemaSuite) TestCheckNoUnusedPostPatchFiles(c *tc.C) {
 	}
 
 	unused := embeddedPatches.Difference(encodedPatches)
-	c.Assert(unused.Size(), tc.Equals, 0, tc.Commentf("unused post-patch files: %v", unused.SortedValues()))
+	c.Assert(unused.Size(), tc.Equals, 0, tc.Commentf("update modelPostPatchFilesByVersion, unused post-patch files: %v", unused.SortedValues()))
 }
 
 func (s *modelSchemaSuite) TestApplyDDLIdempotent(c *tc.C) {
@@ -97,10 +97,11 @@ func (s *modelSchemaSuite) TestModelTables(c *tc.C) {
 		"application_setting",
 		"application_status",
 		"application_workload_version",
-		"k8s_service",
-		"workload_status_value",
-		"device_constraint",
 		"device_constraint_attribute",
+		"device_constraint",
+		"k8s_service",
+		"operator_status",
+		"workload_status_value",
 
 		// Annotations
 		"annotation_application",
@@ -138,6 +139,7 @@ func (s *modelSchemaSuite) TestModelTables(c *tc.C) {
 		// Model config
 		"model_config",
 		"model_constraint",
+		"model_migrating",
 
 		// Object store metadata
 		"object_store_metadata",
@@ -459,6 +461,8 @@ func (s *modelSchemaSuite) TestModelViews(c *tc.C) {
 		"v_full_unit_status",
 		"v_agent_binary_store",
 		"v_all_unit_address",
+		"v_secret_metadata",
+		"v_secret_owner",
 	)
 	got := readEntityNames(c, s.DB(), "view")
 	c.Assert(got, tc.SameContents, expected.SortedValues(), tc.Commentf(

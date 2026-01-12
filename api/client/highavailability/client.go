@@ -9,6 +9,7 @@ import (
 	"github.com/juju/errors"
 
 	"github.com/juju/juju/api/base"
+	apiservererrors "github.com/juju/juju/apiserver/errors"
 	"github.com/juju/juju/rpc/params"
 )
 
@@ -41,16 +42,19 @@ func (c *Client) ControllerDetails(ctx context.Context) (map[string]ControllerDe
 	if c.BestAPIVersion() < 3 {
 		return nil, errors.NotImplemented
 	}
+
 	var details params.ControllerDetailsResults
 	err := c.facade.FacadeCall(ctx, "ControllerDetails", nil, &details)
-	if err != nil {
-		return nil, err
+	if params.IsCodeNotSupported(err) {
+		return nil, errors.NotSupported
+	} else if err != nil {
+		return nil, apiservererrors.RestoreError(err)
 	}
 
 	result := make(map[string]ControllerDetails)
 	for _, r := range details.Results {
 		if r.Error != nil {
-			return nil, r.Error
+			return nil, apiservererrors.RestoreError(r.Error)
 		}
 		result[r.ControllerId] = ControllerDetails{
 			ControllerID: r.ControllerId,

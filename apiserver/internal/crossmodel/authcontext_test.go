@@ -18,7 +18,6 @@ import (
 	crossmodelbakery "github.com/juju/juju/apiserver/internal/crossmodel/bakery"
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	"github.com/juju/juju/core/permission"
 	"github.com/juju/juju/core/relation"
 	usertesting "github.com/juju/juju/core/user/testing"
@@ -410,7 +409,7 @@ func (s *authSuite) setupMocks(c *tc.C) *gomock.Controller {
 	s.keyPair = bakery.MustGenerateKey()
 
 	s.controllerUUID = uuid.MustNewUUID().String()
-	s.modelUUID = modeltesting.GenModelUUID(c)
+	s.modelUUID = tc.Must0(c, model.NewUUID)
 
 	c.Cleanup(func() {
 		s.clock = nil

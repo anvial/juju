@@ -147,6 +147,7 @@ func (s *controllerSchemaSuite) TestControllerTables(c *tc.C) {
 		"model_migration_user",
 		"model_migration_minion_sync",
 		"model_authorized_keys",
+		"model_migration_import",
 
 		// Upgrade info
 		"upgrade_info",

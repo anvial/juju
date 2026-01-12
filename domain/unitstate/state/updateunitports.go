@@ -11,7 +11,6 @@ import (
 	"github.com/juju/collections/transform"
 
 	"github.com/juju/juju/core/network"
-	coreunit "github.com/juju/juju/core/unit"
 	porterrors "github.com/juju/juju/domain/port/errors"
 	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/uuid"
@@ -20,54 +19,50 @@ import (
 // UpdateUnitPorts opens and closes ports for the endpoints of a given unit.
 // The service layer must ensure that opened and closed ports for the same
 // endpoints must not conflict.
-func (st *State) UpdateUnitPorts(
-	ctx context.Context, unit coreunit.UUID, openPorts, closePorts network.GroupedPortRanges,
+func (st *State) updateUnitPorts(
+	ctx context.Context, tx *sqlair.TX, unit string, openPorts, closePorts network.GroupedPortRanges,
 ) error {
-	db, err := st.DB(ctx)
-	if err != nil {
-		return errors.Capture(err)
+	if len(openPorts)+len(closePorts) == 0 {
+		return nil
 	}
-
 	unitUUID := unitUUID{UUID: unit}
 
-	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		openPorts, closePorts, err := st.resolveWildcardEndpoints(ctx, tx, unitUUID, openPorts, closePorts)
-		if err != nil {
-			return errors.Errorf("resolving wildcard endpoints: %w", err)
-		}
+	openPorts, closePorts, err := st.resolveWildcardEndpoints(ctx, tx, unitUUID, openPorts, closePorts)
+	if err != nil {
+		return errors.Errorf("resolving wildcard endpoints: %w", err)
+	}
 
-		endpointsUnderActionSet := set.NewStrings()
-		for endpoint := range openPorts {
-			endpointsUnderActionSet.Add(endpoint)
-		}
-		for endpoint := range closePorts {
-			endpointsUnderActionSet.Add(endpoint)
-		}
-		endpointsUnderActionSet.Remove(network.WildcardEndpoint)
-		endpointsUnderAction := endpoints(endpointsUnderActionSet.Values())
+	endpointsUnderActionSet := set.NewStrings()
+	for endpoint := range openPorts {
+		endpointsUnderActionSet.Add(endpoint)
+	}
+	for endpoint := range closePorts {
+		endpointsUnderActionSet.Add(endpoint)
+	}
+	endpointsUnderActionSet.Remove(network.WildcardEndpoint)
+	endpointsUnderAction := endpoints(endpointsUnderActionSet.Values())
 
-		endpoints, err := st.lookupRelationUUIDs(ctx, tx, unitUUID, endpointsUnderAction)
-		if err != nil {
-			return errors.Errorf("looking up relation endpoint uuids for unit %q: %w", unit, err)
-		}
+	endpoints, err := st.lookupRelationUUIDs(ctx, tx, unitUUID, endpointsUnderAction)
+	if err != nil {
+		return errors.Errorf("looking up relation endpoint uuids for unit %q: %w", unit, err)
+	}
 
-		currentUnitOpenedPorts, err := st.getUnitOpenedPorts(ctx, tx, unitUUID)
-		if err != nil {
-			return errors.Errorf("getting opened ports for unit %q: %w", unit, err)
-		}
+	currentUnitOpenedPorts, err := st.getUnitOpenedPorts(ctx, tx, unitUUID)
+	if err != nil {
+		return errors.Errorf("getting opened ports for unit %q: %w", unit, err)
+	}
 
-		err = st.openPorts(ctx, tx, openPorts, currentUnitOpenedPorts, unitUUID, endpoints)
-		if err != nil {
-			return errors.Errorf("opening ports for unit %q: %w", unit, err)
-		}
+	err = st.openPorts(ctx, tx, openPorts, currentUnitOpenedPorts, unitUUID, endpoints)
+	if err != nil {
+		return errors.Errorf("opening ports for unit %q: %w", unit, err)
+	}
 
-		err = st.closePorts(ctx, tx, closePorts, currentUnitOpenedPorts)
-		if err != nil {
-			return errors.Errorf("closing ports for unit %q: %w", unit, err)
-		}
+	err = st.closePorts(ctx, tx, closePorts, currentUnitOpenedPorts)
+	if err != nil {
+		return errors.Errorf("closing ports for unit %q: %w", unit, err)
+	}
 
-		return nil
-	})
+	return nil
 }
 
 // resolveWildcardEndpoints returns a new set of open and close ports that have
@@ -251,7 +246,7 @@ SELECT &portRange.*
 FROM v_port_range AS pr
 JOIN unit AS u ON unit_uuid = u.uuid
 JOIN unit AS u2 on u2.net_node_uuid = u.net_node_uuid
-WHERE u2.uuid = $unitUUID.unit_uuid
+WHERE u2.uuid = $unitUUID.uuid
 `, portRange{}, unitUUID)
 	if err != nil {
 		return nil, errors.Errorf("preparing get colocated opened ports statement: %w", err)
@@ -277,7 +272,7 @@ func (st *State) getWildcardEndpointOpenedPorts(ctx context.Context, tx *sqlair.
 	query, err := st.Prepare(`
 SELECT &portRange.*
 FROM v_port_range
-WHERE unit_uuid = $unitUUID.unit_uuid
+WHERE unit_uuid = $unitUUID.uuid
 AND endpoint IS NULL
 `, portRange{}, unitUUID)
 	if err != nil {
@@ -307,7 +302,7 @@ func (st *State) getEndpoints(ctx context.Context, tx *sqlair.TX, unitUUID unitU
 	getEndpoints, err := st.Prepare(`
 SELECT &endpointName.*
 FROM v_endpoint
-WHERE unit_uuid = $unitUUID.unit_uuid
+WHERE unit_uuid = $unitUUID.uuid
 `, endpointName{}, unitUUID)
 	if err != nil {
 		return nil, errors.Errorf("preparing get endpoints statement: %w", err)
@@ -338,7 +333,7 @@ func (st *State) lookupRelationUUIDs(
 	getEndpoints, err := st.Prepare(`
 SELECT &endpoint.*
 FROM v_endpoint
-WHERE unit_uuid = $unitUUID.unit_uuid
+WHERE unit_uuid = $unitUUID.uuid
 AND endpoint IN ($endpoints[:])
 `, endpoint{}, unitUUID, endpointNames)
 	if err != nil {
@@ -373,7 +368,7 @@ func (st *State) getUnitOpenedPorts(ctx context.Context, tx *sqlair.TX, unitUUID
 	getOpenedPorts, err := st.Prepare(`
 SELECT &endpointPortRangeUUID.*
 FROM v_port_range
-WHERE unit_uuid = $unitUUID.unit_uuid
+WHERE unit_uuid = $unitUUID.uuid
 `, endpointPortRangeUUID{}, unitUUID)
 	if err != nil {
 		return nil, errors.Errorf("preparing get opened ports statement: %w", err)

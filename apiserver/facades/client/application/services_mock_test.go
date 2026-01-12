@@ -33,6 +33,7 @@ import (
 	application0 "github.com/juju/juju/domain/application"
 	charm0 "github.com/juju/juju/domain/application/charm"
 	service "github.com/juju/juju/domain/application/service"
+	constraints0 "github.com/juju/juju/domain/constraints"
 	service0 "github.com/juju/juju/domain/crossmodelrelation/service"
 	relation0 "github.com/juju/juju/domain/relation"
 	removal "github.com/juju/juju/domain/removal"
@@ -1841,10 +1842,10 @@ func (c *MockApplicationServiceMergeExposeSettingsCall) DoAndReturn(f func(conte
 }
 
 // ResolveApplicationConstraints mocks base method.
-func (m *MockApplicationService) ResolveApplicationConstraints(arg0 context.Context, arg1 constraints.Value) (constraints.Value, error) {
+func (m *MockApplicationService) ResolveApplicationConstraints(arg0 context.Context, arg1 constraints.Value) (constraints0.Constraints, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveApplicationConstraints", arg0, arg1)
-	ret0, _ := ret[0].(constraints.Value)
+	ret0, _ := ret[0].(constraints0.Constraints)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1862,19 +1863,19 @@ type MockApplicationServiceResolveApplicationConstraintsCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockApplicationServiceResolveApplicationConstraintsCall) Return(arg0 constraints.Value, arg1 error) *MockApplicationServiceResolveApplicationConstraintsCall {
+func (c *MockApplicationServiceResolveApplicationConstraintsCall) Return(arg0 constraints0.Constraints, arg1 error) *MockApplicationServiceResolveApplicationConstraintsCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockApplicationServiceResolveApplicationConstraintsCall) Do(f func(context.Context, constraints.Value) (constraints.Value, error)) *MockApplicationServiceResolveApplicationConstraintsCall {
+func (c *MockApplicationServiceResolveApplicationConstraintsCall) Do(f func(context.Context, constraints.Value) (constraints0.Constraints, error)) *MockApplicationServiceResolveApplicationConstraintsCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockApplicationServiceResolveApplicationConstraintsCall) DoAndReturn(f func(context.Context, constraints.Value) (constraints.Value, error)) *MockApplicationServiceResolveApplicationConstraintsCall {
+func (c *MockApplicationServiceResolveApplicationConstraintsCall) DoAndReturn(f func(context.Context, constraints.Value) (constraints0.Constraints, error)) *MockApplicationServiceResolveApplicationConstraintsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

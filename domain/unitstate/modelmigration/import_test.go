@@ -6,11 +6,10 @@ package modelmigration
 import (
 	"testing"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
-	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/unitstate"
 	unitstateerrors "github.com/juju/juju/domain/unitstate/errors"
 )
@@ -51,7 +50,7 @@ func (s *importSuite) TestImport(c *tc.C) {
 	})
 
 	s.service.EXPECT().SetState(gomock.Any(), unitstate.UnitState{
-		Name: coreunit.Name("prometheus/0"),
+		Name: "prometheus/0",
 		CharmState: &map[string]string{
 			"charm": "state",
 		},
@@ -83,7 +82,7 @@ func (s *importSuite) TestImportPartial(c *tc.C) {
 	})
 
 	s.service.EXPECT().SetState(gomock.Any(), unitstate.UnitState{
-		Name:         coreunit.Name("prometheus/0"),
+		Name:         "prometheus/0",
 		UniterState:  ptr("uniter"),
 		StorageState: ptr("storage"),
 	})
@@ -109,7 +108,7 @@ func (s *importSuite) TestImportError(c *tc.C) {
 	})
 
 	s.service.EXPECT().SetState(gomock.Any(), unitstate.UnitState{
-		Name:         coreunit.Name("prometheus/0"),
+		Name:         "prometheus/0",
 		UniterState:  ptr("uniter"),
 		StorageState: ptr("storage"),
 	}).Return(unitstateerrors.UnitNotFound)

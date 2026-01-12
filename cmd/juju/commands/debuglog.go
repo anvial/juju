@@ -455,17 +455,15 @@ func (c *debugLogCommand) getDebugLogClients(ctx context.Context, warningLogger 
 	// that the controller details API is not supported, so we fall back to
 	// using the address of the connected controller only.
 	if controllerClient.BestAPIVersion() < 3 {
-		client, err := getDebugLogClient(ctx, c)
-		if err != nil {
-			return nil, err
-		}
-		return []DebugLogAPI{client}, nil
+		return c.getDebugLogClient(ctx)
 	}
 
 	// We're connected to a HA controller that supports the controller details
 	// API, so we can get the addresses of all controllers.
 	controllers, err := controllerClient.ControllerDetails(ctx)
-	if err != nil {
+	if errors.Is(err, errors.NotSupported) {
+		return c.getDebugLogClient(ctx)
+	} else if err != nil {
 		return nil, errors.Annotatef(err, "getting controller details")
 	}
 
@@ -481,6 +479,14 @@ func (c *debugLogCommand) getDebugLogClients(ctx context.Context, warningLogger 
 		clients = append(clients, client)
 	}
 	return clients, nil
+}
+
+func (c *debugLogCommand) getDebugLogClient(ctx context.Context) ([]DebugLogAPI, error) {
+	client, err := getDebugLogClient(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return []DebugLogAPI{client}, nil
 }
 
 // Run retrieves the debug log via the API.

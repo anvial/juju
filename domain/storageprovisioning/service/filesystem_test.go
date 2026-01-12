@@ -461,7 +461,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
 	stateTemplates := []internal.FilesystemTemplate{{
-		StorageName:       "a",
+		StorageName:       "config",
 		Count:             2,
 		MaxCount:          10,
 		SizeMiB:           1234,
@@ -474,6 +474,14 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
+		Return(map[string][]internal.ContainerMount{
+			"config": {{
+				ContainerKey: "web-server",
+				StorageName:  "config",
+				MountPoint:   "/data/config",
+			}},
+		}, nil)
 
 	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
 	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
@@ -482,15 +490,22 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplication(c *tc.C) {
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/bar/0",
-				ReadOnly:   true,
+				MountPoint:   "/bar/0",
+				ReadOnly:     true,
+				ContainerKey: "charm",
 			},
 			{
-				MountPoint: "/bar/1",
-				ReadOnly:   true,
+				MountPoint:   "/bar/1",
+				ReadOnly:     true,
+				ContainerKey: "charm",
+			},
+			{
+				MountPoint:   "/data/config",
+				ReadOnly:     true,
+				ContainerKey: "web-server",
 			},
 		},
-		StorageName:  "a",
+		StorageName:  "config",
 		Count:        2,
 		SizeMiB:      1234,
 		ProviderType: "foo",
@@ -508,7 +523,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
 	stateTemplates := []internal.FilesystemTemplate{{
-		StorageName:       "a",
+		StorageName:       "config",
 		Count:             1,
 		MaxCount:          1,
 		SizeMiB:           1234,
@@ -521,6 +536,14 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
+		Return(map[string][]internal.ContainerMount{
+			"config": {{
+				ContainerKey: "web-server",
+				StorageName:  "config",
+				MountPoint:   "/data/config",
+			}},
+		}, nil)
 
 	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
 	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
@@ -529,11 +552,63 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationSingleton(c *t
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/bar",
-				ReadOnly:   true,
+				MountPoint:   "/bar",
+				ReadOnly:     true,
+				ContainerKey: "charm",
+			},
+			{
+				MountPoint:   "/data/config",
+				ReadOnly:     true,
+				ContainerKey: "web-server",
 			},
 		},
-		StorageName:  "a",
+		StorageName:  "config",
+		Count:        1,
+		SizeMiB:      1234,
+		ProviderType: "foo",
+		Attributes: map[string]string{
+			"laz": "baz",
+		},
+	}}
+	c.Check(result, tc.DeepEquals, expectedResult)
+}
+
+// TestGetFilesystemsTemplateForApplicationEmptyContainerMounts tests
+// the container does not have any mount points defined.
+func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationEmptyContainerMounts(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	appUUID := tc.Must(c, coreapplication.NewUUID)
+	stateTemplates := []internal.FilesystemTemplate{{
+		StorageName:       "config",
+		Count:             1,
+		MaxCount:          1,
+		SizeMiB:           1234,
+		ProviderType:      "foo",
+		ReadOnly:          true,
+		CharmLocationHint: "/bar",
+		Attributes: map[string]string{
+			"laz": "baz",
+		},
+	}}
+	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
+		Return(stateTemplates, nil)
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
+		Return(nil, nil)
+
+	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
+	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
+	c.Assert(err, tc.ErrorIsNil)
+
+	expectedResult := []storageprovisioning.FilesystemTemplate{{
+		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
+			{
+				MountPoint:   "/bar",
+				ReadOnly:     true,
+				ContainerKey: "charm",
+			},
+		},
+		StorageName:  "config",
 		Count:        1,
 		SizeMiB:      1234,
 		ProviderType: "foo",
@@ -553,7 +628,7 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
 	stateTemplates := []internal.FilesystemTemplate{{
-		StorageName:  "a",
+		StorageName:  "config",
 		Count:        1,
 		MaxCount:     1,
 		SizeMiB:      1234,
@@ -565,6 +640,14 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	}}
 	s.state.EXPECT().GetFilesystemTemplatesForApplication(gomock.Any(), appUUID).
 		Return(stateTemplates, nil)
+	s.state.EXPECT().GetContainerMountsForApplication(gomock.Any(), appUUID).
+		Return(map[string][]internal.ContainerMount{
+			"config": {{
+				ContainerKey: "web-server",
+				StorageName:  "config",
+				MountPoint:   "/data/config",
+			}},
+		}, nil)
 
 	svc := NewService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
 	result, err := svc.GetFilesystemTemplatesForApplication(c.Context(), appUUID)
@@ -573,11 +656,20 @@ func (s *filesystemSuite) TestGetFilesystemsTemplateForApplicationNoCharmLocatio
 	expectedResult := []storageprovisioning.FilesystemTemplate{{
 		Attachments: []storageprovisioning.FilesystemAttachmentTemplate{
 			{
-				MountPoint: "/var/lib/juju/storage/a-0",
-				ReadOnly:   true,
+				MountPoint:   "/var/lib/juju/storage/config-0",
+				ReadOnly:     true,
+				ContainerKey: "charm",
+			},
+			// "web-server" doesn't default to `/var/lib/juju/storage/*`
+			// because the charm definition expects `containers[*].mounts[*].location`
+			// to have a value.
+			{
+				MountPoint:   "/data/config",
+				ReadOnly:     true,
+				ContainerKey: "web-server",
 			},
 		},
-		StorageName:  "a",
+		StorageName:  "config",
 		Count:        1,
 		SizeMiB:      1234,
 		ProviderType: "foo",

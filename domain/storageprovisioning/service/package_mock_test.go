@@ -244,6 +244,45 @@ func (c *MockStateGetBlockDeviceForVolumeAttachmentCall) DoAndReturn(f func(cont
 	return c
 }
 
+// GetContainerMountsForApplication mocks base method.
+func (m *MockState) GetContainerMountsForApplication(arg0 context.Context, arg1 application.UUID) (map[string][]internal.ContainerMount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContainerMountsForApplication", arg0, arg1)
+	ret0, _ := ret[0].(map[string][]internal.ContainerMount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContainerMountsForApplication indicates an expected call of GetContainerMountsForApplication.
+func (mr *MockStateMockRecorder) GetContainerMountsForApplication(arg0, arg1 any) *MockStateGetContainerMountsForApplicationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainerMountsForApplication", reflect.TypeOf((*MockState)(nil).GetContainerMountsForApplication), arg0, arg1)
+	return &MockStateGetContainerMountsForApplicationCall{Call: call}
+}
+
+// MockStateGetContainerMountsForApplicationCall wrap *gomock.Call
+type MockStateGetContainerMountsForApplicationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStateGetContainerMountsForApplicationCall) Return(arg0 map[string][]internal.ContainerMount, arg1 error) *MockStateGetContainerMountsForApplicationCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStateGetContainerMountsForApplicationCall) Do(f func(context.Context, application.UUID) (map[string][]internal.ContainerMount, error)) *MockStateGetContainerMountsForApplicationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStateGetContainerMountsForApplicationCall) DoAndReturn(f func(context.Context, application.UUID) (map[string][]internal.ContainerMount, error)) *MockStateGetContainerMountsForApplicationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetFilesystem mocks base method.
 func (m *MockState) GetFilesystem(arg0 context.Context, arg1 storageprovisioning.FilesystemUUID) (storageprovisioning.Filesystem, error) {
 	m.ctrl.T.Helper()

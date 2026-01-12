@@ -63,6 +63,79 @@ func (s *ModelState) Create(ctx context.Context, args model.ModelDetailArgs) err
 	})
 }
 
+// CreateImportingModel inserts all of the information about a newly created
+// model during import, and marks it as importing in a single transaction.
+func (s *ModelState) CreateImportingModel(ctx context.Context, args model.ModelDetailArgs) error {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return errors.Capture(err)
+	}
+
+	migrationUUID, err := uuid.NewUUID()
+	if err != nil {
+		return errors.Errorf("generating migration uuid for model %q: %w", args.UUID, err)
+	}
+
+	type dbModelMigrating struct {
+		UUID      string `db:"uuid"`
+		ModelUUID string `db:"model_uuid"`
+	}
+
+	migrationRecord := dbModelMigrating{
+		UUID:      migrationUUID.String(),
+		ModelUUID: args.UUID.String(),
+	}
+
+	return db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		// First insert the model info
+		if err := InsertModelInfo(ctx, args, s, tx); err != nil {
+			return err
+		}
+
+		// Then mark it as importing in the same transaction
+		stmt, err := s.Prepare(`
+INSERT INTO model_migrating (uuid, model_uuid)
+VALUES ($dbModelMigrating.uuid, $dbModelMigrating.model_uuid)
+		`, migrationRecord)
+		if err != nil {
+			return errors.Capture(err)
+		}
+
+		if err := tx.Query(ctx, stmt, migrationRecord).Run(); err != nil {
+			return errors.Errorf("marking model %q as importing in model database: %w", args.UUID, err)
+		}
+		return nil
+	})
+}
+
+// IsImportingModel returns true if the model is being imported.
+func (s *ModelState) IsImportingModel(ctx context.Context) (bool, error) {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	var count count
+	migrationStmt, err := s.Prepare(`
+SELECT COUNT(*) AS &count.count
+FROM model_migrating
+JOIN model ON model.uuid = model_migrating.model_uuid`, count)
+	if err != nil {
+		return false, errors.Capture(err)
+	}
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err = tx.Query(ctx, migrationStmt).Get(&count)
+		if err != nil {
+			return errors.Errorf("checking if model is importing: %w", err)
+		}
+
+		return nil
+	})
+
+	return count.Count > 0, err
+}
+
 // EnsureDefaultStoragePools is responsible for making sure that the set of
 // default storage pools provided exist in the model. If a storage pool already
 // exists in the model no change is performed to the pool.

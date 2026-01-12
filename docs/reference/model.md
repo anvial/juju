@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Juju model reference: logical workspaces for applications, resources, and configuration. Learn controller and workload model types."
+---
+
 (model)=
 # Model
 ```{ibnote}

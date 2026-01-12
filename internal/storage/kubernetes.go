@@ -24,9 +24,9 @@ type KubernetesFilesystemParams struct {
 	// storage provider supports tags.
 	ResourceTags map[string]string
 
-	// Attachment identifies the mount point the filesystem should be
+	// Attachments identifies the set of mount points the filesystem should be
 	// mounted at.
-	Attachment *KubernetesFilesystemAttachmentParams
+	Attachments []KubernetesFilesystemAttachmentParams
 }
 
 // KubernetesFilesystemAttachmentParams is a set of parameters for filesystem attachment
@@ -38,6 +38,10 @@ type KubernetesFilesystemAttachmentParams struct {
 	// Path is the path at which the filesystem is to be mounted on the pod that
 	// this attachment corresponds to.
 	Path string
+
+	// ContainerName is the identifier of the container where this attachment
+	// should be mounted to.
+	ContainerName string
 }
 
 // FilesystemAttachmentInfo describes a filesystem attachment.

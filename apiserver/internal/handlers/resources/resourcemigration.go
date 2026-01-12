@@ -23,16 +23,19 @@ import (
 // resourcesMigrationUploadHandler handles resources uploads for model migrations.
 type resourcesMigrationUploadHandler struct {
 	resourceServiceGetter ResourceServiceGetter
+	modelService          ModelServiceGetter
 	logger                logger.Logger
 }
 
 // NewResourceMigrationUploadHandler returns a new HTTP handler for resources
 // uploads during model migrations.
 func NewResourceMigrationUploadHandler(
+	modelService ModelServiceGetter,
 	resourceServiceGetter ResourceServiceGetter,
 	logger logger.Logger,
 ) *resourcesMigrationUploadHandler {
 	return &resourcesMigrationUploadHandler{
+		modelService:          modelService,
 		resourceServiceGetter: resourceServiceGetter,
 		logger:                logger,
 	}
@@ -58,10 +61,16 @@ func (h *resourcesMigrationUploadHandler) ServeHTTP(w http.ResponseWriter, r *ht
 // ServePost handles the POST request for resource uploads, including
 // validation, authentication, processing, and response.
 func (h *resourcesMigrationUploadHandler) servePost(w http.ResponseWriter, r *http.Request) error {
-	// todo(gfouillet): This call should be authenticated. When model domain will
-	//  provide authentication checks, we will need to ensure here that
-	//  the request has been authenticated, and that the targeted model is in
-	//  `importing` state.
+	modelService, err := h.modelService.Model(r)
+	if err != nil {
+		return internalerrors.Capture(err)
+	}
+
+	if isImporting, err := modelService.IsImportingModel(r.Context()); err != nil {
+		return internalerrors.Capture(err)
+	} else if !isImporting {
+		return errors.BadRequestf("importing resources while model is not importing")
+	}
 
 	resourceService, err := h.resourceServiceGetter.Resource(r)
 	if err != nil {

@@ -6,7 +6,7 @@ package modelmigration
 import (
 	"context"
 
-	"github.com/juju/description/v10"
+	"github.com/juju/description/v11"
 
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/modelmigration"
@@ -45,12 +45,14 @@ func (e *exportOperation) Name() string {
 // Setup the export operation, this will ensure the service is created
 // and ready to be used.
 func (e *exportOperation) Setup(scope modelmigration.Scope) error {
+	st := state.NewState(scope.ModelDB())
 	e.service = service.NewService(
 		// We shouldn't be using model defaults during export, so we use a
 		// no-op provider.
 		noopModelDefaultsProvider{},
 		config.ModelValidator(),
-		state.NewState(scope.ModelDB()))
+		service.ProviderModelConfigGetter(context.Background(), st),
+		st)
 	return nil
 }
 

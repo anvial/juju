@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/juju/collections/set"
@@ -359,31 +360,42 @@ type retryResolveResult struct {
 	bases           []corecharm.Platform
 }
 
-// retryResolveWithPreferredChannel will attempt to inspect the transport
-// APIError and determine if a retry is possible with the information gathered
-// from the error.
-func (c *CharmHubRepository) retryResolveWithPreferredChannel(ctx context.Context, charmName string, origin corecharm.Origin, resErr *transport.APIError) (*retryResolveResult, error) {
-	var (
-		err   error
-		bases []corecharm.Platform
-	)
-	switch resErr.Code {
-	case transport.ErrorCodeInvalidCharmPlatform, transport.ErrorCodeInvalidCharmBase:
-		c.logger.Tracef(ctx, "Invalid charm base %q %v - Default Base: %v", charmName, origin, resErr.Extra.DefaultBases)
+// sortBasesByPriority sorts bases with LTS priority, then descending order of track,
+// and then descending order of risk stability.
+func (c *CharmHubRepository) sortBasesByPriority(ctx context.Context, bases []corecharm.Platform) {
+	sort.Slice(bases, func(i, j int) bool {
+		// Parse the channels for both bases to sort.
+		iCh, iErr := corebase.ParseChannel(bases[i].Channel)
+		jCh, jErr := corebase.ParseChannel(bases[j].Channel)
 
-		if bases, err = c.selectNextBases(resErr.Extra.DefaultBases, origin); err != nil {
-			return nil, errors.Annotatef(err, "selecting next bases")
+		// If either parse channel fails, we fall back to string comparison.
+		if iErr != nil || jErr != nil {
+			c.logger.Errorf(ctx,
+				"failed to parse channel(s) while sorting bases: base[%d]=%q (err: %v), base[%d]=%q (err: %v); falling back to string comparison",
+				i, bases[i].Channel, iErr, j, bases[j].Channel, jErr,
+			)
+			return bases[i].Channel > bases[j].Channel
 		}
 
-	case transport.ErrorCodeRevisionNotFound:
-		c.logger.Tracef(ctx, "Revision not found %q %v - Releases: %v", charmName, origin, resErr.Extra.Releases)
+		return iCh.HasHigherPriorityThan(jCh)
+	})
+}
 
-		return nil, errors.Annotatef(c.handleRevisionNotFound(ctx, resErr.Extra.Releases, origin), "selecting releases")
+// retryResolveWithRespBases handles invalid charm base errors by
+// selecting the most appropriate base from the API error's DefaultBases list.
+// It filters bases by architecture, sorts them by track (version) descending
+// and risk stability (stable > candidate > beta > edge), then retries the
+// charm resolution with the highest priority base.
+func (c *CharmHubRepository) retryResolveWithRespBases(ctx context.Context, charmName string, origin corecharm.Origin, resErr *transport.APIError) (*retryResolveResult, error) {
+	c.logger.Tracef(ctx, "Invalid charm base %q %v - Default Base: %v", charmName, origin, resErr.Extra.DefaultBases)
 
-	default:
-		return nil, errors.Errorf("resolving error: %s", resErr.Message)
+	if len(resErr.Extra.DefaultBases) == 0 {
+		return nil, errors.Errorf("no bases available")
 	}
-
+	bases, err := c.selectNextBases(resErr.Extra.DefaultBases, origin)
+	if err != nil {
+		return nil, errors.Annotatef(err, "selecting next bases")
+	}
 	if len(bases) == 0 {
 		ch := origin.Channel.String()
 		if ch == "" {
@@ -391,15 +403,15 @@ func (c *CharmHubRepository) retryResolveWithPreferredChannel(ctx context.Contex
 		}
 		return nil, errors.Wrap(resErr, errors.Errorf("no releases found for channel %q", ch))
 	}
-	base := bases[0]
 
+	c.sortBasesByPriority(ctx, bases)
+	base := bases[0]
 	origin.Platform.OS = base.OS
 	origin.Platform.Channel = base.Channel
 
 	if origin.Platform.Channel == "" {
 		return nil, errors.NotValidf("channel for %s", charmName)
 	}
-
 	c.logger.Tracef(ctx, "Refresh again with %q %v", charmName, origin)
 	res, err := c.refreshOne(ctx, charmName, origin)
 	if err != nil {
@@ -408,11 +420,29 @@ func (c *CharmHubRepository) retryResolveWithPreferredChannel(ctx context.Contex
 	if resErr := res.Error; resErr != nil {
 		return nil, errors.Errorf("resolving retry error: %s", resErr.Message)
 	}
+
 	return &retryResolveResult{
 		refreshResponse: res,
 		origin:          origin,
 		bases:           bases,
 	}, nil
+}
+
+// retryResolveWithPreferredChannel will attempt to inspect the transport
+// APIError and determine if a retry is possible with the information gathered
+// from the error.
+func (c *CharmHubRepository) retryResolveWithPreferredChannel(ctx context.Context, charmName string, origin corecharm.Origin, resErr *transport.APIError) (*retryResolveResult, error) {
+	switch resErr.Code {
+	case transport.ErrorCodeInvalidCharmPlatform, transport.ErrorCodeInvalidCharmBase:
+		return c.retryResolveWithRespBases(ctx, charmName, origin, resErr)
+	case transport.ErrorCodeRevisionNotFound:
+		c.logger.Tracef(ctx, "Revision not found %q %v - Releases: %v", charmName, origin, resErr.Extra.Releases)
+
+		return nil, errors.Annotatef(c.handleRevisionNotFound(ctx, resErr.Extra.Releases, origin), "selecting releases")
+
+	default:
+		return nil, errors.Errorf("resolving error: %s", resErr.Message)
+	}
 }
 
 // Download retrieves a blob from the store and saves its contents to the
@@ -900,9 +930,6 @@ func (c *CharmHubRepository) refreshOne(ctx context.Context, charmName string, o
 }
 
 func (c *CharmHubRepository) selectNextBases(bases []transport.Base, origin corecharm.Origin) ([]corecharm.Platform, error) {
-	if len(bases) == 0 {
-		return nil, errors.Errorf("no bases available")
-	}
 	// We've got a invalid charm platform error, the error should contain
 	// a valid platform to query again to get the right information. If
 	// the platform is empty, consider it a failure.

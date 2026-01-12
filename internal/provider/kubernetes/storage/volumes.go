@@ -5,7 +5,9 @@ package storage
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/juju/errors"
@@ -180,10 +182,39 @@ func PushUniqueVolumeMount(container *corev1.Container, volMount corev1.VolumeMo
 func PushUniqueVolumeClaimTemplate(existing *[]corev1.PersistentVolumeClaim, pvc corev1.PersistentVolumeClaim) error {
 	for _, v := range *existing {
 		if v.Name == pvc.Name {
+			// Let's reuse the existing PVC. This is a valid scenario because
+			// a workload and charm container may share the same PVC but with
+			// different mount points in their respective containers.
+			if isSamePVC(v, pvc) {
+				return nil
+			}
 			// PVC name has to be unique.
 			return errors.NotValidf("duplicated PVC %q", pvc.Name)
 		}
 	}
 	*existing = append(*existing, pvc)
 	return nil
+}
+
+func isSamePVC(pvc1, pvc2 corev1.PersistentVolumeClaim) bool {
+	sameObjectMeta := pvc1.Name == pvc2.Name && maps.Equal(pvc1.Labels, pvc2.Labels) &&
+		maps.Equal(pvc1.Annotations, pvc2.Annotations)
+
+	storage1 := pvc1.Spec.Resources.Requests.Storage()
+	storage2 := pvc2.Spec.Resources.Requests.Storage()
+
+	sameStorage := (storage1 == nil && storage1 == storage2) ||
+		(storage1 != nil && storage2 != nil && storage1.Equal(*storage2))
+	sameAccessModes := slices.Equal(pvc1.Spec.AccessModes, pvc2.Spec.AccessModes)
+
+	sameStorageClassName := (pvc1.Spec.StorageClassName == nil &&
+		pvc1.Spec.StorageClassName == pvc2.Spec.StorageClassName) ||
+		(pvc1.Spec.StorageClassName != nil && pvc2.Spec.StorageClassName != nil &&
+			*pvc1.Spec.StorageClassName == *pvc2.Spec.StorageClassName)
+
+	sameSpec := sameStorage &&
+		sameAccessModes &&
+		sameStorageClassName
+
+	return sameObjectMeta && sameSpec
 }

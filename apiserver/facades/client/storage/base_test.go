@@ -10,7 +10,6 @@ import (
 
 	apiservertesting "github.com/juju/juju/apiserver/testing"
 	coremodel "github.com/juju/juju/core/model"
-	modeltesting "github.com/juju/juju/core/model/testing"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/uuid"
 )
@@ -44,7 +43,7 @@ func (s *baseStorageSuite) setupMocks(c *tc.C) *gomock.Controller {
 	s.storageService = NewMockStorageService(ctrl)
 
 	s.controllerUUID = uuid.MustNewUUID().String()
-	s.modelUUID = modeltesting.GenModelUUID(c)
+	s.modelUUID = tc.Must0(c, coremodel.NewUUID)
 
 	s.api = NewStorageAPI(
 		s.controllerUUID,

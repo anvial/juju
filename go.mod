@@ -55,7 +55,7 @@ require (
 	github.com/juju/ansiterm v1.0.0
 	github.com/juju/clock v1.1.1
 	github.com/juju/collections v1.0.4
-	github.com/juju/description/v10 v10.0.0-20250623090906-621967bdcd32
+	github.com/juju/description/v11 v11.0.0-20251203091952-63fec6169be0
 	github.com/juju/errors v1.0.0
 	github.com/juju/gnuflag v1.0.0
 	github.com/juju/gojsonschema v1.0.0
@@ -76,7 +76,7 @@ require (
 	github.com/juju/testing v1.2.0
 	github.com/juju/utils/v4 v4.0.5
 	github.com/juju/webbrowser v1.0.0
-	github.com/juju/worker/v4 v4.2.0
+	github.com/juju/worker/v4 v4.3.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/pretty v0.3.1
 	github.com/lestrrat-go/jwx/v2 v2.1.6

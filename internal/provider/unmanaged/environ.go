@@ -102,6 +102,7 @@ func (e *manualEnviron) PrepareForBootstrap(ctx environs.BootstrapContext, contr
 
 // Bootstrap is part of the Environ interface.
 func (e *manualEnviron) Bootstrap(ctx environs.BootstrapContext, args environs.BootstrapParams) (*environs.BootstrapResult, error) {
+	// On Bootstrap for unmanaged providers, expect the provisioned check to be run as the Ubuntu user.
 	provisioned, err := sshprovisioner.CheckProvisioned(e.host, e.user)
 	if err != nil {
 		return nil, errors.Annotate(err, "failed to check provisioned status")

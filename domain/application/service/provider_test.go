@@ -2565,6 +2565,9 @@ func (s *providerServiceSuite) TestAddCAASUnitsEmptyConstraints(c *tc.C) {
 					Since:   now,
 				},
 			},
+			Constraints: constraints.Constraints{
+				Arch: ptr(arch.AMD64),
+			},
 		},
 	}}
 	s.state.EXPECT().GetApplicationUUIDByName(gomock.Any(), "ubuntu").Return(appUUID, nil)
@@ -2572,6 +2575,9 @@ func (s *providerServiceSuite) TestAddCAASUnitsEmptyConstraints(c *tc.C) {
 	s.provider.EXPECT().PrecheckInstance(gomock.Any(), environs.PrecheckInstanceParams{
 		Base: corebase.Base{
 			OS: "ubuntu",
+		},
+		Constraints: coreconstraints.Value{
+			Arch: ptr(arch.AMD64),
 		},
 	}).Return(nil)
 	s.expectEmptyUnitConstraints(c, appUUID)
@@ -2595,7 +2601,6 @@ func (s *providerServiceSuite) TestAddCAASUnitsAppConstraints(c *tc.C) {
 	setAddUnitNoopStorageExpects(s.storageService)
 
 	appUUID := tc.Must(c, coreapplication.NewUUID)
-	unitUUID := unittesting.GenUnitUUID(c)
 
 	now := ptr(s.clock.Now())
 	u := []application.AddCAASUnitArg{{
@@ -2642,7 +2647,7 @@ func (s *providerServiceSuite) TestAddCAASUnitsAppConstraints(c *tc.C) {
 		},
 		Constraints: coreconstraints.MustParse("arch=amd64 container=lxd cores=4 instance-role=instance-role instance-type=instance-type mem=1024M root-disk=1024M root-disk-source=root-disk-source tags=tag1,tag2 spaces=space1 virt-type=virt-type zones=zone1,zone2 allocate-public-ip=true"),
 	}).Return(nil)
-	s.expectAppConstraints(c, unitUUID, appUUID)
+	s.expectAppConstraints(c, appUUID)
 
 	var received []application.AddCAASUnitArg
 	s.state.EXPECT().AddCAASUnits(gomock.Any(), appUUID, gomock.Any()).DoAndReturn(func(_ context.Context, _ coreapplication.UUID, args ...application.AddCAASUnitArg) ([]coreunit.Name, error) {
@@ -2737,6 +2742,7 @@ func (s *providerServiceSuite) TestAddCAASUnitsFullConstraints(c *tc.C) {
 			Constraints: constraints.Constraints{
 				CpuCores: ptr(uint64(4)),
 				CpuPower: ptr(uint64(75)),
+				Arch:     ptr(arch.AMD64),
 			},
 			UnitStatusArg: application.UnitStatusArg{
 				AgentStatus: &status.StatusInfo[status.UnitAgentStatusType]{
@@ -2757,7 +2763,7 @@ func (s *providerServiceSuite) TestAddCAASUnitsFullConstraints(c *tc.C) {
 		Base: corebase.Base{
 			OS: "ubuntu",
 		},
-		Constraints: coreconstraints.MustParse("cores=4 cpu-power=75"),
+		Constraints: coreconstraints.MustParse("cores=4 cpu-power=75 arch=amd64"),
 	}).Return(nil)
 	s.expectFullConstraints(c, unitUUID, appUUID)
 
@@ -2853,13 +2859,13 @@ func (s *providerServiceSuite) TestAddIAASUnitsMachinePlacement(c *tc.C) {
 		},
 	}, nil)
 	s.provider.EXPECT().PrecheckInstance(gomock.Any(), environs.PrecheckInstanceParams{
-		Constraints: coreconstraints.MustParse("cores=4 cpu-power=75"),
 		Base: corebase.Base{
 			OS: "ubuntu",
 			Channel: corebase.Channel{
 				Track: "24.04",
 			},
 		},
+		Constraints: coreconstraints.MustParse("cores=4 cpu-power=75 arch=amd64"),
 	}).Return(nil)
 	s.state.EXPECT().GetMachineUUIDAndNetNodeForName(gomock.Any(), "0").Return(
 		machineUUID, netNodeUUID, nil,
@@ -2911,8 +2917,12 @@ func (s *providerServiceSuite) TestResolveApplicationConstraintsNilValidator(c *
 
 	cons, err := s.service.ResolveApplicationConstraints(c.Context(), coreconstraints.Value{})
 	c.Assert(err, tc.ErrorIsNil)
-	// We should always fill in the arch, even if it's not in the model constraints.
-	c.Check(cons, tc.DeepEquals, coreconstraints.Value{})
+
+	// We should always fill in the arch, even if it's not in the model
+	// constraints.
+	c.Check(cons, tc.DeepEquals, constraints.Constraints{
+		Arch: ptr(arch.AMD64),
+	})
 }
 
 func (s *providerServiceSuite) TestResolveApplicationConstraintsConstraintsNotFound(c *tc.C) {
@@ -2955,6 +2965,8 @@ func (s *providerServiceSuite) TestResolveApplicationConstraintsWithArch(c *tc.C
 }
 
 func (s *providerServiceSuite) expectEmptyUnitConstraints(c *tc.C, appUUID coreapplication.UUID) {
+	c.Helper()
+
 	appConstraints := constraints.Constraints{}
 	modelConstraints := constraints.Constraints{}
 
@@ -2966,7 +2978,9 @@ func (s *providerServiceSuite) expectEmptyUnitConstraints(c *tc.C, appUUID corea
 	s.validator.EXPECT().Merge(constraints.EncodeConstraints(appConstraints), constraints.EncodeConstraints(modelConstraints)).Return(coreconstraints.Value{}, nil)
 }
 
-func (s *providerServiceSuite) expectAppConstraints(c *tc.C, unitUUID coreunit.UUID, appUUID coreapplication.UUID) {
+func (s *providerServiceSuite) expectAppConstraints(c *tc.C, appUUID coreapplication.UUID) {
+	c.Helper()
+
 	appConstraints := constraints.Constraints{
 		Arch:           ptr("amd64"),
 		Container:      ptr(instance.LXD),
