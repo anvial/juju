@@ -128,10 +128,6 @@ type State interface {
 	// machine cloud instance changes.
 	NamespaceForWatchMachineCloudInstance() string
 
-	// NamespaceForWatchMachineLXDProfiles returns the namespace for watching
-	// machine LXD profile changes.
-	NamespaceForWatchMachineLXDProfiles() string
-
 	// NamespaceForWatchMachineReboot returns the namespace string used for
 	// tracking machine reboot events in the model.
 	NamespaceForWatchMachineReboot() string

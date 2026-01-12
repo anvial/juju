@@ -405,10 +405,6 @@ type MachineService interface {
 	// machine.
 	AppliedLXDProfileNames(ctx context.Context, mUUID coremachine.UUID) ([]string, error)
 
-	// WatchMachineCloudInstances returns a StringsWatcher that is subscribed to
-	// the changes in the machine_cloud_instance table in the model.
-	WatchLXDProfiles(ctx context.Context, machineUUID coremachine.UUID) (watcher.NotifyWatcher, error)
-
 	// AvailabilityZone returns the hardware characteristics of the specified
 	// machine.
 	AvailabilityZone(ctx context.Context, machineUUID coremachine.UUID) (string, error)

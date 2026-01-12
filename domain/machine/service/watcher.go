@@ -249,8 +249,8 @@ func (s *WatchableService) WatchModelMachines(ctx context.Context) (watcher.Stri
 	)
 }
 
-// WatchModelMachineLifeAndStartTimes returns a string watcher that emits machine names
-// for changes to machine life or agent start times.
+// WatchModelMachineLifeAndStartTimes returns a string watcher that emits
+// machine names for changes to machine life or agent start times.
 func (s *WatchableService) WatchModelMachineLifeAndStartTimes(ctx context.Context) (watcher.StringsWatcher, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -282,29 +282,10 @@ func (s *WatchableService) WatchMachineCloudInstances(ctx context.Context, machi
 	)
 }
 
-// WatchLXDProfiles returns a NotifyWatcher that is subscribed to the changes in
-// the machine_cloud_instance table in the model, for the given machine UUID.
-// Note: Sometime in the future, this watcher could react to logical changes
-// fired from `SetAppliedLXDProfileNames()` instead of the `machine_lxd_profile`
-// table, which could become noisy.
-func (s *WatchableService) WatchLXDProfiles(ctx context.Context, machineUUID machine.UUID) (watcher.NotifyWatcher, error) {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	return s.watcherFactory.NewNotifyWatcher(
-		ctx,
-		fmt.Sprintf("machine lxd profiles watcher for %q", machineUUID),
-		eventsource.PredicateFilter(
-			s.st.NamespaceForWatchMachineLXDProfiles(),
-			changestream.All,
-			eventsource.EqualsPredicate(machineUUID.String()),
-		),
-	)
-}
-
 // WatchMachineReboot returns a NotifyWatcher that is subscribed to
 // the changes in the machine_requires_reboot table in the model.
-// It raises an event whenever the machine uuid or its parent is added to the reboot table.
+// It raises an event whenever the machine uuid or its parent is
+// added to the reboot table.
 func (s *WatchableService) WatchMachineReboot(ctx context.Context, uuid machine.UUID) (watcher.NotifyWatcher, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()

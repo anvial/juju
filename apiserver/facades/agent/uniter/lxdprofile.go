@@ -18,6 +18,7 @@ import (
 	"github.com/juju/juju/core/lxdprofile"
 	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/unit"
+	"github.com/juju/juju/core/watcher"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	"github.com/juju/juju/rpc/params"
 )
@@ -84,13 +85,11 @@ func NewExternalLXDProfileAPI(
 // WatchInstanceData returns a NotifyWatcher for observing
 // changes to the lxd profile for one unit.
 func (u *LXDProfileAPI) WatchInstanceData(ctx context.Context, args params.Entities) (params.NotifyWatchResults, error) {
-	u.logger.Tracef(ctx, "Starting WatchInstanceData with %+v", args)
 	result := params.NotifyWatchResults{
 		Results: make([]params.NotifyWatchResult, len(args.Entities)),
 	}
 	canAccess, err := u.accessUnit(ctx)
 	if err != nil {
-		u.logger.Tracef(ctx, "WatchInstanceData error %+v", err)
 		return params.NotifyWatchResults{}, err
 	}
 	for i, entity := range args.Entities {
@@ -103,39 +102,17 @@ func (u *LXDProfileAPI) WatchInstanceData(ctx context.Context, args params.Entit
 			result.Results[i].Error = apiservererrors.ServerError(apiservererrors.ErrPerm)
 			continue
 		}
-		unitName, err := unit.NewName(tag.Id())
-		if err != nil {
-			result.Results[i].Error = apiservererrors.ServerError(err)
-			continue
-		}
-		// TODO(nvinuesa): we could save this call if we move the lxd profile
-		// watcher to the unit domain. Then, the watcher would be already
-		// notifying for changes on the unit directly.
-		machineUUID, err := u.applicationService.GetUnitMachineUUID(ctx, unitName)
-		if err != nil {
-			result.Results[i].Error = apiservererrors.ServerError(err)
-			continue
-		}
-		watcherId, err := u.watchOneInstanceData(ctx, machineUUID)
-		if err != nil {
-			result.Results[i].Error = apiservererrors.ServerError(err)
-			continue
-		}
 
-		result.Results[i].NotifyWatcherId = watcherId
+		watcher := watcher.TODO[struct{}]()
+		id, _, err := internal.EnsureRegisterWatcher(ctx, u.watcherRegistry, watcher)
+		if err != nil {
+			result.Results[i].Error = apiservererrors.ServerError(err)
+			continue
+		}
+		result.Results[i].NotifyWatcherId = id
 
 	}
-	u.logger.Tracef(ctx, "WatchInstanceData returning %+v", result)
 	return result, nil
-}
-
-func (u *LXDProfileAPI) watchOneInstanceData(ctx context.Context, machineUUID coremachine.UUID) (string, error) {
-	watcher, err := u.machineService.WatchLXDProfiles(ctx, machineUUID)
-	if err != nil {
-		return "", errors.Trace(err)
-	}
-	watcherID, _, err := internal.EnsureRegisterWatcher[struct{}](ctx, u.watcherRegistry, watcher)
-	return watcherID, err
 }
 
 // LXDProfileName returns the name of the lxd profile applied to the unit's

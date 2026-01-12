@@ -1302,12 +1302,6 @@ func (*State) NamespaceForWatchMachineCloudInstance() string {
 	return "machine_cloud_instance"
 }
 
-// NamespaceForWatchMachineLXDProfiles returns the namespace for watching
-// machine LXD profile changes.
-func (*State) NamespaceForWatchMachineLXDProfiles() string {
-	return "machine_lxd_profile"
-}
-
 // NamespaceForWatchMachineReboot returns the namespace string used for
 // tracking machine reboot events in the model.
 func (*State) NamespaceForWatchMachineReboot() string {
