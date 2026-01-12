@@ -74,6 +74,22 @@ func (s *PermissionService) ImportOfferAccess(
 	return errors.Capture(s.st.ImportOfferAccess(ctx, importAccess))
 }
 
+// DeletePermissionsByGrantOnUUID remove permissions for given GrantOn
+// UUIDs. Used to rollback import failure.
+func (s *PermissionService) DeletePermissionsByGrantOnUUID(
+	ctx context.Context,
+	grantOnUUIDs []string,
+) error {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	if len(grantOnUUIDs) == 0 {
+		return nil
+	}
+
+	return errors.Capture(s.st.DeletePermissionsByGrantOnUUID(ctx, grantOnUUIDs))
+}
+
 // ReadUserAccessForTarget returns the user access for the given user on
 // the given target. A NotValid error is returned if the subject (user)
 // string is empty, or the target is not valid. Any errors from the state

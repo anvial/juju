@@ -155,6 +155,10 @@ type PermissionState interface {
 	// given target.
 	DeletePermission(ctx context.Context, subject user.Name, target permission.ID) error
 
+	// DeletePermissionsByGrantOnUUID remove permissions for given GrantOn
+	// UUIDs. Used to rollback import failure.
+	DeletePermissionsByGrantOnUUID(ctx context.Context, grantOnUUIDs []string) error
+
 	// ImportOfferAccess imports the user access for offers in the
 	// model.
 	ImportOfferAccess(ctx context.Context, importAccess []access.OfferImportAccess) error
