@@ -61,8 +61,9 @@ until a replacement arrives).
 * **Wait-for**: `juju wait-for` (and subcommands `wait-for model|application|machine|unit`) — removed. In `3.6` this 
 family streamed deltas and let you express goal states via a small DSL; it’s no longer available in `4.0`. Workarounds: 
 poll `juju status --format=json` (optionally with `--watch <interval>`) and evaluate readiness client-side.
-* **`private-address` removed**:  it is no longer automatically maintained in relation data. It was a copy 
+* **`private-address` removed**:  it is no longer automatically maintained in relation data. It was a copy
 of `ingres-address`, which is the only value that should be used now.
+* **`additionalProperties` default changed**: in action parameter configuration, the `additionalProperties` default value no longer matches JSONSchema, and is instead `false`. Explicitly include `additionalProperties` rather than relying on the default value to have consistency across Juju 3.6 and Juju 4.
 
 #### 🐛 Known issues / deferred items
 
