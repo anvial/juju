@@ -10,7 +10,9 @@ import (
 	"fmt"
 
 	"github.com/canonical/sqlair"
+
 	"github.com/juju/juju/domain/export/types/v{{ .Version }}"
+	"github.com/juju/juju/internal/errors"
 )
 
 // ExportV{{ .Version }} exports all model data for version {{ .Version }}.
@@ -20,9 +22,9 @@ func (st *State) ExportV{{ .Version }}(ctx context.Context) (*v{{ .Version }}.Mo
 
 	// Prepare statements first using the typed samples from the generated types package.
 {{- range $i, $sn := .StructNames }}
-	stmt{{ $sn }}, err := sqlair.Prepare("SELECT &{{ $sn }}.* FROM \"{{ index $.TableNames $i }}\"", v{{ $.Version }}.{{ $sn }}{})
+	stmt{{ $sn }}, err := sqlair.Prepare(`SELECT &{{ $sn }}.* FROM "{{ index $.TableNames $i }}"`, v{{ $.Version }}.{{ $sn }}{})
 	if err != nil {
-		return nil, fmt.Errorf("preparing {{ $sn }} select statement: %w", err)
+		return nil, fmt.Errorf("preparing {{ $sn }} statement: %w", err)
 	}
 {{- end }}
 
@@ -33,7 +35,7 @@ func (st *State) ExportV{{ .Version }}(ctx context.Context) (*v{{ .Version }}.Mo
 
 	if err := db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 {{- range $i, $sn := .StructNames }}
-		if err := tx.Query(ctx, stmt{{ $sn }}).GetAll(&modelExport.{{ $sn }}); err != nil && err != sqlair.ErrNoRows {
+		if err := tx.Query(ctx, stmt{{ $sn }}).GetAll(&modelExport.{{ $sn }}); err != nil && !errors.Is(err, sqlair.ErrNoRows) {
 			return fmt.Errorf("querying {{ $sn }} (table {{ index $.TableNames $i }}): %w", err)
 		}
 {{- end }}
