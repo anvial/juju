@@ -35,6 +35,7 @@ import (
 type Suite struct {
 	authorizer *apiservertesting.FakeAuthorizer
 
+	cloudService              *MockCloudService
 	controllerConfigService   *MockControllerConfigService
 	domainServices            *MockDomainServices
 	domainServicesGetter      *MockDomainServicesGetter
@@ -456,6 +457,7 @@ func (s *Suite) newAPI(c *tc.C, versions facades.FacadeVersions, logDir string) 
 	return migrationtarget.NewAPI(
 		&s.facadeContext,
 		s.authorizer,
+		s.cloudService,
 		s.controllerConfigService,
 		s.externalControllerService,
 		s.modelService,

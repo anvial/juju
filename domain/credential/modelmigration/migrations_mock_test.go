@@ -140,40 +140,40 @@ func (c *MockImportServiceCloudCredentialCall) DoAndReturn(f func(context.Contex
 	return c
 }
 
-// UpdateCloudCredential mocks base method.
-func (m *MockImportService) UpdateCloudCredential(arg0 context.Context, arg1 credential.Key, arg2 cloud.Credential) error {
+// InsertCloudCredential mocks base method.
+func (m *MockImportService) InsertCloudCredential(arg0 context.Context, arg1 credential.Key, arg2 cloud.Credential) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateCloudCredential", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "InsertCloudCredential", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateCloudCredential indicates an expected call of UpdateCloudCredential.
-func (mr *MockImportServiceMockRecorder) UpdateCloudCredential(arg0, arg1, arg2 any) *MockImportServiceUpdateCloudCredentialCall {
+// InsertCloudCredential indicates an expected call of InsertCloudCredential.
+func (mr *MockImportServiceMockRecorder) InsertCloudCredential(arg0, arg1, arg2 any) *MockImportServiceInsertCloudCredentialCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCloudCredential", reflect.TypeOf((*MockImportService)(nil).UpdateCloudCredential), arg0, arg1, arg2)
-	return &MockImportServiceUpdateCloudCredentialCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertCloudCredential", reflect.TypeOf((*MockImportService)(nil).InsertCloudCredential), arg0, arg1, arg2)
+	return &MockImportServiceInsertCloudCredentialCall{Call: call}
 }
 
-// MockImportServiceUpdateCloudCredentialCall wrap *gomock.Call
-type MockImportServiceUpdateCloudCredentialCall struct {
+// MockImportServiceInsertCloudCredentialCall wrap *gomock.Call
+type MockImportServiceInsertCloudCredentialCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockImportServiceUpdateCloudCredentialCall) Return(arg0 error) *MockImportServiceUpdateCloudCredentialCall {
+func (c *MockImportServiceInsertCloudCredentialCall) Return(arg0 error) *MockImportServiceInsertCloudCredentialCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockImportServiceUpdateCloudCredentialCall) Do(f func(context.Context, credential.Key, cloud.Credential) error) *MockImportServiceUpdateCloudCredentialCall {
+func (c *MockImportServiceInsertCloudCredentialCall) Do(f func(context.Context, credential.Key, cloud.Credential) error) *MockImportServiceInsertCloudCredentialCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockImportServiceUpdateCloudCredentialCall) DoAndReturn(f func(context.Context, credential.Key, cloud.Credential) error) *MockImportServiceUpdateCloudCredentialCall {
+func (c *MockImportServiceInsertCloudCredentialCall) DoAndReturn(f func(context.Context, credential.Key, cloud.Credential) error) *MockImportServiceInsertCloudCredentialCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

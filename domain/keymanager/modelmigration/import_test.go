@@ -129,3 +129,19 @@ func (s *importSuite) TestImportFromModelDescription(c *tc.C) {
 	err := op.Execute(c.Context(), model)
 	c.Check(err, tc.ErrorIsNil)
 }
+
+func (s *importSuite) TestRollback(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	model := description.NewModel(description.ModelArgs{
+		Config: map[string]any{
+			"uuid": tc.Must0(c, coremodel.NewUUID).String(),
+		},
+	})
+
+	s.service.EXPECT().DeleteKeysForModel(gomock.Any()).Return(nil)
+
+	op := s.newImportOperation()
+	err := op.Rollback(c.Context(), model)
+	c.Check(err, tc.ErrorIsNil)
+}

@@ -36,6 +36,34 @@ func (s *serviceSuite) service(c *tc.C) *WatchableService {
 	return NewWatchableService(s.state, s.watcherFactory, loggertesting.WrapCheckLog(c))
 }
 
+func (s *serviceSuite) TestInsertCloudCredential(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	key := corecredential.Key{Cloud: "cirrus", Owner: usertesting.GenNewName(c, "fred"), Name: "foo"}
+	cred := credential.CloudCredentialInfo{
+		AuthType: string(cloud.UserPassAuthType),
+		Attributes: map[string]string{
+			"hello": "world",
+		},
+		Label: "foo",
+	}
+	s.state.EXPECT().UpsertCloudCredential(gomock.Any(), key, cred)
+
+	err := s.service(c).InsertCloudCredential(
+		c.Context(), key,
+		cloud.NewNamedCredential("foo", cloud.UserPassAuthType, map[string]string{"hello": "world"}, false))
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *serviceSuite) TestInsertCloudCredentialInvalidID(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	key := corecredential.Key{Cloud: "cirrus", Owner: usertesting.GenNewName(c, "fred")}
+	err := s.service(c).InsertCloudCredential(c.Context(), key, cloud.Credential{})
+	c.Check(err, tc.ErrorIs, coreerrors.NotValid)
+	c.Check(err, tc.ErrorMatches, "invalid id inserting cloud credential.*")
+}
+
 func (s *serviceSuite) TestUpdateCloudCredential(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
@@ -60,7 +88,8 @@ func (s *serviceSuite) TestUpdateCloudCredentialInvalidID(c *tc.C) {
 
 	key := corecredential.Key{Cloud: "cirrus", Owner: usertesting.GenNewName(c, "fred")}
 	err := s.service(c).UpdateCloudCredential(c.Context(), key, cloud.Credential{})
-	c.Assert(err, tc.ErrorMatches, "invalid id updating cloud credential.*")
+	c.Check(err, tc.ErrorIs, coreerrors.NotValid)
+	c.Check(err, tc.ErrorMatches, "invalid id updating cloud credential.*")
 }
 
 func (s *serviceSuite) TestCloudCredentials(c *tc.C) {
