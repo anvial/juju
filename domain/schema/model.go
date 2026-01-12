@@ -124,8 +124,6 @@ var modelPostPatchFilesByVersion = []struct {
 }{{
 	version: semversion.MustParse("4.0.1"),
 	files: []string{
-		"0035-cleanup.PATCH.sql",
-		"0036-machine-status.PATCH.sql",
 		"0037-model-migrating.PATCH.sql",
 		"0038-relation.PATCH.sql",
 		"0039-secret-metadata.PATCH.sql",
