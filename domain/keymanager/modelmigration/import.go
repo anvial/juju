@@ -209,7 +209,7 @@ func (i *importOperation) executeModelConfigAuthorizedKeys(
 	if err != nil {
 		return errors.Errorf(
 			"importing authorized keys from model config. "+
-				"Finding admin user to assign owner ship of keys: %v", err,
+				"Finding admin user to assign ownership of keys: %v", err,
 		)
 	}
 
