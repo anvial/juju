@@ -47,7 +47,7 @@ func (s *State) checkModelExists(
 
 	modelExistsStmt, err := s.Prepare(`
 SELECT (uuid) AS (&modelUUIDValue.model_uuid)
-FROM v_model
+FROM model
 WHERE uuid = $modelUUIDValue.model_uuid
 `, modelUUIDVal)
 	if err != nil {
