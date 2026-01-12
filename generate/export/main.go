@@ -96,12 +96,17 @@ func generate(ctx context.Context, runner *txnRunner) error {
 		if tableName == "sqlite_sequence" {
 			continue
 		}
+
 		columns, err := getTableSchema(ctx, runner, tableName)
 		if err != nil {
 			return err
 		}
 
-		structDef, requiredImports := generateStruct(tableName, columns)
+		structDef, requiredImports, err := generateStruct(tableName, columns)
+		if err != nil {
+			return err
+		}
+
 		structs = append(structs, structDef)
 		structNames = append(structNames, toCamelCase(tableName))
 		usedTableNames = append(usedTableNames, tableName)
@@ -158,9 +163,9 @@ func getTableSchema(ctx context.Context, runner *txnRunner, tableName string) ([
 		defer rows.Close()
 		for rows.Next() {
 			var cid int
-			var name, typ, dflt_value sql.NullString
+			var name, typ, defaultVal sql.NullString
 			var notnull, pk int
-			if err := rows.Scan(&cid, &name, &typ, &notnull, &dflt_value, &pk); err != nil {
+			if err := rows.Scan(&cid, &name, &typ, &notnull, &defaultVal, &pk); err != nil {
 				return err
 			}
 			columns = append(columns, column{
@@ -187,23 +192,32 @@ func toCamelCase(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-func generateStruct(tableName string, columns []column) (string, []string) {
+func generateStruct(tableName string, columns []column) (string, []string, error) {
 	structName := toCamelCase(tableName)
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("type %s struct {\n", structName))
+
+	if _, err := sb.WriteString(fmt.Sprintf("type %s struct {\n", structName)); err != nil {
+		return "", nil, err
+	}
 
 	var imports []string
-
 	for _, col := range columns {
 		goType, imp := sqliteTypeToGoType(col.Type, col.NotNull)
 		if imp != "" {
 			imports = append(imports, imp)
 		}
 		fieldName := toCamelCase(col.Name)
-		sb.WriteString(fmt.Sprintf("\t%s %s `db:%q`\n", fieldName, goType, col.Name))
+
+		if _, err := sb.WriteString(fmt.Sprintf("\t%s %s `db:%q`\n", fieldName, goType, col.Name)); err != nil {
+			return "", nil, err
+		}
 	}
-	sb.WriteString("}\n")
-	return sb.String(), imports
+
+	if _, err := sb.WriteString("}\n"); err != nil {
+		return "", nil, err
+	}
+
+	return sb.String(), imports, nil
 }
 
 func sqliteTypeToGoType(sqliteType string, notNull bool) (string, string) {
