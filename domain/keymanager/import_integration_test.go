@@ -61,7 +61,7 @@ func (s *importSuite) SetUpTest(c *tc.C) {
 	)
 	c.Assert(err, tc.ErrorIsNil)
 
-	s.modelUUID = modeltesting.CreateTestModel(c, s.TxnRunnerFactory(), "foo")
+	s.modelUUID = modeltesting.CreateTestModelWithoutActivation(c, s.TxnRunnerFactory(), "foo")
 }
 
 func (s *importSuite) TestImportFromModelConfig(c *tc.C) {

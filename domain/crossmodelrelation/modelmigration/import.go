@@ -73,10 +73,57 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 	if err := i.importOffers(ctx, model.Applications()); err != nil {
 		return errors.Errorf("importing offers: %w", err)
 	}
-	if err := i.importRemoteApplications(ctx, model.RemoteApplications()); err != nil {
+
+	// Extract unit names for remote applications from relations.
+	// This is needed because synthetic units must be created before
+	// relations can be imported.
+	remoteAppUnits := i.extractRemoteAppUnits(model)
+
+	if err := i.importRemoteApplications(ctx, model.RemoteApplications(), remoteAppUnits); err != nil {
 		return errors.Errorf("importing remote applications: %w", err)
 	}
 	return nil
+}
+
+// extractRemoteAppUnits scans relations to find unit names for each remote
+// application. Unit names are extracted from relation endpoint settings.
+func (i *importOperation) extractRemoteAppUnits(model description.Model) map[string][]string {
+	// Build set of remote application names.
+	remoteAppNames := make(map[string]struct{})
+	for _, ra := range model.RemoteApplications() {
+		remoteAppNames[ra.Name()] = struct{}{}
+	}
+
+	// Extract unit names from relation endpoints.
+	remoteAppUnits := make(map[string]map[string]struct{})
+	for _, rel := range model.Relations() {
+		for _, ep := range rel.Endpoints() {
+			appName := ep.ApplicationName()
+			if _, isRemote := remoteAppNames[appName]; !isRemote {
+				continue
+			}
+
+			if remoteAppUnits[appName] == nil {
+				remoteAppUnits[appName] = make(map[string]struct{})
+			}
+
+			// Unit names are the keys of AllSettings().
+			for unitName := range ep.AllSettings() {
+				remoteAppUnits[appName][unitName] = struct{}{}
+			}
+		}
+	}
+
+	// Convert sets to slices.
+	result := make(map[string][]string)
+	for appName, unitSet := range remoteAppUnits {
+		units := make([]string, 0, len(unitSet))
+		for unitName := range unitSet {
+			units = append(units, unitName)
+		}
+		result[appName] = units
+	}
+	return result
 }
 
 func (i *importOperation) importOffers(ctx context.Context, apps []description.Application) error {
@@ -110,7 +157,11 @@ func (i *importOperation) importOffers(ctx context.Context, apps []description.A
 	return i.importService.ImportOffers(ctx, input)
 }
 
-func (i *importOperation) importRemoteApplications(ctx context.Context, remoteApps []description.RemoteApplication) error {
+func (i *importOperation) importRemoteApplications(
+	ctx context.Context,
+	remoteApps []description.RemoteApplication,
+	remoteAppUnits map[string][]string,
+) error {
 	input := make([]crossmodelrelation.RemoteApplicationImport, 0, len(remoteApps))
 	for _, remoteApp := range remoteApps {
 		endpoints := make([]crossmodelrelation.RemoteApplicationEndpoint, 0, len(remoteApp.Endpoints()))
@@ -136,6 +187,7 @@ func (i *importOperation) importRemoteApplications(ctx context.Context, remoteAp
 			Endpoints:       endpoints,
 			Bindings:        remoteApp.Bindings(),
 			IsConsumerProxy: remoteApp.IsConsumerProxy(),
+			Units:           remoteAppUnits[remoteApp.Name()],
 		}
 		input = append(input, imp)
 	}
