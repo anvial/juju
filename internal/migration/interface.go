@@ -65,6 +65,7 @@ type RelationService interface {
 		error)
 }
 
+// StatusService provides access to the statuses service.
 type StatusService interface {
 	// CheckUnitStatusesReadyForMigration returns true is the statuses of all units
 	// in the model indicate they can be migrated.
@@ -93,4 +94,10 @@ type MachineService interface {
 	// The following errors may be returned:
 	// - [machineerrors.MachineNotFound] if the machine does not exist.
 	GetMachineBase(ctx context.Context, mName machine.Name) (base.Base, error)
+}
+
+// CloudService provides access to the cloud service.
+type CloudService interface {
+	// ListAll returns all the clouds.
+	ListAll(ctx context.Context) ([]cloud.Cloud, error)
 }

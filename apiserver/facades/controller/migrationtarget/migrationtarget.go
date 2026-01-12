@@ -17,6 +17,7 @@ import (
 
 	apiservererrors "github.com/juju/juju/apiserver/errors"
 	"github.com/juju/juju/apiserver/facade"
+	"github.com/juju/juju/cloud"
 	"github.com/juju/juju/controller"
 	"github.com/juju/juju/core/base"
 	"github.com/juju/juju/core/crossmodel"
@@ -40,6 +41,12 @@ type ModelImporter interface {
 	// ImportModel takes a serialized description model (yaml bytes) and returns
 	// a state model and state state.
 	ImportModel(ctx context.Context, bytes []byte) error
+}
+
+// CloudService provides a subset of the cloud domain service methods.
+type CloudService interface {
+	// ListAll returns all the clouds.
+	ListAll(ctx context.Context) ([]cloud.Cloud, error)
 }
 
 // ExternalControllerService provides a subset of the external controller
@@ -196,6 +203,7 @@ type API struct {
 	statusService  StatusService
 	machineService MachineService
 
+	cloudService                CloudService
 	controllerConfigService     ControllerConfigService
 	externalControllerService   ExternalControllerService
 	modelAgentServiceGetter     ModelAgentServiceGetter
@@ -214,6 +222,7 @@ type API struct {
 func NewAPI(
 	ctx facade.ModelContext,
 	authorizer facade.Authorizer,
+	cloudService CloudService,
 	controllerConfigService ControllerConfigService,
 	externalControllerService ExternalControllerService,
 	modelService ModelService,
@@ -230,6 +239,7 @@ func NewAPI(
 	return &API{
 		controllerModelUUID:             ctx.ControllerModelUUID(),
 		modelImporter:                   ctx.ModelImporter(),
+		cloudService:                    cloudService,
 		controllerConfigService:         controllerConfigService,
 		externalControllerService:       externalControllerService,
 		modelService:                    modelService,
@@ -323,6 +333,7 @@ with an earlier version of the target controller and try again.
 		api.statusService,
 		modelAgentService,
 		api.machineService,
+		api.cloudService,
 		func(ctx context.Context, modelUUID coremodel.UUID) (migration.ModelMigrationService, error) {
 			return api.modelMigrationServiceGetter(ctx, modelUUID)
 		},

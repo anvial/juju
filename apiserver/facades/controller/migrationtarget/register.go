@@ -129,6 +129,7 @@ func makeFacade(
 	return NewAPI(
 		ctx,
 		auth,
+		domainServices.Cloud(),
 		domainServices.ControllerConfig(),
 		domainServices.ExternalController(),
 		domainServices.Model(),
