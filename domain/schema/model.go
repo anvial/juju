@@ -121,16 +121,7 @@ const (
 var modelPostPatchFilesByVersion = []struct {
 	version semversion.Number
 	files   []string
-}{{
-	version: semversion.MustParse("4.0.1"),
-	files: []string{
-		"0037-model-migrating.PATCH.sql",
-		"0038-relation.PATCH.sql",
-		"0039-secret-metadata.PATCH.sql",
-		"0040-operator-status.PATCH.sql",
-		"0041-offer.PATCH.sql",
-	},
-}}
+}{}
 
 // ModelDDL is used to create model databases.
 func ModelDDL() *schema.Schema {

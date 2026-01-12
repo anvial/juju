@@ -58,12 +58,7 @@ const (
 var controllerPostPatchFilesByVersion = []struct {
 	version semversion.Number
 	files   []string
-}{{
-	version: semversion.MustParse("4.0.1"),
-	files: []string{
-		"0027-model-migration-import.PATCH.sql",
-	},
-}}
+}{}
 
 // ControllerDDL is used to create the controller database schema at bootstrap.
 func ControllerDDL() *schema.Schema {
