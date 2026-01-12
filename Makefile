@@ -19,8 +19,8 @@ GOARCH=$(shell go env GOARCH)
 GOHOSTOS=$(shell go env GOHOSTOS)
 GOHOSTARCH=$(shell go env GOHOSTARCH)
 GO_MOD_VERSION=$(shell grep "^go" go.mod | awk '{print $$2}')
-GO_INSTALLED_VERSION=$(shell go version | awk '{print $$3}' | sed -e /.*go/s///)
-GO_INSTALL_PATH=$(if $(value GOBIN),$(value GOBIN),$(shell go env GOPATH)/bin)
+GO_INSTALLED_VERSION=$(shell GOARCH=$(uname -m) go version | awk '{print $$3}' | sed -e /.*go/s///)
+GO_INSTALL_PATH=$(if $(value GOBIN),$(value GOBIN),$(shell GOARCH=$(uname -m) go env GOPATH)/bin)
 
 # Build number passed in must be a monotonic int representing
 # the build.
@@ -28,7 +28,7 @@ JUJU_BUILD_NUMBER ?=
 
 # JUJU_VERSION is the JUJU version currently being represented in this
 # repository.
-JUJU_VERSION=$(shell go run -ldflags "-X $(PROJECT)/version.build=$(JUJU_BUILD_NUMBER)" scripts/version/main.go)
+JUJU_VERSION=$(shell GOARCH=$(uname -m) go run -ldflags "-X $(PROJECT)/version.build=$(JUJU_BUILD_NUMBER)" scripts/version/main.go)
 
 # BUILD_DIR is the directory relative to this project where we place build
 # artifacts created by this Makefile.
@@ -413,6 +413,12 @@ ${JUJU_METADATA_SOURCE}/tools/${JUJU_PUBLISH_STREAM}/juju-${JUJU_VERSION}-%.tgz:
 .PHONY: simplestreams
 simplestreams: juju juju-metadata ${SIMPLESTREAMS_TARGETS}
 	@juju metadata generate-agent-binaries -d ${JUJU_METADATA_SOURCE} --clean --prevent-fallback --stream ${JUJU_PUBLISH_STREAM} ;
+	@echo "\nRun export JUJU_METADATA_SOURCE=\"${JUJU_METADATA_SOURCE}\" if not defined in your env"
+
+.PHONY: simplestreams-hostarch
+simplestreams-hostarch: juju juju-metadata ${SIMPLESTREAMS_TARGETS}
+## simplestreams-hostarch: Allows cross compilation, but forces metadata building using host arch.
+	@GOARCH=$(uname -m) juju metadata generate-agent-binaries --debug -d ${JUJU_METADATA_SOURCE} --clean --prevent-fallback --stream ${JUJU_PUBLISH_STREAM} ;
 	@echo "\nRun export JUJU_METADATA_SOURCE=\"${JUJU_METADATA_SOURCE}\" if not defined in your env"
 
 .PHONY: build
