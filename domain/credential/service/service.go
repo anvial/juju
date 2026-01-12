@@ -166,6 +166,19 @@ func (s *Service) GetModelCredentialStatus(
 	return s.st.GetModelCredentialStatus(ctx, modelUUID)
 }
 
+// InsertCloudCredential adds a cloud credential with the given tag.
+//
+// TODO: unwind this from upsert to ensure this method only adds new credentials.
+func (s *Service) InsertCloudCredential(ctx context.Context, key corecredential.Key, cred cloud.Credential) error {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	if err := key.Validate(); err != nil {
+		return errors.Errorf("invalid id inserting cloud credential: %w", err)
+	}
+	return s.st.UpsertCloudCredential(ctx, key, credentialInfoFromCloudCredential(cred))
+}
+
 // UpdateCloudCredential adds or updates a cloud credential with the given tag.
 func (s *Service) UpdateCloudCredential(ctx context.Context, key corecredential.Key, cred cloud.Credential) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
