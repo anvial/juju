@@ -326,10 +326,10 @@ FROM   v_agent_binary_store`, metadataRecord{})
 
 // GetAgentBinarySHA256 retrieves the SHA256 value for the specified agent binary version.
 // It returns false and an empty string if no matching record exists.
-func (s *ModelState) GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (bool, string, error) {
+func (s *ModelState) GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (string, bool, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
 	record := metadataRecord{
@@ -343,7 +343,7 @@ FROM   v_agent_binary_store
 WHERE  version = $metadataRecord.version
 AND    architecture_name = $metadataRecord.architecture_name`, record)
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
 	exists := false
@@ -362,10 +362,10 @@ AND    architecture_name = $metadataRecord.architecture_name`, record)
 	})
 
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
-	return exists, record.SHA256, nil
+	return record.SHA256, exists, nil
 }
 
 // GetAgentStream returns the stream used by the current model.

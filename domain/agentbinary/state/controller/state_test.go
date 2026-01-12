@@ -286,7 +286,7 @@ func (s *controllerStateSuite) TestGetAgentBinarySHA256Exists(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	ver := coreagentbinary.Version{Number: num, Arch: "amd64"}
-	exists, shaRes, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	shaRes, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(exists, tc.IsTrue)
 	c.Check(shaRes, tc.Equals, sha)
@@ -297,7 +297,7 @@ func (s *controllerStateSuite) TestGetAgentBinarySHA256NoExists(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	ver := coreagentbinary.Version{Number: num, Arch: "amd64"}
-	exists, shaRes, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	shaRes, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(exists, tc.IsFalse)
 	c.Check(shaRes, tc.Equals, "")
@@ -316,7 +316,7 @@ func (s *controllerStateSuite) TestGetAgentBinarySHA256ForARM64NotExists(c *tc.C
 	c.Assert(err, tc.ErrorIsNil)
 
 	ver := coreagentbinary.Version{Number: num, Arch: "arm64"}
-	exists, _, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	_, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(exists, tc.IsFalse)
 }
