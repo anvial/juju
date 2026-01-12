@@ -150,7 +150,7 @@ func GenerateNetplan(interfaces corenetwork.InterfaceInfos, matchHWAddr bool) (s
 	var netPlan netplan.Netplan
 	netPlan.Network.Ethernets = make(map[string]netplan.Ethernet)
 	netPlan.Network.Version = 2
-	numDHCPInterfaces := 0
+	dhcpInterfaceRouteMetric := uint8(100)
 	for _, info := range interfaces {
 		var iface netplan.Ethernet
 		cidr, err := info.PrimaryAddress().ValueWithMask()
@@ -164,12 +164,12 @@ func GenerateNetplan(interfaces corenetwork.InterfaceInfos, matchHWAddr bool) (s
 			iface.DHCP4 = &t
 			// We only want to allow a default DHCP route
 			// for the first DHCP enabled interface.
-			if numDHCPInterfaces > 0 && len(info.Routes) == 0 {
+			if len(info.Routes) == 0 {
 				iface.DHCP4Overrides = &netplan.Overrides{
-					UseRoutes: false,
+					RouteMetric: dhcpInterfaceRouteMetric,
 				}
+				dhcpInterfaceRouteMetric += 10
 			}
-			numDHCPInterfaces++
 		}
 
 		for _, dns := range info.DNSServers {
