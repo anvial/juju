@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package state
+package controller
 
 import (
 	"context"
@@ -326,22 +326,24 @@ FROM   v_agent_binary_store`, metadataRecord{})
 
 // GetAgentBinarySHA256 retrieves the SHA256 value for the specified agent binary version.
 // It returns false and an empty string if no matching record exists.
-func (s *ControllerState) GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (bool, string, error) {
+func (s *ControllerState) GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (string, bool, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
 	record := metadataRecord{
 		Version: version.Number.String(),
+		Arch:    version.Arch,
 	}
 
 	stmt, err := s.Prepare(`
 SELECT &metadataRecord.*
 FROM   v_agent_binary_store
-WHERE version = $metadataRecord.version`, record)
+WHERE  version = $metadataRecord.version
+AND    architecture_name = $metadataRecord.architecture_name`, record)
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
 	exists := false
@@ -360,8 +362,8 @@ WHERE version = $metadataRecord.version`, record)
 	})
 
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
-	return exists, record.SHA256, nil
+	return record.SHA256, exists, nil
 }

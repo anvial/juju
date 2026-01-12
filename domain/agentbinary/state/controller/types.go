@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package state
+package controller
 
 import "github.com/juju/juju/domain/agentbinary"
 
@@ -39,11 +39,6 @@ type metadataRecord struct {
 	Size int64 `db:"size"`
 	// SHA256 is the SHA256 hash of the agent binary.
 	SHA256 string `db:"sha_256"`
-}
-
-// modelAgentStream represents the stream in use for the agent.
-type modelAgentStream struct {
-	StreamID int `db:"stream_id"`
 }
 
 type metadataRecords []metadataRecord

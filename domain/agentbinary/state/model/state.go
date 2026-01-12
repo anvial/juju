@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package state
+package model
 
 import (
 	"context"
@@ -326,22 +326,24 @@ FROM   v_agent_binary_store`, metadataRecord{})
 
 // GetAgentBinarySHA256 retrieves the SHA256 value for the specified agent binary version.
 // It returns false and an empty string if no matching record exists.
-func (s *ModelState) GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (bool, string, error) {
+func (s *ModelState) GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (string, bool, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
 	record := metadataRecord{
 		Version: version.Number.String(),
+		Arch:    version.Arch,
 	}
 
 	stmt, err := s.Prepare(`
 SELECT &metadataRecord.*
 FROM   v_agent_binary_store
-WHERE version = $metadataRecord.version`, record)
+WHERE  version = $metadataRecord.version
+AND    architecture_name = $metadataRecord.architecture_name`, record)
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
 	exists := false
@@ -351,8 +353,8 @@ WHERE version = $metadataRecord.version`, record)
 			return nil
 		} else if err != nil {
 			return errors.Errorf(
-				"checking database to see if agent binary for version %q exists: %w",
-				version.Number.String(), err,
+				"checking database to see if agent binary for version %q and architecture %q exists: %w",
+				version.Number.String(), version.Arch, err,
 			)
 		}
 		exists = true
@@ -360,10 +362,10 @@ WHERE version = $metadataRecord.version`, record)
 	})
 
 	if err != nil {
-		return false, "", errors.Capture(err)
+		return "", false, errors.Capture(err)
 	}
 
-	return exists, record.SHA256, nil
+	return record.SHA256, exists, nil
 }
 
 // GetAgentStream returns the stream used by the current model.

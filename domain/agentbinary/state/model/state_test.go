@@ -1,7 +1,7 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package state
+package model
 
 import (
 	"context"
@@ -361,9 +361,9 @@ func (s *modelStateSuite) TestGetAgentBinarySHA256Exists(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	ver := coreagentbinary.Version{Number: num, Arch: "amd64"}
-	exists, shaRes, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	shaRes, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(exists, tc.Equals, true)
+	c.Assert(exists, tc.IsTrue)
 	c.Check(shaRes, tc.Equals, sha)
 }
 
@@ -372,8 +372,26 @@ func (s *modelStateSuite) TestGetAgentBinarySHA256NoExists(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	ver := coreagentbinary.Version{Number: num, Arch: "amd64"}
-	exists, shaRes, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	shaRes, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(exists, tc.Equals, false)
+	c.Assert(exists, tc.IsFalse)
 	c.Check(shaRes, tc.Equals, "")
+}
+
+func (s *modelStateSuite) TestGetAgentBinarySHA256ForARM64NotExists(c *tc.C) {
+	objStoreUUID, _ := addObjectStore(c, s.TxnRunner())
+	err := s.state.RegisterAgentBinary(c.Context(), agentbinary.RegisterAgentBinaryArg{
+		Version:         "4.0.0",
+		Arch:            "amd64",
+		ObjectStoreUUID: objStoreUUID,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	num, err := semversion.Parse("4.0.0")
+	c.Assert(err, tc.ErrorIsNil)
+
+	ver := coreagentbinary.Version{Number: num, Arch: "arm64"}
+	_, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(exists, tc.IsFalse)
 }

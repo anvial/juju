@@ -16,7 +16,7 @@ import (
 	accessservice "github.com/juju/juju/domain/access/service"
 	accessstate "github.com/juju/juju/domain/access/state"
 	agentbinaryservice "github.com/juju/juju/domain/agentbinary/service"
-	agentbinarystate "github.com/juju/juju/domain/agentbinary/state"
+	agentbinarystate "github.com/juju/juju/domain/agentbinary/state/controller"
 	autocertcacheservice "github.com/juju/juju/domain/autocert/service"
 	autocertcachestate "github.com/juju/juju/domain/autocert/state"
 	changestreamservice "github.com/juju/juju/domain/changestream/service"

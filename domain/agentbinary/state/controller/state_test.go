@@ -1,16 +1,23 @@
 // Copyright 2025 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package state
+package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/sha512"
+	"database/sql"
+	"encoding/hex"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/canonical/sqlair"
 	"github.com/juju/tc"
 
 	coreagentbinary "github.com/juju/juju/core/agentbinary"
+	"github.com/juju/juju/core/database"
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/core/semversion"
@@ -279,9 +286,9 @@ func (s *controllerStateSuite) TestGetAgentBinarySHA256Exists(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	ver := coreagentbinary.Version{Number: num, Arch: "amd64"}
-	exists, shaRes, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	shaRes, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(exists, tc.Equals, true)
+	c.Assert(exists, tc.IsTrue)
 	c.Check(shaRes, tc.Equals, sha)
 }
 
@@ -290,8 +297,101 @@ func (s *controllerStateSuite) TestGetAgentBinarySHA256NoExists(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 
 	ver := coreagentbinary.Version{Number: num, Arch: "amd64"}
-	exists, shaRes, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	shaRes, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
 	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(exists, tc.Equals, false)
+	c.Assert(exists, tc.IsFalse)
 	c.Check(shaRes, tc.Equals, "")
+}
+
+func (s *controllerStateSuite) TestGetAgentBinarySHA256ForARM64NotExists(c *tc.C) {
+	objStoreUUID, _ := addObjectStore(c, s.TxnRunner())
+	err := s.state.RegisterAgentBinary(c.Context(), agentbinary.RegisterAgentBinaryArg{
+		Version:         "4.0.0",
+		Arch:            "amd64",
+		ObjectStoreUUID: objStoreUUID,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	num, err := semversion.Parse("4.0.0")
+	c.Assert(err, tc.ErrorIsNil)
+
+	ver := coreagentbinary.Version{Number: num, Arch: "arm64"}
+	_, exists, err := s.state.GetAgentBinarySHA256(c.Context(), ver, agentbinary.AgentStreamDevel)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Assert(exists, tc.IsFalse)
+}
+
+func addObjectStore(c *tc.C, runner database.TxnRunner) (objectstore.UUID, string) {
+	type objectStoreMeta struct {
+		UUID   string `db:"uuid"`
+		SHA256 string `db:"sha_256"`
+		SHA384 string `db:"sha_384"`
+		Size   int    `db:"size"`
+	}
+
+	storeUUID := uuid.MustNewUUID().String()
+	stmt, err := sqlair.Prepare(`
+INSERT INTO object_store_metadata (uuid, sha_256, sha_384, size)
+VALUES ($objectStoreMeta.uuid, $objectStoreMeta.sha_256, $objectStoreMeta.sha_384, $objectStoreMeta.size)
+`, objectStoreMeta{})
+	c.Assert(err, tc.ErrorIsNil)
+
+	hasher256 := sha256.New()
+	hasher384 := sha512.New384()
+	_, err = io.Copy(io.MultiWriter(hasher256, hasher384), strings.NewReader(storeUUID))
+	c.Assert(err, tc.ErrorIsNil)
+	sha256Hash := hex.EncodeToString(hasher256.Sum(nil))
+	sha384Hash := hex.EncodeToString(hasher384.Sum(nil))
+
+	metaRecord := objectStoreMeta{
+		UUID:   storeUUID,
+		SHA256: sha256Hash,
+		SHA384: sha384Hash,
+		Size:   1234,
+	}
+	err = runner.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
+		return tx.Query(ctx, stmt, metaRecord).Run()
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	type dbMetadataPath struct {
+		// UUID is the uuid for the metadata.
+		UUID string `db:"metadata_uuid"`
+		// Path is the path to the object.
+		Path string `db:"path"`
+	}
+	path := "/path/" + storeUUID
+	pathRecord := dbMetadataPath{
+		UUID: storeUUID,
+		Path: path,
+	}
+	pathStmt, err := sqlair.Prepare(`
+INSERT INTO object_store_metadata_path (path, metadata_uuid)
+VALUES ($dbMetadataPath.*)`, pathRecord)
+	c.Assert(err, tc.ErrorIsNil)
+	err = runner.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
+		return tx.Query(ctx, pathStmt, pathRecord).Run()
+	})
+	c.Assert(err, tc.ErrorIsNil)
+	return objectstore.UUID(storeUUID), path
+}
+
+func getObjectSHA256(c *tc.C, db *sql.DB, objStoreUUID objectstore.UUID) string {
+	var sha string
+	err := db.QueryRow(`
+SELECT sha_256
+FROM   object_store_metadata
+WHERE  uuid = ?`, objStoreUUID).Scan(&sha)
+	c.Assert(err, tc.ErrorIsNil)
+	return sha
+}
+
+func getMetadata(c *tc.C, db *sql.DB, objStoreUUID objectstore.UUID) agentbinary.Metadata {
+	var data agentbinary.Metadata
+	err := db.QueryRow(`
+SELECT version, architecture_name, size, sha_256
+FROM   v_agent_binary_store
+WHERE  object_store_uuid = ?`, objStoreUUID).Scan(&data.Version, &data.Arch, &data.Size, &data.SHA256)
+	c.Assert(err, tc.ErrorIsNil)
+	return data
 }
