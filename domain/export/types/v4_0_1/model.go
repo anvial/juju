@@ -11,35 +11,35 @@ import (
 
 type AgentBinaryStore struct {
 	Version         string `db:"version"`
-	ArchitectureId  int64  `db:"architecture_id"`
-	ObjectStoreUuid string `db:"object_store_uuid"`
+	ArchitectureID  int64  `db:"architecture_id"`
+	ObjectStoreUUID string `db:"object_store_uuid"`
 }
 
 type AgentStream struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type AgentVersion struct {
-	StreamId      int64  `db:"stream_id"`
+	StreamID      int64  `db:"stream_id"`
 	TargetVersion string `db:"target_version"`
 	LatestVersion string `db:"latest_version"`
 }
 
 type AnnotationApplication struct {
-	Uuid  string `db:"uuid"`
+	UUID  string `db:"uuid"`
 	Key   string `db:"key"`
 	Value string `db:"value"`
 }
 
 type AnnotationCharm struct {
-	Uuid  string `db:"uuid"`
+	UUID  string `db:"uuid"`
 	Key   string `db:"key"`
 	Value string `db:"value"`
 }
 
 type AnnotationMachine struct {
-	Uuid  string `db:"uuid"`
+	UUID  string `db:"uuid"`
 	Key   string `db:"key"`
 	Value string `db:"value"`
 }
@@ -50,266 +50,266 @@ type AnnotationModel struct {
 }
 
 type AnnotationStorageFilesystem struct {
-	Uuid  string `db:"uuid"`
+	UUID  string `db:"uuid"`
 	Key   string `db:"key"`
 	Value string `db:"value"`
 }
 
 type AnnotationStorageInstance struct {
-	Uuid  string `db:"uuid"`
+	UUID  string `db:"uuid"`
 	Key   string `db:"key"`
 	Value string `db:"value"`
 }
 
 type AnnotationStorageVolume struct {
-	Uuid  string `db:"uuid"`
+	UUID  string `db:"uuid"`
 	Key   string `db:"key"`
 	Value string `db:"value"`
 }
 
 type AnnotationUnit struct {
-	Uuid  string `db:"uuid"`
+	UUID  string `db:"uuid"`
 	Key   string `db:"key"`
 	Value string `db:"value"`
 }
 
 type Application struct {
-	Uuid                 string `db:"uuid"`
+	UUID                 string `db:"uuid"`
 	Name                 string `db:"name"`
-	LifeId               int64  `db:"life_id"`
-	CharmUuid            string `db:"charm_uuid"`
+	LifeID               int64  `db:"life_id"`
+	CharmUUID            string `db:"charm_uuid"`
 	CharmModifiedVersion int64  `db:"charm_modified_version"`
 	CharmUpgradeOnError  *bool  `db:"charm_upgrade_on_error"`
-	SpaceUuid            string `db:"space_uuid"`
+	SpaceUUID            string `db:"space_uuid"`
 }
 
 type ApplicationAgent struct {
-	ApplicationUuid         string  `db:"application_uuid"`
-	PasswordHashAlgorithmId *string `db:"password_hash_algorithm_id"`
+	ApplicationUUID         string  `db:"application_uuid"`
+	PasswordHashAlgorithmID *string `db:"password_hash_algorithm_id"`
 	PasswordHash            *string `db:"password_hash"`
 }
 
 type ApplicationChannel struct {
-	ApplicationUuid string  `db:"application_uuid"`
+	ApplicationUUID string  `db:"application_uuid"`
 	Track           *string `db:"track"`
 	Risk            string  `db:"risk"`
 	Branch          *string `db:"branch"`
 }
 
 type ApplicationConfig struct {
-	ApplicationUuid string  `db:"application_uuid"`
+	ApplicationUUID string  `db:"application_uuid"`
 	Key             string  `db:"key"`
-	TypeId          int64   `db:"type_id"`
+	TypeID          int64   `db:"type_id"`
 	Value           *string `db:"value"`
 }
 
 type ApplicationConfigHash struct {
-	ApplicationUuid string `db:"application_uuid"`
+	ApplicationUUID string `db:"application_uuid"`
 	Sha256          string `db:"sha256"`
 }
 
 type ApplicationConstraint struct {
-	ApplicationUuid string  `db:"application_uuid"`
-	ConstraintUuid  *string `db:"constraint_uuid"`
+	ApplicationUUID string  `db:"application_uuid"`
+	ConstraintUUID  *string `db:"constraint_uuid"`
 }
 
 type ApplicationController struct {
-	ApplicationUuid string `db:"application_uuid"`
+	ApplicationUUID string `db:"application_uuid"`
 }
 
 type ApplicationEndpoint struct {
-	Uuid              string  `db:"uuid"`
-	ApplicationUuid   string  `db:"application_uuid"`
-	SpaceUuid         *string `db:"space_uuid"`
-	CharmRelationUuid string  `db:"charm_relation_uuid"`
+	UUID              string  `db:"uuid"`
+	ApplicationUUID   string  `db:"application_uuid"`
+	SpaceUUID         *string `db:"space_uuid"`
+	CharmRelationUUID string  `db:"charm_relation_uuid"`
 }
 
 type ApplicationExposedEndpointCidr struct {
-	ApplicationUuid         string  `db:"application_uuid"`
-	ApplicationEndpointUuid *string `db:"application_endpoint_uuid"`
+	ApplicationUUID         string  `db:"application_uuid"`
+	ApplicationEndpointUUID *string `db:"application_endpoint_uuid"`
 	Cidr                    string  `db:"cidr"`
 }
 
 type ApplicationExposedEndpointSpace struct {
-	ApplicationUuid         string  `db:"application_uuid"`
-	ApplicationEndpointUuid *string `db:"application_endpoint_uuid"`
-	SpaceUuid               string  `db:"space_uuid"`
+	ApplicationUUID         string  `db:"application_uuid"`
+	ApplicationEndpointUUID *string `db:"application_endpoint_uuid"`
+	SpaceUUID               string  `db:"space_uuid"`
 }
 
 type ApplicationExtraEndpoint struct {
-	ApplicationUuid       string  `db:"application_uuid"`
-	SpaceUuid             *string `db:"space_uuid"`
-	CharmExtraBindingUuid string  `db:"charm_extra_binding_uuid"`
+	ApplicationUUID       string  `db:"application_uuid"`
+	SpaceUUID             *string `db:"space_uuid"`
+	CharmExtraBindingUUID string  `db:"charm_extra_binding_uuid"`
 }
 
 type ApplicationPlatform struct {
-	ApplicationUuid string  `db:"application_uuid"`
-	OsId            string  `db:"os_id"`
+	ApplicationUUID string  `db:"application_uuid"`
+	OsID            string  `db:"os_id"`
 	Channel         *string `db:"channel"`
-	ArchitectureId  int64   `db:"architecture_id"`
+	ArchitectureID  int64   `db:"architecture_id"`
 }
 
 type ApplicationRemoteConsumer struct {
-	OfferConnectionUuid     string `db:"offer_connection_uuid"`
-	OffererApplicationUuid  string `db:"offerer_application_uuid"`
-	ConsumerApplicationUuid string `db:"consumer_application_uuid"`
-	ConsumerModelUuid       string `db:"consumer_model_uuid"`
-	LifeId                  int64  `db:"life_id"`
+	OfferConnectionUUID     string `db:"offer_connection_uuid"`
+	OffererApplicationUUID  string `db:"offerer_application_uuid"`
+	ConsumerApplicationUUID string `db:"consumer_application_uuid"`
+	ConsumerModelUUID       string `db:"consumer_model_uuid"`
+	LifeID                  int64  `db:"life_id"`
 }
 
 type ApplicationRemoteOfferer struct {
-	Uuid                  string  `db:"uuid"`
-	LifeId                int64   `db:"life_id"`
-	ApplicationUuid       string  `db:"application_uuid"`
-	OfferUuid             string  `db:"offer_uuid"`
+	UUID                  string  `db:"uuid"`
+	LifeID                int64   `db:"life_id"`
+	ApplicationUUID       string  `db:"application_uuid"`
+	OfferUUID             string  `db:"offer_uuid"`
 	OfferUrl              string  `db:"offer_url"`
-	OffererControllerUuid *string `db:"offerer_controller_uuid"`
-	OffererModelUuid      string  `db:"offerer_model_uuid"`
+	OffererControllerUUID *string `db:"offerer_controller_uuid"`
+	OffererModelUUID      string  `db:"offerer_model_uuid"`
 	Macaroon              string  `db:"macaroon"`
 }
 
 type ApplicationRemoteOffererRelationMacaroon struct {
-	RelationUuid string `db:"relation_uuid"`
+	RelationUUID string `db:"relation_uuid"`
 	Macaroon     string `db:"macaroon"`
 }
 
 type ApplicationRemoteOffererStatus struct {
-	ApplicationRemoteOffererUuid string     `db:"application_remote_offerer_uuid"`
-	StatusId                     int64      `db:"status_id"`
+	ApplicationRemoteOffererUUID string     `db:"application_remote_offerer_uuid"`
+	StatusID                     int64      `db:"status_id"`
 	Message                      *string    `db:"message"`
 	Data                         *string    `db:"data"`
 	UpdatedAt                    *time.Time `db:"updated_at"`
 }
 
 type ApplicationResource struct {
-	ResourceUuid    string `db:"resource_uuid"`
-	ApplicationUuid string `db:"application_uuid"`
+	ResourceUUID    string `db:"resource_uuid"`
+	ApplicationUUID string `db:"application_uuid"`
 }
 
 type ApplicationScale struct {
-	ApplicationUuid string `db:"application_uuid"`
+	ApplicationUUID string `db:"application_uuid"`
 	Scale           *int64 `db:"scale"`
 	ScaleTarget     *int64 `db:"scale_target"`
 	Scaling         *bool  `db:"scaling"`
 }
 
 type ApplicationSetting struct {
-	ApplicationUuid string `db:"application_uuid"`
+	ApplicationUUID string `db:"application_uuid"`
 	Trust           *bool  `db:"trust"`
 }
 
 type ApplicationStatus struct {
-	ApplicationUuid string     `db:"application_uuid"`
-	StatusId        int64      `db:"status_id"`
+	ApplicationUUID string     `db:"application_uuid"`
+	StatusID        int64      `db:"status_id"`
 	Message         *string    `db:"message"`
 	Data            *string    `db:"data"`
 	UpdatedAt       *time.Time `db:"updated_at"`
 }
 
 type ApplicationStorageDirective struct {
-	ApplicationUuid string `db:"application_uuid"`
-	CharmUuid       string `db:"charm_uuid"`
+	ApplicationUUID string `db:"application_uuid"`
+	CharmUUID       string `db:"charm_uuid"`
 	StorageName     string `db:"storage_name"`
-	StoragePoolUuid string `db:"storage_pool_uuid"`
+	StoragePoolUUID string `db:"storage_pool_uuid"`
 	SizeMib         int64  `db:"size_mib"`
 	Count           int64  `db:"count"`
 }
 
 type ApplicationWorkloadVersion struct {
-	ApplicationUuid string `db:"application_uuid"`
+	ApplicationUUID string `db:"application_uuid"`
 	Version         string `db:"version"`
 }
 
 type Architecture struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type AvailabilityZone struct {
-	Uuid string `db:"uuid"`
+	UUID string `db:"uuid"`
 	Name string `db:"name"`
 }
 
 type AvailabilityZoneSubnet struct {
-	AvailabilityZoneUuid string `db:"availability_zone_uuid"`
-	SubnetUuid           string `db:"subnet_uuid"`
+	AvailabilityZoneUUID string `db:"availability_zone_uuid"`
+	SubnetUUID           string `db:"subnet_uuid"`
 }
 
 type BlockCommand struct {
-	Uuid               string  `db:"uuid"`
-	BlockCommandTypeId int64   `db:"block_command_type_id"`
+	UUID               string  `db:"uuid"`
+	BlockCommandTypeID int64   `db:"block_command_type_id"`
 	Message            *string `db:"message"`
 }
 
 type BlockCommandType struct {
-	Id       *int64 `db:"id"`
+	ID       *int64 `db:"id"`
 	NameType string `db:"name_type"`
 }
 
 type BlockDevice struct {
-	Uuid               string  `db:"uuid"`
-	MachineUuid        string  `db:"machine_uuid"`
+	UUID               string  `db:"uuid"`
+	MachineUUID        string  `db:"machine_uuid"`
 	Name               *string `db:"name"`
-	HardwareId         *string `db:"hardware_id"`
+	HardwareID         *string `db:"hardware_id"`
 	Wwn                *string `db:"wwn"`
-	SerialId           *string `db:"serial_id"`
+	SerialID           *string `db:"serial_id"`
 	BusAddress         *string `db:"bus_address"`
 	SizeMib            *int64  `db:"size_mib"`
 	MountPoint         *string `db:"mount_point"`
 	InUse              *bool   `db:"in_use"`
 	FilesystemLabel    *string `db:"filesystem_label"`
-	HostFilesystemUuid *string `db:"host_filesystem_uuid"`
+	HostFilesystemUUID *string `db:"host_filesystem_uuid"`
 	FilesystemType     *string `db:"filesystem_type"`
 }
 
 type BlockDeviceLinkDevice struct {
-	BlockDeviceUuid string `db:"block_device_uuid"`
-	MachineUuid     string `db:"machine_uuid"`
+	BlockDeviceUUID string `db:"block_device_uuid"`
+	MachineUUID     string `db:"machine_uuid"`
 	Name            string `db:"name"`
 }
 
 type ChangeLog struct {
-	Id          *int64    `db:"id"`
-	EditTypeId  int64     `db:"edit_type_id"`
-	NamespaceId int64     `db:"namespace_id"`
+	ID          *int64    `db:"id"`
+	EditTypeID  int64     `db:"edit_type_id"`
+	NamespaceID int64     `db:"namespace_id"`
 	Changed     string    `db:"changed"`
 	CreatedAt   time.Time `db:"created_at"`
 }
 
 type ChangeLogEditType struct {
-	Id       *int64  `db:"id"`
+	ID       *int64  `db:"id"`
 	EditType *string `db:"edit_type"`
 }
 
 type ChangeLogNamespace struct {
-	Id          *int64  `db:"id"`
+	ID          *int64  `db:"id"`
 	Namespace   *string `db:"namespace"`
 	Description *string `db:"description"`
 }
 
 type ChangeLogWitness struct {
-	ControllerId string    `db:"controller_id"`
+	ControllerID string    `db:"controller_id"`
 	LowerBound   int64     `db:"lower_bound"`
 	UpperBound   int64     `db:"upper_bound"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
 
 type Charm struct {
-	Uuid            string    `db:"uuid"`
+	UUID            string    `db:"uuid"`
 	ArchivePath     *string   `db:"archive_path"`
-	ObjectStoreUuid *string   `db:"object_store_uuid"`
+	ObjectStoreUUID *string   `db:"object_store_uuid"`
 	Available       *bool     `db:"available"`
 	Version         *string   `db:"version"`
 	LxdProfile      *string   `db:"lxd_profile"`
-	SourceId        int64     `db:"source_id"`
+	SourceID        int64     `db:"source_id"`
 	Revision        int64     `db:"revision"`
-	ArchitectureId  *int64    `db:"architecture_id"`
+	ArchitectureID  *int64    `db:"architecture_id"`
 	ReferenceName   string    `db:"reference_name"`
 	CreateTime      time.Time `db:"create_time"`
 }
 
 type CharmAction struct {
-	CharmUuid      string  `db:"charm_uuid"`
+	CharmUUID      string  `db:"charm_uuid"`
 	Key            string  `db:"key"`
 	Description    *string `db:"description"`
 	Parallel       *bool   `db:"parallel"`
@@ -318,26 +318,26 @@ type CharmAction struct {
 }
 
 type CharmCategory struct {
-	CharmUuid  string `db:"charm_uuid"`
+	CharmUUID  string `db:"charm_uuid"`
 	ArrayIndex int64  `db:"array_index"`
 	Value      string `db:"value"`
 }
 
 type CharmConfig struct {
-	CharmUuid    string  `db:"charm_uuid"`
+	CharmUUID    string  `db:"charm_uuid"`
 	Key          string  `db:"key"`
-	TypeId       *string `db:"type_id"`
+	TypeID       *string `db:"type_id"`
 	DefaultValue *string `db:"default_value"`
 	Description  *string `db:"description"`
 }
 
 type CharmConfigType struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type CharmContainer struct {
-	CharmUuid string  `db:"charm_uuid"`
+	CharmUUID string  `db:"charm_uuid"`
 	Key       string  `db:"key"`
 	Resource  *string `db:"resource"`
 	Uid       *int64  `db:"uid"`
@@ -346,14 +346,14 @@ type CharmContainer struct {
 
 type CharmContainerMount struct {
 	ArrayIndex        int64   `db:"array_index"`
-	CharmUuid         string  `db:"charm_uuid"`
+	CharmUUID         string  `db:"charm_uuid"`
 	CharmContainerKey *string `db:"charm_container_key"`
 	Storage           *string `db:"storage"`
 	Location          *string `db:"location"`
 }
 
 type CharmDevice struct {
-	CharmUuid   string  `db:"charm_uuid"`
+	CharmUUID   string  `db:"charm_uuid"`
 	Key         string  `db:"key"`
 	Name        *string `db:"name"`
 	Description *string `db:"description"`
@@ -363,101 +363,101 @@ type CharmDevice struct {
 }
 
 type CharmDownloadInfo struct {
-	CharmUuid          string  `db:"charm_uuid"`
-	ProvenanceId       int64   `db:"provenance_id"`
+	CharmUUID          string  `db:"charm_uuid"`
+	ProvenanceID       int64   `db:"provenance_id"`
 	CharmhubIdentifier *string `db:"charmhub_identifier"`
 	DownloadUrl        string  `db:"download_url"`
 	DownloadSize       int64   `db:"download_size"`
 }
 
 type CharmExtraBinding struct {
-	Uuid      string `db:"uuid"`
-	CharmUuid string `db:"charm_uuid"`
+	UUID      string `db:"uuid"`
+	CharmUUID string `db:"charm_uuid"`
 	Name      string `db:"name"`
 }
 
 type CharmHash struct {
-	CharmUuid  string `db:"charm_uuid"`
-	HashKindId int64  `db:"hash_kind_id"`
+	CharmUUID  string `db:"charm_uuid"`
+	HashKindID int64  `db:"hash_kind_id"`
 	Hash       string `db:"hash"`
 }
 
 type CharmManifestBase struct {
-	CharmUuid        string  `db:"charm_uuid"`
+	CharmUUID        string  `db:"charm_uuid"`
 	ArrayIndex       int64   `db:"array_index"`
 	NestedArrayIndex int64   `db:"nested_array_index"`
-	OsId             *int64  `db:"os_id"`
+	OsID             *int64  `db:"os_id"`
 	Track            *string `db:"track"`
 	Risk             string  `db:"risk"`
 	Branch           *string `db:"branch"`
-	ArchitectureId   *int64  `db:"architecture_id"`
+	ArchitectureID   *int64  `db:"architecture_id"`
 }
 
 type CharmMetadata struct {
-	CharmUuid      string  `db:"charm_uuid"`
+	CharmUUID      string  `db:"charm_uuid"`
 	Name           string  `db:"name"`
 	Description    *string `db:"description"`
 	Summary        *string `db:"summary"`
 	Subordinate    bool    `db:"subordinate"`
 	MinJujuVersion *string `db:"min_juju_version"`
-	RunAsId        *int64  `db:"run_as_id"`
+	RunAsID        *int64  `db:"run_as_id"`
 	Assumes        *string `db:"assumes"`
 }
 
 type CharmProvenance struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type CharmRelation struct {
-	Uuid      string  `db:"uuid"`
-	CharmUuid string  `db:"charm_uuid"`
+	UUID      string  `db:"uuid"`
+	CharmUUID string  `db:"charm_uuid"`
 	Name      string  `db:"name"`
-	RoleId    int64   `db:"role_id"`
-	ScopeId   int64   `db:"scope_id"`
+	RoleID    int64   `db:"role_id"`
+	ScopeID   int64   `db:"scope_id"`
 	Interface *string `db:"interface"`
 	Optional  *bool   `db:"optional"`
 	Capacity  *int64  `db:"capacity"`
 }
 
 type CharmRelationRole struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type CharmRelationScope struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type CharmResource struct {
-	CharmUuid   string  `db:"charm_uuid"`
+	CharmUUID   string  `db:"charm_uuid"`
 	Name        string  `db:"name"`
-	KindId      int64   `db:"kind_id"`
+	KindID      int64   `db:"kind_id"`
 	Path        *string `db:"path"`
 	Description *string `db:"description"`
 }
 
 type CharmResourceKind struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type CharmRunAsKind struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type CharmSource struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type CharmStorage struct {
-	CharmUuid      string  `db:"charm_uuid"`
+	CharmUUID      string  `db:"charm_uuid"`
 	Name           string  `db:"name"`
 	Description    *string `db:"description"`
-	StorageKindId  int64   `db:"storage_kind_id"`
+	StorageKindID  int64   `db:"storage_kind_id"`
 	Shared         bool    `db:"shared"`
 	ReadOnly       *bool   `db:"read_only"`
 	CountMin       int64   `db:"count_min"`
@@ -467,31 +467,31 @@ type CharmStorage struct {
 }
 
 type CharmStorageKind struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Kind string `db:"kind"`
 }
 
 type CharmStorageProperty struct {
-	CharmUuid        string `db:"charm_uuid"`
+	CharmUUID        string `db:"charm_uuid"`
 	CharmStorageName string `db:"charm_storage_name"`
 	ArrayIndex       int64  `db:"array_index"`
 	Value            string `db:"value"`
 }
 
 type CharmTag struct {
-	CharmUuid  string `db:"charm_uuid"`
+	CharmUUID  string `db:"charm_uuid"`
 	ArrayIndex int64  `db:"array_index"`
 	Value      string `db:"value"`
 }
 
 type CharmTerm struct {
-	CharmUuid  string `db:"charm_uuid"`
+	CharmUUID  string `db:"charm_uuid"`
 	ArrayIndex int64  `db:"array_index"`
 	Value      string `db:"value"`
 }
 
 type Constraint struct {
-	Uuid             string  `db:"uuid"`
+	UUID             string  `db:"uuid"`
 	Arch             *string `db:"arch"`
 	CpuCores         *int64  `db:"cpu_cores"`
 	CpuPower         *int64  `db:"cpu_power"`
@@ -500,146 +500,146 @@ type Constraint struct {
 	RootDiskSource   *string `db:"root_disk_source"`
 	InstanceRole     *string `db:"instance_role"`
 	InstanceType     *string `db:"instance_type"`
-	ContainerTypeId  *int64  `db:"container_type_id"`
+	ContainerTypeID  *int64  `db:"container_type_id"`
 	VirtType         *string `db:"virt_type"`
 	AllocatePublicIp *int64  `db:"allocate_public_ip"`
-	ImageId          *string `db:"image_id"`
+	ImageID          *string `db:"image_id"`
 }
 
 type ConstraintSpace struct {
-	ConstraintUuid string `db:"constraint_uuid"`
+	ConstraintUUID string `db:"constraint_uuid"`
 	Space          string `db:"space"`
 	Exclude        bool   `db:"exclude"`
 }
 
 type ConstraintTag struct {
-	ConstraintUuid string `db:"constraint_uuid"`
+	ConstraintUUID string `db:"constraint_uuid"`
 	Tag            string `db:"tag"`
 }
 
 type ConstraintZone struct {
-	ConstraintUuid string `db:"constraint_uuid"`
+	ConstraintUUID string `db:"constraint_uuid"`
 	Zone           string `db:"zone"`
 }
 
 type ContainerType struct {
-	Id    *int64 `db:"id"`
+	ID    *int64 `db:"id"`
 	Value string `db:"value"`
 }
 
 type DeviceConstraint struct {
-	Uuid            string `db:"uuid"`
-	ApplicationUuid string `db:"application_uuid"`
+	UUID            string `db:"uuid"`
+	ApplicationUUID string `db:"application_uuid"`
 	Name            string `db:"name"`
 	Type            string `db:"type"`
 	Count           *int64 `db:"count"`
 }
 
 type DeviceConstraintAttribute struct {
-	DeviceConstraintUuid string `db:"device_constraint_uuid"`
+	DeviceConstraintUUID string `db:"device_constraint_uuid"`
 	Key                  string `db:"key"`
 	Value                string `db:"value"`
 }
 
 type FqdnAddress struct {
-	Uuid    string `db:"uuid"`
+	UUID    string `db:"uuid"`
 	Address string `db:"address"`
-	ScopeId int64  `db:"scope_id"`
+	ScopeID int64  `db:"scope_id"`
 }
 
 type HashKind struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type HostnameAddress struct {
-	Uuid     string `db:"uuid"`
+	UUID     string `db:"uuid"`
 	Hostname string `db:"hostname"`
-	ScopeId  int64  `db:"scope_id"`
+	ScopeID  int64  `db:"scope_id"`
 }
 
 type InstanceTag struct {
-	MachineUuid string `db:"machine_uuid"`
+	MachineUUID string `db:"machine_uuid"`
 	Tag         string `db:"tag"`
 }
 
 type IpAddress struct {
-	Uuid         string  `db:"uuid"`
-	NetNodeUuid  string  `db:"net_node_uuid"`
-	DeviceUuid   string  `db:"device_uuid"`
+	UUID         string  `db:"uuid"`
+	NetNodeUUID  string  `db:"net_node_uuid"`
+	DeviceUUID   string  `db:"device_uuid"`
 	AddressValue string  `db:"address_value"`
-	SubnetUuid   *string `db:"subnet_uuid"`
-	TypeId       int64   `db:"type_id"`
-	ConfigTypeId int64   `db:"config_type_id"`
-	OriginId     int64   `db:"origin_id"`
-	ScopeId      int64   `db:"scope_id"`
+	SubnetUUID   *string `db:"subnet_uuid"`
+	TypeID       int64   `db:"type_id"`
+	ConfigTypeID int64   `db:"config_type_id"`
+	OriginID     int64   `db:"origin_id"`
+	ScopeID      int64   `db:"scope_id"`
 	IsSecondary  *bool   `db:"is_secondary"`
 	IsShadow     *bool   `db:"is_shadow"`
 }
 
 type IpAddressConfigType struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type IpAddressOrigin struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type IpAddressScope struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type IpAddressType struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type K8sPod struct {
-	UnitUuid   string `db:"unit_uuid"`
-	ProviderId string `db:"provider_id"`
+	UnitUUID   string `db:"unit_uuid"`
+	ProviderID string `db:"provider_id"`
 }
 
 type K8sPodPort struct {
-	UnitUuid string `db:"unit_uuid"`
+	UnitUUID string `db:"unit_uuid"`
 	Port     string `db:"port"`
 }
 
 type K8sPodStatus struct {
-	UnitUuid  string     `db:"unit_uuid"`
-	StatusId  int64      `db:"status_id"`
+	UnitUUID  string     `db:"unit_uuid"`
+	StatusID  int64      `db:"status_id"`
 	Message   *string    `db:"message"`
 	Data      *string    `db:"data"`
 	UpdatedAt *time.Time `db:"updated_at"`
 }
 
 type K8sPodStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 
 type K8sService struct {
-	Uuid            string `db:"uuid"`
-	ApplicationUuid string `db:"application_uuid"`
-	NetNodeUuid     string `db:"net_node_uuid"`
-	ProviderId      string `db:"provider_id"`
+	UUID            string `db:"uuid"`
+	ApplicationUUID string `db:"application_uuid"`
+	NetNodeUUID     string `db:"net_node_uuid"`
+	ProviderID      string `db:"provider_id"`
 }
 
 type Life struct {
-	Id    *int64 `db:"id"`
+	ID    *int64 `db:"id"`
 	Value string `db:"value"`
 }
 
 type LinkLayerDevice struct {
-	Uuid              string  `db:"uuid"`
-	NetNodeUuid       string  `db:"net_node_uuid"`
+	UUID              string  `db:"uuid"`
+	NetNodeUUID       string  `db:"net_node_uuid"`
 	Name              string  `db:"name"`
 	Mtu               *int64  `db:"mtu"`
 	MacAddress        *string `db:"mac_address"`
-	DeviceTypeId      int64   `db:"device_type_id"`
-	VirtualPortTypeId int64   `db:"virtual_port_type_id"`
+	DeviceTypeID      int64   `db:"device_type_id"`
+	VirtualPortTypeID int64   `db:"virtual_port_type_id"`
 	IsAutoStart       bool    `db:"is_auto_start"`
 	IsEnabled         bool    `db:"is_enabled"`
 	IsDefaultGateway  bool    `db:"is_default_gateway"`
@@ -648,39 +648,39 @@ type LinkLayerDevice struct {
 }
 
 type LinkLayerDeviceDnsAddress struct {
-	DeviceUuid string `db:"device_uuid"`
+	DeviceUUID string `db:"device_uuid"`
 	DnsAddress string `db:"dns_address"`
 }
 
 type LinkLayerDeviceDnsDomain struct {
-	DeviceUuid   string `db:"device_uuid"`
+	DeviceUUID   string `db:"device_uuid"`
 	SearchDomain string `db:"search_domain"`
 }
 
 type LinkLayerDeviceParent struct {
-	DeviceUuid string `db:"device_uuid"`
-	ParentUuid string `db:"parent_uuid"`
+	DeviceUUID string `db:"device_uuid"`
+	ParentUUID string `db:"parent_uuid"`
 }
 
 type LinkLayerDeviceRoute struct {
-	DeviceUuid      string `db:"device_uuid"`
+	DeviceUUID      string `db:"device_uuid"`
 	DestinationCidr string `db:"destination_cidr"`
 	GatewayIp       string `db:"gateway_ip"`
 	Metric          int64  `db:"metric"`
 }
 
 type LinkLayerDeviceType struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type Machine struct {
-	Uuid                    string     `db:"uuid"`
+	UUID                    string     `db:"uuid"`
 	Name                    string     `db:"name"`
-	NetNodeUuid             string     `db:"net_node_uuid"`
-	LifeId                  int64      `db:"life_id"`
+	NetNodeUUID             string     `db:"net_node_uuid"`
+	LifeID                  int64      `db:"life_id"`
 	Nonce                   *string    `db:"nonce"`
-	PasswordHashAlgorithmId *string    `db:"password_hash_algorithm_id"`
+	PasswordHashAlgorithmID *string    `db:"password_hash_algorithm_id"`
 	PasswordHash            *string    `db:"password_hash"`
 	ForceDestroyed          *bool      `db:"force_destroyed"`
 	AgentStartedAt          *time.Time `db:"agent_started_at"`
@@ -689,23 +689,23 @@ type Machine struct {
 }
 
 type MachineAgentPresence struct {
-	MachineUuid string     `db:"machine_uuid"`
+	MachineUUID string     `db:"machine_uuid"`
 	LastSeen    *time.Time `db:"last_seen"`
 }
 
 type MachineAgentVersion struct {
-	MachineUuid    string `db:"machine_uuid"`
+	MachineUUID    string `db:"machine_uuid"`
 	Version        string `db:"version"`
-	ArchitectureId int64  `db:"architecture_id"`
+	ArchitectureID int64  `db:"architecture_id"`
 }
 
 type MachineCloudInstance struct {
-	MachineUuid          string  `db:"machine_uuid"`
-	LifeId               int64   `db:"life_id"`
-	InstanceId           *string `db:"instance_id"`
+	MachineUUID          string  `db:"machine_uuid"`
+	LifeID               int64   `db:"life_id"`
+	InstanceID           *string `db:"instance_id"`
 	DisplayName          *string `db:"display_name"`
 	Arch                 *string `db:"arch"`
-	AvailabilityZoneUuid *string `db:"availability_zone_uuid"`
+	AvailabilityZoneUUID *string `db:"availability_zone_uuid"`
 	CpuCores             *int64  `db:"cpu_cores"`
 	CpuPower             *int64  `db:"cpu_power"`
 	Mem                  *int64  `db:"mem"`
@@ -715,98 +715,98 @@ type MachineCloudInstance struct {
 }
 
 type MachineCloudInstanceStatus struct {
-	MachineUuid string     `db:"machine_uuid"`
-	StatusId    int64      `db:"status_id"`
+	MachineUUID string     `db:"machine_uuid"`
+	StatusID    int64      `db:"status_id"`
 	Message     *string    `db:"message"`
 	Data        *string    `db:"data"`
 	UpdatedAt   *time.Time `db:"updated_at"`
 }
 
 type MachineCloudInstanceStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 
 type MachineConstraint struct {
-	MachineUuid    string `db:"machine_uuid"`
-	ConstraintUuid string `db:"constraint_uuid"`
+	MachineUUID    string `db:"machine_uuid"`
+	ConstraintUUID string `db:"constraint_uuid"`
 }
 
 type MachineContainerType struct {
-	MachineUuid     string `db:"machine_uuid"`
-	ContainerTypeId int64  `db:"container_type_id"`
+	MachineUUID     string `db:"machine_uuid"`
+	ContainerTypeID int64  `db:"container_type_id"`
 }
 
 type MachineFilesystem struct {
-	MachineUuid    string `db:"machine_uuid"`
-	FilesystemUuid string `db:"filesystem_uuid"`
+	MachineUUID    string `db:"machine_uuid"`
+	FilesystemUUID string `db:"filesystem_uuid"`
 }
 
 type MachineLxdProfile struct {
-	MachineUuid string `db:"machine_uuid"`
+	MachineUUID string `db:"machine_uuid"`
 	Name        string `db:"name"`
 	ArrayIndex  int64  `db:"array_index"`
 }
 
 type MachineManual struct {
-	MachineUuid string `db:"machine_uuid"`
+	MachineUUID string `db:"machine_uuid"`
 }
 
 type MachineParent struct {
-	MachineUuid string `db:"machine_uuid"`
-	ParentUuid  string `db:"parent_uuid"`
+	MachineUUID string `db:"machine_uuid"`
+	ParentUUID  string `db:"parent_uuid"`
 }
 
 type MachinePlacement struct {
-	MachineUuid string `db:"machine_uuid"`
-	ScopeId     int64  `db:"scope_id"`
+	MachineUUID string `db:"machine_uuid"`
+	ScopeID     int64  `db:"scope_id"`
 	Directive   string `db:"directive"`
 }
 
 type MachinePlacementScope struct {
-	Id    *int64 `db:"id"`
+	ID    *int64 `db:"id"`
 	Value string `db:"value"`
 }
 
 type MachinePlatform struct {
-	MachineUuid    string  `db:"machine_uuid"`
-	OsId           string  `db:"os_id"`
+	MachineUUID    string  `db:"machine_uuid"`
+	OsID           string  `db:"os_id"`
 	Channel        *string `db:"channel"`
-	ArchitectureId int64   `db:"architecture_id"`
+	ArchitectureID int64   `db:"architecture_id"`
 }
 
 type MachineRequiresReboot struct {
-	MachineUuid string    `db:"machine_uuid"`
+	MachineUUID string    `db:"machine_uuid"`
 	CreatedAt   time.Time `db:"created_at"`
 }
 
 type MachineSshHostKey struct {
-	Uuid        string `db:"uuid"`
-	MachineUuid string `db:"machine_uuid"`
+	UUID        string `db:"uuid"`
+	MachineUUID string `db:"machine_uuid"`
 	SshKey      string `db:"ssh_key"`
 }
 
 type MachineStatus struct {
-	MachineUuid string     `db:"machine_uuid"`
-	StatusId    int64      `db:"status_id"`
+	MachineUUID string     `db:"machine_uuid"`
+	StatusID    int64      `db:"status_id"`
 	Message     *string    `db:"message"`
 	Data        *string    `db:"data"`
 	UpdatedAt   *time.Time `db:"updated_at"`
 }
 
 type MachineStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 
 type MachineVolume struct {
-	MachineUuid string `db:"machine_uuid"`
-	VolumeUuid  string `db:"volume_uuid"`
+	MachineUUID string `db:"machine_uuid"`
+	VolumeUUID  string `db:"volume_uuid"`
 }
 
 type Model struct {
-	Uuid              string  `db:"uuid"`
-	ControllerUuid    string  `db:"controller_uuid"`
+	UUID              string  `db:"uuid"`
+	ControllerUUID    string  `db:"controller_uuid"`
 	Name              string  `db:"name"`
 	Qualifier         string  `db:"qualifier"`
 	Type              string  `db:"type"`
@@ -819,8 +819,8 @@ type Model struct {
 }
 
 type ModelAgent struct {
-	ModelUuid               string  `db:"model_uuid"`
-	PasswordHashAlgorithmId *int64  `db:"password_hash_algorithm_id"`
+	ModelUUID               string  `db:"model_uuid"`
+	PasswordHashAlgorithmID *int64  `db:"password_hash_algorithm_id"`
 	PasswordHash            *string `db:"password_hash"`
 }
 
@@ -830,46 +830,46 @@ type ModelConfig struct {
 }
 
 type ModelConstraint struct {
-	ModelUuid      string `db:"model_uuid"`
-	ConstraintUuid string `db:"constraint_uuid"`
+	ModelUUID      string `db:"model_uuid"`
+	ConstraintUUID string `db:"constraint_uuid"`
 }
 
 type ModelLife struct {
-	ModelUuid string `db:"model_uuid"`
-	LifeId    string `db:"life_id"`
+	ModelUUID string `db:"model_uuid"`
+	LifeID    string `db:"life_id"`
 }
 
 type ModelMigrating struct {
-	Uuid      string `db:"uuid"`
-	ModelUuid string `db:"model_uuid"`
+	UUID      string `db:"uuid"`
+	ModelUUID string `db:"model_uuid"`
 }
 
 type ModelStoragePool struct {
-	StorageKindId   int64  `db:"storage_kind_id"`
-	StoragePoolUuid string `db:"storage_pool_uuid"`
+	StorageKindID   int64  `db:"storage_kind_id"`
+	StoragePoolUUID string `db:"storage_pool_uuid"`
 }
 
 type NetNode struct {
-	Uuid string `db:"uuid"`
+	UUID string `db:"uuid"`
 }
 
 type NetNodeFqdnAddress struct {
-	NetNodeUuid string `db:"net_node_uuid"`
-	AddressUuid string `db:"address_uuid"`
+	NetNodeUUID string `db:"net_node_uuid"`
+	AddressUUID string `db:"address_uuid"`
 }
 
 type NetNodeHostnameAddress struct {
-	NetNodeUuid string `db:"net_node_uuid"`
-	AddressUuid string `db:"address_uuid"`
+	NetNodeUUID string `db:"net_node_uuid"`
+	AddressUUID string `db:"address_uuid"`
 }
 
 type NetworkAddressScope struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type ObjectStoreMetadata struct {
-	Uuid   string `db:"uuid"`
+	UUID   string `db:"uuid"`
 	Sha256 string `db:"sha_256"`
 	Sha384 string `db:"sha_384"`
 	Size   int64  `db:"size"`
@@ -877,29 +877,29 @@ type ObjectStoreMetadata struct {
 
 type ObjectStoreMetadataPath struct {
 	Path         string `db:"path"`
-	MetadataUuid string `db:"metadata_uuid"`
+	MetadataUUID string `db:"metadata_uuid"`
 }
 
 type Offer struct {
-	Uuid string `db:"uuid"`
+	UUID string `db:"uuid"`
 	Name string `db:"name"`
 }
 
 type OfferConnection struct {
-	Uuid               string `db:"uuid"`
-	OfferUuid          string `db:"offer_uuid"`
-	RemoteRelationUuid string `db:"remote_relation_uuid"`
+	UUID               string `db:"uuid"`
+	OfferUUID          string `db:"offer_uuid"`
+	RemoteRelationUUID string `db:"remote_relation_uuid"`
 	Username           string `db:"username"`
 }
 
 type OfferEndpoint struct {
-	OfferUuid    string `db:"offer_uuid"`
-	EndpointUuid string `db:"endpoint_uuid"`
+	OfferUUID    string `db:"offer_uuid"`
+	EndpointUUID string `db:"endpoint_uuid"`
 }
 
 type Operation struct {
-	Uuid           string     `db:"uuid"`
-	OperationId    string     `db:"operation_id"`
+	UUID           string     `db:"uuid"`
+	OperationID    string     `db:"operation_id"`
 	Summary        *string    `db:"summary"`
 	EnqueuedAt     time.Time  `db:"enqueued_at"`
 	StartedAt      *time.Time `db:"started_at"`
@@ -909,224 +909,224 @@ type Operation struct {
 }
 
 type OperationAction struct {
-	OperationUuid  string `db:"operation_uuid"`
-	CharmUuid      string `db:"charm_uuid"`
+	OperationUUID  string `db:"operation_uuid"`
+	CharmUUID      string `db:"charm_uuid"`
 	CharmActionKey string `db:"charm_action_key"`
 }
 
 type OperationMachineTask struct {
-	TaskUuid    string `db:"task_uuid"`
-	MachineUuid string `db:"machine_uuid"`
+	TaskUUID    string `db:"task_uuid"`
+	MachineUUID string `db:"machine_uuid"`
 }
 
 type OperationParameter struct {
-	OperationUuid string `db:"operation_uuid"`
+	OperationUUID string `db:"operation_uuid"`
 	Key           string `db:"key"`
 	Value         string `db:"value"`
 }
 
 type OperationTask struct {
-	Uuid          string     `db:"uuid"`
-	OperationUuid string     `db:"operation_uuid"`
-	TaskId        string     `db:"task_id"`
+	UUID          string     `db:"uuid"`
+	OperationUUID string     `db:"operation_uuid"`
+	TaskID        string     `db:"task_id"`
 	EnqueuedAt    time.Time  `db:"enqueued_at"`
 	StartedAt     *time.Time `db:"started_at"`
 	CompletedAt   *time.Time `db:"completed_at"`
 }
 
 type OperationTaskLog struct {
-	TaskUuid  string    `db:"task_uuid"`
+	TaskUUID  string    `db:"task_uuid"`
 	Content   string    `db:"content"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
 type OperationTaskOutput struct {
-	TaskUuid  string `db:"task_uuid"`
+	TaskUUID  string `db:"task_uuid"`
 	StorePath string `db:"store_path"`
 }
 
 type OperationTaskStatus struct {
-	TaskUuid  string     `db:"task_uuid"`
-	StatusId  int64      `db:"status_id"`
+	TaskUUID  string     `db:"task_uuid"`
+	StatusID  int64      `db:"status_id"`
 	Message   *string    `db:"message"`
 	UpdatedAt *time.Time `db:"updated_at"`
 }
 
 type OperationTaskStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 
 type OperationUnitTask struct {
-	TaskUuid string `db:"task_uuid"`
-	UnitUuid string `db:"unit_uuid"`
+	TaskUUID string `db:"task_uuid"`
+	UnitUUID string `db:"unit_uuid"`
 }
 
 type OperatorStatus struct {
-	ApplicationUuid string     `db:"application_uuid"`
-	StatusId        int64      `db:"status_id"`
+	ApplicationUUID string     `db:"application_uuid"`
+	StatusID        int64      `db:"status_id"`
 	Message         *string    `db:"message"`
 	Data            *string    `db:"data"`
 	UpdatedAt       *time.Time `db:"updated_at"`
 }
 
 type Os struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type PasswordHashAlgorithm struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type PendingApplicationResource struct {
-	ResourceUuid    string `db:"resource_uuid"`
+	ResourceUUID    string `db:"resource_uuid"`
 	ApplicationName string `db:"application_name"`
 }
 
 type PortRange struct {
-	Uuid         string  `db:"uuid"`
-	ProtocolId   int64   `db:"protocol_id"`
+	UUID         string  `db:"uuid"`
+	ProtocolID   int64   `db:"protocol_id"`
 	FromPort     *int64  `db:"from_port"`
 	ToPort       *int64  `db:"to_port"`
-	RelationUuid *string `db:"relation_uuid"`
-	UnitUuid     string  `db:"unit_uuid"`
+	RelationUUID *string `db:"relation_uuid"`
+	UnitUUID     string  `db:"unit_uuid"`
 }
 
 type Protocol struct {
-	Id       *int64 `db:"id"`
+	ID       *int64 `db:"id"`
 	Protocol string `db:"protocol"`
 }
 
 type ProviderIpAddress struct {
-	ProviderId  string `db:"provider_id"`
-	AddressUuid string `db:"address_uuid"`
+	ProviderID  string `db:"provider_id"`
+	AddressUUID string `db:"address_uuid"`
 }
 
 type ProviderLinkLayerDevice struct {
-	ProviderId string `db:"provider_id"`
-	DeviceUuid string `db:"device_uuid"`
+	ProviderID string `db:"provider_id"`
+	DeviceUUID string `db:"device_uuid"`
 }
 
 type ProviderNetwork struct {
-	Uuid              string `db:"uuid"`
-	ProviderNetworkId string `db:"provider_network_id"`
+	UUID              string `db:"uuid"`
+	ProviderNetworkID string `db:"provider_network_id"`
 }
 
 type ProviderNetworkSubnet struct {
-	SubnetUuid          string `db:"subnet_uuid"`
-	ProviderNetworkUuid string `db:"provider_network_uuid"`
+	SubnetUUID          string `db:"subnet_uuid"`
+	ProviderNetworkUUID string `db:"provider_network_uuid"`
 }
 
 type ProviderSpace struct {
-	ProviderId string `db:"provider_id"`
-	SpaceUuid  string `db:"space_uuid"`
+	ProviderID string `db:"provider_id"`
+	SpaceUUID  string `db:"space_uuid"`
 }
 
 type ProviderSubnet struct {
-	ProviderId string `db:"provider_id"`
-	SubnetUuid string `db:"subnet_uuid"`
+	ProviderID string `db:"provider_id"`
+	SubnetUUID string `db:"subnet_uuid"`
 }
 
 type Relation struct {
-	Uuid            string  `db:"uuid"`
-	LifeId          int64   `db:"life_id"`
-	RelationId      int64   `db:"relation_id"`
+	UUID            string  `db:"uuid"`
+	LifeID          int64   `db:"life_id"`
+	RelationID      int64   `db:"relation_id"`
 	Suspended       *bool   `db:"suspended"`
 	SuspendedReason *string `db:"suspended_reason"`
-	ScopeId         int64   `db:"scope_id"`
+	ScopeID         int64   `db:"scope_id"`
 }
 
 type RelationApplicationSetting struct {
-	RelationEndpointUuid string  `db:"relation_endpoint_uuid"`
+	RelationEndpointUUID string  `db:"relation_endpoint_uuid"`
 	Key                  string  `db:"key"`
 	Value                *string `db:"value"`
 }
 
 type RelationApplicationSettingsHash struct {
-	RelationEndpointUuid string `db:"relation_endpoint_uuid"`
+	RelationEndpointUUID string `db:"relation_endpoint_uuid"`
 	Sha256               string `db:"sha256"`
 }
 
 type RelationEndpoint struct {
-	Uuid         string `db:"uuid"`
-	RelationUuid string `db:"relation_uuid"`
-	EndpointUuid string `db:"endpoint_uuid"`
+	UUID         string `db:"uuid"`
+	RelationUUID string `db:"relation_uuid"`
+	EndpointUUID string `db:"endpoint_uuid"`
 }
 
 type RelationNetworkEgress struct {
-	RelationUuid string `db:"relation_uuid"`
+	RelationUUID string `db:"relation_uuid"`
 	Cidr         string `db:"cidr"`
 }
 
 type RelationNetworkIngress struct {
-	RelationUuid string `db:"relation_uuid"`
+	RelationUUID string `db:"relation_uuid"`
 	Cidr         string `db:"cidr"`
 }
 
 type RelationStatus struct {
-	RelationUuid         string     `db:"relation_uuid"`
-	RelationStatusTypeId string     `db:"relation_status_type_id"`
+	RelationUUID         string     `db:"relation_uuid"`
+	RelationStatusTypeID string     `db:"relation_status_type_id"`
 	Message              *string    `db:"message"`
 	UpdatedAt            *time.Time `db:"updated_at"`
 }
 
 type RelationStatusType struct {
-	Id   string `db:"id"`
+	ID   string `db:"id"`
 	Name string `db:"name"`
 }
 
 type RelationUnit struct {
-	Uuid                 string `db:"uuid"`
-	RelationEndpointUuid string `db:"relation_endpoint_uuid"`
-	UnitUuid             string `db:"unit_uuid"`
+	UUID                 string `db:"uuid"`
+	RelationEndpointUUID string `db:"relation_endpoint_uuid"`
+	UnitUUID             string `db:"unit_uuid"`
 }
 
 type RelationUnitSetting struct {
-	RelationUnitUuid string  `db:"relation_unit_uuid"`
+	RelationUnitUUID string  `db:"relation_unit_uuid"`
 	Key              string  `db:"key"`
 	Value            *string `db:"value"`
 }
 
 type RelationUnitSettingArchive struct {
-	RelationUuid string  `db:"relation_uuid"`
+	RelationUUID string  `db:"relation_uuid"`
 	UnitName     string  `db:"unit_name"`
 	Key          string  `db:"key"`
 	Value        *string `db:"value"`
 }
 
 type RelationUnitSettingsHash struct {
-	RelationUnitUuid string `db:"relation_unit_uuid"`
+	RelationUnitUUID string `db:"relation_unit_uuid"`
 	Sha256           string `db:"sha256"`
 }
 
 type Removal struct {
-	Uuid          string    `db:"uuid"`
-	RemovalTypeId int64     `db:"removal_type_id"`
-	EntityUuid    string    `db:"entity_uuid"`
+	UUID          string    `db:"uuid"`
+	RemovalTypeID int64     `db:"removal_type_id"`
+	EntityUUID    string    `db:"entity_uuid"`
 	Force         int64     `db:"force"`
 	ScheduledFor  time.Time `db:"scheduled_for"`
 	Arg           *string   `db:"arg"`
 }
 
 type RemovalType struct {
-	Id   int64  `db:"id"`
+	ID   int64  `db:"id"`
 	Name string `db:"name"`
 }
 
 type ResolveMode struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type Resource struct {
-	Uuid              string     `db:"uuid"`
-	CharmUuid         string     `db:"charm_uuid"`
+	UUID              string     `db:"uuid"`
+	CharmUUID         string     `db:"charm_uuid"`
 	CharmResourceName string     `db:"charm_resource_name"`
 	Revision          *int64     `db:"revision"`
-	OriginTypeId      int64      `db:"origin_type_id"`
-	StateId           int64      `db:"state_id"`
+	OriginTypeID      int64      `db:"origin_type_id"`
+	StateID           int64      `db:"state_id"`
 	CreatedAt         time.Time  `db:"created_at"`
 	LastPolled        *time.Time `db:"last_polled"`
 }
@@ -1139,84 +1139,84 @@ type ResourceContainerImageMetadataStore struct {
 }
 
 type ResourceFileStore struct {
-	ResourceUuid string  `db:"resource_uuid"`
-	StoreUuid    string  `db:"store_uuid"`
+	ResourceUUID string  `db:"resource_uuid"`
+	StoreUUID    string  `db:"store_uuid"`
 	Size         *int64  `db:"size"`
 	Sha384       *string `db:"sha384"`
 }
 
 type ResourceImageStore struct {
-	ResourceUuid    string  `db:"resource_uuid"`
+	ResourceUUID    string  `db:"resource_uuid"`
 	StoreStorageKey string  `db:"store_storage_key"`
 	Size            *int64  `db:"size"`
 	Sha384          *string `db:"sha384"`
 }
 
 type ResourceOriginType struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type ResourceRetrievedBy struct {
-	ResourceUuid      string `db:"resource_uuid"`
-	RetrievedByTypeId int64  `db:"retrieved_by_type_id"`
+	ResourceUUID      string `db:"resource_uuid"`
+	RetrievedByTypeID int64  `db:"retrieved_by_type_id"`
 	Name              string `db:"name"`
 }
 
 type ResourceRetrievedByType struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type ResourceState struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type Schema struct {
-	Id        int64     `db:"id"`
+	ID        int64     `db:"id"`
 	Version   int64     `db:"version"`
 	Hash      string    `db:"hash"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
 type Secret struct {
-	Id string `db:"id"`
+	ID string `db:"id"`
 }
 
 type SecretApplicationOwner struct {
-	SecretId        string  `db:"secret_id"`
-	ApplicationUuid string  `db:"application_uuid"`
+	SecretID        string  `db:"secret_id"`
+	ApplicationUUID string  `db:"application_uuid"`
 	Label           *string `db:"label"`
 }
 
 type SecretContent struct {
-	RevisionUuid string `db:"revision_uuid"`
+	RevisionUUID string `db:"revision_uuid"`
 	Name         string `db:"name"`
 	Content      string `db:"content"`
 }
 
 type SecretDeletedValueRef struct {
-	RevisionUuid string `db:"revision_uuid"`
-	BackendUuid  string `db:"backend_uuid"`
-	RevisionId   string `db:"revision_id"`
+	RevisionUUID string `db:"revision_uuid"`
+	BackendUUID  string `db:"backend_uuid"`
+	RevisionID   string `db:"revision_id"`
 }
 
 type SecretGrantScopeType struct {
-	Id   *int64  `db:"id"`
+	ID   *int64  `db:"id"`
 	Type *string `db:"type"`
 }
 
 type SecretGrantSubjectType struct {
-	Id   *int64  `db:"id"`
+	ID   *int64  `db:"id"`
 	Type *string `db:"type"`
 }
 
 type SecretMetadata struct {
-	SecretId               string    `db:"secret_id"`
+	SecretID               string    `db:"secret_id"`
 	Version                int64     `db:"version"`
 	Description            *string   `db:"description"`
-	RotatePolicyId         int64     `db:"rotate_policy_id"`
+	RotatePolicyID         int64     `db:"rotate_policy_id"`
 	AutoPrune              bool      `db:"auto_prune"`
 	LatestRevisionChecksum *string   `db:"latest_revision_checksum"`
 	CreateTime             time.Time `db:"create_time"`
@@ -1224,82 +1224,82 @@ type SecretMetadata struct {
 }
 
 type SecretModelOwner struct {
-	SecretId string  `db:"secret_id"`
+	SecretID string  `db:"secret_id"`
 	Label    *string `db:"label"`
 }
 
 type SecretPermission struct {
-	SecretId      string `db:"secret_id"`
-	RoleId        int64  `db:"role_id"`
-	SubjectUuid   string `db:"subject_uuid"`
-	SubjectTypeId int64  `db:"subject_type_id"`
-	ScopeUuid     string `db:"scope_uuid"`
-	ScopeTypeId   string `db:"scope_type_id"`
+	SecretID      string `db:"secret_id"`
+	RoleID        int64  `db:"role_id"`
+	SubjectUUID   string `db:"subject_uuid"`
+	SubjectTypeID int64  `db:"subject_type_id"`
+	ScopeUUID     string `db:"scope_uuid"`
+	ScopeTypeID   string `db:"scope_type_id"`
 }
 
 type SecretReference struct {
-	SecretId             string `db:"secret_id"`
+	SecretID             string `db:"secret_id"`
 	LatestRevision       int64  `db:"latest_revision"`
-	OwnerApplicationUuid string `db:"owner_application_uuid"`
+	OwnerApplicationUUID string `db:"owner_application_uuid"`
 }
 
 type SecretRemoteUnitConsumer struct {
-	SecretId        string `db:"secret_id"`
+	SecretID        string `db:"secret_id"`
 	UnitName        string `db:"unit_name"`
 	CurrentRevision int64  `db:"current_revision"`
 }
 
 type SecretRevision struct {
-	Uuid       string    `db:"uuid"`
-	SecretId   string    `db:"secret_id"`
+	UUID       string    `db:"uuid"`
+	SecretID   string    `db:"secret_id"`
 	Revision   int64     `db:"revision"`
 	CreateTime time.Time `db:"create_time"`
 }
 
 type SecretRevisionExpire struct {
-	RevisionUuid string    `db:"revision_uuid"`
+	RevisionUUID string    `db:"revision_uuid"`
 	ExpireTime   time.Time `db:"expire_time"`
 }
 
 type SecretRevisionObsolete struct {
-	RevisionUuid  string `db:"revision_uuid"`
+	RevisionUUID  string `db:"revision_uuid"`
 	Obsolete      bool   `db:"obsolete"`
 	PendingDelete bool   `db:"pending_delete"`
 }
 
 type SecretRole struct {
-	Id   *int64  `db:"id"`
+	ID   *int64  `db:"id"`
 	Role *string `db:"role"`
 }
 
 type SecretRotatePolicy struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Policy string `db:"policy"`
 }
 
 type SecretRotation struct {
-	SecretId         string    `db:"secret_id"`
+	SecretID         string    `db:"secret_id"`
 	NextRotationTime time.Time `db:"next_rotation_time"`
 }
 
 type SecretUnitConsumer struct {
-	SecretId        string  `db:"secret_id"`
-	SourceModelUuid string  `db:"source_model_uuid"`
-	UnitUuid        string  `db:"unit_uuid"`
+	SecretID        string  `db:"secret_id"`
+	SourceModelUUID string  `db:"source_model_uuid"`
+	UnitUUID        string  `db:"unit_uuid"`
 	Label           *string `db:"label"`
 	CurrentRevision int64   `db:"current_revision"`
 }
 
 type SecretUnitOwner struct {
-	SecretId string  `db:"secret_id"`
-	UnitUuid string  `db:"unit_uuid"`
+	SecretID string  `db:"secret_id"`
+	UnitUUID string  `db:"unit_uuid"`
 	Label    *string `db:"label"`
 }
 
 type SecretValueRef struct {
-	RevisionUuid string `db:"revision_uuid"`
-	BackendUuid  string `db:"backend_uuid"`
-	RevisionId   string `db:"revision_id"`
+	RevisionUUID string `db:"revision_uuid"`
+	BackendUUID  string `db:"backend_uuid"`
+	RevisionID   string `db:"revision_id"`
 }
 
 type Sequence struct {
@@ -1308,267 +1308,267 @@ type Sequence struct {
 }
 
 type Space struct {
-	Uuid string `db:"uuid"`
+	UUID string `db:"uuid"`
 	Name string `db:"name"`
 }
 
 type StorageAttachment struct {
-	Uuid                string `db:"uuid"`
-	StorageInstanceUuid string `db:"storage_instance_uuid"`
-	UnitUuid            string `db:"unit_uuid"`
-	LifeId              int64  `db:"life_id"`
+	UUID                string `db:"uuid"`
+	StorageInstanceUUID string `db:"storage_instance_uuid"`
+	UnitUUID            string `db:"unit_uuid"`
+	LifeID              int64  `db:"life_id"`
 }
 
 type StorageFilesystem struct {
-	Uuid                string  `db:"uuid"`
-	FilesystemId        string  `db:"filesystem_id"`
-	LifeId              int64   `db:"life_id"`
-	ProvisionScopeId    int64   `db:"provision_scope_id"`
-	ProviderId          *string `db:"provider_id"`
+	UUID                string  `db:"uuid"`
+	FilesystemID        string  `db:"filesystem_id"`
+	LifeID              int64   `db:"life_id"`
+	ProvisionScopeID    int64   `db:"provision_scope_id"`
+	ProviderID          *string `db:"provider_id"`
 	SizeMib             *int64  `db:"size_mib"`
 	ObliterateOnCleanup *bool   `db:"obliterate_on_cleanup"`
 }
 
 type StorageFilesystemAttachment struct {
-	Uuid                  string  `db:"uuid"`
-	StorageFilesystemUuid string  `db:"storage_filesystem_uuid"`
-	NetNodeUuid           string  `db:"net_node_uuid"`
-	ProvisionScopeId      int64   `db:"provision_scope_id"`
-	ProviderId            *string `db:"provider_id"`
-	LifeId                int64   `db:"life_id"`
+	UUID                  string  `db:"uuid"`
+	StorageFilesystemUUID string  `db:"storage_filesystem_uuid"`
+	NetNodeUUID           string  `db:"net_node_uuid"`
+	ProvisionScopeID      int64   `db:"provision_scope_id"`
+	ProviderID            *string `db:"provider_id"`
+	LifeID                int64   `db:"life_id"`
 	MountPoint            *string `db:"mount_point"`
 	ReadOnly              *bool   `db:"read_only"`
 }
 
 type StorageFilesystemStatus struct {
-	FilesystemUuid string     `db:"filesystem_uuid"`
-	StatusId       int64      `db:"status_id"`
+	FilesystemUUID string     `db:"filesystem_uuid"`
+	StatusID       int64      `db:"status_id"`
 	Message        *string    `db:"message"`
 	UpdatedAt      *time.Time `db:"updated_at"`
 }
 
 type StorageFilesystemStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 
 type StorageInstance struct {
-	Uuid             string  `db:"uuid"`
+	UUID             string  `db:"uuid"`
 	CharmName        *string `db:"charm_name"`
 	StorageName      string  `db:"storage_name"`
-	StorageKindId    int64   `db:"storage_kind_id"`
-	StorageId        string  `db:"storage_id"`
-	LifeId           int64   `db:"life_id"`
-	StoragePoolUuid  string  `db:"storage_pool_uuid"`
+	StorageKindID    int64   `db:"storage_kind_id"`
+	StorageID        string  `db:"storage_id"`
+	LifeID           int64   `db:"life_id"`
+	StoragePoolUUID  string  `db:"storage_pool_uuid"`
 	RequestedSizeMib int64   `db:"requested_size_mib"`
 }
 
 type StorageInstanceFilesystem struct {
-	StorageInstanceUuid   string `db:"storage_instance_uuid"`
-	StorageFilesystemUuid string `db:"storage_filesystem_uuid"`
+	StorageInstanceUUID   string `db:"storage_instance_uuid"`
+	StorageFilesystemUUID string `db:"storage_filesystem_uuid"`
 }
 
 type StorageInstanceVolume struct {
-	StorageInstanceUuid string `db:"storage_instance_uuid"`
-	StorageVolumeUuid   string `db:"storage_volume_uuid"`
+	StorageInstanceUUID string `db:"storage_instance_uuid"`
+	StorageVolumeUUID   string `db:"storage_volume_uuid"`
 }
 
 type StorageKind struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Kind string `db:"kind"`
 }
 
 type StoragePool struct {
-	Uuid     string `db:"uuid"`
+	UUID     string `db:"uuid"`
 	Name     string `db:"name"`
 	Type     string `db:"type"`
-	OriginId int64  `db:"origin_id"`
+	OriginID int64  `db:"origin_id"`
 }
 
 type StoragePoolAttribute struct {
-	StoragePoolUuid string `db:"storage_pool_uuid"`
+	StoragePoolUUID string `db:"storage_pool_uuid"`
 	Key             string `db:"key"`
 	Value           string `db:"value"`
 }
 
 type StoragePoolOrigin struct {
-	Id     int64  `db:"id"`
+	ID     int64  `db:"id"`
 	Origin string `db:"origin"`
 }
 
 type StorageProvisionScope struct {
-	Id    *int64 `db:"id"`
+	ID    *int64 `db:"id"`
 	Scope string `db:"scope"`
 }
 
 type StorageUnitOwner struct {
-	StorageInstanceUuid string `db:"storage_instance_uuid"`
-	UnitUuid            string `db:"unit_uuid"`
+	StorageInstanceUUID string `db:"storage_instance_uuid"`
+	UnitUUID            string `db:"unit_uuid"`
 }
 
 type StorageVolume struct {
-	Uuid                string  `db:"uuid"`
-	VolumeId            string  `db:"volume_id"`
-	LifeId              int64   `db:"life_id"`
-	ProvisionScopeId    int64   `db:"provision_scope_id"`
-	ProviderId          *string `db:"provider_id"`
+	UUID                string  `db:"uuid"`
+	VolumeID            string  `db:"volume_id"`
+	LifeID              int64   `db:"life_id"`
+	ProvisionScopeID    int64   `db:"provision_scope_id"`
+	ProviderID          *string `db:"provider_id"`
 	SizeMib             *int64  `db:"size_mib"`
-	HardwareId          *string `db:"hardware_id"`
+	HardwareID          *string `db:"hardware_id"`
 	Wwn                 *string `db:"wwn"`
 	Persistent          *bool   `db:"persistent"`
 	ObliterateOnCleanup *bool   `db:"obliterate_on_cleanup"`
 }
 
 type StorageVolumeAttachment struct {
-	Uuid              string  `db:"uuid"`
-	StorageVolumeUuid string  `db:"storage_volume_uuid"`
-	NetNodeUuid       string  `db:"net_node_uuid"`
-	LifeId            int64   `db:"life_id"`
-	ProvisionScopeId  int64   `db:"provision_scope_id"`
-	ProviderId        *string `db:"provider_id"`
-	BlockDeviceUuid   *string `db:"block_device_uuid"`
+	UUID              string  `db:"uuid"`
+	StorageVolumeUUID string  `db:"storage_volume_uuid"`
+	NetNodeUUID       string  `db:"net_node_uuid"`
+	LifeID            int64   `db:"life_id"`
+	ProvisionScopeID  int64   `db:"provision_scope_id"`
+	ProviderID        *string `db:"provider_id"`
+	BlockDeviceUUID   *string `db:"block_device_uuid"`
 	ReadOnly          *bool   `db:"read_only"`
 }
 
 type StorageVolumeAttachmentPlan struct {
-	Uuid              string `db:"uuid"`
-	StorageVolumeUuid string `db:"storage_volume_uuid"`
-	NetNodeUuid       string `db:"net_node_uuid"`
-	LifeId            int64  `db:"life_id"`
-	ProvisionScopeId  int64  `db:"provision_scope_id"`
-	DeviceTypeId      *int64 `db:"device_type_id"`
+	UUID              string `db:"uuid"`
+	StorageVolumeUUID string `db:"storage_volume_uuid"`
+	NetNodeUUID       string `db:"net_node_uuid"`
+	LifeID            int64  `db:"life_id"`
+	ProvisionScopeID  int64  `db:"provision_scope_id"`
+	DeviceTypeID      *int64 `db:"device_type_id"`
 }
 
 type StorageVolumeAttachmentPlanAttr struct {
-	AttachmentPlanUuid string `db:"attachment_plan_uuid"`
+	AttachmentPlanUUID string `db:"attachment_plan_uuid"`
 	Key                string `db:"key"`
 	Value              string `db:"value"`
 }
 
 type StorageVolumeDeviceType struct {
-	Id          *int64  `db:"id"`
+	ID          *int64  `db:"id"`
 	Name        string  `db:"name"`
 	Description *string `db:"description"`
 }
 
 type StorageVolumeStatus struct {
-	VolumeUuid string     `db:"volume_uuid"`
-	StatusId   int64      `db:"status_id"`
+	VolumeUUID string     `db:"volume_uuid"`
+	StatusID   int64      `db:"status_id"`
 	Message    *string    `db:"message"`
 	UpdatedAt  *time.Time `db:"updated_at"`
 }
 
 type StorageVolumeStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 
 type Subnet struct {
-	Uuid      string  `db:"uuid"`
+	UUID      string  `db:"uuid"`
 	Cidr      string  `db:"cidr"`
 	VlanTag   *int64  `db:"vlan_tag"`
-	SpaceUuid *string `db:"space_uuid"`
+	SpaceUUID *string `db:"space_uuid"`
 }
 
 type Unit struct {
-	Uuid                    string  `db:"uuid"`
+	UUID                    string  `db:"uuid"`
 	Name                    string  `db:"name"`
-	LifeId                  int64   `db:"life_id"`
-	ApplicationUuid         string  `db:"application_uuid"`
-	NetNodeUuid             string  `db:"net_node_uuid"`
-	CharmUuid               string  `db:"charm_uuid"`
-	PasswordHashAlgorithmId *string `db:"password_hash_algorithm_id"`
+	LifeID                  int64   `db:"life_id"`
+	ApplicationUUID         string  `db:"application_uuid"`
+	NetNodeUUID             string  `db:"net_node_uuid"`
+	CharmUUID               string  `db:"charm_uuid"`
+	PasswordHashAlgorithmID *string `db:"password_hash_algorithm_id"`
 	PasswordHash            *string `db:"password_hash"`
 }
 
 type UnitAgentPresence struct {
-	UnitUuid string     `db:"unit_uuid"`
+	UnitUUID string     `db:"unit_uuid"`
 	LastSeen *time.Time `db:"last_seen"`
 }
 
 type UnitAgentStatus struct {
-	UnitUuid  string     `db:"unit_uuid"`
-	StatusId  int64      `db:"status_id"`
+	UnitUUID  string     `db:"unit_uuid"`
+	StatusID  int64      `db:"status_id"`
 	Message   *string    `db:"message"`
 	Data      *string    `db:"data"`
 	UpdatedAt *time.Time `db:"updated_at"`
 }
 
 type UnitAgentStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 
 type UnitAgentVersion struct {
-	UnitUuid       string `db:"unit_uuid"`
+	UnitUUID       string `db:"unit_uuid"`
 	Version        string `db:"version"`
-	ArchitectureId int64  `db:"architecture_id"`
+	ArchitectureID int64  `db:"architecture_id"`
 }
 
 type UnitPrincipal struct {
-	UnitUuid      string `db:"unit_uuid"`
-	PrincipalUuid string `db:"principal_uuid"`
+	UnitUUID      string `db:"unit_uuid"`
+	PrincipalUUID string `db:"principal_uuid"`
 }
 
 type UnitResolved struct {
-	UnitUuid string `db:"unit_uuid"`
-	ModeId   int64  `db:"mode_id"`
+	UnitUUID string `db:"unit_uuid"`
+	ModeID   int64  `db:"mode_id"`
 }
 
 type UnitResource struct {
-	ResourceUuid string    `db:"resource_uuid"`
-	UnitUuid     string    `db:"unit_uuid"`
+	ResourceUUID string    `db:"resource_uuid"`
+	UnitUUID     string    `db:"unit_uuid"`
 	AddedAt      time.Time `db:"added_at"`
 }
 
 type UnitState struct {
-	UnitUuid     string  `db:"unit_uuid"`
+	UnitUUID     string  `db:"unit_uuid"`
 	UniterState  *string `db:"uniter_state"`
 	StorageState *string `db:"storage_state"`
 	SecretState  *string `db:"secret_state"`
 }
 
 type UnitStateCharm struct {
-	UnitUuid string `db:"unit_uuid"`
+	UnitUUID string `db:"unit_uuid"`
 	Key      string `db:"key"`
 	Value    string `db:"value"`
 }
 
 type UnitStateRelation struct {
-	UnitUuid string `db:"unit_uuid"`
+	UnitUUID string `db:"unit_uuid"`
 	Key      string `db:"key"`
 	Value    string `db:"value"`
 }
 
 type UnitStorageDirective struct {
-	UnitUuid        string `db:"unit_uuid"`
-	CharmUuid       string `db:"charm_uuid"`
+	UnitUUID        string `db:"unit_uuid"`
+	CharmUUID       string `db:"charm_uuid"`
 	StorageName     string `db:"storage_name"`
-	StoragePoolUuid string `db:"storage_pool_uuid"`
+	StoragePoolUUID string `db:"storage_pool_uuid"`
 	SizeMib         int64  `db:"size_mib"`
 	Count           int64  `db:"count"`
 }
 
 type UnitWorkloadStatus struct {
-	UnitUuid  string     `db:"unit_uuid"`
-	StatusId  int64      `db:"status_id"`
+	UnitUUID  string     `db:"unit_uuid"`
+	StatusID  int64      `db:"status_id"`
 	Message   *string    `db:"message"`
 	Data      *string    `db:"data"`
 	UpdatedAt *time.Time `db:"updated_at"`
 }
 
 type UnitWorkloadVersion struct {
-	UnitUuid string `db:"unit_uuid"`
+	UnitUUID string `db:"unit_uuid"`
 	Version  string `db:"version"`
 }
 
 type VirtualPortType struct {
-	Id   *int64 `db:"id"`
+	ID   *int64 `db:"id"`
 	Name string `db:"name"`
 }
 
 type WorkloadStatusValue struct {
-	Id     *int64 `db:"id"`
+	ID     *int64 `db:"id"`
 	Status string `db:"status"`
 }
 

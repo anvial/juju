@@ -14,7 +14,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -182,14 +181,32 @@ func getTableSchema(ctx context.Context, runner *txnRunner, tableName string) ([
 	return columns, nil
 }
 
-var re = regexp.MustCompile(`_(\w)`)
-
+// toCamelCase converts snake case identifiers from the database to
+// camel case identifiers for Go types.
+// Exceptions are made for "id" and "uuid", which become all caps.
 func toCamelCase(s string) string {
-	s = strings.ToLower(s)
-	s = re.ReplaceAllStringFunc(s, func(s string) string {
-		return strings.ToUpper(s[1:])
-	})
-	return strings.ToUpper(s[:1]) + s[1:]
+	if s == "" {
+		return ""
+	}
+
+	parts := strings.Split(s, "_")
+	var b strings.Builder
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		switch strings.ToLower(p) {
+		case "id":
+			b.WriteString("ID")
+		case "uuid":
+			b.WriteString("UUID")
+		default:
+			l := strings.ToLower(p)
+			b.WriteString(strings.ToUpper(l[:1]) + l[1:])
+		}
+	}
+
+	return b.String()
 }
 
 func generateStruct(tableName string, columns []column) (string, []string, error) {
