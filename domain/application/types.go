@@ -481,8 +481,6 @@ type InsertApplicationArgs struct {
 	// EndpointBindings is a map to bind application endpoint by name to a
 	// specific space. The default space is referenced by an empty key, if any.
 	EndpointBindings map[string]network.SpaceName
-	// PeerRelations is a map of peer relation endpoint to relation id.
-	PeerRelations map[string]int
 }
 
 // SetCharmParams contains the parameters for updating

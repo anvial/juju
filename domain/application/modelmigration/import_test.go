@@ -1505,57 +1505,6 @@ func (s *importSuite) TestApplicationImportSubordinate(c *tc.C) {
 	}})
 }
 
-func (s *importSuite) TestImportPeerRelations(c *tc.C) {
-	model := description.NewModel(description.ModelArgs{})
-
-	rel1 := model.AddRelation(description.RelationArgs{
-		Id: 1,
-	})
-	rel1.AddEndpoint(description.EndpointArgs{
-		ApplicationName: "prometheus",
-		Name:            "testtwo",
-		Role:            "peer",
-	})
-	rel2 := model.AddRelation(description.RelationArgs{
-		Id: 7,
-	})
-	rel2.AddEndpoint(description.EndpointArgs{
-		ApplicationName: "prometheus",
-		Name:            "testone",
-		Role:            "peer",
-	})
-	// rel3 is a peer relation for a different application
-	// should not be found.
-	rel3 := model.AddRelation(description.RelationArgs{
-		Id: 27,
-	})
-	rel3.AddEndpoint(description.EndpointArgs{
-		ApplicationName: "failme",
-		Name:            "testone",
-		Role:            "peer",
-	})
-	rel4 := model.AddRelation(description.RelationArgs{
-		Id: 29,
-	})
-	// rel4 is a non peer relation with the application
-	// under test, should not be found.
-	rel4.AddEndpoint(description.EndpointArgs{
-		ApplicationName: "prometheus",
-		Name:            "testone",
-		Role:            "provider",
-	})
-	rel4.AddEndpoint(description.EndpointArgs{
-		ApplicationName: "failme",
-		Name:            "testone",
-		Role:            "requirer",
-	})
-	expected := map[string]int{"testone": 7, "testtwo": 1}
-
-	op := &importOperation{}
-	obtained := op.importPeerRelations("prometheus", model.Relations())
-	c.Check(obtained, tc.DeepEquals, expected)
-}
-
 func (s *importSuite) setupMocks(c *tc.C) *gomock.Controller {
 	ctrl := gomock.NewController(c)
 
