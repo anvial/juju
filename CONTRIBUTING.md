@@ -135,35 +135,46 @@ errors, try `make clean`, then `make run` again. For other checks, see `make
 
 <summary>Further info: Code</summary>
 
-### Dependencies
+### Install prerequisites
 
 `juju` is written in [Go](https://go.dev/). To install Go see [Go
 docs](https://golang.org/doc/install#install).
 
-Before building Juju, you also need to install system dependencies. On Ubuntu,
-install the required packages:
-
-```sh
-sudo apt install libsqlite3-dev
-```
-
 ### Building Juju and its dependencies
 
-Fork and clone the Juju repo, then navigate to the root directory and run `make
-install`:
+To build Juju from source, follow these steps to set up your environment and
+compile the binaries:
+
+1. **Fork and Clone:** Fork the [Juju repository](https://github.com/juju/juju)
+   to your GitHub account, then clone it locally:
 
 ```sh
-git clone https://github.com/<user>/juju.git
+git clone https://github.com/<your-username>/juju.git
 cd juju
+```
+
+2. **Install Dependencies:** Run the following command to install the necessary
+   system packages and build tools:
+
+```sh
+make install-dependencies
+```
+
+3. **Build and Install:** Compile the Juju source code. This will install the
+   resulting binaries into your `$GOBIN` directory (typically `~/go/bin`):
+
+```sh
 make install
 ```
+
+> Note: Ensure your PATH includes the Go bin directory so you can run the
+> `juju` command globally.
 
 ### Updating Go dependencies
 
 Juju uses Go modules to manage dependencies. To update a dependency, use the
 following, ensuring that the dependency is using a version where possible, or a
 commit hash if not available:
-
 
 ```
 go get -u github.com/the/dependency@v1.2.3
