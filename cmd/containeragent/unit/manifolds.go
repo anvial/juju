@@ -260,8 +260,10 @@ func Manifolds(config manifoldsConfig) dependency.Manifolds {
 			NewAgentStatusSetter: func(ctx context.Context, a base.APICaller) (upgradesteps.StatusSetter, error) {
 				return noopStatusSetter{}, nil
 			},
-			Logger: internallogger.GetLogger("juju.worker.upgradestepsmachine"),
-			Clock:  config.Clock,
+			NewMachineWorker: upgradestepsmachine.NewMachineWorker,
+			IsController:     upgradestepsmachine.IsController,
+			Logger:           internallogger.GetLogger("juju.worker.upgradestepsmachine"),
+			Clock:            config.Clock,
 		})),
 
 		// The migration workers collaborate to run migrations;

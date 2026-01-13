@@ -454,10 +454,10 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Clock:                config.Clock,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
+		// The upgradesteps worker runs soon after the machine agent starts and
+		// runs any steps required to upgrade to the running jujud version. Once
+		// upgrade steps have run, the upgradesteps gate is unlocked and the
+		// worker exits.
 		upgradeStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
@@ -465,7 +465,9 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
+			IsController:         upgradestepsmachine.IsController,
+			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
 			Clock:                config.Clock,
 		}),
 
@@ -551,10 +553,10 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreviousAgentVersion: config.PreviousAgentVersion,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
+		// The upgradesteps worker runs soon after the machine agent starts and
+		// runs any steps required to upgrade to the running jujud version. Once
+		// upgrade steps have run, the upgradesteps gate is unlocked and the
+		// worker exits.
 		upgradeStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
@@ -562,7 +564,9 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
+			IsController:         upgradestepsmachine.IsController,
+			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
 			Clock:                config.Clock,
 		}),
 	})

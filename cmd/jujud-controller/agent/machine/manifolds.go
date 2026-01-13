@@ -5,6 +5,7 @@ package machine
 
 import (
 	"context"
+	"maps"
 	"net/http"
 	"path"
 	"runtime"
@@ -1083,9 +1084,23 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
 			NewControllerWorker:  upgradesteps.NewControllerWorker,
+			GetUpgradeService:    upgradesteps.GetUpgradeService,
+			IsController:         upgradesteps.IsController,
 			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			Clock:                config.Clock,
+		}),
+
+		upgradeMachineStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+			AgentName:            agentName,
+			APICallerName:        apiCallerName,
+			UpgradeStepsGateName: upgradeStepsGateName,
+			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
+			UpgradeSteps:         config.UpgradeSteps,
+			NewAgentStatusSetter: config.NewAgentStatusSetter,
+			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
+			IsController:         upgradestepsmachine.IsController,
+			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
 			Clock:                config.Clock,
 		}),
 
@@ -1219,9 +1234,23 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
 			NewControllerWorker:  upgradesteps.NewControllerWorker,
+			GetUpgradeService:    upgradesteps.GetUpgradeService,
+			IsController:         upgradesteps.IsController,
 			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			Clock:                config.Clock,
+		}),
+
+		upgradeMachineStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+			AgentName:            agentName,
+			APICallerName:        apiCallerName,
+			UpgradeStepsGateName: upgradeStepsGateName,
+			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
+			UpgradeSteps:         config.UpgradeSteps,
+			NewAgentStatusSetter: config.NewAgentStatusSetter,
+			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
+			IsController:         upgradestepsmachine.IsController,
+			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
 			Clock:                config.Clock,
 		}),
 
@@ -1245,9 +1274,7 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 
 func mergeManifolds(config ManifoldsConfig, manifolds dependency.Manifolds) dependency.Manifolds {
 	result := commonManifolds(config)
-	for name, manifold := range manifolds {
-		result[name] = manifold
-	}
+	maps.Copy(result, manifolds)
 	return result
 }
 
@@ -1339,6 +1366,7 @@ const (
 
 	upgraderName              = "upgrader"
 	upgradeStepsName          = "upgrade-steps-runner"
+	upgradeMachineStepsName   = "upgrade-machine-steps-runner"
 	upgradeStepsGateName      = "upgrade-steps-gate"
 	upgradeStepsFlagName      = "upgrade-steps-flag"
 	upgradeCheckGateName      = "upgrade-check-gate"
