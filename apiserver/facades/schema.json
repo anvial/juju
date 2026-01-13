@@ -9047,6 +9047,9 @@
                 "InitiateMigrationArgs": {
                     "type": "object",
                     "properties": {
+                        "dry-run": {
+                            "type": "boolean"
+                        },
                         "specs": {
                             "type": "array",
                             "items": {

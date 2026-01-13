@@ -10,6 +10,7 @@ import (
 	"github.com/juju/cmd/v3"
 	"github.com/juju/collections/set"
 	"github.com/juju/errors"
+	"github.com/juju/gnuflag"
 	"github.com/juju/names/v5"
 	"gopkg.in/macaroon.v2"
 
@@ -34,6 +35,8 @@ func newMigrateCommand() modelcmd.ModelCommand {
 // migrateCommand initiates a model migration.
 type migrateCommand struct {
 	modelcmd.ModelCommandBase
+	DryRun bool
+
 	targetController string
 
 	// Overridden by tests
@@ -44,7 +47,7 @@ type migrateCommand struct {
 }
 
 type migrateAPI interface {
-	InitiateMigration(spec controller.MigrationSpec) (string, error)
+	InitiateMigration(spec controller.MigrationSpec, dryRun bool) (string, error)
 	IdentityProviderURL() (string, error)
 	Close() error
 }
@@ -98,6 +101,12 @@ func (c *migrateCommand) Info() *cmd.Info {
 	})
 }
 
+func (c *migrateCommand) SetFlags(f *gnuflag.FlagSet) {
+	c.ModelCommandBase.SetFlags(f)
+
+	f.BoolVar(&c.DryRun, "dry-run", false, "Runs the migration prechecks, but does not start the migration. Returns nothing if the migration can proceed.")
+}
+
 // Init implements cmd.Command.
 func (c *migrateCommand) Init(args []string) error {
 	if len(args) < 1 {
@@ -145,10 +154,16 @@ func (c *migrateCommand) Run(ctx *cmd.Context) error {
 		return err
 	}
 	defer func() { _ = api.Close() }()
-	id, err := api.InitiateMigration(*spec)
+	id, err := api.InitiateMigration(*spec, c.DryRun)
 	if err != nil {
 		return err
 	}
+
+	if id == "" {
+		ctx.Infof("Dry run successful: migration can proceed")
+		return nil
+	}
+
 	ctx.Infof("Migration started with ID %q", id)
 	return nil
 }
