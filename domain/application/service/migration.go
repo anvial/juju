@@ -470,7 +470,6 @@ func makeInsertApplicationArg(
 		Resources:        makeResourcesArgs(args.ResolvedResources),
 		Config:           applicationConfig,
 		Settings:         args.ApplicationSettings,
-		PeerRelations:    args.PeerRelations,
 	}, nil
 }
 

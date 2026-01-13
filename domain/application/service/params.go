@@ -240,9 +240,6 @@ type ImportApplicationArgs struct {
 
 	// ExposedEndpoints is the exposed endpoints for the application.
 	ExposedEndpoints map[string]application.ExposedEndpoint
-
-	// PeerRelations is a map of peer relation endpoint to relation id.
-	PeerRelations map[string]int
 }
 
 // ImportIAASApplicationArgs contains arguments for importing an IAAS
