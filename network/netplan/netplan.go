@@ -26,7 +26,7 @@ type Nameservers struct {
 
 // Overrides contains extra config for an interface.
 type Overrides struct {
-	RouteMetric uint8 `yaml:"route-metric"`
+	RouteMetric int `yaml:"route-metric"`
 }
 
 // Interface includes all the fields that are common between all interfaces (ethernet, wifi, bridge, bond)

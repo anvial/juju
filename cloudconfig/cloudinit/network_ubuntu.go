@@ -150,7 +150,7 @@ func GenerateNetplan(interfaces corenetwork.InterfaceInfos, matchHWAddr bool) (s
 	var netPlan netplan.Netplan
 	netPlan.Network.Ethernets = make(map[string]netplan.Ethernet)
 	netPlan.Network.Version = 2
-	dhcpInterfaceRouteMetric := uint8(100)
+	dhcpInterfaceRouteMetric := 100
 	for _, info := range interfaces {
 		var iface netplan.Ethernet
 		cidr, err := info.PrimaryAddress().ValueWithMask()
