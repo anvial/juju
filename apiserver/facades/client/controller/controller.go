@@ -694,7 +694,7 @@ func (c *ControllerAPI) initiateOneMigration(spec params.MigrationSpec, dryRun b
 		return "", errors.Trace(err)
 	}
 
-	// We return "" with no error to suggest that a dryrun was requested and successful.
+	// We return "" with no error to signal that a dryrun was requested and successful.
 	if dryRun {
 		return "", nil
 	}

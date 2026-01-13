@@ -648,7 +648,7 @@ func (s *controllerSuite) TestInitiateMigrationDryRunFails(c *gc.C) {
 	// Ensure the precheck failed is reported on dry runs.
 	c.Assert(result.Error, gc.ErrorMatches, "precheck failed")
 	c.Check(result.ModelTag, gc.Equals, spec.ModelTag)
-	expectedId := "" // "" Represents a dry run.
+	expectedId := "" // "" Is the expected response, even on failure.
 	c.Check(result.MigrationId, gc.Equals, expectedId)
 
 	// Ensure the migration made did not made it to the db.
