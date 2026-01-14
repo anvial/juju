@@ -418,7 +418,6 @@ type testMachine struct {
 	machineStatus  status.Status
 	instStatus     status.Status
 	instStatusMsg  string
-	modStatusMsg   string
 	password       string
 
 	containersCh chan []string

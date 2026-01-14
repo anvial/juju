@@ -6,7 +6,6 @@ package uniter
 import (
 	"context"
 
-	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 
 	"github.com/juju/juju/apiserver/common"
@@ -15,11 +14,7 @@ import (
 	"github.com/juju/juju/apiserver/internal"
 	"github.com/juju/juju/core/instance"
 	corelogger "github.com/juju/juju/core/logger"
-	"github.com/juju/juju/core/lxdprofile"
-	coremachine "github.com/juju/juju/core/machine"
-	"github.com/juju/juju/core/unit"
 	"github.com/juju/juju/core/watcher"
-	machineerrors "github.com/juju/juju/domain/machine/errors"
 	"github.com/juju/juju/rpc/params"
 )
 
@@ -118,56 +113,9 @@ func (u *LXDProfileAPI) WatchInstanceData(ctx context.Context, args params.Entit
 // LXDProfileName returns the name of the lxd profile applied to the unit's
 // machine for the current charm version.
 func (u *LXDProfileAPI) LXDProfileName(ctx context.Context, args params.Entities) (params.StringResults, error) {
-	u.logger.Tracef(ctx, "Starting LXDProfileName with %+v", args)
-	result := params.StringResults{
+	return params.StringResults{
 		Results: make([]params.StringResult, len(args.Entities)),
-	}
-	canAccess, err := u.accessUnit(ctx)
-	if err != nil {
-		return params.StringResults{}, err
-	}
-	for i, entity := range args.Entities {
-		tag, err := names.ParseTag(entity.Tag)
-		if err != nil {
-			result.Results[i].Error = apiservererrors.ServerError(apiservererrors.ErrPerm)
-			continue
-		}
-
-		if !canAccess(tag) {
-			result.Results[i].Error = apiservererrors.ServerError(apiservererrors.ErrPerm)
-			continue
-		}
-		unitName, err := unit.NewName(tag.Id())
-		if err != nil {
-			result.Results[i].Error = apiservererrors.ServerError(err)
-			continue
-		}
-		machineUUID, err := u.applicationService.GetUnitMachineUUID(ctx, unitName)
-		if err != nil {
-			result.Results[i].Error = apiservererrors.ServerError(err)
-			continue
-		}
-		name, err := u.getOneLXDProfileName(ctx, unitName.Application(), machineUUID)
-		if errors.Is(err, machineerrors.NotProvisioned) {
-			result.Results[i].Error = apiservererrors.ServerError(errors.NotProvisionedf("machine %q", machineUUID))
-		} else if err != nil {
-			result.Results[i].Error = apiservererrors.ServerError(err)
-			continue
-		}
-
-		result.Results[i].Result = name
-
-	}
-	return result, nil
-}
-
-func (u *LXDProfileAPI) getOneLXDProfileName(ctx context.Context, appName string, machineUUID coremachine.UUID) (string, error) {
-	profileNames, err := u.machineService.AppliedLXDProfileNames(ctx, machineUUID)
-	if err != nil {
-		u.logger.Errorf(ctx, "unable to retrieve LXD profiles for machine %q: %v", machineUUID, err)
-		return "", err
-	}
-	return lxdprofile.MatchProfileNameByAppName(profileNames, appName)
+	}, nil
 }
 
 // CanApplyLXDProfile returns false results. LXD Profiles are not supported.

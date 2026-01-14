@@ -8,7 +8,6 @@ import (
 
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/instance"
-	"github.com/juju/juju/core/lxdprofile"
 	corenetwork "github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/status"
 	"github.com/juju/juju/environs/config"
@@ -167,19 +166,4 @@ type InstanceBroker interface {
 
 	// AllRunningInstances returns all running, available instances currently known to the broker.
 	AllRunningInstances(ctx context.Context) ([]instances.Instance, error)
-}
-
-// LXDProfiler defines an interface for dealing with lxd profiles used to
-// deploy juju machines and containers.
-type LXDProfiler interface {
-	// AssignLXDProfiles assigns the given profile names to the lxd instance
-	// provided.  The slice of ProfilePosts provides details for adding to
-	// and removing profiles from the lxd server.
-	AssignLXDProfiles(instID string, profilesNames []string, profilePosts []lxdprofile.ProfilePost) ([]string, error)
-
-	// MaybeWriteLXDProfile writes the given LXDProfile to if not already there.
-	MaybeWriteLXDProfile(pName string, put lxdprofile.Profile) error
-
-	// LXDProfileNames returns all the profiles associated to a container name
-	LXDProfileNames(containerName string) ([]string, error)
 }

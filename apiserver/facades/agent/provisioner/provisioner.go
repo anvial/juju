@@ -1353,4 +1353,3 @@ func (api *ProvisionerAPIV11) GetContainerProfileInfo(
 ) (params.ContainerProfileResults, error) {
 	return params.ContainerProfileResults{Results: make([]params.ContainerProfileResult, len(args.Entities))}, nil
 }
-

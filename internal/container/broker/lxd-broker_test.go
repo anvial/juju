@@ -4,33 +4,21 @@
 package broker_test
 
 import (
-	"context"
-	"fmt"
 	stdtesting "testing"
 
 	"github.com/juju/errors"
 	"github.com/juju/names/v6"
 	"github.com/juju/tc"
-	"go.uber.org/mock/gomock"
 
 	"github.com/juju/juju/agent"
-	apiprovisioner "github.com/juju/juju/api/agent/provisioner"
 	"github.com/juju/juju/core/arch"
 	corebase "github.com/juju/juju/core/base"
-	"github.com/juju/juju/core/instance"
-	corelogger "github.com/juju/juju/core/logger"
-	"github.com/juju/juju/core/lxdprofile"
-	corenetwork "github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/semversion"
 	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/environs"
-	"github.com/juju/juju/internal/charm"
 	"github.com/juju/juju/internal/cloudconfig"
 	"github.com/juju/juju/internal/cloudconfig/instancecfg"
-	"github.com/juju/juju/internal/container"
 	"github.com/juju/juju/internal/container/broker"
-	"github.com/juju/juju/internal/container/broker/mocks"
-	"github.com/juju/juju/internal/container/testing"
 	"github.com/juju/juju/internal/testhelpers"
 	coretesting "github.com/juju/juju/internal/testing"
 	coretools "github.com/juju/juju/internal/tools"
@@ -106,9 +94,6 @@ func (s *lxdBrokerSuite) TestStartInstanceWithoutHostNetworkChanges(c *tc.C) {
 		Args:     []interface{}{containerTag},
 	}, {
 		FuncName: "PrepareContainerInterfaceInfo",
-		Args:     []interface{}{names.NewMachineTag("1-lxd-0")},
-	}, {
-		FuncName: "GetContainerProfileInfo",
 		Args:     []interface{}{names.NewMachineTag("1-lxd-0")},
 	}})
 	s.manager.CheckCallNames(c, "CreateContainer")
@@ -202,115 +187,4 @@ func (s *lxdBrokerSuite) TestStartInstanceWithContainerInheritProperties(c *tc.C
 				"-----BEGIN CERTIFICATE-----\nYOUR-ORGS-TRUSTED-CA-CERT-HERE\n-----END CERTIFICATE-----\n"},
 		},
 	}, c)
-}
-
-func (s *lxdBrokerSuite) TestStartInstanceWithLXDProfile(c *tc.C) {
-	ctrl := gomock.NewController(c)
-	defer ctrl.Finish()
-
-	machineId := "1/lxd/0"
-	containerTag := names.NewMachineTag("1-lxd-0")
-
-	mockApi := mocks.NewMockAPICalls(ctrl)
-	mockApi.EXPECT().PrepareContainerInterfaceInfo(gomock.Any(), gomock.Eq(containerTag)).Return(corenetwork.InterfaceInfos{fakeInterfaceInfo}, nil)
-	mockApi.EXPECT().ContainerConfig(gomock.Any()).Return(fakeContainerConfig(), nil)
-
-	put := lxdprofile.Profile{
-		Config: map[string]string{
-			"security.nesting": "true",
-		},
-		Devices: map[string]map[string]string{
-			"bdisk": {
-				"source": "/dev/loop0",
-				"type":   "unix-block",
-			},
-		},
-	}
-	result := &apiprovisioner.LXDProfileResult{
-		Config:  put.Config,
-		Devices: put.Devices,
-		Name:    "juju-test-profile",
-	}
-	mockApi.EXPECT().GetContainerProfileInfo(gomock.Any(), gomock.Eq(containerTag)).Return([]*apiprovisioner.LXDProfileResult{result}, nil)
-
-	mockManager := testing.NewMockTestLXDManager(ctrl)
-	mockManager.EXPECT().MaybeWriteLXDProfile("juju-test-profile", put).Return(nil)
-
-	inst := mockInstance{id: "testinst"}
-	arch := "testarch"
-	hw := instance.HardwareCharacteristics{Arch: &arch}
-	mockManager.EXPECT().CreateContainer(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-	).Return(&inst, &hw, nil)
-
-	broker, err := broker.NewLXDBroker(
-		func(ctx context.Context, containerTag names.MachineTag, log corelogger.Logger, abort <-chan struct{}) error {
-			return nil
-		},
-		mockApi, mockManager, s.agentConfig)
-	c.Assert(err, tc.ErrorIsNil)
-
-	s.startInstance(c, broker, machineId)
-}
-
-func (s *lxdBrokerSuite) TestStartInstanceWithNoNameLXDProfile(c *tc.C) {
-	ctrl := gomock.NewController(c)
-	defer ctrl.Finish()
-
-	machineId := "1/lxd/0"
-	containerTag := names.NewMachineTag("1-lxd-0")
-
-	mockApi := mocks.NewMockAPICalls(ctrl)
-	mockApi.EXPECT().PrepareContainerInterfaceInfo(gomock.Any(), gomock.Eq(containerTag)).Return(corenetwork.InterfaceInfos{fakeInterfaceInfo}, nil)
-	mockApi.EXPECT().ContainerConfig(gomock.Any()).Return(fakeContainerConfig(), nil)
-
-	put := &charm.LXDProfile{
-		Config: map[string]string{
-			"security.nesting": "true",
-		},
-	}
-	result := &apiprovisioner.LXDProfileResult{
-		Config: put.Config,
-		Name:   "",
-	}
-	mockApi.EXPECT().GetContainerProfileInfo(gomock.Any(), gomock.Eq(containerTag)).Return([]*apiprovisioner.LXDProfileResult{result}, nil)
-
-	mockManager := testing.NewMockTestLXDManager(ctrl)
-
-	broker, err := broker.NewLXDBroker(
-		func(ctx context.Context, containerTag names.MachineTag, log corelogger.Logger, abort <-chan struct{}) error {
-			return nil
-		},
-		mockApi, mockManager, s.agentConfig)
-	c.Assert(err, tc.ErrorIsNil)
-
-	_, err = s.startInstance(c, broker, machineId)
-	c.Assert(err, tc.ErrorMatches, fmt.Sprintf("cannot write charm profile: request to write LXD profile for machine %s with no profile name", machineId))
-}
-
-func (s *lxdBrokerSuite) TestStartInstanceWithLXDProfileReturnsLXDProfileNames(c *tc.C) {
-	ctrl := gomock.NewController(c)
-	defer ctrl.Finish()
-
-	containerTag := names.NewMachineTag("1-lxd-0")
-
-	mockApi := mocks.NewMockAPICalls(ctrl)
-	mockManager := testing.NewMockTestLXDManager(ctrl)
-	mockManager.EXPECT().LXDProfileNames(containerTag.Id()).Return([]string{
-		lxdprofile.Name("foo", "shortid", "bar", 1),
-	}, nil)
-
-	broker, err := broker.NewLXDBroker(
-		func(ctx context.Context, containerTag names.MachineTag, log corelogger.Logger, abort <-chan struct{}) error {
-			return nil
-		},
-		mockApi, mockManager, s.agentConfig)
-	c.Assert(err, tc.ErrorIsNil)
-
-	nameRetriever := broker.(container.LXDProfileNameRetriever)
-	profileNames, err := nameRetriever.LXDProfileNames(containerTag.Id())
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(profileNames, tc.DeepEquals, []string{
-		lxdprofile.Name("foo", "shortid", "bar", 1),
-	})
 }
