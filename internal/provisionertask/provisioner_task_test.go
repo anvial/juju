@@ -294,7 +294,6 @@ func (s *ProvisionerTaskSuite) TestSetUpToStartMachine(c *tc.C) {
 			EndpointBindings:            map[string]string{"endpoint": "space"},
 			ControllerConfig:            coretesting.FakeControllerConfig(),
 			CloudInitUserData:           validCloudInitUserData,
-			CharmLXDProfiles:            []string{"p1", "p2"},
 			ProvisioningNetworkTopology: params.ProvisioningNetworkTopology{},
 		},
 	}
@@ -318,7 +317,6 @@ func (s *ProvisionerTaskSuite) TestSetUpToStartMachine(c *tc.C) {
 	want.InstanceConfig.CloudInitUserData = validCloudInitUserData
 	want.ImageMetadata = possibleImageMetadata
 	want.EndpointBindings = map[string]network.Id{"endpoint": "space"}
-	want.CharmLXDProfiles = []string{"p1", "p2"}
 	c.Assert(startInstanceParams, tc.DeepEquals, *want)
 }
 

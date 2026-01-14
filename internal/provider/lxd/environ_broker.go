@@ -180,8 +180,7 @@ func (env *environ) getImageSources(ctx context.Context) ([]lxd.ServerSpec, erro
 // Cloud-init config is generated based on the network devices in the default
 // profile and included in the spec config.
 func (env *environ) getContainerSpec(
-	ctx context.Context,
-	image lxd.SourcedImage, serverVersion string, args environs.StartInstanceParams,
+	ctx context.Context, image lxd.SourcedImage, serverVersion string, args environs.StartInstanceParams,
 ) (lxd.ContainerSpec, error) {
 	hostname, err := env.namespace.Hostname(args.InstanceConfig.MachineId)
 	if err != nil {
@@ -189,7 +188,7 @@ func (env *environ) getContainerSpec(
 	}
 	cSpec := lxd.ContainerSpec{
 		Name:     hostname,
-		Profiles: append([]string{"default", env.profileName()}, args.CharmLXDProfiles...),
+		Profiles: []string{"default", env.profileName()},
 		Image:    image,
 		Config:   make(map[string]string),
 	}
