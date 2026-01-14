@@ -52,7 +52,7 @@ func (s *serviceSuite) setupMocks(c *tc.C) *gomock.Controller {
 }
 
 func (s *serviceSuite) modelConfigProviderFunc(cloudType string) ModelConfigProviderFunc {
-	return func() (environs.ModelConfigProvider, error) {
+	return func(context.Context) (environs.ModelConfigProvider, error) {
 		// In tests, we don't need to fetch the cloud type from state,
 		// we just return the mock provider for the expected cloud type.
 		return s.mockModelConfigProvider, nil
@@ -234,7 +234,7 @@ func (s *serviceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unknown cloud type %q", "unknown").Add(coreerrors.NotFound)
 	}
 
@@ -342,7 +342,7 @@ func (s *serviceSuite) TestModelConfigWithProviderReturnsNotSupportedError(c *tc
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unsupported").Add(coreerrors.NotSupported)
 	}
 
@@ -368,7 +368,7 @@ func (s *serviceSuite) TestModelConfigWithProviderReturnsOtherError(c *tc.C) {
 		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("some other error")
 	}
 
@@ -404,5 +404,5 @@ func (s *serviceSuite) TestModelConfigCoercionError(c *tc.C) {
 
 	svc := NewService(noopDefaultsProvider(), config.ModelValidator(), providerGetter, s.mockState)
 	_, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unable to coerce provider config:.*provider-bool.*`)
+	c.Check(err, tc.ErrorMatches, `.*coercing provider config attributes:.*provider-bool.*`)
 }

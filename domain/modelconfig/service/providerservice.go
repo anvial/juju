@@ -22,6 +22,9 @@ type ProviderState interface {
 	AllKeysQuery() string
 	// ModelConfig returns the currently set config for the model.
 	ModelConfig(context.Context) (map[string]string, error)
+	// GetModelAgentVersionAndStream returns the current model's set agent
+	// version and stream.
+	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
 	// NamespaceForWatchModelConfig returns the namespace identifier used for
 	// watching model configuration changes.
 	NamespaceForWatchModelConfig() string
@@ -60,25 +63,17 @@ func (s *ProviderService) ModelConfig(ctx context.Context) (*config.Config, erro
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	stConfig, err := s.st.ModelConfig(ctx)
-	if err != nil {
-		return nil, errors.Errorf("getting model config from state: %w", err)
-	}
-
-	// Coerce provider-specific attributes from string to their proper types.
-	coerced, err := s.deserializeMap(stConfig)
-	if err != nil {
-		return nil, errors.Errorf("coercing provider config attributes: %w", err)
-	}
-
-	return config.New(config.NoDefaults, coerced)
+	// Note: this doesn't get any provider specific values, so those will be
+	// be left as either unknown attributes or ignored.
+	return getModelConfig(ctx, s.st, s.getCoercedProviderConfig)
 }
 
-// deserializeMap converts a map[string]string from the database to map[string]any
-// and coerces any provider-specific values that are found in the provider's schema.
-// This is necessary because the database stores all config as strings, but provider
-// code expects typed values (e.g., bool, int) for provider-specific attributes.
-func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, error) {
+// getCoercedProviderConfig converts a map[string]string from the database to
+// map[string]any and coerces any provider-specific values that are found in the
+// provider's schema. This is necessary because the database stores all config
+// as strings, but provider code expects typed values (e.g., bool, int) for
+// provider-specific attributes.
+func (s *ProviderService) getCoercedProviderConfig(ctx context.Context, m map[string]string) (map[string]any, error) {
 	if s.modelConfigProviderGetterFunc == nil {
 		return nil, errors.New("no model config provider getter")
 	}
@@ -89,7 +84,7 @@ func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, e
 		return stringMapToAny(m), nil
 	}
 
-	provider, err := s.modelConfigProviderGetterFunc()
+	provider, err := s.modelConfigProviderGetterFunc(ctx)
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		return nil, errors.Capture(err)
 	} else if provider == nil {
@@ -104,13 +99,14 @@ func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, e
 			// This is a provider-specific attribute - coerce it to proper type.
 			coercedVal, err := field.Coerce(strVal, []string{key})
 			if err != nil {
-				return nil, errors.Errorf("unable to coerce provider config key %q: %w", key, err)
+				return nil, errors.Errorf("coercing provider config key %q: %w", key, err)
 			}
 			result[key] = coercedVal
-		} else {
-			// Not a provider-specific attribute - keep as string.
-			result[key] = strVal
+			continue
 		}
+
+		// Not a provider-specific attribute - keep as string.
+		result[key] = strVal
 	}
 
 	return result, nil

@@ -4,13 +4,16 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/juju/schema"
 	"github.com/juju/tc"
 	gomock "go.uber.org/mock/gomock"
 
+	coreagentbinary "github.com/juju/juju/core/agentbinary"
 	coreerrors "github.com/juju/juju/core/errors"
+	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/internal/errors"
 )
@@ -32,7 +35,7 @@ func (s *providerServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 }
 
 func (s *providerServiceSuite) modelConfigProviderFunc(cloudType string) ModelConfigProviderFunc {
-	return func() (environs.ModelConfigProvider, error) {
+	return func(context.Context) (environs.ModelConfigProvider, error) {
 		// In tests, we don't need to fetch the cloud type from state,
 		// we just return the mock provider for the expected cloud type.
 		return s.mockModelConfigProvider, nil
@@ -48,6 +51,9 @@ func (s *providerServiceSuite) TestModelConfig(c *tc.C) {
 			"uuid": "a677bdfd-3c96-46b2-912f-38e25faceaf7",
 		},
 		nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	svc := NewProviderService(s.mockState, nil)
@@ -72,6 +78,9 @@ func (s *providerServiceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C
 		},
 		nil,
 	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
 
 	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(
 		schema.Fields{
@@ -95,6 +104,31 @@ func (s *providerServiceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C
 	c.Check(attrs["regular-string"], tc.Equals, "value")
 }
 
+func (s *providerServiceSuite) TestModelConfigWithAgentVersionStreamError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
+		map[string]string{
+			"name":           "wallyworld",
+			"uuid":           "a677bdfd-3c96-46b2-912f-38e25faceaf7",
+			"type":           "testprovider",
+			"provider-bool":  "true",
+			"provider-int":   "42",
+			"regular-string": "value",
+		},
+		nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), errors.Errorf("front fell off"),
+	)
+
+	providerGetter := s.modelConfigProviderFunc("testprovider")
+
+	svc := NewProviderService(s.mockState, providerGetter)
+	_, err := svc.ModelConfig(c.Context())
+	c.Check(err, tc.ErrorMatches, ".*front fell off.*")
+}
+
 // TestModelConfigWithoutProviderGetter checks that ModelConfig returns an error
 // when no provider getter is supplied.
 func (s *providerServiceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
@@ -107,6 +141,9 @@ func (s *providerServiceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 			"type": "sometype",
 		},
 		nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	svc := NewProviderService(s.mockState, nil)
@@ -127,8 +164,11 @@ func (s *providerServiceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 		},
 		nil,
 	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unknown cloud type %q", "unknown").Add(coreerrors.NotFound)
 	}
 
@@ -149,6 +189,9 @@ func (s *providerServiceSuite) TestModelConfigWithProviderEmptySchema(c *tc.C) {
 			"type": "testprovider",
 		},
 		nil,
+	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(schema.Fields{})
@@ -189,6 +232,9 @@ func (s *providerServiceSuite) TestModelConfigWithEmptyCloudType(c *tc.C) {
 		},
 		nil,
 	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
 
 	providerGetter := s.modelConfigProviderFunc("testprovider")
 
@@ -211,8 +257,11 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsNotSupportedErr
 		},
 		nil,
 	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unsupported").Add(coreerrors.NotSupported)
 	}
 
@@ -234,8 +283,11 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsOtherError(c *t
 		},
 		nil,
 	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("some other error")
 	}
 
@@ -257,6 +309,9 @@ func (s *providerServiceSuite) TestModelConfigCoercionError(c *tc.C) {
 		},
 		nil,
 	)
+	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
+		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
+	)
 
 	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(
 		schema.Fields{
@@ -268,5 +323,5 @@ func (s *providerServiceSuite) TestModelConfigCoercionError(c *tc.C) {
 
 	svc := NewProviderService(s.mockState, providerGetter)
 	_, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unable to coerce provider config key "provider-bool".*`)
+	c.Check(err, tc.ErrorMatches, `.*coercing provider config key "provider-bool".*`)
 }

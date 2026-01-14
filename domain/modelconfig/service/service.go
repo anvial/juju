@@ -35,20 +35,13 @@ type ModelDefaultsProvider interface {
 // provider exists for the model's cloud type then a [coreerrors.NotFound]
 // error is returned. If the cloud type provider does not support model config
 // then a [coreerrors.NotSupported] error is returned.
-type ModelConfigProviderFunc func() (environs.ModelConfigProvider, error)
+type ModelConfigProviderFunc func(context.Context) (environs.ModelConfigProvider, error)
 
 // State represents the state entity for accessing and setting per
 // model configuration values.
 type State interface {
 	ProviderState
 	SpaceValidatorState
-
-	// GetModelAgentVersionAndStream returns the current model's set agent
-	// version and stream.
-	// The following errors can be expected:
-	// - [github.com/juju/juju/core/errors.NotFound] if no agent version or
-	// stream has been set.
-	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
 
 	// ModelConfigHasAttributes returns the set of attributes that model config
 	// currently has set out of the list supplied.
@@ -118,18 +111,23 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	stConfig, err := s.st.ModelConfig(ctx)
+	return getModelConfig(ctx, s.st, s.getCoercedProviderConfig)
+}
+
+// getModelConfig returns the current config for the model.
+func getModelConfig(ctx context.Context, st ProviderState, coerce func(context.Context, map[string]string) (map[string]any, error)) (*config.Config, error) {
+	stConfig, err := st.ModelConfig(ctx)
 	if err != nil {
 		return nil, errors.Errorf("getting model config from state: %w", err)
 	}
 
-	agentVersion, agentStream, err := s.st.GetModelAgentVersionAndStream(ctx)
+	agentVersion, agentStream, err := st.GetModelAgentVersionAndStream(ctx)
 	if err != nil {
 		return nil, errors.Errorf("getting agent version and stream for model config: %w", err)
 	}
 
 	// Coerce provider-specific attributes from string to their proper types.
-	altConfig, err := s.deserializeMap(stConfig)
+	altConfig, err := coerce(ctx, stConfig)
 	if err != nil {
 		return nil, errors.Errorf("coercing provider config attributes: %w", err)
 	}
@@ -143,11 +141,16 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 	return config.New(config.NoDefaults, altConfig)
 }
 
-// deserializeMap converts a map[string]string to map[string]any and coerces
-// any provider-specific values that are found in the provider's schema.
-func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
+// getCoercedProviderConfig gets the provider-specific config for the model and
+// coerces any provider-specific attributes from string to their proper types
+// according to the provider's config schema. If no provider exists for the
+// model's cloud type, or the provider does not support model config, then
+// the config is returned without coercion.
+// Provider-specific attributes are applied over the top of the attributes
+// stored in the model config.
+func (s *Service) getCoercedProviderConfig(ctx context.Context, m map[string]string) (map[string]any, error) {
 	if s.modelConfigProviderGetterFunc == nil {
-		return nil, errors.New("no model config provider getter")
+		return nil, errors.Errorf("no model config provider getter")
 	}
 
 	cloudType, ok := m[config.TypeKey]
@@ -156,12 +159,12 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 		return stringMapToAny(m), nil
 	}
 
-	provider, err := s.modelConfigProviderGetterFunc()
+	provider, err := s.modelConfigProviderGetterFunc(ctx)
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		return nil, errors.Capture(err)
 	} else if provider == nil {
 		// Provider not found or doesn't support config schema.
-		return nil, errors.New("provider not found or doesn't support config schema")
+		return nil, errors.Errorf("provider not found or doesn't support config schema")
 	}
 
 	fields := provider.ConfigSchema()
@@ -182,10 +185,13 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 	providerFieldMap := schema.FieldMap(fields, omitDefaults)
 	coercedCfg, err := providerFieldMap.Coerce(m, nil)
 	if err != nil {
-		return nil, errors.Errorf("unable to coerce provider config: %w", err)
+		return nil, errors.Capture(err)
 	}
 
-	providerResult := coercedCfg.(map[string]any)
+	providerResult, ok := coercedCfg.(map[string]any)
+	if !ok {
+		return nil, errors.Errorf("casting provider config")
+	}
 
 	// Build final result: coerced provider attrs + uncoerced non-provider attrs
 	result := stringMapToAny(m)
@@ -508,17 +514,31 @@ func NewWatchableService(
 	}
 }
 
+// Watch returns a watcher that returns keys for any changes to model
+// config.
+func (s *WatchableService) Watch(ctx context.Context) (watcher.StringsWatcher, error) {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	return s.watcherFactory.NewNamespaceWatcher(
+		ctx,
+		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
+		"model config watcher",
+		eventsource.NamespaceFilter(s.st.NamespaceForWatchModelConfig(), changestream.All),
+	)
+}
+
 // ProviderModelConfigGetter returns a ModelConfigProviderFunc that can be used
 // to get a ModelConfigProvider for the model. The function internally
 // determines the cloud type from the model config and caches the provider for
 // the lifetime of the function.
-func ProviderModelConfigGetter(ctx context.Context, st State) ModelConfigProviderFunc {
+func ProviderModelConfigGetter(st State) ModelConfigProviderFunc {
 	var (
 		cachedProvider environs.ModelConfigProvider
 		cached         bool
 	)
 
-	return func() (environs.ModelConfigProvider, error) {
+	return func(ctx context.Context) (environs.ModelConfigProvider, error) {
 		// Return cached provider if available.
 		if cached {
 			return cachedProvider, nil
@@ -558,18 +578,4 @@ func ProviderModelConfigGetter(ctx context.Context, st State) ModelConfigProvide
 
 		return modelConfigProvider, nil
 	}
-}
-
-// Watch returns a watcher that returns keys for any changes to model
-// config.
-func (s *WatchableService) Watch(ctx context.Context) (watcher.StringsWatcher, error) {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	return s.watcherFactory.NewNamespaceWatcher(
-		ctx,
-		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
-		"model config watcher",
-		eventsource.NamespaceFilter(s.st.NamespaceForWatchModelConfig(), changestream.All),
-	)
 }
