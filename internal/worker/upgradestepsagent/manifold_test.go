@@ -10,7 +10,6 @@ import (
 
 	"github.com/juju/clock"
 	"github.com/juju/errors"
-	names "github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"github.com/juju/worker/v4"
 	"github.com/juju/worker/v4/dependency"
@@ -91,7 +90,7 @@ func (s *manifoldSuite) getConfig(c *tc.C) ManifoldConfig {
 		NewAgentStatusSetter: func(ctx context.Context, a base.APICaller) (upgradesteps.StatusSetter, error) {
 			return s.statusSetter, nil
 		},
-		NewMachineWorker: func(l1 gate.Lock, a1 agent.Agent, a2 base.APICaller, pusf upgrades.PreUpgradeStepsFunc, usf upgrades.UpgradeStepsFunc, ss upgradesteps.StatusSetter, l2 logger.Logger, c clock.Clock) worker.Worker {
+		NewAgentWorker: func(l1 gate.Lock, a1 agent.Agent, a2 base.APICaller, pusf upgrades.PreUpgradeStepsFunc, usf upgrades.UpgradeStepsFunc, ss upgradesteps.StatusSetter, l2 logger.Logger, c clock.Clock) worker.Worker {
 			return workertest.NewErrorWorker(nil)
 		},
 		Logger: loggertesting.WrapCheckLog(c),
@@ -105,11 +104,8 @@ func (s *manifoldSuite) TestInputs(c *tc.C) {
 	c.Assert(Manifold(s.getConfig(c)).Inputs, tc.SameContents, expectedInputs)
 }
 
-func (s *manifoldSuite) TestStartMachine(c *tc.C) {
+func (s *manifoldSuite) TestStart(c *tc.C) {
 	defer s.setupMocks(c).Finish()
-
-	s.agent.EXPECT().CurrentConfig().Return(s.agentConfig)
-	s.agentConfig.EXPECT().Tag().Return(names.NewMachineTag("0"))
 
 	w, err := Manifold(s.getConfig(c)).Start(c.Context(), s.newGetter(nil))
 	c.Assert(err, tc.ErrorIsNil)

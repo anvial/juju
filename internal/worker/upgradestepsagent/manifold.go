@@ -20,9 +20,9 @@ import (
 	"github.com/juju/juju/internal/worker/gate"
 )
 
-// MachineWorkerFunc defines a function that returns a worker.Worker
-// which runs the upgrade steps for a machine.
-type MachineWorkerFunc func(
+// AgentWorkerFunc defines a function that returns a worker.Worker which runs
+// the upgrade steps for an agent.
+type AgentWorkerFunc func(
 	gate.Lock,
 	agent.Agent,
 	base.APICaller,
@@ -39,8 +39,8 @@ type StatusSetter interface {
 	SetStatus(ctx context.Context, setableStatus status.Status, info string, data map[string]any) error
 }
 
-// NewAgentStatusSetterFunc is a function that creates a new StatusSetter
-// for the agent.
+// NewAgentStatusSetterFunc is a function that creates a new StatusSetter for
+// the agent.
 type NewAgentStatusSetterFunc func(context.Context, base.APICaller) (upgradesteps.StatusSetter, error)
 
 type (
@@ -48,8 +48,8 @@ type (
 	UpgradeStepsFunc    = upgrades.UpgradeStepsFunc
 )
 
-// ManifoldConfig defines the names of the manifolds on which a
-// Manifold will depend.
+// ManifoldConfig defines the names of the manifolds on which a Manifold will
+// depend.
 type ManifoldConfig struct {
 	AgentName            string
 	APICallerName        string
@@ -57,7 +57,7 @@ type ManifoldConfig struct {
 	PreUpgradeSteps      upgrades.PreUpgradeStepsFunc
 	UpgradeSteps         upgrades.UpgradeStepsFunc
 	NewAgentStatusSetter NewAgentStatusSetterFunc
-	NewMachineWorker     MachineWorkerFunc
+	NewAgentWorker       AgentWorkerFunc
 	Logger               logger.Logger
 	Clock                clock.Clock
 }
@@ -82,8 +82,8 @@ func (c ManifoldConfig) Validate() error {
 	if c.NewAgentStatusSetter == nil {
 		return errors.NotValidf("nil NewAgentStatusSetter")
 	}
-	if c.NewMachineWorker == nil {
-		return errors.NotValidf("nil NewMachineWorker")
+	if c.NewAgentWorker == nil {
+		return errors.NotValidf("nil NewAgentWorker")
 	}
 	if c.Logger == nil {
 		return errors.NotValidf("nil Logger")
@@ -126,16 +126,16 @@ func Manifold(config ManifoldConfig) dependency.Manifold {
 				return nil, errors.Trace(err)
 			}
 
-			// Get a component capable of setting machine status
+			// Get a component capable of setting agent status
 			// to indicate progress to the user.
 			statusSetter, err := config.NewAgentStatusSetter(ctx, apiCaller)
 			if err != nil {
 				return nil, errors.Trace(err)
 			}
 
-			// Create a new machine worker. As this is purely a machine worker,
+			// Create a new agent worker. As this is purely a agent worker,
 			// we don't need to worry about the upgrade service.
-			return config.NewMachineWorker(
+			return config.NewAgentWorker(
 				upgradeStepsLock,
 				agent,
 				apiCaller,

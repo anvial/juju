@@ -10,7 +10,6 @@ import (
 
 	"github.com/juju/clock"
 	"github.com/juju/errors"
-	"github.com/juju/names/v6"
 	"github.com/juju/tc"
 	"github.com/juju/worker/v4"
 	"github.com/juju/worker/v4/dependency"
@@ -111,11 +110,8 @@ func (s *manifoldSuite) TestInputs(c *tc.C) {
 	c.Assert(Manifold(s.getConfig(c)).Inputs, tc.SameContents, expectedInputs)
 }
 
-func (s *manifoldSuite) TestStartController(c *tc.C) {
+func (s *manifoldSuite) TestStart(c *tc.C) {
 	defer s.setupMocks(c).Finish()
-
-	s.agent.EXPECT().CurrentConfig().Return(s.agentConfig)
-	s.agentConfig.EXPECT().Tag().Return(names.NewMachineTag("0"))
 
 	w, err := Manifold(s.getConfig(c)).Start(c.Context(), s.newGetter(nil))
 	c.Assert(err, tc.ErrorIsNil)
