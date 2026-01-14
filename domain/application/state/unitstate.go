@@ -150,11 +150,12 @@ func (st *InsertIAASUnitState) InsertIAASUnit(
 }
 
 type insertUnitArg struct {
-	CharmUUID      string
-	UnitName       string
-	CloudContainer *application.CloudContainer
-	Password       *application.PasswordInfo
-	Constraints    constraints.Constraints
+	CharmUUID       string
+	UnitName        string
+	CloudContainer  *application.CloudContainer
+	Password        *application.PasswordInfo
+	Constraints     constraints.Constraints
+	WorkloadVersion string
 	application.UnitStatusArg
 }
 
@@ -223,7 +224,7 @@ func (st *InsertIAASUnitState) insertUnit(
 	if err := st.setUnitWorkloadStatus(ctx, tx, unitUUID, args.WorkloadStatus); err != nil {
 		return errors.Errorf("setting workload status for unit %q: %w", args.UnitName, err)
 	}
-	if err := st.setUnitWorkloadVersion(ctx, tx, unitUUID, ""); err != nil {
+	if err := st.setUnitWorkloadVersion(ctx, tx, unitUUID, args.WorkloadVersion); err != nil {
 		return errors.Errorf("setting workload version for unit %q: %w", args.UnitName, err)
 	}
 	return nil
