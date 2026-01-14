@@ -359,6 +359,7 @@ func (*ManifoldsSuite) TestSingularGuardsUsed(c *tc.C) {
 		"upgrade-database-flag",
 		"upgrade-database-gate",
 		"upgrade-database-runner",
+		"upgrade-steps-runner",
 		"watcher-registry",
 	)
 
@@ -1697,6 +1698,8 @@ var expectedMachineManifoldsWithDependenciesIAAS = map[string][]string{
 		"agent",
 		"api-caller",
 		"api-config-watcher",
+		"is-not-controller-flag",
+		"state-config-watcher",
 		"upgrade-steps-gate",
 	},
 
@@ -2639,6 +2642,7 @@ var expectedMachineManifoldsWithDependenciesCAAS = map[string][]string{
 		"agent",
 		"api-caller",
 		"api-config-watcher",
+		"is-not-controller-flag",
 		"upgrade-steps-gate",
 	},
 

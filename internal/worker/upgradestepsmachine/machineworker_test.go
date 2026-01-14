@@ -74,7 +74,7 @@ func (s *machineWorkerSuite) TestRunUpgrades(c *tc.C) {
 	var called int64
 
 	baseWorker := s.newBaseWorker(c, version.MustParse("6.6.6"), version.MustParse("9.9.9"))
-	baseWorker.PreUpgradeSteps = func(_ agent.Config, isController bool) error {
+	baseWorker.PreUpgradeSteps = func(agent.Config) error {
 		atomic.AddInt64(&called, 1)
 		return nil
 	}
@@ -112,7 +112,7 @@ func (s *machineWorkerSuite) TestRunUpgradesFailedWithAPIError(c *tc.C) {
 	var called int64
 
 	baseWorker := s.newBaseWorker(c, version.MustParse("6.6.6"), version.MustParse("9.9.9"))
-	baseWorker.PreUpgradeSteps = func(_ agent.Config, isController bool) error {
+	baseWorker.PreUpgradeSteps = func(agent.Config) error {
 		defer close(done)
 
 		atomic.AddInt64(&called, 1)
@@ -146,7 +146,7 @@ func (s *machineWorkerSuite) TestRunUpgradesFailedWithNotAPIError(c *tc.C) {
 	var called int64
 
 	baseWorker := s.newBaseWorker(c, version.MustParse("6.6.6"), version.MustParse("9.9.9"))
-	baseWorker.PreUpgradeSteps = func(_ agent.Config, isController bool) error {
+	baseWorker.PreUpgradeSteps = func(agent.Config) error {
 		defer close(done)
 
 		atomic.AddInt64(&called, 1)

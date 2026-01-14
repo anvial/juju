@@ -261,7 +261,6 @@ func Manifolds(config manifoldsConfig) dependency.Manifolds {
 				return noopStatusSetter{}, nil
 			},
 			NewMachineWorker: upgradestepsmachine.NewMachineWorker,
-			IsController:     upgradestepsmachine.IsController,
 			Logger:           internallogger.GetLogger("juju.worker.upgradestepsmachine"),
 			Clock:            config.Clock,
 		})),

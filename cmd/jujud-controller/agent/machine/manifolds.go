@@ -1076,7 +1076,7 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 		// starts and runs any steps required to upgrade to the
 		// running jujud version. Once upgrade steps have run, the
 		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: upgradesteps.Manifold(upgradesteps.ManifoldConfig{
+		upgradeStepsName: ifController(upgradesteps.Manifold(upgradesteps.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			DomainServicesName:   domainServicesName,
@@ -1086,12 +1086,11 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
 			NewControllerWorker:  upgradesteps.NewControllerWorker,
 			GetUpgradeService:    upgradesteps.GetUpgradeService,
-			IsController:         upgradesteps.IsController,
 			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
 			Clock:                config.Clock,
-		}),
+		})),
 
-		upgradeMachineStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+		upgradeMachineStepsName: ifNotController(upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			UpgradeStepsGateName: upgradeStepsGateName,
@@ -1099,10 +1098,9 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
 			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
-			IsController:         upgradestepsmachine.IsController,
 			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
 			Clock:                config.Clock,
-		}),
+		})),
 
 		// The deployer worker is primarily for deploying and recalling unit
 		// agents, according to changes in a set of state units; and for the
@@ -1226,7 +1224,7 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 		// starts and runs any steps required to upgrade to the
 		// running jujud version. Once upgrade steps have run, the
 		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: upgradesteps.Manifold(upgradesteps.ManifoldConfig{
+		upgradeStepsName: ifController(upgradesteps.Manifold(upgradesteps.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			DomainServicesName:   domainServicesName,
@@ -1236,12 +1234,11 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
 			NewControllerWorker:  upgradesteps.NewControllerWorker,
 			GetUpgradeService:    upgradesteps.GetUpgradeService,
-			IsController:         upgradesteps.IsController,
 			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
 			Clock:                config.Clock,
-		}),
+		})),
 
-		upgradeMachineStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+		upgradeMachineStepsName: ifNotController(upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			UpgradeStepsGateName: upgradeStepsGateName,
@@ -1249,10 +1246,9 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
 			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
-			IsController:         upgradestepsmachine.IsController,
 			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
 			Clock:                config.Clock,
-		}),
+		})),
 
 		// DBAccessor is a manifold that provides a DBAccessor worker
 		// that can be used to access the database.

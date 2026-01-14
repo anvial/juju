@@ -113,7 +113,7 @@ func (w *machineWorker) run() error {
 func (w *machineWorker) runUpgrades(ctx context.Context) error {
 	// Every upgrade needs to prepare the environment for the upgrade.
 	w.logger.Infof(ctx, "checking that upgrade can proceed")
-	if err := w.base.PreUpgradeSteps(w.base.Agent.CurrentConfig(), false); err != nil {
+	if err := w.base.PreUpgradeSteps(w.base.Agent.CurrentConfig()); err != nil {
 		return errors.Annotatef(err, "%s cannot be upgraded", names.ReadableString(w.base.Tag))
 	}
 

@@ -328,7 +328,7 @@ func (w *controllerStepsWorker) run() error {
 // updates the updatedToVersion on success.
 func (w *controllerStepsWorker) runUpgrades(ctx context.Context) error {
 	w.logger.Infof(ctx, "checking that upgrade can proceed")
-	if err := w.base.PreUpgradeSteps(w.base.Agent.CurrentConfig(), false); err != nil {
+	if err := w.base.PreUpgradeSteps(w.base.Agent.CurrentConfig()); err != nil {
 		return errors.Annotatef(err, "%s cannot be upgraded", names.ReadableString(w.base.Tag))
 	}
 

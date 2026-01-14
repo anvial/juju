@@ -41,49 +41,49 @@ func TestManifoldSuite(t *testing.T) {
 }
 
 func (s *manifoldSuite) TestValidateConfig(c *tc.C) {
-	cfg := s.getConfig(c, true)
+	cfg := s.getConfig(c)
 	c.Check(cfg.Validate(), tc.ErrorIsNil)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.AgentName = ""
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.APICallerName = ""
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.UpgradeStepsGateName = ""
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.DomainServicesName = ""
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.PreUpgradeSteps = nil
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.GetUpgradeService = nil
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.Logger = nil
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 
-	cfg = s.getConfig(c, true)
+	cfg = s.getConfig(c)
 	cfg.Clock = nil
 	c.Check(cfg.Validate(), tc.ErrorIs, errors.NotValid)
 }
 
-func (s *manifoldSuite) getConfig(c *tc.C, isController bool) ManifoldConfig {
+func (s *manifoldSuite) getConfig(c *tc.C) ManifoldConfig {
 	return ManifoldConfig{
 		AgentName:            "agent",
 		APICallerName:        "api-caller",
 		UpgradeStepsGateName: "upgrade-steps-lock",
 		DomainServicesName:   "domain-services",
-		PreUpgradeSteps:      func(_ agent.Config, isController bool) error { return nil },
+		PreUpgradeSteps:      func(_ agent.Config) error { return nil },
 		UpgradeSteps: func(from version.Number, targets []upgrades.Target, context upgrades.Context) error {
 			return nil
 		},
@@ -100,9 +100,6 @@ func (s *manifoldSuite) getConfig(c *tc.C, isController bool) ManifoldConfig {
 		NewControllerWorker: func(l1 gate.Lock, a1 agent.Agent, a2 base.APICaller, us UpgradeService, pusf upgrades.PreUpgradeStepsFunc, usf upgrades.UpgradeStepsFunc, ss upgradesteps.StatusSetter, l2 logger.Logger, c clock.Clock) (worker.Worker, error) {
 			return workertest.NewErrorWorker(nil), nil
 		},
-		IsController: func(ctx context.Context, a base.APICaller, t names.Tag) (bool, error) {
-			return isController, nil
-		},
 		Logger: loggertesting.WrapCheckLog(c),
 		Clock:  clock.WallClock,
 	}
@@ -111,7 +108,7 @@ func (s *manifoldSuite) getConfig(c *tc.C, isController bool) ManifoldConfig {
 var expectedInputs = []string{"agent", "api-caller", "upgrade-steps-lock", "domain-services"}
 
 func (s *manifoldSuite) TestInputs(c *tc.C) {
-	c.Assert(Manifold(s.getConfig(c, true)).Inputs, tc.SameContents, expectedInputs)
+	c.Assert(Manifold(s.getConfig(c)).Inputs, tc.SameContents, expectedInputs)
 }
 
 func (s *manifoldSuite) TestStartController(c *tc.C) {
@@ -120,22 +117,12 @@ func (s *manifoldSuite) TestStartController(c *tc.C) {
 	s.agent.EXPECT().CurrentConfig().Return(s.agentConfig)
 	s.agentConfig.EXPECT().Tag().Return(names.NewMachineTag("0"))
 
-	w, err := Manifold(s.getConfig(c, true)).Start(c.Context(), s.newGetter(nil))
+	w, err := Manifold(s.getConfig(c)).Start(c.Context(), s.newGetter(nil))
 	c.Assert(err, tc.ErrorIsNil)
 
 	workertest.CheckAlive(c, w)
 
 	workertest.CleanKill(c, w)
-}
-
-func (s *manifoldSuite) TestStartMachine(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	s.agent.EXPECT().CurrentConfig().Return(s.agentConfig)
-	s.agentConfig.EXPECT().Tag().Return(names.NewMachineTag("0"))
-
-	_, err := Manifold(s.getConfig(c, false)).Start(c.Context(), s.newGetter(nil))
-	c.Assert(err, tc.ErrorIs, dependency.ErrUninstall)
 }
 
 func (s *manifoldSuite) newGetter(overlay map[string]any) dependency.Getter {

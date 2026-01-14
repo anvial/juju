@@ -47,7 +47,7 @@ func (s *baseSuite) newBaseWorker(c *tc.C, from, to semversion.Number) *upgrades
 		FromVersion:         from,
 		ToVersion:           to,
 		Tag:                 names.NewMachineTag("0"),
-		PreUpgradeSteps: func(_ agent.Config, isController bool) error {
+		PreUpgradeSteps: func(agent.Config) error {
 			return nil
 		},
 		PerformUpgradeSteps: func(from semversion.Number, targets []upgrades.Target, context upgrades.Context) error {

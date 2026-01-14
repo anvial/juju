@@ -8,12 +8,10 @@ import (
 
 	"github.com/juju/clock"
 	"github.com/juju/errors"
-	"github.com/juju/names/v6"
 	"github.com/juju/worker/v4"
 	"github.com/juju/worker/v4/dependency"
 
 	"github.com/juju/juju/agent"
-	apiagent "github.com/juju/juju/api/agent/agent"
 	"github.com/juju/juju/api/base"
 	coredependency "github.com/juju/juju/core/dependency"
 	"github.com/juju/juju/core/logger"
@@ -36,10 +34,6 @@ type ControllerWorkerFunc func(
 	clock.Clock,
 ) (worker.Worker, error)
 
-// IsControllerFunc is a function that determines if the current agent
-// is running on a controller.
-type IsControllerFunc func(context.Context, base.APICaller, names.Tag) (bool, error)
-
 // NewAgentStatusSetterFunc is a function that creates a new StatusSetter
 // for the agent.
 type NewAgentStatusSetterFunc func(context.Context, base.APICaller) (upgradesteps.StatusSetter, error)
@@ -60,7 +54,6 @@ type ManifoldConfig struct {
 	NewAgentStatusSetter NewAgentStatusSetterFunc
 	NewControllerWorker  ControllerWorkerFunc
 	GetUpgradeService    GetUpgradeServiceFunc
-	IsController         IsControllerFunc
 	Logger               logger.Logger
 	Clock                clock.Clock
 }
@@ -93,9 +86,6 @@ func (c ManifoldConfig) Validate() error {
 	}
 	if c.GetUpgradeService == nil {
 		return errors.NotValidf("nil GetUpgradeService")
-	}
-	if c.IsController == nil {
-		return errors.NotValidf("nil IsController")
 	}
 	if c.Logger == nil {
 		return errors.NotValidf("nil Logger")
@@ -132,16 +122,6 @@ func Manifold(config ManifoldConfig) dependency.Manifold {
 			var apiCaller base.APICaller
 			if err := getter.Get(config.APICallerName, &apiCaller); err != nil {
 				return nil, errors.Trace(err)
-			}
-
-			// If we're a not a controller, we don't need to run, instead the
-			// upgrademachinesteps worker will handle the upgrades.
-			agentTag := agent.CurrentConfig().Tag()
-			isController, err := config.IsController(ctx, apiCaller, agentTag)
-			if err != nil {
-				return nil, errors.Trace(err)
-			} else if !isController {
-				return nil, dependency.ErrUninstall
 			}
 
 			// Get upgradeSteps completed lock.
@@ -184,9 +164,4 @@ func GetUpgradeService(getter dependency.Getter, name string) (UpgradeService, e
 	return coredependency.GetDependencyByName(getter, name, func(a services.ControllerDomainServices) UpgradeService {
 		return a.Upgrade()
 	})
-}
-
-// IsController determines if the current agent is running on a controller.
-func IsController(ctx context.Context, apiCaller base.APICaller, tag names.Tag) (bool, error) {
-	return apiagent.IsController(ctx, apiCaller, tag)
 }

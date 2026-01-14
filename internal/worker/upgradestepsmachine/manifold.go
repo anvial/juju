@@ -8,12 +8,10 @@ import (
 
 	"github.com/juju/clock"
 	"github.com/juju/errors"
-	"github.com/juju/names/v6"
 	"github.com/juju/worker/v4"
 	"github.com/juju/worker/v4/dependency"
 
 	"github.com/juju/juju/agent"
-	apiagent "github.com/juju/juju/api/agent/agent"
 	"github.com/juju/juju/api/base"
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/status"
@@ -45,10 +43,6 @@ type StatusSetter interface {
 // for the agent.
 type NewAgentStatusSetterFunc func(context.Context, base.APICaller) (upgradesteps.StatusSetter, error)
 
-// IsControllerFunc is a function that determines if the current agent
-// is running on a controller.
-type IsControllerFunc func(context.Context, base.APICaller, names.Tag) (bool, error)
-
 type (
 	PreUpgradeStepsFunc = upgrades.PreUpgradeStepsFunc
 	UpgradeStepsFunc    = upgrades.UpgradeStepsFunc
@@ -64,7 +58,6 @@ type ManifoldConfig struct {
 	UpgradeSteps         upgrades.UpgradeStepsFunc
 	NewAgentStatusSetter NewAgentStatusSetterFunc
 	NewMachineWorker     MachineWorkerFunc
-	IsController         IsControllerFunc
 	Logger               logger.Logger
 	Clock                clock.Clock
 }
@@ -91,9 +84,6 @@ func (c ManifoldConfig) Validate() error {
 	}
 	if c.NewMachineWorker == nil {
 		return errors.NotValidf("nil NewMachineWorker")
-	}
-	if c.IsController == nil {
-		return errors.NotValidf("nil IsController")
 	}
 	if c.Logger == nil {
 		return errors.NotValidf("nil Logger")
@@ -130,16 +120,6 @@ func Manifold(config ManifoldConfig) dependency.Manifold {
 				return nil, errors.Trace(err)
 			}
 
-			// If we're a controller, we don't need to run, instead the
-			// upgradesteps worker will handle the upgrades.
-			agentTag := agent.CurrentConfig().Tag()
-			isController, err := config.IsController(ctx, apiCaller, agentTag)
-			if err != nil {
-				return nil, errors.Trace(err)
-			} else if isController {
-				return nil, dependency.ErrUninstall
-			}
-
 			// Get upgradeSteps completed lock.
 			var upgradeStepsLock gate.Lock
 			if err := getter.Get(config.UpgradeStepsGateName, &upgradeStepsLock); err != nil {
@@ -167,9 +147,4 @@ func Manifold(config ManifoldConfig) dependency.Manifold {
 			), nil
 		},
 	}
-}
-
-// IsController determines if the current agent is running on a controller.
-func IsController(ctx context.Context, apiCaller base.APICaller, tag names.Tag) (bool, error) {
-	return apiagent.IsController(ctx, apiCaller, tag)
 }
