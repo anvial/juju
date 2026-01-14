@@ -123,8 +123,8 @@ import (
 	"github.com/juju/juju/internal/worker/upgradedatabase"
 	"github.com/juju/juju/internal/worker/upgrader"
 	"github.com/juju/juju/internal/worker/upgradeservices"
+	"github.com/juju/juju/internal/worker/upgradestepsagent"
 	"github.com/juju/juju/internal/worker/upgradestepscontroller"
-	"github.com/juju/juju/internal/worker/upgradestepsmachine"
 	"github.com/juju/juju/internal/worker/watcherregistry"
 )
 
@@ -1086,19 +1086,19 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
 			NewControllerWorker:  upgradestepscontroller.NewControllerWorker,
 			GetUpgradeService:    upgradestepscontroller.GetUpgradeService,
-			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			Logger:               internallogger.GetLogger("juju.worker.upgradestepscontroller"),
 			Clock:                config.Clock,
 		})),
 
-		upgradeMachineStepsName: ifNotController(upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+		upgradeAgentStepsName: ifNotController(upgradestepsagent.Manifold(upgradestepsagent.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			UpgradeStepsGateName: upgradeStepsGateName,
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
-			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
+			NewMachineWorker:     upgradestepsagent.NewMachineWorker,
+			Logger:               internallogger.GetLogger("juju.worker.upgradestepsagent"),
 			Clock:                config.Clock,
 		})),
 
@@ -1238,15 +1238,15 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Clock:                config.Clock,
 		})),
 
-		upgradeMachineStepsName: ifNotController(upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+		upgradeAgentStepsName: ifNotController(upgradestepsagent.Manifold(upgradestepsagent.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			UpgradeStepsGateName: upgradeStepsGateName,
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
-			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
+			NewMachineWorker:     upgradestepsagent.NewMachineWorker,
+			Logger:               internallogger.GetLogger("juju.worker.upgradestepsagent"),
 			Clock:                config.Clock,
 		})),
 
@@ -1362,7 +1362,7 @@ const (
 
 	upgraderName               = "upgrader"
 	upgradeControllerStepsName = "upgrade-controller-steps-runner"
-	upgradeMachineStepsName    = "upgrade-machine-steps-runner"
+	upgradeAgentStepsName      = "upgrade-agent-steps-runner"
 	upgradeStepsGateName       = "upgrade-steps-gate"
 	upgradeStepsFlagName       = "upgrade-steps-flag"
 	upgradeCheckGateName       = "upgrade-check-gate"

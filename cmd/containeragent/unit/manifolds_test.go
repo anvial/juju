@@ -66,7 +66,7 @@ func (s *ManifoldsSuite) TestManifoldNames(c *tc.C) {
 		"uniter",
 		"upgrade-steps-flag",
 		"upgrade-steps-gate",
-		"upgrade-steps-runner",
+		"upgrade-agent-steps-runner",
 		"upgrader",
 	}
 	keys := make([]string, 0, len(manifolds))
@@ -109,7 +109,7 @@ func (s *ManifoldsSuite) TestManifoldNamesColocatedController(c *tc.C) {
 		"uniter",
 		"upgrade-steps-flag",
 		"upgrade-steps-gate",
-		"upgrade-steps-runner",
+		"upgrade-agent-steps-runner",
 		"upgrader",
 	}
 	keys := make([]string, 0, len(manifolds))
@@ -135,7 +135,7 @@ func (*ManifoldsSuite) TestMigrationGuards(c *tc.C) {
 		"migration-minion",
 
 		"upgrader",
-		"upgrade-steps-runner",
+		"upgrade-agent-steps-runner",
 		"upgrade-steps-gate",
 
 		"upgrade-steps-flag",
@@ -283,7 +283,7 @@ var expectedUnitManifoldsWithDependencies = map[string][]string{
 		"upgrade-steps-gate",
 	},
 	"upgrade-steps-gate": {},
-	"upgrade-steps-runner": {
+	"upgrade-agent-steps-runner": {
 		"agent",
 		"api-caller",
 		"api-config-watcher",
