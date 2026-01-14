@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/juju/collections/transform"
+
 	"github.com/juju/juju/core/instance"
 	"github.com/juju/juju/core/machine"
 	"github.com/juju/juju/domain/constraints"
@@ -71,6 +73,10 @@ type instanceTag struct {
 	Tag         string `db:"tag"`
 }
 
+type tag struct {
+	Tag string `db:"tag"`
+}
+
 func tagsFromHardwareCharacteristics(machineUUID string, hc *instance.HardwareCharacteristics) []instanceTag {
 	if hc == nil || hc.Tags == nil {
 		return nil
@@ -85,8 +91,8 @@ func tagsFromHardwareCharacteristics(machineUUID string, hc *instance.HardwareCh
 	return res
 }
 
-func (d *instanceDataResult) toHardwareCharacteristics() instance.HardwareCharacteristics {
-	return instance.HardwareCharacteristics{
+func (d *instanceDataResult) toHardwareCharacteristics(tags []tag) instance.HardwareCharacteristics {
+	ret := instance.HardwareCharacteristics{
 		Arch:             d.Arch,
 		Mem:              d.Mem,
 		RootDisk:         d.RootDisk,
@@ -96,6 +102,10 @@ func (d *instanceDataResult) toHardwareCharacteristics() instance.HardwareCharac
 		AvailabilityZone: d.AvailabilityZone,
 		VirtType:         d.VirtType,
 	}
+	if len(tags) > 0 {
+		ret.Tags = ptr(transform.Slice(tags, func(t tag) string { return t.Tag }))
+	}
+	return ret
 }
 
 // machineLife represents the struct to be used for the life_id column within
@@ -140,6 +150,10 @@ type availabilityZoneName struct {
 
 type machineName struct {
 	Name string `db:"name"`
+}
+
+type machineUUID struct {
+	UUID string `db:"machine_uuid"`
 }
 
 type count struct {

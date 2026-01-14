@@ -16,6 +16,7 @@ import (
 	instance "github.com/juju/juju/core/instance"
 	machine "github.com/juju/juju/core/machine"
 	modelmigration "github.com/juju/juju/core/modelmigration"
+	constraints "github.com/juju/juju/domain/constraints"
 	deployment "github.com/juju/juju/domain/deployment"
 	machine0 "github.com/juju/juju/domain/machine"
 	gomock "go.uber.org/mock/gomock"
@@ -104,18 +105,18 @@ func (m *MockImportService) EXPECT() *MockImportServiceMockRecorder {
 }
 
 // CreateMachine mocks base method.
-func (m *MockImportService) CreateMachine(arg0 context.Context, arg1 machine.Name, arg2 *string, arg3 deployment.Platform) (machine.UUID, error) {
+func (m *MockImportService) CreateMachine(arg0 context.Context, arg1 machine.Name, arg2 *string, arg3 deployment.Platform, arg4 deployment.Placement, arg5 constraints.Constraints) (machine.UUID, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMachine", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "CreateMachine", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(machine.UUID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateMachine indicates an expected call of CreateMachine.
-func (mr *MockImportServiceMockRecorder) CreateMachine(arg0, arg1, arg2, arg3 any) *MockImportServiceCreateMachineCall {
+func (mr *MockImportServiceMockRecorder) CreateMachine(arg0, arg1, arg2, arg3, arg4, arg5 any) *MockImportServiceCreateMachineCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMachine", reflect.TypeOf((*MockImportService)(nil).CreateMachine), arg0, arg1, arg2, arg3)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMachine", reflect.TypeOf((*MockImportService)(nil).CreateMachine), arg0, arg1, arg2, arg3, arg4, arg5)
 	return &MockImportServiceCreateMachineCall{Call: call}
 }
 
@@ -131,13 +132,52 @@ func (c *MockImportServiceCreateMachineCall) Return(arg0 machine.UUID, arg1 erro
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockImportServiceCreateMachineCall) Do(f func(context.Context, machine.Name, *string, deployment.Platform) (machine.UUID, error)) *MockImportServiceCreateMachineCall {
+func (c *MockImportServiceCreateMachineCall) Do(f func(context.Context, machine.Name, *string, deployment.Platform, deployment.Placement, constraints.Constraints) (machine.UUID, error)) *MockImportServiceCreateMachineCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockImportServiceCreateMachineCall) DoAndReturn(f func(context.Context, machine.Name, *string, deployment.Platform) (machine.UUID, error)) *MockImportServiceCreateMachineCall {
+func (c *MockImportServiceCreateMachineCall) DoAndReturn(f func(context.Context, machine.Name, *string, deployment.Platform, deployment.Placement, constraints.Constraints) (machine.UUID, error)) *MockImportServiceCreateMachineCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateSubordinateMachine mocks base method.
+func (m *MockImportService) CreateSubordinateMachine(arg0 context.Context, arg1 machine.Name, arg2 machine.UUID, arg3 *string, arg4 deployment.Platform, arg5 deployment.Placement, arg6 constraints.Constraints) (machine.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSubordinateMachine", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret0, _ := ret[0].(machine.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSubordinateMachine indicates an expected call of CreateSubordinateMachine.
+func (mr *MockImportServiceMockRecorder) CreateSubordinateMachine(arg0, arg1, arg2, arg3, arg4, arg5, arg6 any) *MockImportServiceCreateSubordinateMachineCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubordinateMachine", reflect.TypeOf((*MockImportService)(nil).CreateSubordinateMachine), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return &MockImportServiceCreateSubordinateMachineCall{Call: call}
+}
+
+// MockImportServiceCreateSubordinateMachineCall wrap *gomock.Call
+type MockImportServiceCreateSubordinateMachineCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockImportServiceCreateSubordinateMachineCall) Return(arg0 machine.UUID, arg1 error) *MockImportServiceCreateSubordinateMachineCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockImportServiceCreateSubordinateMachineCall) Do(f func(context.Context, machine.Name, machine.UUID, *string, deployment.Platform, deployment.Placement, constraints.Constraints) (machine.UUID, error)) *MockImportServiceCreateSubordinateMachineCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockImportServiceCreateSubordinateMachineCall) DoAndReturn(f func(context.Context, machine.Name, machine.UUID, *string, deployment.Platform, deployment.Placement, constraints.Constraints) (machine.UUID, error)) *MockImportServiceCreateSubordinateMachineCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

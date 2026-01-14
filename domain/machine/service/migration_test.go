@@ -15,6 +15,7 @@ import (
 	coremachine "github.com/juju/juju/core/machine"
 	"github.com/juju/juju/core/status"
 	"github.com/juju/juju/domain/application/architecture"
+	"github.com/juju/juju/domain/constraints"
 	"github.com/juju/juju/domain/deployment"
 	"github.com/juju/juju/domain/machine"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
@@ -114,9 +115,14 @@ func (s *migrationServiceSuite) TestCreateMachine(c *tc.C) {
 
 	s.expectCreateMachineStatusHistory(c)
 
-	obtainedUUID, err := s.service.CreateMachine(c.Context(), "666", nil, deployment.Platform{
-		Architecture: architecture.AMD64,
-	})
+	obtainedUUID, err := s.service.CreateMachine(
+		c.Context(),
+		"666",
+		nil,
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(obtainedUUID, tc.Equals, expectedUUID)
 }
@@ -135,9 +141,14 @@ func (s *migrationServiceSuite) TestCreateMachineSuccessNonce(c *tc.C) {
 
 	s.expectCreateMachineStatusHistory(c)
 
-	obtainedUUID, err := s.service.CreateMachine(c.Context(), "666", ptr("foo"), deployment.Platform{
-		Architecture: architecture.AMD64,
-	})
+	obtainedUUID, err := s.service.CreateMachine(
+		c.Context(),
+		"666",
+		ptr("foo"),
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(obtainedUUID, tc.Equals, expectedUUID)
 }
@@ -150,9 +161,14 @@ func (s *migrationServiceSuite) TestCreateMachineError(c *tc.C) {
 	rErr := errors.New("boom")
 	s.state.EXPECT().InsertMigratingMachine(gomock.Any(), "666", gomock.Any()).Return(rErr)
 
-	_, err := s.service.CreateMachine(c.Context(), "666", nil, deployment.Platform{
-		Architecture: architecture.AMD64,
-	})
+	_, err := s.service.CreateMachine(
+		c.Context(),
+		"666",
+		nil,
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
 	c.Assert(err, tc.ErrorIs, rErr)
 	c.Check(err, tc.ErrorMatches, `creating machine "666": boom`)
 }
@@ -166,9 +182,109 @@ func (s *migrationServiceSuite) TestCreateMachineAlreadyExists(c *tc.C) {
 
 	s.state.EXPECT().InsertMigratingMachine(gomock.Any(), "666", gomock.Any()).Return(machineerrors.MachineAlreadyExists)
 
-	_, err := s.service.CreateMachine(c.Context(), coremachine.Name("666"), nil, deployment.Platform{
-		Architecture: architecture.AMD64,
-	})
+	_, err := s.service.CreateMachine(
+		c.Context(),
+		coremachine.Name("666"),
+		nil,
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
+	c.Assert(err, tc.ErrorIs, machineerrors.MachineAlreadyExists)
+}
+
+func (s *migrationServiceSuite) TestCreateSubordinateMachine(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	var expectedUUID coremachine.UUID
+	s.state.EXPECT().InsertMigratingSubordinateMachine(gomock.Any(), "666", "parent-uuid", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, machineName, parentUUID string, args machine.CreateMachineArgs) error {
+			expectedUUID = args.MachineUUID
+			c.Check(args.NetNodeUUID, tc.Not(tc.Equals), "")
+			return nil
+		})
+
+	s.expectCreateMachineStatusHistory(c)
+
+	obtainedUUID, err := s.service.CreateSubordinateMachine(
+		c.Context(),
+		coremachine.Name("666"),
+		coremachine.UUID("parent-uuid"),
+		nil,
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(obtainedUUID, tc.Equals, expectedUUID)
+}
+
+func (s *migrationServiceSuite) TestCreateSubordinateMachineNonce(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	var expectedUUID coremachine.UUID
+	s.state.EXPECT().InsertMigratingSubordinateMachine(gomock.Any(), "666", "parent-uuid", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, machineName, parentUUID string, args machine.CreateMachineArgs) error {
+			expectedUUID = args.MachineUUID
+			c.Check(*args.Nonce, tc.Equals, "foo")
+			c.Check(args.NetNodeUUID, tc.Not(tc.Equals), "")
+			return nil
+		})
+
+	s.expectCreateMachineStatusHistory(c)
+
+	obtainedUUID, err := s.service.CreateSubordinateMachine(
+		c.Context(),
+		coremachine.Name("666"),
+		coremachine.UUID("parent-uuid"),
+		ptr("foo"),
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(obtainedUUID, tc.Equals, expectedUUID)
+}
+
+// TestCreateSubordinateMachineError asserts that an error coming from the state
+// layer is preserved, passed over to the service layer to be maintained there.
+func (s *migrationServiceSuite) TestCreateSubordinateMachineError(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	rErr := errors.New("boom")
+	s.state.EXPECT().InsertMigratingSubordinateMachine(gomock.Any(), "666", "parent-uuid", gomock.Any()).Return(rErr)
+
+	_, err := s.service.CreateSubordinateMachine(
+		c.Context(),
+		coremachine.Name("666"),
+		coremachine.UUID("parent-uuid"),
+		nil,
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
+	c.Assert(err, tc.ErrorIs, rErr)
+	c.Check(err, tc.ErrorMatches, `creating machine "666": boom`)
+}
+
+// TestCreateSubordinateMachineAlreadyExists asserts that the state layer
+// returns a MachineAlreadyExists Error if a machine is already found with the
+// given machineName, and that error is preserved and passed on to the service
+// layer to be handled there.
+func (s *migrationServiceSuite) TestCreateSubordinateMachineAlreadyExists(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.state.EXPECT().InsertMigratingSubordinateMachine(gomock.Any(), "666", "parent-uuid", gomock.Any()).Return(machineerrors.MachineAlreadyExists)
+
+	_, err := s.service.CreateSubordinateMachine(
+		c.Context(),
+		coremachine.Name("666"),
+		coremachine.UUID("parent-uuid"),
+		nil,
+		deployment.Platform{Architecture: architecture.AMD64},
+		deployment.Placement{},
+		constraints.Constraints{},
+	)
 	c.Assert(err, tc.ErrorIs, machineerrors.MachineAlreadyExists)
 }
 
