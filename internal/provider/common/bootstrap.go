@@ -292,7 +292,6 @@ func BootstrapInstance(
 		}
 		return nil, nil, nil, errors.Annotatef(err, "cannot start bootstrap instance in availability zone %q", zone)
 	}
-	// TODO: Check if this can be removed. As of now, removing it breaks bootstrap on EC2 but not on GCE.
 	modelFw, ok := env.(models.ModelFirewaller)
 	if ok {
 		envIPV6CIDRSupport := false
