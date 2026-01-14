@@ -123,7 +123,7 @@ import (
 	"github.com/juju/juju/internal/worker/upgradedatabase"
 	"github.com/juju/juju/internal/worker/upgrader"
 	"github.com/juju/juju/internal/worker/upgradeservices"
-	"github.com/juju/juju/internal/worker/upgradesteps"
+	"github.com/juju/juju/internal/worker/upgradestepscontroller"
 	"github.com/juju/juju/internal/worker/upgradestepsmachine"
 	"github.com/juju/juju/internal/worker/watcherregistry"
 )
@@ -1072,11 +1072,11 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Clock:                config.Clock,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: ifController(upgradesteps.Manifold(upgradesteps.ManifoldConfig{
+		// The upgradestepscontroller worker runs soon after the machine agent
+		// starts and runs any steps required to upgrade to the running jujud
+		// version. Once upgrade steps have run, the upgradesteps gate is
+		// unlocked and the worker exits.
+		upgradeControllerStepsName: ifController(upgradestepscontroller.Manifold(upgradestepscontroller.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			DomainServicesName:   domainServicesName,
@@ -1084,8 +1084,8 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewControllerWorker:  upgradesteps.NewControllerWorker,
-			GetUpgradeService:    upgradesteps.GetUpgradeService,
+			NewControllerWorker:  upgradestepscontroller.NewControllerWorker,
+			GetUpgradeService:    upgradestepscontroller.GetUpgradeService,
 			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
 			Clock:                config.Clock,
 		})),
@@ -1220,11 +1220,11 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreviousAgentVersion: config.PreviousAgentVersion,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: ifController(upgradesteps.Manifold(upgradesteps.ManifoldConfig{
+		// The upgradestepscontroller worker runs soon after the machine agent
+		// starts and runs any steps required to upgrade to the running jujud
+		// version. Once upgrade steps have run, the upgradesteps gate is
+		// unlocked and the worker exits.
+		upgradeControllerStepsName: ifController(upgradestepscontroller.Manifold(upgradestepscontroller.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			DomainServicesName:   domainServicesName,
@@ -1232,8 +1232,8 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewControllerWorker:  upgradesteps.NewControllerWorker,
-			GetUpgradeService:    upgradesteps.GetUpgradeService,
+			NewControllerWorker:  upgradestepscontroller.NewControllerWorker,
+			GetUpgradeService:    upgradestepscontroller.GetUpgradeService,
 			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
 			Clock:                config.Clock,
 		})),
@@ -1360,14 +1360,14 @@ const (
 	upgradeDatabaseGateName = "upgrade-database-gate"
 	upgradeDatabaseFlagName = "upgrade-database-flag"
 
-	upgraderName              = "upgrader"
-	upgradeStepsName          = "upgrade-steps-runner"
-	upgradeMachineStepsName   = "upgrade-machine-steps-runner"
-	upgradeStepsGateName      = "upgrade-steps-gate"
-	upgradeStepsFlagName      = "upgrade-steps-flag"
-	upgradeCheckGateName      = "upgrade-check-gate"
-	upgradeCheckFlagName      = "upgrade-check-flag"
-	upgradeDomainServicesName = "upgrade-services"
+	upgraderName               = "upgrader"
+	upgradeControllerStepsName = "upgrade-controller-steps-runner"
+	upgradeMachineStepsName    = "upgrade-machine-steps-runner"
+	upgradeStepsGateName       = "upgrade-steps-gate"
+	upgradeStepsFlagName       = "upgrade-steps-flag"
+	upgradeCheckGateName       = "upgrade-check-gate"
+	upgradeCheckFlagName       = "upgrade-check-flag"
+	upgradeDomainServicesName  = "upgrade-services"
 
 	migrationFortressName     = "migration-fortress"
 	migrationInactiveFlagName = "migration-inactive-flag"

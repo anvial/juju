@@ -145,7 +145,7 @@ func (s *ManifoldsSuite) TestManifoldNamesIAAS(c *tc.C) {
 			"upgrade-services",
 			"upgrade-steps-flag",
 			"upgrade-steps-gate",
-			"upgrade-steps-runner",
+			"upgrade-controller-steps-runner",
 			"upgrade-machine-steps-runner",
 			"upgrader",
 			"valid-credential-flag",
@@ -225,7 +225,7 @@ func (s *ManifoldsSuite) TestManifoldNamesCAAS(c *tc.C) {
 			"upgrade-services",
 			"upgrade-steps-flag",
 			"upgrade-steps-gate",
-			"upgrade-steps-runner",
+			"upgrade-controller-steps-runner",
 			"upgrade-machine-steps-runner",
 			"upgrader",
 			"valid-credential-flag",
@@ -319,7 +319,7 @@ func (s *ManifoldsSuite) TestMigrationGuardsUsed(c *tc.C) {
 		"upgrade-services",
 		"upgrade-steps-flag",
 		"upgrade-steps-gate",
-		"upgrade-steps-runner",
+		"upgrade-controller-steps-runner",
 		"upgrade-machine-steps-runner",
 		"upgrader",
 		"valid-credential-flag",
@@ -356,10 +356,10 @@ func (*ManifoldsSuite) TestSingularGuardsUsed(c *tc.C) {
 		"query-logger",
 		"ssh-server",
 		"undertaker",
+		"upgrade-controller-steps-runner",
 		"upgrade-database-flag",
 		"upgrade-database-gate",
 		"upgrade-database-runner",
-		"upgrade-steps-runner",
 		"watcher-registry",
 	)
 
@@ -1663,7 +1663,7 @@ var expectedMachineManifoldsWithDependenciesIAAS = map[string][]string{
 
 	"upgrade-steps-gate": {},
 
-	"upgrade-steps-runner": {
+	"upgrade-controller-steps-runner": {
 		"agent",
 		"api-caller",
 		"api-remote-caller",
@@ -2607,7 +2607,7 @@ var expectedMachineManifoldsWithDependenciesCAAS = map[string][]string{
 
 	"upgrade-steps-gate": {},
 
-	"upgrade-steps-runner": {
+	"upgrade-controller-steps-runner": {
 		"agent",
 		"api-caller",
 		"api-remote-caller",
