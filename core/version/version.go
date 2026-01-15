@@ -39,9 +39,6 @@ const (
 	GradeDevel = "devel"
 )
 
-// The version that we switched over from old style numbering to new style.
-var switchOverVersion = semversion.MustParse("1.19.9")
-
 // build is a string representing this build of Juju's number.
 //
 // NOTE: This is injected by the build system. In Makefile, we override
