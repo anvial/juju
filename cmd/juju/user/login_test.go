@@ -550,6 +550,7 @@ func (s *LoginCommandSuite) TestLoginToPublicControllerWithOIDC(c *gc.C) {
 			tokenCallbackFunc("session-token")
 		}).Return(nil, nil)
 
+	sessionLoginProvider.EXPECT().String().Return("mock-session-login-provider").AnyTimes()
 	_, _, code := runLoginWithFakeSessionLoginProvider(c, sessionLoginFactory, "mycontroller.com", "-c", "oidc-controller")
 	c.Assert(code, gc.Equals, 0)
 	c.Assert(checkPatchFuncCalled, gc.Equals, true)
