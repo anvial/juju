@@ -1,7 +1,7 @@
 // Copyright 2023 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package upgradesteps
+package upgradestepscontroller
 
 import (
 	"context"
@@ -224,7 +224,7 @@ func (s *controllerWorkerSuite) TestUpgradeFailure(c *tc.C) {
 	srv.WatchForUpgradeState(gomock.Any(), s.upgradeUUID, upgrade.Error).Return(failedWatcher, nil)
 
 	w := s.newWorker(c, func(base *upgradesteps.BaseWorker) {
-		base.PreUpgradeSteps = func(_ agent.Config, _ bool) error {
+		base.PreUpgradeSteps = func(_ agent.Config) error {
 			return errors.New("boom")
 		}
 	})
@@ -270,7 +270,7 @@ func (s *controllerWorkerSuite) TestUpgradeFailureWithAPILostError(c *tc.C) {
 	srv.WatchForUpgradeState(gomock.Any(), s.upgradeUUID, upgrade.Error).Return(failedWatcher, nil)
 
 	w := s.newWorker(c, func(base *upgradesteps.BaseWorker) {
-		base.PreUpgradeSteps = func(_ agent.Config, _ bool) error {
+		base.PreUpgradeSteps = func(_ agent.Config) error {
 			return upgradesteps.NewAPILostDuringUpgrade(errors.New("boom"))
 		}
 	})
@@ -394,7 +394,7 @@ func (s *controllerWorkerSuite) TestUpgradeFailsWhenKilled(c *tc.C) {
 	})
 
 	w := s.newWorker(c, func(base *upgradesteps.BaseWorker) {
-		base.PreUpgradeSteps = func(_ agent.Config, _ bool) error {
+		base.PreUpgradeSteps = func(_ agent.Config) error {
 			select {
 			case w := <-kill:
 				w.Kill()

@@ -145,7 +145,8 @@ func (s *ManifoldsSuite) TestManifoldNamesIAAS(c *tc.C) {
 			"upgrade-services",
 			"upgrade-steps-flag",
 			"upgrade-steps-gate",
-			"upgrade-steps-runner",
+			"upgrade-controller-steps-runner",
+			"upgrade-agent-steps-runner",
 			"upgrader",
 			"valid-credential-flag",
 			"watcher-registry",
@@ -224,7 +225,8 @@ func (s *ManifoldsSuite) TestManifoldNamesCAAS(c *tc.C) {
 			"upgrade-services",
 			"upgrade-steps-flag",
 			"upgrade-steps-gate",
-			"upgrade-steps-runner",
+			"upgrade-controller-steps-runner",
+			"upgrade-agent-steps-runner",
 			"upgrader",
 			"valid-credential-flag",
 			"watcher-registry",
@@ -317,7 +319,8 @@ func (s *ManifoldsSuite) TestMigrationGuardsUsed(c *tc.C) {
 		"upgrade-services",
 		"upgrade-steps-flag",
 		"upgrade-steps-gate",
-		"upgrade-steps-runner",
+		"upgrade-controller-steps-runner",
+		"upgrade-agent-steps-runner",
 		"upgrader",
 		"valid-credential-flag",
 		"watcher-registry",
@@ -353,6 +356,7 @@ func (*ManifoldsSuite) TestSingularGuardsUsed(c *tc.C) {
 		"query-logger",
 		"ssh-server",
 		"undertaker",
+		"upgrade-controller-steps-runner",
 		"upgrade-database-flag",
 		"upgrade-database-gate",
 		"upgrade-database-runner",
@@ -1659,7 +1663,7 @@ var expectedMachineManifoldsWithDependenciesIAAS = map[string][]string{
 
 	"upgrade-steps-gate": {},
 
-	"upgrade-steps-runner": {
+	"upgrade-controller-steps-runner": {
 		"agent",
 		"api-caller",
 		"api-remote-caller",
@@ -1687,6 +1691,15 @@ var expectedMachineManifoldsWithDependenciesIAAS = map[string][]string{
 		"trace",
 		"upgrade-database-flag",
 		"upgrade-database-gate",
+		"upgrade-steps-gate",
+	},
+
+	"upgrade-agent-steps-runner": {
+		"agent",
+		"api-caller",
+		"api-config-watcher",
+		"is-not-controller-flag",
+		"state-config-watcher",
 		"upgrade-steps-gate",
 	},
 
@@ -2594,7 +2607,7 @@ var expectedMachineManifoldsWithDependenciesCAAS = map[string][]string{
 
 	"upgrade-steps-gate": {},
 
-	"upgrade-steps-runner": {
+	"upgrade-controller-steps-runner": {
 		"agent",
 		"api-caller",
 		"api-remote-caller",
@@ -2622,6 +2635,14 @@ var expectedMachineManifoldsWithDependenciesCAAS = map[string][]string{
 		"trace",
 		"upgrade-database-flag",
 		"upgrade-database-gate",
+		"upgrade-steps-gate",
+	},
+
+	"upgrade-agent-steps-runner": {
+		"agent",
+		"api-caller",
+		"api-config-watcher",
+		"is-not-controller-flag",
 		"upgrade-steps-gate",
 	},
 

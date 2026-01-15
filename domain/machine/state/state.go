@@ -814,9 +814,14 @@ WHERE uuid = $entityUUID.uuid
 		return nil, errors.Errorf("getting supported container types %q: %w", mUUID, err)
 	}
 
-	result := make([]string, len(containerTypes))
-	for i, ct := range containerTypes {
-		result[i] = ct.ContainerType
+	unique := make(map[string]struct{})
+	for _, ct := range containerTypes {
+		unique[ct.ContainerType] = struct{}{}
+	}
+
+	result := make([]string, 0, len(unique))
+	for k := range unique {
+		result = append(result, k)
 	}
 	return result, nil
 }

@@ -1,7 +1,7 @@
 // Copyright 2015 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package upgradesteps
+package upgradestepscontroller
 
 import (
 	time "time"
@@ -18,12 +18,12 @@ import (
 	"github.com/juju/juju/internal/upgradesteps"
 )
 
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradesteps -destination clock_mock_test.go github.com/juju/clock Clock
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradesteps -destination api_mock_test.go github.com/juju/juju/api/base APICaller
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradesteps -destination lock_mock_test.go github.com/juju/juju/internal/worker/gate Lock
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradesteps -destination agent_mock_test.go github.com/juju/juju/agent Agent,Config,ConfigSetter
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradesteps -destination upgradeservice_mock_test.go github.com/juju/juju/internal/worker/upgradesteps UpgradeService
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradesteps -destination status_mock_test.go github.com/juju/juju/internal/upgradesteps StatusSetter
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepscontroller -destination clock_mock_test.go github.com/juju/clock Clock
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepscontroller -destination api_mock_test.go github.com/juju/juju/api/base APICaller
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepscontroller -destination lock_mock_test.go github.com/juju/juju/internal/worker/gate Lock
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepscontroller -destination agent_mock_test.go github.com/juju/juju/agent Agent,Config,ConfigSetter
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepscontroller -destination upgradeservice_mock_test.go github.com/juju/juju/internal/worker/upgradestepscontroller UpgradeService
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepscontroller -destination status_mock_test.go github.com/juju/juju/internal/upgradesteps StatusSetter
 
 type baseSuite struct {
 	testhelpers.IsolationSuite
@@ -47,7 +47,7 @@ func (s *baseSuite) newBaseWorker(c *tc.C, from, to version.Number) *upgradestep
 		FromVersion:         from,
 		ToVersion:           to,
 		Tag:                 names.NewMachineTag("0"),
-		PreUpgradeSteps: func(_ agent.Config, isController bool) error {
+		PreUpgradeSteps: func(_ agent.Config) error {
 			return nil
 		},
 		PerformUpgradeSteps: func(from version.Number, targets []upgrades.Target, context upgrades.Context) error {

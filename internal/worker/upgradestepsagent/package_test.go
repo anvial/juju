@@ -1,7 +1,7 @@
 // Copyright 2015 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package upgradestepsmachine
+package upgradestepsagent
 
 import (
 	time "time"
@@ -19,11 +19,11 @@ import (
 	"github.com/juju/juju/internal/upgradesteps"
 )
 
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsmachine -destination clock_mock_test.go github.com/juju/clock Clock
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsmachine -destination api_mock_test.go github.com/juju/juju/api/base APICaller
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsmachine -destination lock_mock_test.go github.com/juju/juju/internal/worker/gate Lock
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsmachine -destination agent_mock_test.go github.com/juju/juju/agent Agent,Config,ConfigSetter
-//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsmachine -destination status_mock_test.go github.com/juju/juju/internal/worker/upgradestepsmachine StatusSetter
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsagent -destination clock_mock_test.go github.com/juju/clock Clock
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsagent -destination api_mock_test.go github.com/juju/juju/api/base APICaller
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsagent -destination lock_mock_test.go github.com/juju/juju/internal/worker/gate Lock
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsagent -destination agent_mock_test.go github.com/juju/juju/agent Agent,Config,ConfigSetter
+//go:generate go run go.uber.org/mock/mockgen -typed -package upgradestepsagent -destination status_mock_test.go github.com/juju/juju/internal/worker/upgradestepsagent StatusSetter
 
 type baseSuite struct {
 	testhelpers.IsolationSuite
@@ -47,7 +47,7 @@ func (s *baseSuite) newBaseWorker(c *tc.C, from, to semversion.Number) *upgrades
 		FromVersion:         from,
 		ToVersion:           to,
 		Tag:                 names.NewMachineTag("0"),
-		PreUpgradeSteps: func(_ agent.Config, isController bool) error {
+		PreUpgradeSteps: func(agent.Config) error {
 			return nil
 		},
 		PerformUpgradeSteps: func(from semversion.Number, targets []upgrades.Target, context upgrades.Context) error {

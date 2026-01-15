@@ -1,7 +1,7 @@
 // Copyright 2015 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package upgradestepsmachine
+package upgradestepsagent
 
 import (
 	"context"
@@ -22,10 +22,10 @@ import (
 	"github.com/juju/juju/internal/worker/gate"
 )
 
-// NewMachineWorker returns a new instance of the machineWorker. It
-// will run any required steps to upgrade a machine to the currently running
+// NewAgentWorker returns a new instance of the agentWorker. It
+// will run any required steps to upgrade a agent to the currently running
 // Juju version.
-func NewMachineWorker(
+func NewAgentWorker(
 	upgradeCompleteLock gate.Lock,
 	agent agent.Agent,
 	apiCaller base.APICaller,
@@ -35,7 +35,7 @@ func NewMachineWorker(
 	logger logger.Logger,
 	clock clock.Clock,
 ) worker.Worker {
-	return newMachineWorker(&upgradesteps.BaseWorker{
+	return newAgentWorker(&upgradesteps.BaseWorker{
 		Agent:               agent,
 		APICaller:           apiCaller,
 		Tag:                 agent.CurrentConfig().Tag(),
@@ -50,8 +50,8 @@ func NewMachineWorker(
 	})
 }
 
-func newMachineWorker(base *upgradesteps.BaseWorker) *machineWorker {
-	w := &machineWorker{
+func newAgentWorker(base *upgradesteps.BaseWorker) *agentWorker {
+	w := &agentWorker{
 		base:   base,
 		logger: base.Logger,
 	}
@@ -59,7 +59,7 @@ func newMachineWorker(base *upgradesteps.BaseWorker) *machineWorker {
 	return w
 }
 
-type machineWorker struct {
+type agentWorker struct {
 	base *upgradesteps.BaseWorker
 
 	tomb tomb.Tomb
@@ -68,16 +68,16 @@ type machineWorker struct {
 }
 
 // Kill is part of the worker.Worker interface.
-func (w *machineWorker) Kill() {
+func (w *agentWorker) Kill() {
 	w.tomb.Kill(nil)
 }
 
 // Wait is part of the worker.Worker interface.
-func (w *machineWorker) Wait() error {
+func (w *agentWorker) Wait() error {
 	return w.tomb.Wait()
 }
 
-func (w *machineWorker) run() error {
+func (w *agentWorker) run() error {
 	// We're already upgraded, so do nothing.
 	if w.base.AlreadyUpgraded() {
 		return nil
@@ -86,7 +86,7 @@ func (w *machineWorker) run() error {
 	ctx, cancel := w.scopedContext()
 	defer cancel()
 
-	// Run the upgrade steps for a machine.
+	// Run the upgrade steps for a agent.
 	if err := w.runUpgrades(ctx); err != nil {
 		// Only return an error from the worker if the connection to
 		// state went away (possible mongo primary change). Returning
@@ -110,10 +110,10 @@ func (w *machineWorker) run() error {
 
 // runUpgrades runs the upgrade operations for each job type and
 // updates the updatedToVersion on success.
-func (w *machineWorker) runUpgrades(ctx context.Context) error {
+func (w *agentWorker) runUpgrades(ctx context.Context) error {
 	// Every upgrade needs to prepare the environment for the upgrade.
 	w.logger.Infof(ctx, "checking that upgrade can proceed")
-	if err := w.base.PreUpgradeSteps(w.base.Agent.CurrentConfig(), false); err != nil {
+	if err := w.base.PreUpgradeSteps(w.base.Agent.CurrentConfig()); err != nil {
 		return errors.Annotatef(err, "%s cannot be upgraded", names.ReadableString(w.base.Tag))
 	}
 
@@ -127,6 +127,6 @@ func (w *machineWorker) runUpgrades(ctx context.Context) error {
 	return nil
 }
 
-func (w *machineWorker) scopedContext() (context.Context, context.CancelFunc) {
+func (w *agentWorker) scopedContext() (context.Context, context.CancelFunc) {
 	return context.WithCancel(w.tomb.Context(context.Background()))
 }

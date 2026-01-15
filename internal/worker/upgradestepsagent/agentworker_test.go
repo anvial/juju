@@ -1,7 +1,7 @@
 // Copyright 2023 Canonical Ltd.
 // Licensed under the AGPLv3, see LICENCE file for details.
 
-package upgradestepsmachine
+package upgradestepsagent
 
 import (
 	"errors"
@@ -21,15 +21,15 @@ import (
 	"github.com/juju/juju/internal/upgradesteps"
 )
 
-type machineWorkerSuite struct {
+type agentWorkerSuite struct {
 	baseSuite
 }
 
-func TestMachineWorkerSuite(t *stdtesting.T) {
-	tc.Run(t, &machineWorkerSuite{})
+func TestAgentWorkerSuite(t *stdtesting.T) {
+	tc.Run(t, &agentWorkerSuite{})
 }
 
-func (s *machineWorkerSuite) TestAlreadyUpgraded(c *tc.C) {
+func (s *agentWorkerSuite) TestAlreadyUpgraded(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})
@@ -50,7 +50,7 @@ func (s *machineWorkerSuite) TestAlreadyUpgraded(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
-func (s *machineWorkerSuite) TestRunUpgrades(c *tc.C) {
+func (s *agentWorkerSuite) TestRunUpgrades(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})
@@ -74,7 +74,7 @@ func (s *machineWorkerSuite) TestRunUpgrades(c *tc.C) {
 	var called int64
 
 	baseWorker := s.newBaseWorker(c, version.MustParse("6.6.6"), version.MustParse("9.9.9"))
-	baseWorker.PreUpgradeSteps = func(_ agent.Config, isController bool) error {
+	baseWorker.PreUpgradeSteps = func(agent.Config) error {
 		atomic.AddInt64(&called, 1)
 		return nil
 	}
@@ -85,7 +85,7 @@ func (s *machineWorkerSuite) TestRunUpgrades(c *tc.C) {
 		c.Check(targets, tc.DeepEquals, []upgrades.Target{upgrades.HostMachine})
 		return nil
 	}
-	w := newMachineWorker(baseWorker)
+	w := newAgentWorker(baseWorker)
 	defer workertest.DirtyKill(c, w)
 
 	select {
@@ -99,7 +99,7 @@ func (s *machineWorkerSuite) TestRunUpgrades(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
-func (s *machineWorkerSuite) TestRunUpgradesFailedWithAPIError(c *tc.C) {
+func (s *agentWorkerSuite) TestRunUpgradesFailedWithAPIError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})
@@ -112,13 +112,13 @@ func (s *machineWorkerSuite) TestRunUpgradesFailedWithAPIError(c *tc.C) {
 	var called int64
 
 	baseWorker := s.newBaseWorker(c, version.MustParse("6.6.6"), version.MustParse("9.9.9"))
-	baseWorker.PreUpgradeSteps = func(_ agent.Config, isController bool) error {
+	baseWorker.PreUpgradeSteps = func(agent.Config) error {
 		defer close(done)
 
 		atomic.AddInt64(&called, 1)
 		return upgradesteps.NewAPILostDuringUpgrade(errors.New("boom"))
 	}
-	w := newMachineWorker(baseWorker)
+	w := newAgentWorker(baseWorker)
 	defer workertest.DirtyKill(c, w)
 
 	select {
@@ -133,7 +133,7 @@ func (s *machineWorkerSuite) TestRunUpgradesFailedWithAPIError(c *tc.C) {
 	c.Assert(err, tc.ErrorMatches, ".*API connection lost during upgrade: boom")
 }
 
-func (s *machineWorkerSuite) TestRunUpgradesFailedWithNotAPIError(c *tc.C) {
+func (s *agentWorkerSuite) TestRunUpgradesFailedWithNotAPIError(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})
@@ -146,13 +146,13 @@ func (s *machineWorkerSuite) TestRunUpgradesFailedWithNotAPIError(c *tc.C) {
 	var called int64
 
 	baseWorker := s.newBaseWorker(c, version.MustParse("6.6.6"), version.MustParse("9.9.9"))
-	baseWorker.PreUpgradeSteps = func(_ agent.Config, isController bool) error {
+	baseWorker.PreUpgradeSteps = func(agent.Config) error {
 		defer close(done)
 
 		atomic.AddInt64(&called, 1)
 		return errors.New("boom")
 	}
-	w := newMachineWorker(baseWorker)
+	w := newAgentWorker(baseWorker)
 	defer workertest.DirtyKill(c, w)
 
 	select {
@@ -167,7 +167,7 @@ func (s *machineWorkerSuite) TestRunUpgradesFailedWithNotAPIError(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 }
 
-func (s *machineWorkerSuite) newWorker(c *tc.C) *machineWorker {
+func (s *agentWorkerSuite) newWorker(c *tc.C) *agentWorker {
 	baseWorker := s.newBaseWorker(c, version.MustParse("6.6.6"), version.MustParse("9.9.9"))
-	return newMachineWorker(baseWorker)
+	return newAgentWorker(baseWorker)
 }
