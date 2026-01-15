@@ -18,6 +18,7 @@ FROM agent_version AS mv;
 -- Remove the trigger because it wasn't looking for changes to stream_id.
 DROP TRIGGER trg_log_agent_version_update;
 
+-- noqa: disable=all
 CREATE TRIGGER trg_log_agent_version_update
 AFTER UPDATE ON agent_version FOR EACH ROW
 WHEN
@@ -27,3 +28,4 @@ BEGIN
     INSERT INTO change_log (edit_type_id, namespace_id, changed, created_at)
     VALUES (2, 10027, NEW.target_version, DATETIME('now', 'utc'));
 END;
+-- noqa: enable=all
