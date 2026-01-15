@@ -32,9 +32,9 @@ type State interface {
 	// for the controller configuration watcher.
 	AllKeysQuery() string
 
-	// NamespaceForWatchControllerConfig returns the namespace identifier
+	// NamespacesForWatchControllerConfig returns the namespace identifiers
 	// used for watching controller configuration changes.
-	NamespaceForWatchControllerConfig() []string
+	NamespacesForWatchControllerConfig() []string
 }
 
 // WatcherFactory describes methods for creating watchers.
@@ -282,7 +282,7 @@ func (s *WatchableService) WatchControllerConfig(ctx context.Context) (watcher.S
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	namespaces := s.st.NamespaceForWatchControllerConfig()
+	namespaces := s.st.NamespacesForWatchControllerConfig()
 	if len(namespaces) == 0 {
 		return nil, errors.Errorf("no namespaces for watching controller config")
 	}

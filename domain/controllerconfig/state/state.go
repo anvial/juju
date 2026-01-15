@@ -181,8 +181,8 @@ func (*State) AllKeysQuery() string {
 	return "SELECT key FROM v_controller_config"
 }
 
-// NamespaceForWatchControllerConfig returns the namespace identifier
+// NamespacesForWatchControllerConfig returns the namespace identifiers
 // used for watching controller configuration changes.
-func (*State) NamespaceForWatchControllerConfig() []string {
+func (*State) NamespacesForWatchControllerConfig() []string {
 	return []string{"controller", "controller_config"}
 }
