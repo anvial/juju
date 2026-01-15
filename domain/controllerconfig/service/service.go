@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 
+	"github.com/juju/collections/transform"
 	"github.com/juju/juju/controller"
 	"github.com/juju/juju/core/changestream"
 	coreerrors "github.com/juju/juju/core/errors"
@@ -287,10 +288,9 @@ func (s *WatchableService) WatchControllerConfig(ctx context.Context) (watcher.S
 		return nil, errors.Errorf("no namespaces for watching controller config")
 	}
 
-	filters := make([]eventsource.FilterOption, 0, len(namespaces))
-	for _, ns := range namespaces {
-		filters = append(filters, eventsource.NamespaceFilter(ns, changestream.All))
-	}
+	filters := transform.Slice(namespaces, func(ns string) eventsource.FilterOption {
+		return eventsource.NamespaceFilter(ns, changestream.All)
+	})
 
 	return s.watcherFactory.NewNamespaceWatcher(
 		ctx,

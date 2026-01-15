@@ -101,7 +101,8 @@ func checkSchemaVersionsHaveNoHoles(versions []versionHash) error {
 
 func checkSchemaHashesMatch(versions []versionHash, computedHashes []string) error {
 	if len(versions) != len(computedHashes) {
-		return errors.Errorf("number of recorded hashes (%d) does not match computed hashes (%d)", len(versions), len(computedHashes))
+		return errors.Errorf("number of recorded hashes (%d) does not match computed hashes (%d)",
+			len(versions), len(computedHashes))
 	}
 
 	// Ensure that the recorded hashes match the computed hashes.

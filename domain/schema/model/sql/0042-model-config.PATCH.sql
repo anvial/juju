@@ -9,7 +9,7 @@ SELECT
     mas.name AS value
 FROM agent_version AS mv
 JOIN agent_stream AS mas ON mv.stream_id = mas.id
-UNION
+UNION ALL
 SELECT
     'agent-version' AS "key",
     mv.target_version AS value

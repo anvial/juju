@@ -506,10 +506,9 @@ func (s *WatchableService) Watch(ctx context.Context) (watcher.StringsWatcher, e
 		return nil, errors.Errorf("no namespaces for watching model config")
 	}
 
-	filters := make([]eventsource.FilterOption, 0, len(namespaces))
-	for _, ns := range namespaces {
-		filters = append(filters, eventsource.NamespaceFilter(ns, changestream.All))
-	}
+	filters := transform.Slice(namespaces, func(ns string) eventsource.FilterOption {
+		return eventsource.NamespaceFilter(ns, changestream.All)
+	})
 
 	agentVersion, agentStream, err := s.st.GetModelAgentVersionAndStream(ctx)
 	if err != nil {
