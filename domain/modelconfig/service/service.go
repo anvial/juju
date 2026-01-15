@@ -56,10 +56,6 @@ type State interface {
 	// UpdateModelConfig is responsible for both inserting, updating and
 	// removing model config values for the current model.
 	UpdateModelConfig(context.Context, map[string]string, []string) error
-
-	// GetModelAgentVersionAndStream returns the current model's set agent
-	// version and stream.
-	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
 }
 
 // SpaceValidatorState represents the state entity for validating space-related
@@ -71,15 +67,18 @@ type SpaceValidatorState interface {
 
 // WatcherFactory describes methods for creating watchers.
 type WatcherFactory interface {
-	// NewNamespaceWatcher returns a new watcher that filters changes from the
-	// input base watcher's db/queue. Change-log events will be emitted only if
-	// the filter accepts them, and dispatching the notifications via the
-	// Changes channel. A filter option is required, though additional filter
-	// options can be provided.
-	NewNamespaceWatcher(
+	// NewNamespaceMapperWatcher returns a new watcher that receives changes
+	// from the input base watcher's db/queue. Change-log events will be emitted
+	// only if the filter accepts them, and dispatching the notifications via
+	// the Changes channel, once the mapper has processed them. Filtering of
+	// values is done first by the filter, and then by the mapper. Based on the
+	// mapper's logic a subset of them (or none) may be emitted. A filter option
+	// is required, though additional filter options can be provided.
+	NewNamespaceMapperWatcher(
 		ctx context.Context,
-		initialQuery eventsource.NamespaceQuery,
+		initialStateQuery eventsource.NamespaceQuery,
 		summary string,
+		mapper eventsource.Mapper,
 		filterOption eventsource.FilterOption, filterOptions ...eventsource.FilterOption,
 	) (watcher.StringsWatcher, error)
 }
@@ -512,12 +511,55 @@ func (s *WatchableService) Watch(ctx context.Context) (watcher.StringsWatcher, e
 		filters = append(filters, eventsource.NamespaceFilter(ns, changestream.All))
 	}
 
-	return s.watcherFactory.NewNamespaceWatcher(
+	agentVersion, agentStream, err := s.st.GetModelAgentVersionAndStream(ctx)
+	if err != nil {
+		return nil, errors.Errorf("getting model agent version and stream: %w", err)
+	}
+
+	return s.watcherFactory.NewNamespaceMapperWatcher(
 		ctx,
 		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
 		"model config watcher",
+		modelConfigMapper(s.st, agentVersion, agentStream),
 		filters[0], filters[1:]...,
 	)
+}
+
+func modelConfigMapper(st ProviderState, agentVersion, agentStream string) eventsource.Mapper {
+	var (
+		prevAgentVersion = agentVersion
+		prevAgentStream  = agentStream
+	)
+	return func(ctx context.Context, ce []changestream.ChangeEvent) ([]string, error) {
+		keys := make([]string, 0, len(ce))
+		for _, event := range ce {
+			// This is just a normal model config change event.
+			if event.Namespace() == "model_config" {
+				keys = append(keys, event.Changed())
+				continue
+			} else if event.Namespace() != "agent_version" {
+				// We're not interested in other namespaces.
+				continue
+			}
+
+			// This is a special change event that indicates that the agent
+			// version or stream has changed.
+			newAgentVersion, newAgentStream, err := st.GetModelAgentVersionAndStream(ctx)
+			if err != nil {
+				return nil, errors.Errorf("getting model agent version and stream: %w", err)
+			}
+
+			if newAgentVersion != prevAgentVersion {
+				keys = append(keys, config.AgentVersionKey)
+				prevAgentVersion = newAgentVersion
+			}
+			if newAgentStream != prevAgentStream {
+				keys = append(keys, config.AgentStreamKey)
+				prevAgentStream = newAgentStream
+			}
+		}
+		return keys, nil
+	}
 }
 
 // ProviderModelConfigGetter returns a ModelConfigProviderFunc that can be used

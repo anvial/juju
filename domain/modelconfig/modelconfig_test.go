@@ -5,6 +5,7 @@ package modelconfig
 
 import (
 	"context"
+	"database/sql"
 	stdtesting "testing"
 
 	"github.com/juju/schema"
@@ -219,15 +220,7 @@ func (s *modelConfigSuite) TestModelConfigProviderService(c *tc.C) {
 	c.Check(cfg, tc.DeepEquals, expected)
 }
 
-type modelConfigProvider struct {
-	environs.ModelConfigProvider
-}
-
-func (modelConfigProvider) ConfigSchema() schema.Fields {
-	return nil
-}
-
-func (s *modelConfigSuite) TestWatchModelConfig(c *tc.C) {
+func (s *modelConfigSuite) TestWatchModelConfigService(c *tc.C) {
 	var defaults modelDefaultsProviderFunc = func(_ context.Context) (modeldefaults.Defaults, error) {
 		return modeldefaults.Defaults{
 			"foo": modeldefaults.DefaultAttributeValue{
@@ -243,8 +236,9 @@ func (s *modelConfigSuite) TestWatchModelConfig(c *tc.C) {
 		"logging-config": "<root>=ERROR",
 	}
 
+	modelTxnRunner := s.ModelTxnRunner(c, string(s.modelID))
 	modelTxnRunnerFactory := func(ctx context.Context) (database.TxnRunner, error) {
-		return s.ModelTxnRunner(c, string(s.modelID)), nil
+		return modelTxnRunner, nil
 	}
 
 	_, idler := s.InitWatchableDB(c, s.modelID.String())
@@ -265,7 +259,8 @@ func (s *modelConfigSuite) TestWatchModelConfig(c *tc.C) {
 		err = bootstrap.SetModelConfig(s.modelID, attrs, defaults)(
 			c.Context(),
 			s.ControllerTxnRunner(),
-			s.ModelTxnRunner(c, s.modelID.String()))
+			modelTxnRunner,
+		)
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[[]string]) {
 		w.Check(
@@ -284,6 +279,111 @@ func (s *modelConfigSuite) TestWatchModelConfig(c *tc.C) {
 		)
 	})
 
+	harness.AddTest(c, func(c *tc.C) {
+		// Update the agent-stream and watch it come through.
+		err := modelTxnRunner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `UPDATE agent_version SET stream_id = 2`)
+			return err
+		})
+		c.Assert(err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert("agent-stream"),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Update the agent-stream and watch it come through.
+		err := modelTxnRunner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `UPDATE agent_version SET stream_id = 3`)
+			return err
+		})
+		c.Assert(err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert("agent-stream"),
+		)
+	})
+
+	harness.Run(c, []string(nil))
+}
+
+func (s *modelConfigSuite) TestWatchModelConfigProviderService(c *tc.C) {
+	var defaults modelDefaultsProviderFunc = func(_ context.Context) (modeldefaults.Defaults, error) {
+		return modeldefaults.Defaults{
+			"foo": modeldefaults.DefaultAttributeValue{
+				Controller: "bar",
+			},
+		}, nil
+	}
+
+	attrs := map[string]any{
+		"agent-version":  jujuversion.Current.String(),
+		"uuid":           s.modelID.String(),
+		"type":           "iaas",
+		"logging-config": "<root>=ERROR",
+	}
+
+	modelTxnRunner := s.ModelTxnRunner(c, string(s.modelID))
+	modelTxnRunnerFactory := func(ctx context.Context) (database.TxnRunner, error) {
+		return modelTxnRunner, nil
+	}
+
+	_, idler := s.InitWatchableDB(c, s.modelID.String())
+
+	st := state.NewState(modelTxnRunnerFactory)
+	factory := domain.NewWatcherFactory(
+		changestream.NewWatchableDBFactoryForNamespace(s.GetWatchableDB, s.modelID.String()),
+		loggertesting.WrapCheckLog(c))
+	svc := service.NewWatchableProviderService(st, func(ctx context.Context) (environs.ModelConfigProvider, error) {
+		return modelConfigProvider{}, nil
+	}, factory)
+
+	watcher, err := svc.Watch(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+
+	harness := watchertest.NewHarness(idler, watchertest.NewWatcherC(c, watcher))
+	harness.AddTest(c, func(c *tc.C) {
+		// Changestream becomes idle and then we receive the bootstrap changes
+		// from the model config.
+		err = bootstrap.SetModelConfig(s.modelID, attrs, defaults)(
+			c.Context(),
+			s.ControllerTxnRunner(),
+			modelTxnRunner,
+		)
+		c.Assert(err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert("name", "uuid", "type", "foo", "logging-config"),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Update the agent-stream and watch it come through.
+		err := modelTxnRunner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `UPDATE agent_version SET stream_id = 2`)
+			return err
+		})
+		c.Assert(err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert("agent-stream"),
+		)
+	})
+
+	harness.AddTest(c, func(c *tc.C) {
+		// Update the agent-stream and watch it come through.
+		err := modelTxnRunner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `UPDATE agent_version SET stream_id = 3`)
+			return err
+		})
+		c.Assert(err, tc.ErrorIsNil)
+	}, func(w watchertest.WatcherC[[]string]) {
+		w.Check(
+			watchertest.StringSliceAssert("agent-stream"),
+		)
+	})
+
 	harness.Run(c, []string(nil))
 }
 
@@ -293,4 +393,12 @@ func (f modelDefaultsProviderFunc) ModelDefaults(
 	c context.Context,
 ) (modeldefaults.Defaults, error) {
 	return f(c)
+}
+
+type modelConfigProvider struct {
+	environs.ModelConfigProvider
+}
+
+func (modelConfigProvider) ConfigSchema() schema.Fields {
+	return nil
 }

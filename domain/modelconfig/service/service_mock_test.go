@@ -77,6 +77,46 @@ func (c *MockProviderStateAllKeysQueryCall) DoAndReturn(f func() string) *MockPr
 	return c
 }
 
+// GetModelAgentVersionAndStream mocks base method.
+func (m *MockProviderState) GetModelAgentVersionAndStream(arg0 context.Context) (string, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetModelAgentVersionAndStream", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetModelAgentVersionAndStream indicates an expected call of GetModelAgentVersionAndStream.
+func (mr *MockProviderStateMockRecorder) GetModelAgentVersionAndStream(arg0 any) *MockProviderStateGetModelAgentVersionAndStreamCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModelAgentVersionAndStream", reflect.TypeOf((*MockProviderState)(nil).GetModelAgentVersionAndStream), arg0)
+	return &MockProviderStateGetModelAgentVersionAndStreamCall{Call: call}
+}
+
+// MockProviderStateGetModelAgentVersionAndStreamCall wrap *gomock.Call
+type MockProviderStateGetModelAgentVersionAndStreamCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockProviderStateGetModelAgentVersionAndStreamCall) Return(arg0, arg1 string, arg2 error) *MockProviderStateGetModelAgentVersionAndStreamCall {
+	c.Call = c.Call.Return(arg0, arg1, arg2)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockProviderStateGetModelAgentVersionAndStreamCall) Do(f func(context.Context) (string, string, error)) *MockProviderStateGetModelAgentVersionAndStreamCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockProviderStateGetModelAgentVersionAndStreamCall) DoAndReturn(f func(context.Context) (string, string, error)) *MockProviderStateGetModelAgentVersionAndStreamCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // ModelConfig mocks base method.
 func (m *MockProviderState) ModelConfig(arg0 context.Context) (map[string]string, error) {
 	m.ctrl.T.Helper()

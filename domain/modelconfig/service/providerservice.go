@@ -20,11 +20,17 @@ type ProviderState interface {
 	// AllKeysQuery returns a SQL statement that will return all known model config
 	// keys.
 	AllKeysQuery() string
+
 	// ModelConfig returns the currently set config for the model.
 	ModelConfig(context.Context) (map[string]string, error)
+
 	// NamespacesForWatchModelConfig returns the namespace identifiers used for
 	// watching model configuration changes.
 	NamespacesForWatchModelConfig() []string
+
+	// GetModelAgentVersionAndStream returns the current model's set agent
+	// version and stream.
+	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
 }
 
 // ProviderService defines the service for interacting with ModelConfig.
@@ -156,10 +162,16 @@ func (s *WatchableProviderService) Watch(ctx context.Context) (watcher.StringsWa
 		filters = append(filters, eventsource.NamespaceFilter(ns, changestream.All))
 	}
 
-	return s.watcherFactory.NewNamespaceWatcher(
+	agentVersion, agentStream, err := s.st.GetModelAgentVersionAndStream(ctx)
+	if err != nil {
+		return nil, errors.Errorf("getting model agent version and stream: %w", err)
+	}
+
+	return s.watcherFactory.NewNamespaceMapperWatcher(
 		ctx,
 		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
 		"model config watcher",
+		modelConfigMapper(s.st, agentVersion, agentStream),
 		filters[0], filters[1:]...,
 	)
 }
