@@ -30,9 +30,11 @@ func TestImportSuite(t *testing.T) {
 func (s *importSuite) TestImportSequences(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	// Juju 3.x stores "next value to return", Juju 4.x stores "last value returned".
+	// Input values are decremented by 1 during import.
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		"foo": 1,
-		"bar": 2,
+		"foo": 0, // input 1 - 1
+		"bar": 1, // input 2 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -60,8 +62,8 @@ func (s *importSuite) TestImportSequencesLegacyOperation(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		operation.OperationSequenceNamespace.String(): 1,
-		"bar": 2,
+		operation.OperationSequenceNamespace.String(): 0, // input 1 - 1
+		"bar": 1, // input 2 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -78,7 +80,7 @@ func (s *importSuite) TestImportSequencesLegacyStorage(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		storageSequenceNamespace: 42,
+		storageSequenceNamespace: 41, // input 42 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -97,7 +99,7 @@ func (s *importSuite) TestImportSequencesLegacyApplication(c *tc.C) {
 	expectedNamespace := sequence.MakePrefixNamespace(application.ApplicationSequenceNamespace, "myapp").String()
 
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		expectedNamespace: 10,
+		expectedNamespace: 9, // input 10 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -116,7 +118,7 @@ func (s *importSuite) TestImportSequencesLegacyApplicationWithHyphen(c *tc.C) {
 	expectedNamespace := sequence.MakePrefixNamespace(application.ApplicationSequenceNamespace, "my-cool-app").String()
 
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		expectedNamespace: 5,
+		expectedNamespace: 4, // input 5 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -135,7 +137,7 @@ func (s *importSuite) TestImportSequencesLegacyContainerLXD(c *tc.C) {
 	expectedNamespace := sequence.MakePrefixNamespace(machine.ContainerSequenceNamespace, "0").String()
 
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		expectedNamespace: 3,
+		expectedNamespace: 2, // input 3 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -154,7 +156,7 @@ func (s *importSuite) TestImportSequencesLegacyContainerKVM(c *tc.C) {
 	expectedNamespace := sequence.MakePrefixNamespace(machine.ContainerSequenceNamespace, "1").String()
 
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		expectedNamespace: 7,
+		expectedNamespace: 6, // input 7 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -173,7 +175,7 @@ func (s *importSuite) TestImportSequencesLegacyNestedContainer(c *tc.C) {
 	expectedNamespace := sequence.MakePrefixNamespace(machine.ContainerSequenceNamespace, "1/lxd/0").String()
 
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		expectedNamespace: 2,
+		expectedNamespace: 1, // input 2 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -191,13 +193,14 @@ func (s *importSuite) TestImportSequencesMultipleLegacyConversions(c *tc.C) {
 	appNamespace := sequence.MakePrefixNamespace(application.ApplicationSequenceNamespace, "ubuntu").String()
 	containerNamespace := sequence.MakePrefixNamespace(machine.ContainerSequenceNamespace, "0").String()
 
+	// All values are decremented by 1 during import (Juju 3 -> Juju 4 semantics).
 	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
-		operation.OperationSequenceNamespace.String(): 100,
-		storageSequenceNamespace:                      50,
-		appNamespace:                                  25,
-		containerNamespace:                            10,
-		"machine":                                     5,
-		"relation":                                    3,
+		operation.OperationSequenceNamespace.String(): 99, // input 100 - 1
+		storageSequenceNamespace:                      49, // input 50 - 1
+		appNamespace:                                  24, // input 25 - 1
+		containerNamespace:                            9,  // input 10 - 1
+		"machine":                                     4,  // input 5 - 1
+		"relation":                                    2,  // input 3 - 1
 	}).Return(nil)
 
 	op := s.newImportOperation()
@@ -209,6 +212,26 @@ func (s *importSuite) TestImportSequencesMultipleLegacyConversions(c *tc.C) {
 	model.SetSequence("machine0lxdContainer", 10)
 	model.SetSequence("machine", 5)
 	model.SetSequence("relation", 3)
+
+	err := op.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportSequencesSkipsZeroValues(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Sequences with value 0 or negative should be skipped as they were never used.
+	// Only "bar" with value 2 should be imported (as 1 after decrement).
+	s.importService.EXPECT().ImportSequences(gomock.Any(), map[string]uint64{
+		"bar": 1, // input 2 - 1
+	}).Return(nil)
+
+	op := s.newImportOperation()
+
+	model := description.NewModel(description.ModelArgs{})
+	model.SetSequence("foo", 0)  // Should be skipped
+	model.SetSequence("bar", 2)  // Should be imported as 1
+	model.SetSequence("baz", -1) // Should be skipped (negative)
 
 	err := op.Execute(c.Context(), model)
 	c.Assert(err, tc.ErrorIsNil)

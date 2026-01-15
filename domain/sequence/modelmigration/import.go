@@ -86,6 +86,10 @@ func (i *importOperation) Setup(scope modelmigration.Scope) error {
 
 // Execute the import, adding the sequence to the model. This also includes
 // the machines and any units that are associated with the sequence.
+//
+// Juju 3.x stores the "next value to return" in the sequence counter, while
+// Juju 4.x stores the "last value returned". To maintain correct behavior
+// after migration, we subtract 1 from all imported sequence values.
 func (i *importOperation) Execute(ctx context.Context, model description.Model) error {
 	seqs := model.Sequences()
 	if len(seqs) == 0 {
@@ -95,7 +99,13 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 	s := make(map[string]uint64, len(seqs))
 	for k, v := range seqs {
 		k = convertLegacySequenceName(k)
-		s[k] = uint64(v)
+		// Juju 3.x stores the next value to return, while Juju 4.x stores
+		// the last value returned. Subtract 1 to convert between semantics.
+		// Skip sequences with value <= 0 as they were never used.
+		if v <= 0 {
+			continue
+		}
+		s[k] = uint64(v) - 1
 	}
 
 	return i.service.ImportSequences(ctx, s)
