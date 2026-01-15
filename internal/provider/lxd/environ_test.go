@@ -16,7 +16,6 @@ import (
 
 	corebase "github.com/juju/juju/core/base"
 	"github.com/juju/juju/core/instance"
-	"github.com/juju/juju/core/lxdprofile"
 	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/environs"
 	environscloudspec "github.com/juju/juju/environs/cloudspec"
@@ -569,107 +568,11 @@ type environProfileSuite struct {
 	lxd.EnvironSuite
 
 	svr    *lxd.MockServer
-	lxdEnv environs.LXDProfiler
+	lxdEnv environs.HardwareCharacteristicsDetector
 }
 
 func TestEnvironProfileSuite(t *testing.T) {
 	tc.Run(t, &environProfileSuite{})
-}
-
-func (s *environProfileSuite) TestMaybeWriteLXDProfileYes(c *tc.C) {
-	defer s.setup(c, environscloudspec.CloudSpec{}).Finish()
-
-	profile := "testname"
-	s.expectMaybeWriteLXDProfile(false, profile)
-
-	err := s.lxdEnv.MaybeWriteLXDProfile(profile, lxdprofile.Profile{
-		Config: map[string]string{
-			"security.nesting": "true",
-		},
-		Description: "test profile",
-	})
-	c.Assert(err, tc.ErrorIsNil)
-}
-
-func (s *environProfileSuite) TestMaybeWriteLXDProfileNo(c *tc.C) {
-	defer s.setup(c, environscloudspec.CloudSpec{}).Finish()
-
-	profile := "testname"
-	s.expectMaybeWriteLXDProfile(true, profile)
-
-	err := s.lxdEnv.MaybeWriteLXDProfile(profile, lxdprofile.Profile{})
-	c.Assert(err, tc.ErrorIsNil)
-}
-
-func (s *environProfileSuite) TestLXDProfileNames(c *tc.C) {
-	defer s.setup(c, environscloudspec.CloudSpec{}).Finish()
-
-	exp := s.svr.EXPECT()
-	exp.GetContainerProfiles("testname").Return([]string{
-		lxdprofile.Name("foo", "shortid", "bar", 1),
-	}, nil)
-
-	result, err := s.lxdEnv.LXDProfileNames("testname")
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(result, tc.DeepEquals, []string{
-		lxdprofile.Name("foo", "shortid", "bar", 1),
-	})
-}
-
-func (s *environProfileSuite) TestAssignLXDProfiles(c *tc.C) {
-	defer s.setup(c, environscloudspec.CloudSpec{}).Finish()
-
-	instId := "testme"
-	oldP := "old-profile"
-	newP := "new-profile"
-	expectedProfiles := []string{"default", "juju-default", newP}
-	s.expectAssignLXDProfiles(instId, oldP, newP, []string{}, expectedProfiles, nil)
-
-	obtained, err := s.lxdEnv.AssignLXDProfiles(instId, expectedProfiles, []lxdprofile.ProfilePost{
-		{
-			Name:    oldP,
-			Profile: nil,
-		}, {
-			Name: newP,
-			Profile: &lxdprofile.Profile{
-				Config: map[string]string{
-					"security.nesting": "true",
-				},
-				Description: "test profile",
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(obtained, tc.DeepEquals, expectedProfiles)
-}
-
-func (s *environProfileSuite) TestAssignLXDProfilesErrorReturnsCurrent(c *tc.C) {
-	defer s.setup(c, environscloudspec.CloudSpec{}).Finish()
-
-	instId := "testme"
-	oldP := "old-profile"
-	newP := "new-profile"
-	expectedProfiles := []string{"default", "juju-default", oldP}
-	newProfiles := []string{"default", "juju-default", newP}
-	expectedErr := "fail UpdateContainerProfiles"
-	s.expectAssignLXDProfiles(instId, oldP, newP, expectedProfiles, newProfiles, errors.New(expectedErr))
-
-	obtained, err := s.lxdEnv.AssignLXDProfiles(instId, newProfiles, []lxdprofile.ProfilePost{
-		{
-			Name:    oldP,
-			Profile: nil,
-		}, {
-			Name: newP,
-			Profile: &lxdprofile.Profile{
-				Config: map[string]string{
-					"security.nesting": "true",
-				},
-				Description: "test profile",
-			},
-		},
-	})
-	c.Assert(err, tc.ErrorMatches, expectedErr)
-	c.Assert(obtained, tc.DeepEquals, []string{"default", "juju-default", oldP})
 }
 
 func (s *environProfileSuite) TestDetectCorrectHardwareEndpointIPOnly(c *tc.C) {
@@ -677,10 +580,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareEndpointIPOnly(c *tc.C) {
 		Endpoint: "1.1.1.1",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	c.Assert(err, tc.IsNil)
 	// 1.1.1.1 is not a local IP address, so we don't set ARCH in hc
 	c.Assert(hc, tc.IsNil)
@@ -691,10 +591,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareEndpointIPPort(c *tc.C) {
 		Endpoint: "1.1.1.1:8888",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	c.Assert(err, tc.IsNil)
 	// 1.1.1.1 is not a local IP address, so we don't set ARCH in hc
 	c.Assert(hc, tc.IsNil)
@@ -705,10 +602,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareEndpointSchemeIPPort(c *t
 		Endpoint: "http://1.1.1.1:8888",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	c.Assert(err, tc.IsNil)
 	// 1.1.1.1 is not a local IP address, so we don't set ARCH in hc
 	c.Assert(hc, tc.IsNil)
@@ -719,10 +613,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareEndpointHostOnly(c *tc.C)
 		Endpoint: "localhost",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	c.Assert(err, tc.IsNil)
 	// 1.1.1.1 is not a local IP address, so we don't set ARCH in hc
 	c.Assert(hc, tc.IsNil)
@@ -733,10 +624,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareEndpointHostPort(c *tc.C)
 		Endpoint: "localhost:8888",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	c.Assert(err, tc.IsNil)
 	// localhost is not considered as a local IP address, so we don't set ARCH in hc
 	c.Assert(hc, tc.IsNil)
@@ -747,10 +635,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareEndpointSchemeHostPort(c 
 		Endpoint: "http://localhost:8888",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	c.Assert(err, tc.IsNil)
 	// localhost is not considered as a local IP address, so we don't set ARCH in hc
 	c.Assert(hc, tc.IsNil)
@@ -761,10 +646,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareWrongEndpoint(c *tc.C) {
 		Endpoint: "1.1:8888",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	// the endpoint is wrongly formatted but we don't return an error, that
 	// would mean we are stopping the bootstrap
 	c.Assert(err, tc.IsNil)
@@ -776,10 +658,7 @@ func (s *environProfileSuite) TestDetectCorrectHardwareEmptyEndpoint(c *tc.C) {
 		Endpoint: "",
 	}).Finish()
 
-	detector, supported := s.lxdEnv.(environs.HardwareCharacteristicsDetector)
-	c.Assert(supported, tc.IsTrue)
-
-	hc, err := detector.DetectHardware()
+	hc, err := s.lxdEnv.DetectHardware()
 	// the endpoint is wrongly formatted but we don't return an error, that
 	// would mean we are stopping the bootstrap
 	c.Assert(err, tc.IsNil)
@@ -792,47 +671,9 @@ func (s *environProfileSuite) setup(c *tc.C, cloudSpec environscloudspec.CloudSp
 	s.svr = lxd.NewMockServer(ctrl)
 	invalidator := lxd.NewMockCredentialInvalidator(ctrl)
 
-	lxdEnv, ok := s.NewEnviron(c, s.svr, nil, cloudSpec, invalidator).(environs.LXDProfiler)
+	lxdEnv, ok := s.NewEnviron(c, s.svr, nil, cloudSpec, invalidator).(environs.HardwareCharacteristicsDetector)
 	c.Assert(ok, tc.IsTrue)
 	s.lxdEnv = lxdEnv
 
 	return ctrl
-}
-
-func (s *environProfileSuite) expectMaybeWriteLXDProfile(hasProfile bool, name string) {
-	exp := s.svr.EXPECT()
-	exp.HasProfile(name).Return(hasProfile, nil)
-	if !hasProfile {
-		post := api.ProfilesPost{
-			Name: name,
-			ProfilePut: api.ProfilePut{
-				Config: map[string]string{
-					"security.nesting": "true",
-				},
-				Description: "test profile",
-			},
-		}
-		exp.CreateProfile(post).Return(nil)
-		expProfile := api.Profile{
-			Name:        post.Name,
-			Description: post.Description,
-			Config:      post.Config,
-			Devices:     post.Devices,
-		}
-		exp.GetProfile(name).Return(&expProfile, "etag", nil)
-	}
-}
-
-func (s *environProfileSuite) expectAssignLXDProfiles(instId, old, new string, oldProfiles, newProfiles []string, updateErr error) {
-	s.expectMaybeWriteLXDProfile(false, new)
-	exp := s.svr.EXPECT()
-	exp.UpdateContainerProfiles(instId, newProfiles).Return(updateErr)
-	if updateErr != nil {
-		exp.GetContainerProfiles(instId).Return(oldProfiles, nil)
-		return
-	}
-	if old != "" {
-		exp.DeleteProfile(old)
-	}
-	exp.GetContainerProfiles(instId).Return(newProfiles, nil)
 }

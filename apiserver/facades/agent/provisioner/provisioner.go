@@ -21,7 +21,6 @@ import (
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/instance"
 	"github.com/juju/juju/core/logger"
-	"github.com/juju/juju/core/lxdprofile"
 	coremachine "github.com/juju/juju/core/machine"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/network"
@@ -203,8 +202,9 @@ func MakeProvisionerAPI(stdCtx context.Context, ctx facade.ModelContext) (*Provi
 	return api, nil
 }
 
-// ProvisionerAPIV11 provides v10 of the provisioner facade.
-// It relies on agent-set origin when calling SetHostMachineNetworkConfig.
+// ProvisionerAPIV11 provides v11 of the provisioner facade.
+// It has various stubs for methods required by LXD profiles,
+// support for which was removed from 4.0.
 type ProvisionerAPIV11 struct {
 	*ProvisionerAPI
 }
@@ -813,21 +813,6 @@ func (api *ProvisionerAPI) SetInstanceInfo(ctx context.Context, args params.Inst
 			)
 		}
 
-		err = api.machineService.SetAppliedLXDProfileNames(ctx, machineUUID, arg.CharmProfiles)
-		switch {
-		case errors.Is(err, machineerrors.MachineNotFound):
-			return errors.Errorf("machine %q not found", tag.Id()).Add(
-				coreerrors.NotFound,
-			)
-		case errors.Is(err, machineerrors.NotProvisioned):
-			return errors.Errorf("machine %q is not provisioned", tag.Id()).Add(
-				coreerrors.NotProvisioned,
-			)
-		case err != nil:
-			return errors.Errorf(
-				"setting lxd profiles for machine %q: %w", tag.Id(), err,
-			)
-		}
 		return nil
 	}
 	for i, arg := range args.Machines {
@@ -939,71 +924,6 @@ func (api *ProvisionerAPI) PrepareContainerInterfaceInfo(
 
 	result.Results = results
 	return result, nil
-}
-
-// perContainerHandler is the interface we need to trigger processing on
-// every container passed in as a list of things to process.
-type perContainerHandler interface {
-	// ProcessOneContainer is called once we've assured ourselves that all of
-	// the access permissions are correct and the container is ready to be
-	// processed.
-	// idx is the index for this, hostInstanceID is the machine that is hosting
-	// the container.
-	// Any errors that are returned from ProcessOneContainer will be turned
-	// into ServerError and handed to SetError
-	ProcessOneContainer(
-		ctx context.Context,
-		idx int,
-		guestMachineName coremachine.Name,
-	) error
-
-	// SetError will be called whenever there is a problem with the a given
-	// request. Generally this just does result.Results[i].Error = error
-	// but the Result type is opaque so we can't do it ourselves.
-	SetError(resultIndex int, err error)
-
-	// ConfigType indicates the type of config the handler is getting for
-	// for error messaging.
-	ConfigType() string
-}
-
-func (api *ProvisionerAPI) processEachContainer(ctx context.Context, args params.Entities, handler perContainerHandler) error {
-	canAccess, err := api.getAuthFunc(ctx)
-	if err != nil {
-		return errors.Errorf("cannot authenticate request: %w", err).Add(err)
-	}
-	hostAuthTag := api.authorizer.GetAuthTag()
-	if hostAuthTag == nil {
-		return errors.Errorf("authenticated entity tag is nil")
-	}
-
-	for i, entity := range args.Entities {
-		guestTag, err := names.ParseMachineTag(entity.Tag)
-		if err != nil {
-			handler.SetError(i, err)
-			continue
-		}
-		if !canAccess(guestTag) {
-			handler.SetError(i, apiservererrors.ErrPerm)
-			continue
-		}
-
-		guestMachineName := coremachine.Name(guestTag.Id())
-		if !guestMachineName.IsContainer() {
-			err = errors.Errorf("cannot prepare %s config for %q: not a container", handler.ConfigType(), guestTag)
-			handler.SetError(i, err)
-			continue
-		}
-		if err := handler.ProcessOneContainer(
-			ctx,
-			i,
-			coremachine.Name(guestTag.Id()),
-		); err != nil {
-			handler.SetError(i, err)
-			continue
-		}
-	}
-	return nil
 }
 
 func toInterfaceInfos(netInterfaces []domainnetwork.NetInterface) network.InterfaceInfos {
@@ -1133,97 +1053,6 @@ func (api *ProvisionerAPI) getAuthedCallerMachine(ctx context.Context) (coremach
 	}
 
 	return hostUUID, hostName, err
-}
-
-type containerProfileHandler struct {
-	applicationService ApplicationService
-	result             params.ContainerProfileResults
-	modelName          string
-	logger             logger.Logger
-	modelTag           names.ModelTag
-}
-
-// ProcessOneContainer implements perContainerHandler.ProcessOneContainer
-func (h *containerProfileHandler) ProcessOneContainer(
-	ctx context.Context,
-	idx int,
-	guestMachineName coremachine.Name,
-) error {
-	unitNames, err := h.applicationService.GetUnitNamesOnMachine(ctx, guestMachineName)
-	if errors.Is(err, applicationerrors.MachineNotFound) {
-		err := errors.Errorf("machine %q not found", guestMachineName).Add(
-			coreerrors.NotFound,
-		)
-		h.SetError(idx, err)
-		return err
-	} else if err != nil {
-		h.SetError(idx, err)
-		return errors.Capture(err)
-	}
-
-	var resPro []*params.ContainerLXDProfile
-	for _, unitName := range unitNames {
-		appName := unitName.Application()
-		locator, err := h.applicationService.GetCharmLocatorByApplicationName(ctx, appName)
-		if err != nil {
-			h.SetError(idx, err)
-			return errors.Capture(err)
-		}
-
-		profile, revision, err := h.applicationService.GetCharmLXDProfile(ctx, locator)
-		if err != nil {
-			h.SetError(idx, err)
-			return errors.Capture(err)
-		}
-
-		if profile.Empty() {
-			h.logger.Tracef(ctx, "no profile to return for %q", unitName)
-			continue
-		}
-		resPro = append(resPro, &params.ContainerLXDProfile{
-			Profile: params.CharmLXDProfile{
-				Config:      profile.Config,
-				Description: profile.Description,
-				Devices:     profile.Devices,
-			},
-			Name: lxdprofile.Name(h.modelName, h.modelTag.ShortId(), appName, revision),
-		})
-	}
-
-	h.result.Results[idx].LXDProfiles = resPro
-	return nil
-}
-
-// Implements perContainerHandler.SetError
-func (h *containerProfileHandler) SetError(idx int, err error) {
-	h.result.Results[idx].Error = apiservererrors.ServerError(err)
-}
-
-// Implements perContainerHandler.ConfigType
-func (h *containerProfileHandler) ConfigType() string {
-	return "LXD profile"
-}
-
-// GetContainerProfileInfo returns information to configure a lxd profile(s) for a
-// container based on the charms deployed to the container. It accepts container
-// tags as arguments. Unlike machineLXDProfileNames which has the environ
-// write the lxd profiles and returns the names of profiles already written.
-func (api *ProvisionerAPI) GetContainerProfileInfo(ctx context.Context, args params.Entities) (params.ContainerProfileResults, error) {
-	c := &containerProfileHandler{
-		applicationService: api.applicationService,
-		result: params.ContainerProfileResults{
-			Results: make([]params.ContainerProfileResult, len(args.Entities)),
-		},
-		logger: api.logger,
-	}
-
-	c.modelName = api.modelName
-	c.modelTag = names.NewModelTag(api.modelUUID.String())
-
-	if err := api.processEachContainer(ctx, args, c); err != nil {
-		return c.result, errors.Capture(err)
-	}
-	return c.result, nil
 }
 
 // Status returns the status of the specified machine.
@@ -1401,22 +1230,6 @@ func (api *ProvisionerAPI) SetInstanceStatus(ctx context.Context, args params.Se
 	return result, nil
 }
 
-// SetModificationStatus updates the instance whilst changes are occurring. This
-// is different from SetStatus and SetInstanceStatus, by the fact this holds
-// information about the ongoing changes that are happening to instances.
-// Consider LXD Profile updates that can modify a instance, but may not cause
-// the instance to be placed into a error state. This modification status
-// serves the purpose of highlighting that to the operator.
-// Only machine tags are accepted.
-//
-// Deprecated: this facade was used for LXD profiles, which have been removed.
-// Drop this facade on the next facade version bump.
-func (api *ProvisionerAPI) SetModificationStatus(ctx context.Context, args params.SetStatus) (params.ErrorResults, error) {
-	return params.ErrorResults{
-		Results: make([]params.ErrorResult, len(args.Entities)),
-	}, nil
-}
-
 // MarkMachinesForRemoval indicates that the specified machines are
 // ready to have any provider-level resources cleaned up and then be
 // removed.
@@ -1505,51 +1318,38 @@ func (api *ProvisionerAPI) CACert(ctx context.Context) (params.BytesResult, erro
 	return params.BytesResult{Result: []byte(caCert)}, nil
 }
 
-// SetCharmProfiles records the given slice of charm profile names.
-func (api *ProvisionerAPI) SetCharmProfiles(ctx context.Context, args params.SetProfileArgs) (params.ErrorResults, error) {
-	results := make([]params.ErrorResult, len(args.Args))
-	canAccess, err := api.getAuthFunc(ctx)
-	if err != nil {
-		api.logger.Errorf(ctx, "failed to get an authorisation function: %v", err)
-		return params.ErrorResults{}, errors.Capture(err)
-	}
-	for i, a := range args.Args {
-		err := api.setOneMachineCharmProfiles(ctx, a.Entity.Tag, a.Profiles, canAccess)
-		if errors.Is(err, machineerrors.NotProvisioned) {
-			results[i].Error = apiservererrors.ParamsErrorf(
-				params.CodeNotProvisioned, "machine %q not provisioned", a.Entity.Tag,
-			)
-		} else {
-			results[i].Error = apiservererrors.ServerError(err)
-		}
-	}
-	return params.ErrorResults{Results: results}, nil
-}
-
-func (api *ProvisionerAPI) setOneMachineCharmProfiles(ctx context.Context, machineTag string, profiles []string, canAccess common.AuthFunc) error {
-	mTag, err := names.ParseMachineTag(machineTag)
-	if err != nil {
-		return errors.Capture(err)
-	}
-	if !canAccess(mTag) {
-		return apiservererrors.ErrPerm
-	}
-	machineUUID, err := api.machineService.GetMachineUUID(ctx, coremachine.Name(mTag.Id()))
-	if err != nil {
-		return errors.Capture(err)
-	}
-	return errors.Capture(api.machineService.SetAppliedLXDProfileNames(ctx, machineUUID, profiles))
-}
-
 // ModelUUID returns the model UUID that the current connection is for.
-func (api *ProvisionerAPI) ModelUUID(ctx context.Context) params.StringResult {
+func (api *ProvisionerAPI) ModelUUID(_ context.Context) params.StringResult {
 	return params.StringResult{Result: api.modelUUID.String()}
 }
 
-// Remove is a no-op for the provisioner API. Remove this in the next facade
-// version bump.
-func (api *ProvisionerAPI) Remove(ctx context.Context, args params.Entities) (params.ErrorResults, error) {
-	return params.ErrorResults{
-		Results: make([]params.ErrorResult, len(args.Entities)),
-	}, nil
+// Remove is a no-op for the provisioner API.
+// This stub resides on the v11 API for compatibility only.
+func (api *ProvisionerAPIV11) Remove(_ context.Context, args params.Entities) (params.ErrorResults, error) {
+	return params.ErrorResults{Results: make([]params.ErrorResult, len(args.Entities))}, nil
+}
+
+// SetModificationStatus was used for LXD profiles, which have been removed.
+// This stub resides on the v11 API for compatibility only.
+func (api *ProvisionerAPIV11) SetModificationStatus(
+	_ context.Context, args params.SetStatus,
+) (params.ErrorResults, error) {
+	return params.ErrorResults{Results: make([]params.ErrorResult, len(args.Entities))}, nil
+}
+
+// SetCharmProfiles was used for LXD profiles to record a list of profile names.
+// This stub resides on the v11 API for compatibility only.
+func (api *ProvisionerAPIV11) SetCharmProfiles(
+	_ context.Context, args params.SetProfileArgs,
+) (params.ErrorResults, error) {
+	return params.ErrorResults{Results: make([]params.ErrorResult, len(args.Args))}, nil
+}
+
+// GetContainerProfileInfo returned information to configure lxd profiles for a
+// container based on the charms deployed to the container.
+// This stub resides on the v11 API for compatibility only.
+func (api *ProvisionerAPIV11) GetContainerProfileInfo(
+	_ context.Context, args params.Entities,
+) (params.ContainerProfileResults, error) {
+	return params.ContainerProfileResults{Results: make([]params.ContainerProfileResult, len(args.Entities))}, nil
 }

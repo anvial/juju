@@ -61,7 +61,6 @@ var facadeVersions = facades.FacadeVersions{
 	"HostKeyReporter":              {1},
 	"ImageMetadata":                {3},
 	"ImageMetadataManager":         {1},
-	"InstanceMutater":              {3},
 	"KeyManager":                   {1},
 	"KeyUpdater":                   {1},
 	"LeadershipService":            {2},
@@ -84,7 +83,7 @@ var facadeVersions = facades.FacadeVersions{
 	"NotifyWatcher":                {1},
 	"OfferStatusWatcher":           {1},
 	"Pinger":                       {1},
-	"Provisioner":                  {11},
+	"Provisioner":                  {11, 12},
 	"ProxyUpdater":                 {2},
 	"Reboot":                       {2},
 	"RelationStatusWatcher":        {1},
@@ -115,7 +114,7 @@ var facadeVersions = facades.FacadeVersions{
 	"VolumeAttachmentsWatcher":     {2},
 	"VolumeAttachmentPlansWatcher": {1},
 
-	// Technically we don't require this facade in the client, as it is only
+	// Technically, we don't require this facade in the client, as it is only
 	// used by the agent. Yet the migration checks will use this to verify
 	// that the controller is capable of handling the migration.
 	"PayloadsHookContext": {1, 2},
