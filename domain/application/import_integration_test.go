@@ -26,6 +26,7 @@ import (
 	applicationmodelmigration "github.com/juju/juju/domain/application/modelmigration"
 	"github.com/juju/juju/domain/application/service"
 	"github.com/juju/juju/domain/application/state"
+	machinemodelmigration "github.com/juju/juju/domain/machine/modelmigration"
 	migrationtesting "github.com/juju/juju/domain/modelmigration/testing"
 	networkmodelmigration "github.com/juju/juju/domain/network/modelmigration"
 	schematesting "github.com/juju/juju/domain/schema/testing"
@@ -863,6 +864,203 @@ func (s *importSuite) TestCAASApplication(c *tc.C) {
 	obtainedScale, err := s.svc.GetApplicationScale(c.Context(), "foo")
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(obtainedScale, tc.DeepEquals, 42)
+}
+
+func (s *importSuite) TestImportCAASUnit(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.CAAS),
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "foo",
+		CharmURL: "ch:foo-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/20.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "foo",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+
+	// Add unit with comprehensive field coverage.
+	unit1 := app.AddUnit(description.UnitArgs{
+		Name:            "foo/0",
+		Type:            string(model.CAAS),
+		PasswordHash:    "passwordhash-0",
+		WorkloadVersion: "1.2.3",
+		CharmState: map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+		},
+		RelationState: map[int]string{
+			1: "relation-state-1",
+			2: "relation-state-2",
+		},
+		UniterState:  `{"some": "uniter-state"}`,
+		StorageState: `{"some": "storage-state"}`,
+	})
+	unit1.SetAgentStatus(description.StatusArgs{
+		Value:   "idle",
+		Message: "agent idle",
+		Data: map[string]any{
+			"agent-key": "agent-value",
+		},
+	})
+	unit1.SetWorkloadStatus(description.StatusArgs{
+		Value:   "active",
+		Message: "workload active",
+		Data: map[string]any{
+			"workload-key": "workload-value",
+		},
+	})
+	unit1.SetTools(description.AgentToolsArgs{
+		Version: "4.0.0-ubuntu-amd64",
+	})
+
+	// Add second unit.
+	unit2 := app.AddUnit(description.UnitArgs{
+		Name:            "foo/1",
+		Type:            string(model.CAAS),
+		PasswordHash:    "passwordhash-1",
+		WorkloadVersion: "2.0.0",
+	})
+	unit2.SetAgentStatus(description.StatusArgs{
+		Value: "idle",
+	})
+	unit2.SetWorkloadStatus(description.StatusArgs{
+		Value: "active",
+	})
+	unit2.SetTools(description.AgentToolsArgs{
+		Version: "4.0.0-ubuntu-amd64",
+	})
+
+	applicationmodelmigration.RegisterImport(s.coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := s.coordinator.Perform(c.Context(), s.scope, desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify unit fields imported by the application domain.
+	version0, err := s.svc.GetUnitWorkloadVersion(c.Context(), "foo/0")
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(version0, tc.Equals, "1.2.3")
+
+	version1, err := s.svc.GetUnitWorkloadVersion(c.Context(), "foo/1")
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(version1, tc.Equals, "2.0.0")
+}
+
+func (s *importSuite) TestImportIAASUnit(c *tc.C) {
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+	})
+
+	// Add machines for the units to be placed on.
+	desc.AddMachine(description.MachineArgs{
+		Id:   "0",
+		Base: "ubuntu@22.04",
+	})
+	desc.AddMachine(description.MachineArgs{
+		Id:   "1",
+		Base: "ubuntu@22.04",
+	})
+
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name:     "bar",
+		CharmURL: "ch:bar-1",
+	})
+	app.SetCharmOrigin(description.CharmOriginArgs{
+		Source:   "charm-hub",
+		ID:       "deadbeef",
+		Hash:     "deadbeef2",
+		Revision: 1,
+		Channel:  "latest/stable",
+		Platform: "amd64/ubuntu/22.04",
+	})
+	app.SetCharmMetadata(description.CharmMetadataArgs{
+		Name: "bar",
+	})
+	app.SetCharmManifest(description.CharmManifestArgs{
+		Bases: []description.CharmManifestBase{
+			migrationtesting.ManifestBase{
+				Name_:          "ubuntu",
+				Channel_:       "22.04/stable",
+				Architectures_: []string{"amd64"},
+			},
+		},
+	})
+
+	// Add first unit with comprehensive field coverage.
+	unit1 := app.AddUnit(description.UnitArgs{
+		Name:            "bar/0",
+		Type:            string(model.IAAS),
+		Machine:         "0",
+		PasswordHash:    "passwordhash-0",
+		WorkloadVersion: "2.0.0",
+		CharmState: map[string]string{
+			"state-key": "state-value",
+		},
+		RelationState: map[int]string{
+			5: "relation-state-5",
+		},
+		UniterState:  `{"uniter": "state"}`,
+		StorageState: `{"storage": "state"}`,
+	})
+	unit1.SetAgentStatus(description.StatusArgs{
+		Value:   "idle",
+		Message: "agent is idle",
+	})
+	unit1.SetWorkloadStatus(description.StatusArgs{
+		Value:   "active",
+		Message: "workload is active",
+	})
+	unit1.SetTools(description.AgentToolsArgs{
+		Version: "4.0.0-ubuntu-amd64",
+	})
+
+	// Add second unit on a different machine.
+	unit2 := app.AddUnit(description.UnitArgs{
+		Name:            "bar/1",
+		Type:            string(model.IAAS),
+		Machine:         "1",
+		PasswordHash:    "passwordhash-1",
+		WorkloadVersion: "2.1.0",
+	})
+	unit2.SetAgentStatus(description.StatusArgs{
+		Value: "executing",
+	})
+	unit2.SetWorkloadStatus(description.StatusArgs{
+		Value: "maintenance",
+	})
+	unit2.SetTools(description.AgentToolsArgs{
+		Version: "4.0.0-ubuntu-amd64",
+	})
+
+	machinemodelmigration.RegisterImport(s.coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	applicationmodelmigration.RegisterImport(s.coordinator, clock.WallClock, loggertesting.WrapCheckLog(c))
+	err := s.coordinator.Perform(c.Context(), s.scope, desc)
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify unit fields imported by the application domain.
+	version0, err := s.svc.GetUnitWorkloadVersion(c.Context(), "bar/0")
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(version0, tc.Equals, "2.0.0")
+
+	version1, err := s.svc.GetUnitWorkloadVersion(c.Context(), "bar/1")
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(version1, tc.Equals, "2.1.0")
 }
 
 func (s *importSuite) TestApplicationConfig(c *tc.C) {
