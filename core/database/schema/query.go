@@ -100,8 +100,12 @@ func checkSchemaVersionsHaveNoHoles(versions []versionHash) error {
 }
 
 func checkSchemaHashesMatch(versions []versionHash, computedHashes []string) error {
-	if len(versions) != len(computedHashes) {
-		return errors.Errorf("number of recorded hashes (%d) does not match computed hashes (%d)",
+	// If we reach here, it means that the computed hashes (hashes incoming),
+	// is less than the ones recorded in the database, error out.
+	// Basically, someone edited the patches and removed some, which will cause
+	// all sorts of issues. This safeguard prevents any confusion.
+	if len(computedHashes) < len(versions) {
+		return errors.Errorf("number of computed hashes (%d) is less than versioned hashes (%d)",
 			len(versions), len(computedHashes))
 	}
 
