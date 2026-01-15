@@ -7,6 +7,7 @@ import (
 	"context"
 	stdtesting "testing"
 
+	"github.com/juju/schema"
 	"github.com/juju/tc"
 
 	"github.com/juju/juju/cloud"
@@ -29,6 +30,7 @@ import (
 	"github.com/juju/juju/domain/modelconfig/service"
 	"github.com/juju/juju/domain/modelconfig/state"
 	"github.com/juju/juju/domain/modeldefaults"
+	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/config"
 	changestreamtesting "github.com/juju/juju/internal/changestream/testing"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -113,6 +115,116 @@ func (s *modelConfigSuite) SetUpTest(c *tc.C) {
 	err = modelbootstrap.CreateLocalModelRecord(modelUUID, uuid.MustNewUUID(), jujuversion.Current)(
 		c.Context(), s.ControllerTxnRunner(), s.ModelTxnRunner(c, modelUUID.String()))
 	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *modelConfigSuite) TestModelConfigService(c *tc.C) {
+	var defaults modelDefaultsProviderFunc = func(_ context.Context) (modeldefaults.Defaults, error) {
+		return modeldefaults.Defaults{
+			"foo": modeldefaults.DefaultAttributeValue{
+				Controller: "bar",
+			},
+		}, nil
+	}
+
+	attrs := map[string]any{
+		"type":           "ec2",
+		"name":           "test",
+		"uuid":           s.modelID.String(),
+		"logging-config": "<root>=ERROR",
+	}
+
+	err := bootstrap.SetModelConfig(s.modelID, attrs, defaults)(
+		c.Context(),
+		s.ControllerTxnRunner(),
+		s.ModelTxnRunner(c, s.modelID.String()))
+	c.Assert(err, tc.ErrorIsNil)
+
+	modelTxnRunnerFactory := func(ctx context.Context) (database.TxnRunner, error) {
+		return s.ModelTxnRunner(c, string(s.modelID)), nil
+	}
+
+	st := state.NewState(modelTxnRunnerFactory)
+	svc := service.NewService(defaults, config.ModelValidator(), func(ctx context.Context) (environs.ModelConfigProvider, error) {
+		return modelConfigProvider{}, nil
+	}, st)
+
+	cfg, err := svc.ModelConfig(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Notice that agent-version and agent-stream are in the model config.
+	// These are sourced from the agent_version table.
+
+	expected, err := config.New(config.NoDefaults, map[string]any{
+		"type":           "ec2",
+		"name":           "test",
+		"uuid":           s.modelID.String(),
+		"logging-config": "<root>=ERROR",
+		"agent-version":  jujuversion.Current.String(),
+		"agent-stream":   "released",
+		"foo":            "bar",
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(cfg, tc.DeepEquals, expected)
+}
+
+func (s *modelConfigSuite) TestModelConfigProviderService(c *tc.C) {
+	var defaults modelDefaultsProviderFunc = func(_ context.Context) (modeldefaults.Defaults, error) {
+		return modeldefaults.Defaults{
+			"foo": modeldefaults.DefaultAttributeValue{
+				Controller: "bar",
+			},
+		}, nil
+	}
+
+	attrs := map[string]any{
+		"type":           "ec2",
+		"name":           "test",
+		"uuid":           s.modelID.String(),
+		"logging-config": "<root>=ERROR",
+	}
+
+	err := bootstrap.SetModelConfig(s.modelID, attrs, defaults)(
+		c.Context(),
+		s.ControllerTxnRunner(),
+		s.ModelTxnRunner(c, s.modelID.String()))
+	c.Assert(err, tc.ErrorIsNil)
+
+	modelTxnRunnerFactory := func(ctx context.Context) (database.TxnRunner, error) {
+		return s.ModelTxnRunner(c, string(s.modelID)), nil
+	}
+
+	st := state.NewState(modelTxnRunnerFactory)
+	svc := service.NewProviderService(st, func(ctx context.Context) (environs.ModelConfigProvider, error) {
+		return modelConfigProvider{}, nil
+	})
+
+	cfg, err := svc.ModelConfig(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Notice that agent-version and agent-stream are in the model config.
+	// These are sourced from the agent_version table.
+
+	expected, err := config.New(config.NoDefaults, map[string]any{
+		"type":           "ec2",
+		"name":           "test",
+		"uuid":           s.modelID.String(),
+		"logging-config": "<root>=ERROR",
+		"agent-version":  jujuversion.Current.String(),
+		"agent-stream":   "released",
+		"foo":            "bar",
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(cfg, tc.DeepEquals, expected)
+}
+
+type modelConfigProvider struct {
+	environs.ModelConfigProvider
+}
+
+func (modelConfigProvider) ConfigSchema() schema.Fields {
+	return nil
 }
 
 func (s *modelConfigSuite) TestWatchModelConfig(c *tc.C) {

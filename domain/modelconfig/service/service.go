@@ -5,6 +5,7 @@ package service
 
 import (
 	"context"
+	"maps"
 
 	"github.com/juju/collections/transform"
 	"github.com/juju/schema"
@@ -56,9 +57,9 @@ type State interface {
 	// removing model config values for the current model.
 	UpdateModelConfig(context.Context, map[string]string, []string) error
 
-	// NamespaceForWatchModelConfig returns the namespace identifier used for
-	// watching model configuration changes.
-	NamespaceForWatchModelConfig() string
+	// GetModelAgentVersionAndStream returns the current model's set agent
+	// version and stream.
+	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
 }
 
 // SpaceValidatorState represents the state entity for validating space-related
@@ -111,33 +112,16 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	return getModelConfig(ctx, s.st, s.getCoercedProviderConfig)
-}
-
-// getModelConfig returns the current config for the model.
-func getModelConfig(ctx context.Context, st ProviderState, coerce func(context.Context, map[string]string) (map[string]any, error)) (*config.Config, error) {
-	stConfig, err := st.ModelConfig(ctx)
+	stConfig, err := s.st.ModelConfig(ctx)
 	if err != nil {
 		return nil, errors.Errorf("getting model config from state: %w", err)
 	}
 
-	agentVersion, agentStream, err := st.GetModelAgentVersionAndStream(ctx)
-	if err != nil {
-		return nil, errors.Errorf("getting agent version and stream for model config: %w", err)
-	}
-
 	// Coerce provider-specific attributes from string to their proper types.
-	altConfig, err := coerce(ctx, stConfig)
+	altConfig, err := s.getCoercedProviderConfig(ctx, stConfig)
 	if err != nil {
 		return nil, errors.Errorf("coercing provider config attributes: %w", err)
 	}
-
-	// We add the agent version and stream to model config here. Over time we need
-	// to remove uses of agent version and stream from model config. We prefer
-	// to augment config with this value on read rather then persisting on
-	// writing.
-	altConfig[config.AgentVersionKey] = agentVersion
-	altConfig[config.AgentStreamKey] = agentStream
 	return config.New(config.NoDefaults, altConfig)
 }
 
@@ -195,9 +179,7 @@ func (s *Service) getCoercedProviderConfig(ctx context.Context, m map[string]str
 
 	// Build final result: coerced provider attrs + uncoerced non-provider attrs
 	result := stringMapToAny(m)
-	for key, val := range providerResult {
-		result[key] = val
-	}
+	maps.Copy(result, providerResult)
 
 	return result, nil
 }
@@ -520,11 +502,21 @@ func (s *WatchableService) Watch(ctx context.Context) (watcher.StringsWatcher, e
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
+	namespaces := s.st.NamespacesForWatchModelConfig()
+	if len(namespaces) == 0 {
+		return nil, errors.Errorf("no namespaces for watching model config")
+	}
+
+	filters := make([]eventsource.FilterOption, 0, len(namespaces))
+	for _, ns := range namespaces {
+		filters = append(filters, eventsource.NamespaceFilter(ns, changestream.All))
+	}
+
 	return s.watcherFactory.NewNamespaceWatcher(
 		ctx,
 		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
 		"model config watcher",
-		eventsource.NamespaceFilter(s.st.NamespaceForWatchModelConfig(), changestream.All),
+		filters[0], filters[1:]...,
 	)
 }
 

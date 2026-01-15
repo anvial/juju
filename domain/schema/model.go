@@ -131,6 +131,7 @@ var modelPostPatchFilesByVersion = []struct {
 		"0039-secret-metadata.PATCH.sql",
 		"0040-operator-status.PATCH.sql",
 		"0041-offer.PATCH.sql",
+		"0042-model-config.PATCH.sql",
 	},
 }}
 

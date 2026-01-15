@@ -22,12 +22,9 @@ type ProviderState interface {
 	AllKeysQuery() string
 	// ModelConfig returns the currently set config for the model.
 	ModelConfig(context.Context) (map[string]string, error)
-	// GetModelAgentVersionAndStream returns the current model's set agent
-	// version and stream.
-	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
-	// NamespaceForWatchModelConfig returns the namespace identifier used for
+	// NamespacesForWatchModelConfig returns the namespace identifiers used for
 	// watching model configuration changes.
-	NamespaceForWatchModelConfig() string
+	NamespacesForWatchModelConfig() []string
 }
 
 // ProviderService defines the service for interacting with ModelConfig.
@@ -63,9 +60,17 @@ func (s *ProviderService) ModelConfig(ctx context.Context) (*config.Config, erro
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	// Note: this doesn't get any provider specific values, so those will be
-	// be left as either unknown attributes or ignored.
-	return getModelConfig(ctx, s.st, s.getCoercedProviderConfig)
+	stConfig, err := s.st.ModelConfig(ctx)
+	if err != nil {
+		return nil, errors.Errorf("getting model config from state: %w", err)
+	}
+
+	// Coerce provider-specific attributes from string to their proper types.
+	altConfig, err := s.getCoercedProviderConfig(ctx, stConfig)
+	if err != nil {
+		return nil, errors.Errorf("coercing provider config attributes: %w", err)
+	}
+	return config.New(config.NoDefaults, altConfig)
 }
 
 // getCoercedProviderConfig converts a map[string]string from the database to
@@ -141,10 +146,20 @@ func (s *WatchableProviderService) Watch(ctx context.Context) (watcher.StringsWa
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
+	namespaces := s.st.NamespacesForWatchModelConfig()
+	if len(namespaces) == 0 {
+		return nil, errors.Errorf("no namespaces for watching model config")
+	}
+
+	filters := make([]eventsource.FilterOption, 0, len(namespaces))
+	for _, ns := range namespaces {
+		filters = append(filters, eventsource.NamespaceFilter(ns, changestream.All))
+	}
+
 	return s.watcherFactory.NewNamespaceWatcher(
 		ctx,
 		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
-		"provider model config watcher",
-		eventsource.NamespaceFilter(s.st.NamespaceForWatchModelConfig(), changestream.All),
+		"model config watcher",
+		filters[0], filters[1:]...,
 	)
 }

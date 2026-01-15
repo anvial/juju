@@ -11,9 +11,7 @@ import (
 	"github.com/juju/tc"
 	gomock "go.uber.org/mock/gomock"
 
-	coreagentbinary "github.com/juju/juju/core/agentbinary"
 	coreerrors "github.com/juju/juju/core/errors"
-	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/internal/errors"
 )
@@ -52,9 +50,6 @@ func (s *providerServiceSuite) TestModelConfig(c *tc.C) {
 		},
 		nil,
 	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
-	)
 
 	svc := NewProviderService(s.mockState, nil)
 	_, err := svc.ModelConfig(c.Context())
@@ -77,9 +72,6 @@ func (s *providerServiceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C
 			"regular-string": "value",
 		},
 		nil,
-	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(
@@ -104,31 +96,6 @@ func (s *providerServiceSuite) TestModelConfigWithProviderSchemaCoercion(c *tc.C
 	c.Check(attrs["regular-string"], tc.Equals, "value")
 }
 
-func (s *providerServiceSuite) TestModelConfigWithAgentVersionStreamError(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	s.mockState.EXPECT().ModelConfig(gomock.Any()).Return(
-		map[string]string{
-			"name":           "wallyworld",
-			"uuid":           "a677bdfd-3c96-46b2-912f-38e25faceaf7",
-			"type":           "testprovider",
-			"provider-bool":  "true",
-			"provider-int":   "42",
-			"regular-string": "value",
-		},
-		nil,
-	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), errors.Errorf("front fell off"),
-	)
-
-	providerGetter := s.modelConfigProviderFunc("testprovider")
-
-	svc := NewProviderService(s.mockState, providerGetter)
-	_, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorMatches, ".*front fell off.*")
-}
-
 // TestModelConfigWithoutProviderGetter checks that ModelConfig returns an error
 // when no provider getter is supplied.
 func (s *providerServiceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
@@ -141,9 +108,6 @@ func (s *providerServiceSuite) TestModelConfigWithoutProviderGetter(c *tc.C) {
 			"type": "sometype",
 		},
 		nil,
-	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	svc := NewProviderService(s.mockState, nil)
@@ -163,9 +127,6 @@ func (s *providerServiceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 			"type": "unknown",
 		},
 		nil,
-	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
@@ -189,9 +150,6 @@ func (s *providerServiceSuite) TestModelConfigWithProviderEmptySchema(c *tc.C) {
 			"type": "testprovider",
 		},
 		nil,
-	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(schema.Fields{})
@@ -232,9 +190,6 @@ func (s *providerServiceSuite) TestModelConfigWithEmptyCloudType(c *tc.C) {
 		},
 		nil,
 	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
-	)
 
 	providerGetter := s.modelConfigProviderFunc("testprovider")
 
@@ -256,9 +211,6 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsNotSupportedErr
 			"type": "unsupportedtype",
 		},
 		nil,
-	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
@@ -283,9 +235,6 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsOtherError(c *t
 		},
 		nil,
 	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
-	)
 
 	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("some other error")
@@ -308,9 +257,6 @@ func (s *providerServiceSuite) TestModelConfigCoercionError(c *tc.C) {
 			"provider-bool": "not-a-bool",
 		},
 		nil,
-	)
-	s.mockState.EXPECT().GetModelAgentVersionAndStream(gomock.Any()).Return(
-		jujuversion.Current.String(), coreagentbinary.AgentStreamReleased.String(), nil,
 	)
 
 	s.mockModelConfigProvider.EXPECT().ConfigSchema().Return(
