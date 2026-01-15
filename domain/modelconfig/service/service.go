@@ -5,6 +5,7 @@ package service
 
 import (
 	"context"
+	"maps"
 
 	"github.com/juju/collections/transform"
 	"github.com/juju/schema"
@@ -35,20 +36,13 @@ type ModelDefaultsProvider interface {
 // provider exists for the model's cloud type then a [coreerrors.NotFound]
 // error is returned. If the cloud type provider does not support model config
 // then a [coreerrors.NotSupported] error is returned.
-type ModelConfigProviderFunc func() (environs.ModelConfigProvider, error)
+type ModelConfigProviderFunc func(context.Context) (environs.ModelConfigProvider, error)
 
 // State represents the state entity for accessing and setting per
 // model configuration values.
 type State interface {
 	ProviderState
 	SpaceValidatorState
-
-	// GetModelAgentVersionAndStream returns the current model's set agent
-	// version and stream.
-	// The following errors can be expected:
-	// - [github.com/juju/juju/core/errors.NotFound] if no agent version or
-	// stream has been set.
-	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
 
 	// ModelConfigHasAttributes returns the set of attributes that model config
 	// currently has set out of the list supplied.
@@ -62,10 +56,6 @@ type State interface {
 	// UpdateModelConfig is responsible for both inserting, updating and
 	// removing model config values for the current model.
 	UpdateModelConfig(context.Context, map[string]string, []string) error
-
-	// NamespaceForWatchModelConfig returns the namespace identifier used for
-	// watching model configuration changes.
-	NamespaceForWatchModelConfig() string
 }
 
 // SpaceValidatorState represents the state entity for validating space-related
@@ -77,15 +67,18 @@ type SpaceValidatorState interface {
 
 // WatcherFactory describes methods for creating watchers.
 type WatcherFactory interface {
-	// NewNamespaceWatcher returns a new watcher that filters changes from the
-	// input base watcher's db/queue. Change-log events will be emitted only if
-	// the filter accepts them, and dispatching the notifications via the
-	// Changes channel. A filter option is required, though additional filter
-	// options can be provided.
-	NewNamespaceWatcher(
+	// NewNamespaceMapperWatcher returns a new watcher that receives changes
+	// from the input base watcher's db/queue. Change-log events will be emitted
+	// only if the filter accepts them, and dispatching the notifications via
+	// the Changes channel, once the mapper has processed them. Filtering of
+	// values is done first by the filter, and then by the mapper. Based on the
+	// mapper's logic a subset of them (or none) may be emitted. A filter option
+	// is required, though additional filter options can be provided.
+	NewNamespaceMapperWatcher(
 		ctx context.Context,
-		initialQuery eventsource.NamespaceQuery,
+		initialStateQuery eventsource.NamespaceQuery,
 		summary string,
+		mapper eventsource.Mapper,
 		filterOption eventsource.FilterOption, filterOptions ...eventsource.FilterOption,
 	) (watcher.StringsWatcher, error)
 }
@@ -123,31 +116,24 @@ func (s *Service) ModelConfig(ctx context.Context) (*config.Config, error) {
 		return nil, errors.Errorf("getting model config from state: %w", err)
 	}
 
-	agentVersion, agentStream, err := s.st.GetModelAgentVersionAndStream(ctx)
-	if err != nil {
-		return nil, errors.Errorf("getting agent version and stream for model config: %w", err)
-	}
-
 	// Coerce provider-specific attributes from string to their proper types.
-	altConfig, err := s.deserializeMap(stConfig)
+	altConfig, err := s.getCoercedProviderConfig(ctx, stConfig)
 	if err != nil {
 		return nil, errors.Errorf("coercing provider config attributes: %w", err)
 	}
-
-	// We add the agent version and stream to model config here. Over time we need
-	// to remove uses of agent version and stream from model config. We prefer
-	// to augment config with this value on read rather then persisting on
-	// writing.
-	altConfig[config.AgentVersionKey] = agentVersion
-	altConfig[config.AgentStreamKey] = agentStream
 	return config.New(config.NoDefaults, altConfig)
 }
 
-// deserializeMap converts a map[string]string to map[string]any and coerces
-// any provider-specific values that are found in the provider's schema.
-func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
+// getCoercedProviderConfig gets the provider-specific config for the model and
+// coerces any provider-specific attributes from string to their proper types
+// according to the provider's config schema. If no provider exists for the
+// model's cloud type, or the provider does not support model config, then
+// the config is returned without coercion.
+// Provider-specific attributes are applied over the top of the attributes
+// stored in the model config.
+func (s *Service) getCoercedProviderConfig(ctx context.Context, m map[string]string) (map[string]any, error) {
 	if s.modelConfigProviderGetterFunc == nil {
-		return nil, errors.New("no model config provider getter")
+		return nil, errors.Errorf("no model config provider getter")
 	}
 
 	cloudType, ok := m[config.TypeKey]
@@ -156,12 +142,12 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 		return stringMapToAny(m), nil
 	}
 
-	provider, err := s.modelConfigProviderGetterFunc()
+	provider, err := s.modelConfigProviderGetterFunc(ctx)
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		return nil, errors.Capture(err)
 	} else if provider == nil {
 		// Provider not found or doesn't support config schema.
-		return nil, errors.New("provider not found or doesn't support config schema")
+		return nil, errors.Errorf("provider not found or doesn't support config schema")
 	}
 
 	fields := provider.ConfigSchema()
@@ -182,16 +168,17 @@ func (s *Service) deserializeMap(m map[string]string) (map[string]any, error) {
 	providerFieldMap := schema.FieldMap(fields, omitDefaults)
 	coercedCfg, err := providerFieldMap.Coerce(m, nil)
 	if err != nil {
-		return nil, errors.Errorf("unable to coerce provider config: %w", err)
+		return nil, errors.Capture(err)
 	}
 
-	providerResult := coercedCfg.(map[string]any)
+	providerResult, ok := coercedCfg.(map[string]any)
+	if !ok {
+		return nil, errors.Errorf("casting provider config")
+	}
 
 	// Build final result: coerced provider attrs + uncoerced non-provider attrs
 	result := stringMapToAny(m)
-	for key, val := range providerResult {
-		result[key] = val
-	}
+	maps.Copy(result, providerResult)
 
 	return result, nil
 }
@@ -508,17 +495,83 @@ func NewWatchableService(
 	}
 }
 
+// Watch returns a watcher that returns keys for any changes to model
+// config.
+func (s *WatchableService) Watch(ctx context.Context) (watcher.StringsWatcher, error) {
+	ctx, span := trace.Start(ctx, trace.NameFromFunc())
+	defer span.End()
+
+	namespaces := s.st.NamespacesForWatchModelConfig()
+	if len(namespaces) == 0 {
+		return nil, errors.Errorf("no namespaces for watching model config")
+	}
+
+	filters := transform.Slice(namespaces, func(ns string) eventsource.FilterOption {
+		return eventsource.NamespaceFilter(ns, changestream.All)
+	})
+
+	agentVersion, agentStream, err := s.st.GetModelAgentVersionAndStream(ctx)
+	if err != nil {
+		return nil, errors.Errorf("getting model agent version and stream: %w", err)
+	}
+
+	return s.watcherFactory.NewNamespaceMapperWatcher(
+		ctx,
+		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
+		"model config watcher",
+		modelConfigMapper(s.st, agentVersion, agentStream),
+		filters[0], filters[1:]...,
+	)
+}
+
+func modelConfigMapper(st ProviderState, agentVersion, agentStream string) eventsource.Mapper {
+	var (
+		prevAgentVersion = agentVersion
+		prevAgentStream  = agentStream
+	)
+	return func(ctx context.Context, ce []changestream.ChangeEvent) ([]string, error) {
+		keys := make([]string, 0, len(ce))
+		for _, event := range ce {
+			// This is just a normal model config change event.
+			if event.Namespace() == "model_config" {
+				keys = append(keys, event.Changed())
+				continue
+			} else if event.Namespace() != "agent_version" {
+				// We're not interested in other namespaces.
+				continue
+			}
+
+			// This is a special change event that indicates that the agent
+			// version or stream has changed.
+			newAgentVersion, newAgentStream, err := st.GetModelAgentVersionAndStream(ctx)
+			if err != nil {
+				return nil, errors.Errorf("getting model agent version and stream: %w", err)
+			}
+
+			if newAgentVersion != prevAgentVersion {
+				keys = append(keys, config.AgentVersionKey)
+				prevAgentVersion = newAgentVersion
+			}
+			if newAgentStream != prevAgentStream {
+				keys = append(keys, config.AgentStreamKey)
+				prevAgentStream = newAgentStream
+			}
+		}
+		return keys, nil
+	}
+}
+
 // ProviderModelConfigGetter returns a ModelConfigProviderFunc that can be used
 // to get a ModelConfigProvider for the model. The function internally
 // determines the cloud type from the model config and caches the provider for
 // the lifetime of the function.
-func ProviderModelConfigGetter(ctx context.Context, st State) ModelConfigProviderFunc {
+func ProviderModelConfigGetter(st State) ModelConfigProviderFunc {
 	var (
 		cachedProvider environs.ModelConfigProvider
 		cached         bool
 	)
 
-	return func() (environs.ModelConfigProvider, error) {
+	return func(ctx context.Context) (environs.ModelConfigProvider, error) {
 		// Return cached provider if available.
 		if cached {
 			return cachedProvider, nil
@@ -558,18 +611,4 @@ func ProviderModelConfigGetter(ctx context.Context, st State) ModelConfigProvide
 
 		return modelConfigProvider, nil
 	}
-}
-
-// Watch returns a watcher that returns keys for any changes to model
-// config.
-func (s *WatchableService) Watch(ctx context.Context) (watcher.StringsWatcher, error) {
-	ctx, span := trace.Start(ctx, trace.NameFromFunc())
-	defer span.End()
-
-	return s.watcherFactory.NewNamespaceWatcher(
-		ctx,
-		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
-		"model config watcher",
-		eventsource.NamespaceFilter(s.st.NamespaceForWatchModelConfig(), changestream.All),
-	)
 }

@@ -67,7 +67,7 @@ func (i *importOperation) Setup(scope modelmigration.Scope) error {
 	i.service = service.NewService(
 		i.defaultsProvider,
 		config.NoControllerAttributesValidator(),
-		service.ProviderModelConfigGetter(context.Background(), st),
+		service.ProviderModelConfigGetter(st),
 		st)
 	return nil
 }

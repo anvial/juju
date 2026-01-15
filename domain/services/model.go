@@ -188,12 +188,15 @@ func (s *ModelServices) AgentBinaryStore() *agentbinaryservice.AgentBinaryStore 
 
 // AgentBinary returns the model's [agentbinaryservice.AgentBinaryService].
 func (s *ModelServices) AgentBinary() *agentbinaryservice.AgentBinaryService {
+	modelUUID := s.modelUUID.String()
 	controllerState := agentbinarystatecontroller.NewControllerState(changestream.NewTxnRunnerFactory(s.controllerDB))
 
 	return agentbinaryservice.NewAgentBinaryService(
 		providertracker.ProviderRunner[agentbinaryservice.ProviderForAgentBinaryFinder](
-			s.providerFactory, s.modelUUID.String(),
-		), envtools.PreferredStreams, envtools.FindTools,
+			s.providerFactory, modelUUID,
+		),
+		envtools.PreferredStreams,
+		envtools.FindTools,
 		controllerState,
 		agentbinarystatemodel.NewModelState(changestream.NewTxnRunnerFactory(s.modelDB)),
 		s.AgentBinaryStore(),
@@ -204,8 +207,10 @@ func (s *ModelServices) AgentBinary() *agentbinaryservice.AgentBinaryService {
 		),
 		agentbinaryservice.NewSimpleStreamAgentBinaryStore(
 			providertracker.ProviderRunner[agentbinaryservice.ProviderForAgentBinaryFinder](
-				s.providerFactory, s.modelUUID.String(),
-			), envtools.FindTools, s.simpleStreamsClient,
+				s.providerFactory, modelUUID,
+			),
+			envtools.FindTools,
+			s.simpleStreamsClient,
 		))
 }
 
@@ -231,7 +236,7 @@ func (s *ModelServices) Config() *modelconfigservice.WatchableService {
 	return modelconfigservice.NewWatchableService(
 		defaultsProvider,
 		config.ModelValidator(),
-		modelconfigservice.ProviderModelConfigGetter(context.Background(), st),
+		modelconfigservice.ProviderModelConfigGetter(st),
 		st,
 		s.modelWatcherFactory("modelconfig"),
 	)

@@ -33,6 +33,13 @@ import (
 //go:embed model/sql/*.sql
 var modelSchemaDir embed.FS
 
+// ********************************************************************
+// ********************************************************************
+// DO NOT CHANGE THE ORDERING OF THE CONSTANTS IN PATCH RELEASES.
+// They are used to define the namespace IDs for changestream triggers.
+// ********************************************************************
+// ********************************************************************
+
 const (
 	customNamespaceUnitLifecycle tableNamespaceID = iota
 	customNamespaceMachineLifecycle
@@ -131,6 +138,7 @@ var modelPostPatchFilesByVersion = []struct {
 		"0039-secret-metadata.PATCH.sql",
 		"0040-operator-status.PATCH.sql",
 		"0041-offer.PATCH.sql",
+		"0042-model-config.PATCH.sql",
 	},
 }}
 

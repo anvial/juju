@@ -118,40 +118,40 @@ func (c *MockStateControllerConfigCall) DoAndReturn(f func(context.Context) (map
 	return c
 }
 
-// NamespaceForWatchControllerConfig mocks base method.
-func (m *MockState) NamespaceForWatchControllerConfig() []string {
+// NamespacesForWatchControllerConfig mocks base method.
+func (m *MockState) NamespacesForWatchControllerConfig() []string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NamespaceForWatchControllerConfig")
+	ret := m.ctrl.Call(m, "NamespacesForWatchControllerConfig")
 	ret0, _ := ret[0].([]string)
 	return ret0
 }
 
-// NamespaceForWatchControllerConfig indicates an expected call of NamespaceForWatchControllerConfig.
-func (mr *MockStateMockRecorder) NamespaceForWatchControllerConfig() *MockStateNamespaceForWatchControllerConfigCall {
+// NamespacesForWatchControllerConfig indicates an expected call of NamespacesForWatchControllerConfig.
+func (mr *MockStateMockRecorder) NamespacesForWatchControllerConfig() *MockStateNamespacesForWatchControllerConfigCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NamespaceForWatchControllerConfig", reflect.TypeOf((*MockState)(nil).NamespaceForWatchControllerConfig))
-	return &MockStateNamespaceForWatchControllerConfigCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NamespacesForWatchControllerConfig", reflect.TypeOf((*MockState)(nil).NamespacesForWatchControllerConfig))
+	return &MockStateNamespacesForWatchControllerConfigCall{Call: call}
 }
 
-// MockStateNamespaceForWatchControllerConfigCall wrap *gomock.Call
-type MockStateNamespaceForWatchControllerConfigCall struct {
+// MockStateNamespacesForWatchControllerConfigCall wrap *gomock.Call
+type MockStateNamespacesForWatchControllerConfigCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockStateNamespaceForWatchControllerConfigCall) Return(arg0 []string) *MockStateNamespaceForWatchControllerConfigCall {
+func (c *MockStateNamespacesForWatchControllerConfigCall) Return(arg0 []string) *MockStateNamespacesForWatchControllerConfigCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStateNamespaceForWatchControllerConfigCall) Do(f func() []string) *MockStateNamespaceForWatchControllerConfigCall {
+func (c *MockStateNamespacesForWatchControllerConfigCall) Do(f func() []string) *MockStateNamespacesForWatchControllerConfigCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateNamespaceForWatchControllerConfigCall) DoAndReturn(f func() []string) *MockStateNamespaceForWatchControllerConfigCall {
+func (c *MockStateNamespacesForWatchControllerConfigCall) DoAndReturn(f func() []string) *MockStateNamespacesForWatchControllerConfigCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
