@@ -72,6 +72,11 @@ func (p *sessionTokenLoginProvider) AuthHeader() (http.Header, error) {
 	return jujuhttp.BasicAuthHeader("", p.sessionToken), nil
 }
 
+// String returns a string representation of the session token login provider.
+func (p *sessionTokenLoginProvider) String() string {
+	return "SessionTokenLoginProvider"
+}
+
 // Login implements the LoginProvider.Login method.
 //
 // It authenticates as the entity using the specified session token.

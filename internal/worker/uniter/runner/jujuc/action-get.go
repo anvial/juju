@@ -29,8 +29,10 @@ func NewActionGetCommand(ctx Context) (cmd.Command, error) {
 // Info returns the content for --help.
 func (c *ActionGetCommand) Info() *cmd.Info {
 	doc := `
-action-get will print the value of the parameter at the given key, serialized
-as YAML.  If multiple keys are passed, action-get will recurse into the param
+` + "`action-get`" + ` will print the value of the parameter at the given key, serialized
+as YAML.
+
+If multiple keys are passed, ` + "`action-get`" + ` will recurse into the param
 map as needed.
 `
 	examples := `
@@ -39,7 +41,7 @@ map as needed.
 	return jujucmd.Info(&cmd.Info{
 		Name:     "action-get",
 		Args:     "[<key>[.<key>.<key>...]]",
-		Purpose:  "Get action parameters.",
+		Purpose:  "Gets action parameters.",
 		Doc:      doc,
 		Examples: examples,
 	})
