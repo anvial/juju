@@ -626,7 +626,7 @@ vendor-dependencies:
 ## vendor-dependencies: updates vendored dependencies
 	@go mod vendor
 
-GOCHECK_COUNT="$(shell go list -f '{{join .Deps "\n"}}' ${PROJECT}/... | grep -c "gopkg.in/check.v*")"
+GOCHECK_COUNT="$(shell go list -f '{{join .Deps "\n"}}' ${PROJECT}/... | grep -c "github.com/juju/tc*")"
 .PHONY: check-deps
 check-deps:
 ## check-deps: Check dependencies are correct versions
