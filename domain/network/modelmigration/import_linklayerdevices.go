@@ -20,8 +20,6 @@ import (
 	"github.com/juju/juju/internal/uuid"
 )
 
-const legacyFanScope = "local-fan"
-
 // Coordinator is the interface that is used to add operations to a migration.
 type Coordinator interface {
 	// Add adds the given operation to the migration.
@@ -126,7 +124,7 @@ func (i *importOperation) transformLinkLayerDevices(
 
 	for _, address := range addresses {
 		scope := corenetwork.NewMachineAddress(address.Value()).Scope
-		if scope == legacyFanScope {
+		if scope == corenetwork.ScopeFanLocal {
 			i.logger.Warningf(ctx, "ignoring legacy fan address %q on device %q for machine %q",
 				address.Value(), address.DeviceName(), address.MachineID())
 			continue
