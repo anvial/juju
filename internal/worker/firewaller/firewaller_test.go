@@ -2754,7 +2754,12 @@ func (s *NoneModeSuite) TestStopImmediately(c *tc.C) {
 	}
 
 	fw, err := firewaller.NewFirewaller(cfg)
-	defer workertest.CheckNilOrKill(c, fw)
+	defer func() {
+		if fw == nil {
+			return
+		}
+		workertest.CleanKill(c, fw)
+	}()
 	c.Assert(err, tc.ErrorMatches, `invalid firewall-mode "none"`)
 }
 
