@@ -2336,6 +2336,450 @@
         }
     },
     {
+        "Name": "InstanceMutater",
+        "Description": "",
+        "Version": 3,
+        "Schema": {
+            "type": "object",
+            "properties": {
+                "CharmProfilingInfo": {
+                    "type": "object",
+                    "properties": {
+                        "Params": {
+                            "$ref": "#/definitions/Entity"
+                        },
+                        "Result": {
+                            "$ref": "#/definitions/CharmProfilingInfoResult"
+                        }
+                    }
+                },
+                "ContainerType": {
+                    "type": "object",
+                    "properties": {
+                        "Params": {
+                            "$ref": "#/definitions/Entity"
+                        },
+                        "Result": {
+                            "$ref": "#/definitions/ContainerTypeResult"
+                        }
+                    }
+                },
+                "Life": {
+                    "type": "object",
+                    "properties": {
+                        "Params": {
+                            "$ref": "#/definitions/Entities"
+                        },
+                        "Result": {
+                            "$ref": "#/definitions/LifeResults"
+                        }
+                    }
+                },
+                "SetCharmProfiles": {
+                    "type": "object",
+                    "properties": {
+                        "Params": {
+                            "$ref": "#/definitions/SetProfileArgs"
+                        },
+                        "Result": {
+                            "$ref": "#/definitions/ErrorResults"
+                        }
+                    }
+                },
+                "SetModificationStatus": {
+                    "type": "object",
+                    "properties": {
+                        "Params": {
+                            "$ref": "#/definitions/SetStatus"
+                        },
+                        "Result": {
+                            "$ref": "#/definitions/ErrorResults"
+                        }
+                    }
+                },
+                "WatchContainers": {
+                    "type": "object",
+                    "properties": {
+                        "Params": {
+                            "$ref": "#/definitions/Entity"
+                        },
+                        "Result": {
+                            "$ref": "#/definitions/StringsWatchResult"
+                        }
+                    }
+                },
+                "WatchLXDProfileVerificationNeeded": {
+                    "type": "object",
+                    "properties": {
+                        "Params": {
+                            "$ref": "#/definitions/Entities"
+                        },
+                        "Result": {
+                            "$ref": "#/definitions/NotifyWatchResults"
+                        }
+                    }
+                },
+                "WatchMachines": {
+                    "type": "object",
+                    "properties": {
+                        "Result": {
+                            "$ref": "#/definitions/StringsWatchResult"
+                        }
+                    }
+                },
+                "WatchModelMachines": {
+                    "type": "object",
+                    "properties": {
+                        "Result": {
+                            "$ref": "#/definitions/StringsWatchResult"
+                        }
+                    }
+                }
+            },
+            "definitions": {
+                "CharmLXDProfile": {
+                    "type": "object",
+                    "properties": {
+                        "config": {
+                            "type": "object",
+                            "patternProperties": {
+                                ".*": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "devices": {
+                            "type": "object",
+                            "patternProperties": {
+                                ".*": {
+                                    "type": "object",
+                                    "patternProperties": {
+                                        ".*": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "config",
+                        "description",
+                        "devices"
+                    ]
+                },
+                "CharmProfilingInfoResult": {
+                    "type": "object",
+                    "properties": {
+                        "current-profiles": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "error": {
+                            "$ref": "#/definitions/Error"
+                        },
+                        "instance-id": {
+                            "type": "string"
+                        },
+                        "model-name": {
+                            "type": "string"
+                        },
+                        "profile-changes": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ProfileInfoResult"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "instance-id",
+                        "model-name",
+                        "profile-changes",
+                        "current-profiles",
+                        "error"
+                    ]
+                },
+                "ContainerTypeResult": {
+                    "type": "object",
+                    "properties": {
+                        "container-type": {
+                            "type": "string"
+                        },
+                        "error": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "container-type",
+                        "error"
+                    ]
+                },
+                "Entities": {
+                    "type": "object",
+                    "properties": {
+                        "entities": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Entity"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "entities"
+                    ]
+                },
+                "Entity": {
+                    "type": "object",
+                    "properties": {
+                        "tag": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "tag"
+                    ]
+                },
+                "EntityStatusArgs": {
+                    "type": "object",
+                    "properties": {
+                        "data": {
+                            "type": "object",
+                            "patternProperties": {
+                                ".*": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        },
+                        "info": {
+                            "type": "string"
+                        },
+                        "status": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "tag",
+                        "status",
+                        "info",
+                        "data"
+                    ]
+                },
+                "Error": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string"
+                        },
+                        "info": {
+                            "type": "object",
+                            "patternProperties": {
+                                ".*": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        },
+                        "message": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "message",
+                        "code"
+                    ]
+                },
+                "ErrorResult": {
+                    "type": "object",
+                    "properties": {
+                        "error": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ErrorResults": {
+                    "type": "object",
+                    "properties": {
+                        "results": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ErrorResult"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "results"
+                    ]
+                },
+                "LifeResult": {
+                    "type": "object",
+                    "properties": {
+                        "error": {
+                            "$ref": "#/definitions/Error"
+                        },
+                        "life": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "life"
+                    ]
+                },
+                "LifeResults": {
+                    "type": "object",
+                    "properties": {
+                        "results": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/LifeResult"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "results"
+                    ]
+                },
+                "NotifyWatchResult": {
+                    "type": "object",
+                    "properties": {
+                        "NotifyWatcherId": {
+                            "type": "string"
+                        },
+                        "error": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "NotifyWatcherId"
+                    ]
+                },
+                "NotifyWatchResults": {
+                    "type": "object",
+                    "properties": {
+                        "results": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/NotifyWatchResult"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "results"
+                    ]
+                },
+                "ProfileInfoResult": {
+                    "type": "object",
+                    "properties": {
+                        "application-name": {
+                            "type": "string"
+                        },
+                        "error": {
+                            "$ref": "#/definitions/Error"
+                        },
+                        "profile": {
+                            "$ref": "#/definitions/CharmLXDProfile"
+                        },
+                        "revision": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "SetProfileArg": {
+                    "type": "object",
+                    "properties": {
+                        "entity": {
+                            "$ref": "#/definitions/Entity"
+                        },
+                        "profiles": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "entity",
+                        "profiles"
+                    ]
+                },
+                "SetProfileArgs": {
+                    "type": "object",
+                    "properties": {
+                        "args": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/SetProfileArg"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "args"
+                    ]
+                },
+                "SetStatus": {
+                    "type": "object",
+                    "properties": {
+                        "entities": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/EntityStatusArgs"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "entities"
+                    ]
+                },
+                "StringsWatchResult": {
+                    "type": "object",
+                    "properties": {
+                        "changes": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "error": {
+                            "$ref": "#/definitions/Error"
+                        },
+                        "watcher-id": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "watcher-id"
+                    ]
+                }
+            }
+        }
+    },
+    {
         "Name": "KeyUpdater",
         "Description": "",
         "Version": 1,
