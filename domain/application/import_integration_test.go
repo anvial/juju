@@ -11,7 +11,6 @@ import (
 	"github.com/juju/collections/set"
 	"github.com/juju/description/v11"
 	"github.com/juju/tc"
-	"gopkg.in/check.v1"
 
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/database"
@@ -1245,7 +1244,7 @@ func (s *importSuite) TestApplicationExposedEndpoints(c *tc.C) {
 	c.Assert(err, tc.ErrorIsNil)
 	obtained, err := s.svc.GetExposedEndpoints(c.Context(), "foo")
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(obtained, check.DeepEquals, map[string]application.ExposedEndpoint{
+	c.Check(obtained, tc.DeepEquals, map[string]application.ExposedEndpoint{
 		"db": {ExposeToSpaceIDs: set.Strings{"space-uuid": true},
 			ExposeToCIDRs: set.Strings{"198.51.100.42/24": true}}})
 }

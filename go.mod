@@ -309,7 +309,7 @@ replace gopkg.in/yaml.v2 => github.com/juju/yaml/v2 v2.0.0
 // until the issue is resolved.
 replace go.uber.org/mock => go.uber.org/mock v0.4.0
 
-replace gopkg.in/check.v1 => github.com/hpidcock/gc-compat-tc v0.0.0-20250523041742-c3a83c867edf
+replace gopkg.in/check.v1 => github.com/hpidcock/gc-compat-tc v0.0.0-20260112233041-5b2ef070e94b
 
 replace github.com/juju/testing => ./internal/testhelpers/compat
 
