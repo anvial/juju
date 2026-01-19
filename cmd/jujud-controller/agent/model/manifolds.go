@@ -464,6 +464,7 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 		agentBinaryFetcherName: ifNotMigrating(agentbinaryfetcher.Manifold(agentbinaryfetcher.ManifoldConfig{
 			DomainServicesName: domainServicesName,
 			NewWorker:          agentbinaryfetcher.New,
+			GetDomainServices:  agentbinaryfetcher.GetModelDomainServices,
 			Logger:             config.LoggingContext.GetLogger("juju.worker.agentbinaryfetcher"),
 		})),
 	}
