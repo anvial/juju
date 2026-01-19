@@ -64,6 +64,7 @@ func (s *controllerSuite) TestStub(c *tc.C) {
 - Watch model summaries by non admin.
 - Watch all model summaries by admin.
 - Identity provider with and without URL in config.
+- Test InitiateMigration with dry run.
 `)
 }
 

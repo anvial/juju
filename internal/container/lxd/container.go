@@ -258,6 +258,7 @@ func (s *Server) ContainerAddresses(name string) ([]corenetwork.ProviderAddress,
 func (s *Server) CreateContainerFromSpec(spec ContainerSpec) (*Container, error) {
 	logger.Infof(context.TODO(), "starting new container %q (image %q)", spec.Name, spec.Image.Image.Filename)
 	logger.Debugf(context.TODO(), "new container has profiles %v", spec.Profiles)
+	logger.Debugf(context.TODO(), "new container has devices: %v", spec.Devices)
 
 	ephemeral := false
 	req := api.InstancesPost{

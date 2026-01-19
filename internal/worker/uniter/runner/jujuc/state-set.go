@@ -32,14 +32,14 @@ func NewStateSetCommand(ctx Context) (cmd.Command, error) {
 // Info implements part of the cmd.Command interface.
 func (c *StateSetCommand) Info() *cmd.Info {
 	doc := `
-state-set sets the value of the server side state specified by key.
+` + "`state-set`" + ` sets the value of the server side state specified by key.
 
-The --file option should be used when one or more key-value pairs
+The ` + "`--file`" + ` option should be used when one or more key-value pairs
 are too long to fit within the command length limit of the shell
 or operating system. The file will contain a YAML map containing
 the settings as strings.  Settings in the file will be overridden
-by any duplicate key-value arguments. A value of "-" for the filename
-means <stdin>.
+by any duplicate key-value arguments. A value of ` + "`" + `"-"` + "`" + ` for the filename
+means ` + "`<stdin>`" + `.
 
 The following fixed size limits apply:
 - Length of stored keys cannot exceed %d bytes.
@@ -48,7 +48,7 @@ The following fixed size limits apply:
 	return jujucmd.Info(&cmd.Info{
 		Name:    "state-set",
 		Args:    "key=value [key=value ...]",
-		Purpose: "Set server-side-state values.",
+		Purpose: "Sets server-side-state values.",
 		Doc: fmt.Sprintf(
 			doc,
 			quota.MaxCharmStateKeySize,
@@ -62,7 +62,7 @@ The following fixed size limits apply:
 // SetFlags implements part of the cmd.Command interface.
 func (c *StateSetCommand) SetFlags(f *gnuflag.FlagSet) {
 	c.keyValueFile.SetStdin()
-	f.Var(&c.keyValueFile, "file", "file containing key-value pairs")
+	f.Var(&c.keyValueFile, "file", "Specifies a file containing key-value pairs.")
 }
 
 // Init initializes the Command before running.

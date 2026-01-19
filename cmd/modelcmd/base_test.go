@@ -354,6 +354,7 @@ func (s *BaseCommandSuite) TestLoginWithOIDC_SessionToken(c *tc.C) {
 			tokenCallbackFunc("new-token")
 			return nil, nil
 		})
+	sessionLoginProvider.EXPECT().String().Return("mock-session-login-provider").AnyTimes()
 
 	s.store.Controllers["foo"] = jujuclient.ControllerDetails{
 		APIEndpoints: []string{"testing.invalid:1234"},

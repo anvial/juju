@@ -84,32 +84,41 @@ func (s *Suite) TestDestroyControllerError(c *tc.C) {
 }
 
 func (s *Suite) TestInitiateMigration(c *tc.C) {
-	s.checkInitiateMigration(c, makeSpec())
+	s.checkInitiateMigration(c, makeSpec(), false)
+}
+
+func (s *Suite) TestInitiateMigrationDryRun(c *tc.C) {
+	spec := makeSpec()
+	expectedArgs := specToArgs(spec)
+	expectedArgs.DryRun = true
+	s.checkInitiateMigration(c, spec, true)
 }
 
 func (s *Suite) TestInitiateMigrationEmptyCACert(c *tc.C) {
 	spec := makeSpec()
 	spec.TargetCACert = ""
-	s.checkInitiateMigration(c, spec)
+	s.checkInitiateMigration(c, spec, false)
 }
 
 func (s *Suite) TestInitiateMigrationSkipUserChecks(c *tc.C) {
 	spec := makeSpec()
 	spec.SkipUserChecks = true
-	s.checkInitiateMigration(c, spec)
+	s.checkInitiateMigration(c, spec, false)
 }
 
-func (s *Suite) checkInitiateMigration(c *tc.C, spec controller.MigrationSpec) {
+func (s *Suite) checkInitiateMigration(c *tc.C, spec controller.MigrationSpec, dryRun bool) {
 	client, stub := makeInitiateMigrationClient(params.InitiateMigrationResults{
 		Results: []params.InitiateMigrationResult{{
 			MigrationId: "id",
 		}},
 	})
-	id, err := client.InitiateMigration(c.Context(), spec)
+	id, err := client.InitiateMigration(c.Context(), spec, dryRun)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(id, tc.Equals, "id")
+	expected := specToArgs(spec)
+	expected.DryRun = dryRun
 	stub.CheckCalls(c, []testhelpers.StubCall{
-		{FuncName: "Controller.InitiateMigration", Args: []interface{}{specToArgs(spec)}},
+		{FuncName: "Controller.InitiateMigration", Args: []interface{}{expected}},
 	})
 }
 
@@ -146,7 +155,7 @@ func (s *Suite) TestInitiateMigrationError(c *tc.C) {
 			Error: apiservererrors.ServerError(errors.New("boom")),
 		}},
 	})
-	id, err := client.InitiateMigration(c.Context(), makeSpec())
+	id, err := client.InitiateMigration(c.Context(), makeSpec(), false)
 	c.Check(id, tc.Equals, "")
 	c.Check(err, tc.ErrorMatches, "boom")
 }
@@ -158,7 +167,7 @@ func (s *Suite) TestInitiateMigrationResultMismatch(c *tc.C) {
 			{MigrationId: "wtf"},
 		},
 	})
-	id, err := client.InitiateMigration(c.Context(), makeSpec())
+	id, err := client.InitiateMigration(c.Context(), makeSpec(), false)
 	c.Check(id, tc.Equals, "")
 	c.Check(err, tc.ErrorMatches, "unexpected number of results returned")
 }
@@ -168,7 +177,7 @@ func (s *Suite) TestInitiateMigrationCallError(c *tc.C) {
 		return errors.New("boom")
 	})
 	client := controller.NewClient(apiCaller)
-	id, err := client.InitiateMigration(c.Context(), makeSpec())
+	id, err := client.InitiateMigration(c.Context(), makeSpec(), false)
 	c.Check(id, tc.Equals, "")
 	c.Check(err, tc.ErrorMatches, "boom")
 }
@@ -177,7 +186,7 @@ func (s *Suite) TestInitiateMigrationValidationError(c *tc.C) {
 	client, stub := makeInitiateMigrationClient(params.InitiateMigrationResults{})
 	spec := makeSpec()
 	spec.ModelUUID = "not-a-uuid"
-	id, err := client.InitiateMigration(c.Context(), spec)
+	id, err := client.InitiateMigration(c.Context(), spec, false)
 	c.Check(id, tc.Equals, "")
 	c.Check(err, tc.ErrorMatches, "client-side validation failed: model UUID not valid")
 	c.Check(stub.Calls(), tc.HasLen, 0) // API call shouldn't have happened

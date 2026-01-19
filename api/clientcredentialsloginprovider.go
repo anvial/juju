@@ -61,6 +61,11 @@ type clientCredentialsLoginProvider struct {
 	afterLoginCallback func()
 }
 
+// String returns a string representation of the client credentials login provider.
+func (p *clientCredentialsLoginProvider) String() string {
+	return "ClientCredentialsLoginProvider"
+}
+
 // AuthHeader implements the [LoginProvider.AuthHeader] method.
 // It returns an HTTP header with basic auth set.
 func (p *clientCredentialsLoginProvider) AuthHeader() (http.Header, error) {

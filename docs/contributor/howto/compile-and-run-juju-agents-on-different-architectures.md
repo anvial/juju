@@ -15,7 +15,7 @@ Examples of this would be:
 - ubuntu/amd64 -> ubuntu/s390x
 - ubuntu/amd64 -> centos/amd64
 - macos/amd64 -> ubuntu/amd64
-- macos/arm64 -> ubutnu/amd64
+- macos/arm64 -> ubuntu/amd64
 
 Doing this has been difficult in the past but with changes to the juju `Makefile`
 we can now build simple streams for multiple platforms and versions.
