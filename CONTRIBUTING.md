@@ -145,22 +145,14 @@ docs](https://golang.org/doc/install#install).
 To build Juju from source, follow these steps to set up your environment and
 compile the binaries:
 
-1. **Fork and Clone:** Fork the [Juju repository](https://github.com/juju/juju)
-   to your GitHub account, then clone it locally:
-
-```sh
-git clone https://github.com/<your-username>/juju.git
-cd juju
-```
-
-2. **Install Dependencies:** Run the following command to install the necessary
+1. **Install Dependencies:** Run the following command to install the necessary
    system packages and build tools:
 
 ```sh
 make install-dependencies
 ```
 
-3. **Build and Install:** Compile the Juju source code. This will install the
+2. **Build and Install:** Compile the Juju source code. This will install the
    resulting binaries into your `$GOBIN` directory (typically `~/go/bin`):
 
 ```sh
