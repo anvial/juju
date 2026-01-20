@@ -6,8 +6,9 @@ package agentbinary
 import (
 	"testing"
 
-	schematesting "github.com/juju/juju/domain/schema/testing"
 	"github.com/juju/tc"
+
+	schematesting "github.com/juju/juju/domain/schema/testing"
 )
 
 // architectureControllerDDLSuite contains a set of tests for asserting the const
