@@ -18,6 +18,46 @@ func TestArchitectureSuite(t *testing.T) {
 	tc.Run(t, architectureSuite{})
 }
 
+// TestArchitecturesNotIn is a happy path test for [ArchitectureNotIn] to ensure
+// that it correctly returns architectures in a that are not present in b.
+func (architectureSuite) TestArchitecturesNotIn(c *tc.C) {
+	a := []Architecture{S390X, PPC64EL}
+	b := []Architecture{S390X, AMD64}
+
+	val := ArchitectureNotIn(a, b)
+	c.Check(val, tc.DeepEquals, []Architecture{PPC64EL})
+}
+
+// TestArchitecturesNotInEqual is a happy path test for [ArchitectureNotIn] to
+// ensure that given two slices with the same values [ArchitectureNotIn] returns
+// an empty result slice.
+func (architectureSuite) TestArchitecturesNotInEqual(c *tc.C) {
+	a := []Architecture{S390X, AMD64}
+	b := []Architecture{AMD64, S390X}
+
+	val := ArchitectureNotIn(a, b)
+	c.Check(val, tc.HasLen, 0)
+}
+
+// TestArchitecturesNotInEmpty ensures that [ArchitectureNotIn] behaves
+// correctly when either a or b are nil and that for a nilness is preserved.
+func (architectureSuite) TestArchitecturesNotInEmpty(c *tc.C) {
+	c.Run("a and b nil", func(t *testing.T) {
+		val := ArchitectureNotIn(nil, nil)
+		tc.Check(t, val, tc.IsNil)
+	})
+
+	c.Run("a nil", func(t *testing.T) {
+		val := ArchitectureNotIn(nil, []Architecture{AMD64})
+		tc.Check(t, val, tc.IsNil)
+	})
+
+	c.Run("b nil", func(t *testing.T) {
+		val := ArchitectureNotIn([]Architecture{AMD64, ARM64}, nil)
+		tc.Check(t, val, tc.DeepEquals, []Architecture{AMD64, ARM64})
+	})
+}
+
 // TestFromString tests all of the well known valid architecture
 // string values to make sure that they convert correctly to an [Architecture]
 // type.
