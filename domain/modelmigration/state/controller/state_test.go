@@ -73,7 +73,7 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 		false,
 		s.userUUID,
 	)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 
 	// We need to generate a cloud in the database so that we can set the model
 	// cloud.
@@ -309,7 +309,7 @@ func (s *stateSuite) TestSetAndGetControllerVersion(c *tc.C) {
 
 	// Check initial version is reported correctly.
 	ver, err := st.GetControllerTargetVersion(c.Context())
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(ver, tc.Equals, jujuversion.Current)
 }
 
