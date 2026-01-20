@@ -4,83 +4,125 @@
 package agentbinary
 
 import (
-	"database/sql"
 	"testing"
 
 	"github.com/juju/tc"
-
-	schematesting "github.com/juju/juju/domain/schema/testing"
 )
 
-type controllerSuite struct {
-	schematesting.ControllerSuite
+// architectureSuite defines a suite of tests for asserting the interface on
+// offer for the [Architecture] type.
+type architectureSuite struct{}
+
+// TestArchitectureSuite runs all of the tests contained in [architectureSuite].
+func TestArchitectureSuite(t *testing.T) {
+	tc.Run(t, architectureSuite{})
 }
 
-type modelSuite struct {
-	schematesting.ModelSuite
-}
-
-func TestControllerSuite(t *testing.T) {
-	tc.Run(t, &controllerSuite{})
-}
-
-func TestModelSuite(t *testing.T) {
-	tc.Run(t, &modelSuite{})
-}
-
-// testArchitectureValuesAlignedToDB tests that architectures values in the DB
-// aligns with the architecture names and IDs we have defined in the application level.
-func testArchitectureValuesAlignedToDB(c *tc.C, db *sql.DB) {
-	rows, err := db.Query("SELECT id, name FROM architecture ORDER BY ID ASC")
-	c.Assert(err, tc.ErrorIsNil)
-	defer rows.Close()
-
-	type architecture struct {
-		Id   int
-		Name string
+// TestFromString tests all of the well known valid architecture
+// string values to make sure that they convert correctly to an [Architecture]
+// type.
+func (architectureSuite) TestFromString(c *tc.C) {
+	tests := []struct {
+		E Architecture
+		V string
+	}{
+		{
+			E: AMD64,
+			V: "amd64",
+		},
+		{
+			E: ARM64,
+			V: "arm64",
+		},
+		{
+			E: PPC64EL,
+			V: "ppc64el",
+		},
+		{
+			E: S390X,
+			V: "s390x",
+		},
+		{
+			E: RISCV64,
+			V: "riscv64",
+		},
 	}
 
-	var arch architecture
-	var archs []architecture
-	for rows.Next() {
-		err := rows.Scan(&arch.Id, &arch.Name)
-		c.Assert(err, tc.ErrorIsNil)
-		archs = append(archs, arch)
+	for _, t := range tests {
+		c.Run(t.V, func(c *testing.T) {
+			a, converted := ArchitectureFromString(t.V)
+			tc.Check(c, converted, tc.IsTrue)
+			tc.Check(c, a, tc.Equals, t.E)
+		})
+	}
+}
+
+// TestFromStringUnknown tests that calling [ArchitectureFromString] with an
+// unknown architecture string returns false and a zero value to the caller.
+func (architectureSuite) TestFromStringUnknown(c *tc.C) {
+	var zeroArch Architecture
+	val, converted := ArchitectureFromString("unknown")
+	c.Check(converted, tc.IsFalse)
+	c.Check(val, tc.Equals, zeroArch)
+}
+
+// TestIsValid checks all of the defined [Architecture] constants report that
+// they are a valid value with [Architecture.IsValid].
+func (architectureSuite) TestIsValid(c *tc.C) {
+	tests := []Architecture{
+		AMD64, ARM64, PPC64EL, S390X, RISCV64,
+	}
+	for _, t := range tests {
+		c.Run(t.String(), func(c *testing.T) {
+			tc.Check(c, t.IsValid(), tc.IsTrue)
+		})
+	}
+}
+
+// TestIsValidFail checks that an invalid [Architecture] value returns false for
+// isValid.
+func (architectureSuite) TestIsValidFail(c *tc.C) {
+	c.Check(Architecture(-10).IsValid(), tc.IsFalse)
+}
+
+// TestToString tests all of the well known valid [Architecture]
+// constants to make sure they correctly convert to the correct string value.
+func (architectureSuite) TestToString(c *tc.C) {
+	tests := []struct {
+		E string
+		V Architecture
+	}{
+		{
+			E: "amd64",
+			V: AMD64,
+		},
+		{
+			E: "arm64",
+			V: ARM64,
+		},
+		{
+			E: "ppc64el",
+			V: PPC64EL,
+		},
+		{
+			E: "s390x",
+			V: S390X,
+		},
+		{
+			E: "riscv64",
+			V: RISCV64,
+		},
 	}
 
-	err = rows.Err()
-	c.Assert(err, tc.ErrorIsNil)
-
-	c.Assert(archs, tc.DeepEquals, []architecture{
-		{
-			Id:   int(AMD64),
-			Name: AMD64.String(),
-		},
-		{
-			Id:   int(ARM64),
-			Name: ARM64.String(),
-		},
-		{
-			Id:   int(PPC64EL),
-			Name: PPC64EL.String(),
-		},
-		{
-			Id:   int(S390X),
-			Name: S390X.String(),
-		},
-		{
-			Id:   int(RISCV64),
-			Name: RISCV64.String(),
-		},
-	})
+	for _, t := range tests {
+		c.Run(t.E, func(c *testing.T) {
+			tc.Check(c, t.V.String(), tc.Equals, t.E)
+		})
+	}
 }
 
-// TestArchitectureValuesAlignedToControllerDB tests for controller DB.
-func (s *controllerSuite) TestArchitectureValuesAlignedToControllerDB(c *tc.C) {
-	testArchitectureValuesAlignedToDB(c, s.DB())
-}
-
-// TestArchitectureValuesAlignedToControllerDB tests for model DB.
-func (s *modelSuite) TestArchitectureValuesAlignedToModelDB(c *tc.C) {
-	testArchitectureValuesAlignedToDB(c, s.DB())
+// TestToStringInvalid checks that an invlaid [Architecture] values String
+// method returns a zero value string when the value is invalid.
+func (architectureSuite) TestToStringInvalid(c *tc.C) {
+	c.Check(Architecture(-10).String(), tc.Equals, "")
 }
