@@ -421,6 +421,11 @@ simplestreams-hostarch: juju juju-metadata ${SIMPLESTREAMS_TARGETS}
 	@GOARCH=$(uname -m) juju metadata generate-agent-binaries --debug -d ${JUJU_METADATA_SOURCE} --clean --prevent-fallback --stream ${JUJU_PUBLISH_STREAM} ;
 	@echo "\nRun export JUJU_METADATA_SOURCE=\"${JUJU_METADATA_SOURCE}\" if not defined in your env"
 
+.PHONY: serve-simplestreams
+serve-simplestreams:
+## serve-simplestreams: Serve the simplestreams metadata over HTTP for testing.
+	@python3 $(PROJECT_DIR)/scripts/simplestreams/server.py ${JUJU_SIMPLESTREAMS_SOURCE}
+
 .PHONY: build
 build: rebuild-schema go-build
 ## build: builds all the targets including rebuilding a new schema.
