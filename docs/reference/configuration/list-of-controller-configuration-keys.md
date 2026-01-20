@@ -285,6 +285,33 @@ same database.
 **Can be changed after bootstrap:** yes
 
 
+(controller-config-http-server-read-timeout)=
+## `http-server-read-timeout`
+
+`http-server-read-timeout` is the maximum duration for reading the entire HTTP request,
+including the body.
+A zero value means no timeout.
+
+**Type:** duration
+
+**Default value:** 0s
+
+**Can be changed after bootstrap:** yes
+
+
+(controller-config-http-server-write-timeout)=
+## `http-server-write-timeout`
+
+`http-server-write-timeout` is the maximum duration before timing out writes of the HTTP response.
+A zero value means no timeout.
+
+**Type:** duration
+
+**Default value:** 0s
+
+**Can be changed after bootstrap:** yes
+
+
 (controller-config-identity-public-key)=
 ## `identity-public-key`
 
@@ -318,31 +345,7 @@ created locally on the controller.
 
 **Default value:** 30s
 
-**Can be changed after bootstrap:** yes
-
-
-(controller-config-http-server-read-timeout)=
-## `http-server-read-timeout`
-
-`http-server-read-timeout` is the maximum duration for reading the entire HTTP request, including the body. A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value (e.g., 60s) if you need to prevent indefinite reads.
-
-**Type:** duration
-
-**Default value:** 0s
-
-**Can be changed after bootstrap:** yes
-
-
-(controller-config-http-server-write-timeout)=
-## `http-server-write-timeout`
-
-`http-server-write-timeout` is the maximum duration before timing out writes of the HTTP response. A zero value means no timeout. The default is 0 (no timeout). Set to a non-zero value (e.g., 60s) if you need to prevent indefinite writes.
-
-**Type:** duration
-
-**Default value:** 0s
-
-**Can be changed after bootstrap:** yes
+**Can be changed after bootstrap:** no
 
 
 (controller-config-juju-mgmt-space)=

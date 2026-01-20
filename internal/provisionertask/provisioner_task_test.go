@@ -59,9 +59,13 @@ const (
 
 func machineInstanceInfoSetter(machineProvisionerAPI apiprovisioner.MachineProvisioner) func(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	characteristics *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error {
 	return machineProvisionerAPI.SetInstanceInfo
 }
@@ -290,7 +294,6 @@ func (s *ProvisionerTaskSuite) TestSetUpToStartMachine(c *tc.C) {
 			EndpointBindings:            map[string]string{"endpoint": "space"},
 			ControllerConfig:            coretesting.FakeControllerConfig(),
 			CloudInitUserData:           validCloudInitUserData,
-			CharmLXDProfiles:            []string{"p1", "p2"},
 			ProvisioningNetworkTopology: params.ProvisioningNetworkTopology{},
 		},
 	}
@@ -314,7 +317,6 @@ func (s *ProvisionerTaskSuite) TestSetUpToStartMachine(c *tc.C) {
 	want.InstanceConfig.CloudInitUserData = validCloudInitUserData
 	want.ImageMetadata = possibleImageMetadata
 	want.EndpointBindings = map[string]network.Id{"endpoint": "space"}
-	want.CharmLXDProfiles = []string{"p1", "p2"}
 	c.Assert(startInstanceParams, tc.DeepEquals, *want)
 }
 
@@ -1790,7 +1792,6 @@ type testMachine struct {
 	machineStatus  status.Status
 	instStatus     status.Status
 	instStatusMsg  string
-	modStatusMsg   string
 	password       string
 	topology       params.ProvisioningNetworkTopology
 
@@ -1887,19 +1888,6 @@ func (m *testMachine) InstanceStatus(context.Context) (status.Status, string, er
 	return m.instStatus, m.instStatusMsg, nil
 }
 
-func (m *testMachine) SetModificationStatus(_ context.Context, _ status.Status, message string, _ map[string]interface{}) error {
-	m.mu.Lock()
-	m.modStatusMsg = message
-	m.mu.Unlock()
-	return nil
-}
-
-func (m *testMachine) ModificationStatus() (status.Status, string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return "", m.modStatusMsg, nil
-}
-
 func (m *testMachine) SetStatus(_ context.Context, status status.Status, _ string, _ map[string]interface{}) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -1932,7 +1920,7 @@ func (m *testMachine) SetUnprovisioned() {
 func (m *testMachine) SetInstanceInfo(
 	_ context.Context,
 	instId instance.Id, _ string, _ string, _ *instance.HardwareCharacteristics, _ []params.NetworkConfig, _ []params.Volume,
-	_ map[string]params.VolumeAttachmentInfo, _ []string,
+	_ map[string]params.VolumeAttachmentInfo,
 ) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

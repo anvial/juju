@@ -53,7 +53,7 @@ type AgentBinaryStoreState interface {
 
 	// GetAgentBinarySHA256 retrieves the SHA256 value for the specified agent binary version.
 	// It returns false and an empty string if no matching record exists.
-	GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (bool, string, error)
+	GetAgentBinarySHA256(ctx context.Context, version coreagentbinary.Version, stream agentbinary.Stream) (string, bool, error)
 }
 
 // NewAgentBinaryStore returns a new instance of AgentBinaryStore.
@@ -282,7 +282,7 @@ func (s *AgentBinaryStore) GetAgentBinaryWithSHA256(
 ) (io.ReadCloser, int64, string, error) {
 	s.logger.Debugf(ctx, "retrieving agent binary from agent binary store for ver %q and stream %q", ver.String(), stream.String())
 
-	hasAgentBinary, sha256Sum, err := s.st.GetAgentBinarySHA256(ctx, ver, stream)
+	sha256Sum, hasAgentBinary, err := s.st.GetAgentBinarySHA256(ctx, ver, stream)
 	if err != nil {
 		return nil, 0, "", errors.Errorf("checking availability of agent binary in agent binary store: %w", err)
 	}

@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/juju/tc"
-	gc "gopkg.in/check.v1"
 	admission "k8s.io/api/admission/v1beta1"
 	authentication "k8s.io/api/authentication/v1"
 	core "k8s.io/api/core/v1"
@@ -354,11 +353,11 @@ func (h *HandlerSuite) TestPatchLabelsReplace(c *tc.C) {
 
 	managedByPath := fmt.Sprintf("/metadata/labels/%s", patchEscape(constants.LabelKubernetesAppManaged))
 	for _, op := range patchOperations {
-		c.Check(op.Path, gc.Not(gc.Equals), managedByPath)
+		c.Check(op.Path, tc.Not(tc.Equals), managedByPath)
 	}
 }
 
-func (h *HandlerSuite) TestPatchForLabelsSkipManagedByLabelReplace(c *gc.C) {
+func (h *HandlerSuite) TestPatchForLabelsSkipManagedByLabelReplace(c *tc.C) {
 	labels := map[string]string{
 		constants.LabelJujuAppCreatedBy:     "spark",
 		constants.LabelKubernetesAppManaged: "spark8t",
@@ -381,17 +380,17 @@ func (h *HandlerSuite) TestPatchForLabelsSkipManagedByLabelReplace(c *gc.C) {
 	var foundCreatedByAddLabelOp bool
 	for _, op := range patchOperations {
 		if op.Path == createdByPath {
-			c.Check(op.Op, gc.Equals, replaceOp)
+			c.Check(op.Op, tc.Equals, replaceOp)
 			foundCreatedByAddLabelOp = true
 		}
 		// Ensure no managed-by label ops are present for replace.
-		c.Check(op.Path, gc.Not(gc.Equals), managedByPath)
+		c.Check(op.Path, tc.Not(tc.Equals), managedByPath)
 	}
 
 	c.Check(foundCreatedByAddLabelOp, tc.IsTrue)
 }
 
-func (h *HandlerSuite) TestPatchForLabelsRetainsManagedByLabelAdd(c *gc.C) {
+func (h *HandlerSuite) TestPatchForLabelsRetainsManagedByLabelAdd(c *tc.C) {
 	labels := map[string]string{
 		"not-a-defined-label": "spark8t",
 	}
@@ -415,10 +414,10 @@ func (h *HandlerSuite) TestPatchForLabelsRetainsManagedByLabelAdd(c *gc.C) {
 	for _, op := range patchOperations {
 		switch op.Path {
 		case createdByPath:
-			c.Check(op.Op, gc.Equals, addOp)
+			c.Check(op.Op, tc.Equals, addOp)
 			foundCreatedByAddLabelOp = true
 		case managedByPath:
-			c.Check(op.Op, gc.Equals, addOp)
+			c.Check(op.Op, tc.Equals, addOp)
 			foundManagedByAddLabelOp = true
 		}
 	}

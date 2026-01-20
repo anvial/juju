@@ -19,7 +19,6 @@ import (
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/instance"
 	corelogger "github.com/juju/juju/core/logger"
-	"github.com/juju/juju/core/lxdprofile"
 	corenetwork "github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/core/status"
@@ -250,11 +249,6 @@ func (m *fakeContainerManager) IsInitialized() bool {
 	m.MethodCall(m, "IsInitialized")
 	m.PopNoErr()
 	return true
-}
-
-func (m *fakeContainerManager) MaybeWriteLXDProfile(pName string, put lxdprofile.Profile) error {
-	m.MethodCall(m, "MaybeWriteLXDProfile")
-	return m.NextErr()
 }
 
 type mockInstance struct {

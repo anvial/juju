@@ -24,7 +24,6 @@ import (
 	"github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/container"
 	"github.com/juju/juju/core/instance"
-	"github.com/juju/juju/core/lxdprofile"
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/core/status"
@@ -1106,19 +1105,4 @@ func delay() {
 // ProviderSpaceInfo implements NetworkingEnviron.
 func (*environ) ProviderSpaceInfo(context.Context, *network.SpaceInfo) (*environs.ProviderSpaceInfo, error) {
 	return nil, errors.NotSupportedf("provider space info")
-}
-
-// MaybeWriteLXDProfile implements environs.LXDProfiler.
-func (*environ) MaybeWriteLXDProfile(string, lxdprofile.Profile) error {
-	return nil
-}
-
-// LXDProfileNames implements environs.LXDProfiler.
-func (*environ) LXDProfileNames(string) ([]string, error) {
-	return nil, nil
-}
-
-// AssignLXDProfiles implements environs.LXDProfiler.
-func (*environ) AssignLXDProfiles(_ string, profilesNames []string, _ []lxdprofile.ProfilePost) (current []string, err error) {
-	return profilesNames, nil
 }

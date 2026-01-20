@@ -13,6 +13,7 @@ import (
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
+	"github.com/juju/juju/cloud"
 	"github.com/juju/juju/core/base"
 	corelife "github.com/juju/juju/core/life"
 	coremachine "github.com/juju/juju/core/machine"
@@ -702,6 +703,9 @@ func (s *TargetPrecheckSuite) SetUpTest(c *tc.C) {
 		Qualifier:    modelOwner,
 		Name:         modelName,
 		AgentVersion: backendVersion,
+		ModelDescription: description.NewModel(description.ModelArgs{
+			Cloud: "my-cloud",
+		}),
 	}
 }
 
@@ -744,13 +748,14 @@ func (s *TargetPrecheckSuite) runPrecheck(c *tc.C) error {
 
 	return migration.TargetPrecheck(
 		c.Context(), s.modelInfo, s.modelService, s.upgradeService,
-		s.statusService, s.agentService, s.machineService,
+		s.statusService, s.agentService, s.machineService, s.cloudService,
 		modelMigrationServiceGetter)
 }
 
 func (s *TargetPrecheckSuite) TestSuccess(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
+	s.expectMatchingCloud()
 	s.expectNoModels()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -804,9 +809,23 @@ func (s *TargetPrecheckSuite) TestSourceControllerMinorAhead(c *tc.C) {
 		`source controller has higher version than target controller (1.3.0 > 1.2.3)`)
 }
 
+func (s *TargetPrecheckSuite) TestNoMatchingCloud(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.cloudService.EXPECT().ListAll(gomock.Any()).Return([]cloud.Cloud{
+		{Name: "other-cloud"},
+	}, nil)
+	s.expectAgentVersion()
+
+	err := s.runPrecheck(c)
+	c.Assert(err.Error(), tc.Equals,
+		`model's cloud "my-cloud" not found on target controller`)
+}
+
 func (s *TargetPrecheckSuite) TestSourceControllerPatchAhead(c *tc.C) {
 	defer s.setupMocksWithDefaultAgentVersion(c).Finish()
 
+	s.expectMatchingCloud()
 	s.expectNoModels()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -823,6 +842,7 @@ func (s *TargetPrecheckSuite) TestSourceControllerPatchAhead(c *tc.C) {
 func (s *TargetPrecheckSuite) TestSourceControllerBuildAhead(c *tc.C) {
 	defer s.setupMocksWithDefaultAgentVersion(c).Finish()
 
+	s.expectMatchingCloud()
 	s.expectNoModels()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -839,6 +859,7 @@ func (s *TargetPrecheckSuite) TestSourceControllerBuildAhead(c *tc.C) {
 func (s *TargetPrecheckSuite) TestSourceControllerTagMismatch(c *tc.C) {
 	defer s.setupMocksWithDefaultAgentVersion(c).Finish()
 
+	s.expectMatchingCloud()
 	s.expectNoModels()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
@@ -881,6 +902,7 @@ func (s *TargetPrecheckSuite) TestMachineRequiresReboot(c *tc.C) {
 func (s *TargetPrecheckSuite) TestIsUpgradingError(c *tc.C) {
 	defer s.setupMocksWithDefaultAgentVersion(c).Finish()
 
+	s.expectMatchingCloud()
 	s.expectIsUpgradeError(errors.New("boom"))
 
 	err := s.runPrecheck(c)
@@ -890,6 +912,7 @@ func (s *TargetPrecheckSuite) TestIsUpgradingError(c *tc.C) {
 func (s *TargetPrecheckSuite) TestIsUpgrading(c *tc.C) {
 	defer s.setupMocksWithDefaultAgentVersion(c).Finish()
 
+	s.expectMatchingCloud()
 	s.expectIsUpgrade(true)
 
 	err := s.runPrecheck(c)
@@ -904,6 +927,7 @@ func (s *TargetPrecheckSuite) TestIsMigrationActive(c *tc.C) {
 	}
 	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.modelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeExporting, nil)
+	s.expectMatchingCloud()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
 	s.statusService.EXPECT().CheckMachineStatusesReadyForMigration(gomock.Any()).Return(nil)
@@ -922,6 +946,7 @@ func (s *TargetPrecheckSuite) TestModelNameAlreadyInUse(c *tc.C) {
 	}
 	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.otherModelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeNone, nil)
+	s.expectMatchingCloud()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
 	s.agentService.EXPECT().GetMachinesNotAtTargetAgentVersion(gomock.Any()).Return(nil, nil)
@@ -951,6 +976,7 @@ func (s *TargetPrecheckSuite) TestModelNameOverlapOkForDifferentOwner(c *tc.C) {
 	}
 	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.otherModelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeNone, nil)
+	s.expectMatchingCloud()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
 	s.statusService.EXPECT().CheckMachineStatusesReadyForMigration(gomock.Any()).Return(nil)
@@ -967,6 +993,7 @@ func (s *TargetPrecheckSuite) TestUUIDAlreadyExists(c *tc.C) {
 	}
 	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.modelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeNone, nil)
+	s.expectMatchingCloud()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
 	s.statusService.EXPECT().CheckMachineStatusesReadyForMigration(gomock.Any()).Return(nil)
@@ -984,6 +1011,7 @@ func (s *TargetPrecheckSuite) TestUUIDAlreadyExistsButImporting(c *tc.C) {
 	}
 	s.modelService.EXPECT().GetAllModels(gomock.Any()).Return(models, nil)
 	s.modelMigrationService.EXPECT().ModelMigrationMode(gomock.Any()).Return(modelmigration.MigrationModeImporting, nil)
+	s.expectMatchingCloud()
 	s.expectNoMachines()
 	s.expectIsUpgrade(false)
 	s.statusService.EXPECT().CheckMachineStatusesReadyForMigration(gomock.Any()).Return(nil)

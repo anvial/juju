@@ -2505,65 +2505,6 @@ func (s *charmStateSuite) TestGetCharmManifestCharmNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, applicationerrors.CharmNotFound)
 }
 
-func (s *charmStateSuite) TestGetCharmLXDProfile(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
-
-	id := charmtesting.GenCharmID(c)
-	uuid := id.String()
-
-	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		if err := insertCharmState(ctx, c, tx, uuid); err != nil {
-			return errors.Capture(err)
-		}
-
-		_, err := tx.ExecContext(ctx, `
-UPDATE charm
-SET lxd_profile = ?
-WHERE uuid = ?
-`, `{"profile": []}`, uuid)
-		if err != nil {
-			return errors.Capture(err)
-		}
-		return nil
-	})
-	c.Assert(err, tc.ErrorIsNil)
-
-	profile, revision, err := st.GetCharmLXDProfile(c.Context(), id)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(profile, tc.DeepEquals, []byte(`{"profile": []}`))
-	c.Check(revision, tc.Equals, 42)
-}
-
-func (s *charmStateSuite) TestGetCharmLXDProfileCharmNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
-
-	id := charmtesting.GenCharmID(c)
-
-	_, _, err := st.GetCharmLXDProfile(c.Context(), id)
-	c.Assert(err, tc.ErrorIs, applicationerrors.CharmNotFound)
-}
-
-func (s *charmStateSuite) TestGetCharmLXDProfileLXDProfileNotFound(c *tc.C) {
-	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
-
-	id := charmtesting.GenCharmID(c)
-	uuid := id.String()
-
-	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, `
-INSERT INTO charm (uuid, available, reference_name, architecture_id) 
-VALUES (?, false, 'ubuntu', 0)`, uuid)
-		if err != nil {
-			return errors.Capture(err)
-		}
-		return nil
-	})
-	c.Assert(err, tc.ErrorIsNil)
-
-	_, _, err = st.GetCharmLXDProfile(c.Context(), id)
-	c.Assert(err, tc.ErrorIs, applicationerrors.LXDProfileNotFound)
-}
-
 func (s *charmStateSuite) TestGetCharmConfig(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory(), s.modelUUID, clock.WallClock, loggertesting.WrapCheckLog(c))
 

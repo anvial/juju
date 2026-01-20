@@ -3,7 +3,11 @@
 
 package testing
 
-import "github.com/juju/description/v11"
+import (
+	"time"
+
+	"github.com/juju/description/v11"
+)
 
 // This file contains structures which implement the description package
 // interfaces commonly used in model migration integration tests.
@@ -236,4 +240,17 @@ func (a Action) ExecutionGroup() string {
 
 func (a Action) Parameters() map[string]any {
 	return a.Params_
+}
+
+type ActionMessage struct {
+	Timestamp_ time.Time
+	Message_   string
+}
+
+func (a ActionMessage) Timestamp() time.Time {
+	return a.Timestamp_
+}
+
+func (a ActionMessage) Message() string {
+	return a.Message_
 }

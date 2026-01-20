@@ -338,14 +338,8 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesBeforeApplication(c *tc
 	defer s.setupMocks(c).Finish()
 
 	resourceRevision := 42
-	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "testapp").Return(
-		application.ApplicationDetails{
-			UUID:                   "testapp-id",
-			Life:                   domainlife.Alive,
-			Name:                   "testapp",
-			IsApplicationSynthetic: false,
-		}, nil)
-	s.expectGetApplicationUUIDByName(applicationerrors.ApplicationNotFound)
+
+	s.expectGetApplicationDetails(applicationerrors.ApplicationNotFound)
 	s.expectResolveResourceForBeforeApplication(resourceRevision)
 	s.expectAddResourcesBeforeApplication(resourceRevision)
 
@@ -370,7 +364,6 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesBeforeApplication(c *tc
 	results, err := s.newFacade(c).AddPendingResources(c.Context(), args)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(results.Error, tc.IsNil)
-	c.Assert(results.ErrorResult.Error, tc.IsNil)
 	c.Assert(results.PendingIDs, tc.DeepEquals, []string{
 		s.pendingResourceIDOne.String(),
 		s.pendingResourceIDTwo.String(),
@@ -384,14 +377,7 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesUpdateStoreResource(c *
 	defer s.setupMocks(c).Finish()
 
 	resourceRevision := 42
-	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "testapp").Return(
-		application.ApplicationDetails{
-			UUID:                   "testapp-id",
-			Life:                   domainlife.Alive,
-			Name:                   "testapp",
-			IsApplicationSynthetic: false,
-		}, nil)
-	s.expectGetApplicationUUIDByName(nil)
+	s.expectGetApplicationDetails(nil)
 	s.expectResolveResourcesStoreContainer(s.resourceNameTwo, resourceRevision)
 	s.expectGetApplicationResourceIDTwo()
 	newUUIDTwo := s.expectUpdateResourceRevisionTwo(c, resourceRevision)
@@ -424,14 +410,7 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesUpdateStoreResource(c *
 func (s *addPendingResourceSuite) TestAddPendingResourcesUpdateUploadResource(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "testapp").Return(
-		application.ApplicationDetails{
-			UUID:                   "testapp-id",
-			Life:                   domainlife.Alive,
-			Name:                   "testapp",
-			IsApplicationSynthetic: false,
-		}, nil)
-	s.expectGetApplicationUUIDByName(nil)
+	s.expectGetApplicationDetails(nil)
 	s.expectResolveResourcesUploadContainer(c)
 	s.expectGetApplicationResourceIDTwo()
 	newUUIDTwo := s.expectUpdateUploadResourceTwo(c)
@@ -461,17 +440,10 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesSAASApplicationNotFound
 	defer s.setupMocks(c).Finish()
 
 	// SAAS applications should be rejected with application not found error.
-	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "saas-app").Return(
-		application.ApplicationDetails{
-			UUID:                   "saas-app-id",
-			Life:                   domainlife.Alive,
-			Name:                   "saas-app",
-			IsApplicationSynthetic: true,
-		}, nil)
+	s.expectGetApplicationDetailsSynthetic()
 
-	saasAppTag := names.NewApplicationTag("saas-app")
 	args := params.AddPendingResourcesArgsV2{
-		Entity: params.Entity{Tag: saasAppTag.String()},
+		Entity: params.Entity{Tag: s.appTag.String()},
 		URL:    s.curl.String(),
 		Resources: []params.CharmResource{
 			{
@@ -486,7 +458,7 @@ func (s *addPendingResourceSuite) TestAddPendingResourcesSAASApplicationNotFound
 	results, err := s.newFacade(c).AddPendingResources(c.Context(), args)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(results.Error, tc.NotNil)
-	c.Check(results.Error.Message, tc.Equals, `application saas-app not found`)
+	c.Check(results.Error.Message, tc.Equals, `application testapp not found`)
 	c.Check(results.Error.Code, tc.Equals, "not found")
 }
 
@@ -511,12 +483,29 @@ func (s *addPendingResourceSuite) expectResolveResourcesStoreContainer(resName s
 	s.repository.EXPECT().ResolveResources(gomock.Any(), resolveArgs, gomock.Any()).Return(resolveArgs, nil)
 }
 
-func (s *addPendingResourceSuite) expectGetApplicationUUIDByName(err error) {
-	var id coreapplication.UUID
-	if err == nil {
-		id = s.appUUID
+func (s *addPendingResourceSuite) expectGetApplicationDetails(err error) {
+	if err != nil {
+		s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "testapp").Return(
+			application.ApplicationDetails{}, err)
+	} else {
+		s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "testapp").Return(
+			application.ApplicationDetails{
+				UUID:                   s.appUUID,
+				Life:                   domainlife.Alive,
+				Name:                   "testapp",
+				IsApplicationSynthetic: false,
+			}, nil)
 	}
-	s.applicationService.EXPECT().GetApplicationUUIDByName(gomock.Any(), s.appTag.Name).Return(id, err)
+}
+
+func (s *addPendingResourceSuite) expectGetApplicationDetailsSynthetic() {
+	s.applicationService.EXPECT().GetApplicationDetailsByName(gomock.Any(), "testapp").Return(
+		application.ApplicationDetails{
+			UUID:                   s.appUUID,
+			Life:                   domainlife.Alive,
+			Name:                   "testapp",
+			IsApplicationSynthetic: true,
+		}, nil)
 }
 
 func (s *addPendingResourceSuite) expectGetApplicationResourceIDTwo() {

@@ -82,11 +82,11 @@ func (c *MockAgentBinaryStoreStateCheckAgentBinarySHA256ExistsCall) DoAndReturn(
 }
 
 // GetAgentBinarySHA256 mocks base method.
-func (m *MockAgentBinaryStoreState) GetAgentBinarySHA256(arg0 context.Context, arg1 agentbinary.Version, arg2 agentbinary0.Stream) (bool, string, error) {
+func (m *MockAgentBinaryStoreState) GetAgentBinarySHA256(arg0 context.Context, arg1 agentbinary.Version, arg2 agentbinary0.Stream) (string, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAgentBinarySHA256", arg0, arg1, arg2)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(string)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -104,19 +104,19 @@ type MockAgentBinaryStoreStateGetAgentBinarySHA256Call struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockAgentBinaryStoreStateGetAgentBinarySHA256Call) Return(arg0 bool, arg1 string, arg2 error) *MockAgentBinaryStoreStateGetAgentBinarySHA256Call {
+func (c *MockAgentBinaryStoreStateGetAgentBinarySHA256Call) Return(arg0 string, arg1 bool, arg2 error) *MockAgentBinaryStoreStateGetAgentBinarySHA256Call {
 	c.Call = c.Call.Return(arg0, arg1, arg2)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockAgentBinaryStoreStateGetAgentBinarySHA256Call) Do(f func(context.Context, agentbinary.Version, agentbinary0.Stream) (bool, string, error)) *MockAgentBinaryStoreStateGetAgentBinarySHA256Call {
+func (c *MockAgentBinaryStoreStateGetAgentBinarySHA256Call) Do(f func(context.Context, agentbinary.Version, agentbinary0.Stream) (string, bool, error)) *MockAgentBinaryStoreStateGetAgentBinarySHA256Call {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockAgentBinaryStoreStateGetAgentBinarySHA256Call) DoAndReturn(f func(context.Context, agentbinary.Version, agentbinary0.Stream) (bool, string, error)) *MockAgentBinaryStoreStateGetAgentBinarySHA256Call {
+func (c *MockAgentBinaryStoreStateGetAgentBinarySHA256Call) DoAndReturn(f func(context.Context, agentbinary.Version, agentbinary0.Stream) (string, bool, error)) *MockAgentBinaryStoreStateGetAgentBinarySHA256Call {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

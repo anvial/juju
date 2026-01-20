@@ -5,6 +5,7 @@ package modellife
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	"github.com/juju/tc"
@@ -106,9 +107,7 @@ func (s *ManifoldSuite) newGetter(c *tc.C, overlay map[string]any) dependency.Ge
 	resources := map[string]any{
 		"domainservices": s.modelService,
 	}
-	for k, v := range overlay {
-		resources[k] = v
-	}
+	maps.Copy(resources, overlay)
 	return dt.StubGetter(resources)
 }
 

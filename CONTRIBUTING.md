@@ -174,22 +174,22 @@ See the project's [coding style guide](STYLE.md), the coding style guidelines us
 Some tests may require local lxd to be installed, see
 [installing lxd via snap](https://stgraber.org/2016/10/17/lxd-snap-available/).
 
-Juju uses the `gocheck` testing framework, which is automatically installed
-as a dependency of `juju`. You can read more about `gocheck` at
-http://godoc.org/gopkg.in/check.v1. `gocheck` is integrated into the source of
-each package so the standard `go test` command is used to run `gocheck` tests.
+Juju uses the `tc` testing framework, which is automatically installed
+as a dependency of `juju`. You can read more about `tc` at
+http://godoc.org/github.com/juju/tc. `tc` is integrated into the source of
+each package so the standard `go test` command is used to run `tc` tests.
 For example:
 
 ```
 go test -v github.com/juju/juju/core/config
 ```
 
-By default `gocheck` will run all tests
-in a package, selected tests can by run by passing `-gocheck.f` to match a
+By default `tc` will run all tests
+in a package, selected tests can by run by passing `-run` to match a
 subset of test names.
 
 ```
-go test -gocheck.f '$REGEX'
+go test -run='$REGEX'
 ```
 
 

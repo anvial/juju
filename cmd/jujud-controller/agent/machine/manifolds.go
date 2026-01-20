@@ -5,6 +5,7 @@ package machine
 
 import (
 	"context"
+	"maps"
 	"net/http"
 	"path"
 	"runtime"
@@ -122,8 +123,8 @@ import (
 	"github.com/juju/juju/internal/worker/upgradedatabase"
 	"github.com/juju/juju/internal/worker/upgrader"
 	"github.com/juju/juju/internal/worker/upgradeservices"
-	"github.com/juju/juju/internal/worker/upgradesteps"
-	"github.com/juju/juju/internal/worker/upgradestepsmachine"
+	"github.com/juju/juju/internal/worker/upgradestepsagent"
+	"github.com/juju/juju/internal/worker/upgradestepscontroller"
 	"github.com/juju/juju/internal/worker/watcherregistry"
 )
 
@@ -1071,11 +1072,11 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Clock:                config.Clock,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: upgradesteps.Manifold(upgradesteps.ManifoldConfig{
+		// The upgradestepscontroller worker runs soon after the machine agent
+		// starts and runs any steps required to upgrade to the running jujud
+		// version. Once upgrade steps have run, the upgradesteps gate is
+		// unlocked and the worker exits.
+		upgradeControllerStepsName: ifController(upgradestepscontroller.Manifold(upgradestepscontroller.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			DomainServicesName:   domainServicesName,
@@ -1083,11 +1084,23 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
-			NewControllerWorker:  upgradesteps.NewControllerWorker,
-			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			NewControllerWorker:  upgradestepscontroller.NewControllerWorker,
+			GetUpgradeService:    upgradestepscontroller.GetUpgradeService,
+			Logger:               internallogger.GetLogger("juju.worker.upgradestepscontroller"),
 			Clock:                config.Clock,
-		}),
+		})),
+
+		upgradeAgentStepsName: ifNotController(upgradestepsagent.Manifold(upgradestepsagent.ManifoldConfig{
+			AgentName:            agentName,
+			APICallerName:        apiCallerName,
+			UpgradeStepsGateName: upgradeStepsGateName,
+			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
+			UpgradeSteps:         config.UpgradeSteps,
+			NewAgentStatusSetter: config.NewAgentStatusSetter,
+			NewAgentWorker:       upgradestepsagent.NewAgentWorker,
+			Logger:               internallogger.GetLogger("juju.worker.upgradestepsagent"),
+			Clock:                config.Clock,
+		})),
 
 		// The deployer worker is primarily for deploying and recalling unit
 		// agents, according to changes in a set of state units; and for the
@@ -1207,11 +1220,11 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreviousAgentVersion: config.PreviousAgentVersion,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: upgradesteps.Manifold(upgradesteps.ManifoldConfig{
+		// The upgradestepscontroller worker runs soon after the machine agent
+		// starts and runs any steps required to upgrade to the running jujud
+		// version. Once upgrade steps have run, the upgradesteps gate is
+		// unlocked and the worker exits.
+		upgradeControllerStepsName: ifController(upgradestepscontroller.Manifold(upgradestepscontroller.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			DomainServicesName:   domainServicesName,
@@ -1219,11 +1232,23 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			NewMachineWorker:     upgradestepsmachine.NewMachineWorker,
-			NewControllerWorker:  upgradesteps.NewControllerWorker,
+			NewControllerWorker:  upgradestepscontroller.NewControllerWorker,
+			GetUpgradeService:    upgradestepscontroller.GetUpgradeService,
 			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
 			Clock:                config.Clock,
-		}),
+		})),
+
+		upgradeAgentStepsName: ifNotController(upgradestepsagent.Manifold(upgradestepsagent.ManifoldConfig{
+			AgentName:            agentName,
+			APICallerName:        apiCallerName,
+			UpgradeStepsGateName: upgradeStepsGateName,
+			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
+			UpgradeSteps:         config.UpgradeSteps,
+			NewAgentStatusSetter: config.NewAgentStatusSetter,
+			NewAgentWorker:       upgradestepsagent.NewAgentWorker,
+			Logger:               internallogger.GetLogger("juju.worker.upgradestepsagent"),
+			Clock:                config.Clock,
+		})),
 
 		// DBAccessor is a manifold that provides a DBAccessor worker
 		// that can be used to access the database.
@@ -1245,9 +1270,7 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 
 func mergeManifolds(config ManifoldsConfig, manifolds dependency.Manifolds) dependency.Manifolds {
 	result := commonManifolds(config)
-	for name, manifold := range manifolds {
-		result[name] = manifold
-	}
+	maps.Copy(result, manifolds)
 	return result
 }
 
@@ -1337,13 +1360,14 @@ const (
 	upgradeDatabaseGateName = "upgrade-database-gate"
 	upgradeDatabaseFlagName = "upgrade-database-flag"
 
-	upgraderName              = "upgrader"
-	upgradeStepsName          = "upgrade-steps-runner"
-	upgradeStepsGateName      = "upgrade-steps-gate"
-	upgradeStepsFlagName      = "upgrade-steps-flag"
-	upgradeCheckGateName      = "upgrade-check-gate"
-	upgradeCheckFlagName      = "upgrade-check-flag"
-	upgradeDomainServicesName = "upgrade-services"
+	upgraderName               = "upgrader"
+	upgradeControllerStepsName = "upgrade-controller-steps-runner"
+	upgradeAgentStepsName      = "upgrade-agent-steps-runner"
+	upgradeStepsGateName       = "upgrade-steps-gate"
+	upgradeStepsFlagName       = "upgrade-steps-flag"
+	upgradeCheckGateName       = "upgrade-check-gate"
+	upgradeCheckFlagName       = "upgrade-check-flag"
+	upgradeDomainServicesName  = "upgrade-services"
 
 	migrationFortressName     = "migration-fortress"
 	migrationInactiveFlagName = "migration-inactive-flag"

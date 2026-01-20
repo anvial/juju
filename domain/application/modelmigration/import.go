@@ -159,8 +159,6 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 			return errors.Errorf("importing exposed endpoints: %w", err)
 		}
 
-		peerRelations := i.importPeerRelations(app.Name(), model.Relations())
-
 		// TODO hml 04-30-2024
 		// Investigate how device constraints for an application are
 		// migrated and implemented if necessary.
@@ -181,8 +179,6 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 			// name and not the charm name in the metadata, but the name of
 			// the charm from the store if it's a charm from the store.
 			ReferenceName: chURL.Name,
-
-			PeerRelations: peerRelations,
 		}
 
 		switch modelType {
@@ -761,18 +757,6 @@ func (i *importOperation) importExposedEndpoints(ctx context.Context, app descri
 		}
 	}
 	return exposedEndpoints, nil
-}
-
-func (i *importOperation) importPeerRelations(appName string, modelRelations []description.Relation) map[string]int {
-	result := make(map[string]int)
-	for _, rel := range modelRelations {
-		endpoints := rel.Endpoints()
-		if len(endpoints) != 1 || endpoints[0].ApplicationName() != appName {
-			continue
-		}
-		result[endpoints[0].Name()] = rel.Id()
-	}
-	return result
 }
 
 func importCharmUser(data description.CharmMetadata) (internalcharm.RunAs, error) {

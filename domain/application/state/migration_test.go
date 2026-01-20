@@ -507,6 +507,54 @@ func (s *unitStateSuite) TestInsertMigratingIAASUnitsSubordinate(c *tc.C) {
 	s.assertUnitPrincipal(c, unitUUIDs[0], sub)
 }
 
+func (s *unitStateSuite) TestInsertMigratingIAASUnitsWithWorkloadVersion(c *tc.C) {
+	appID := s.createIAASApplication(c, "foo", life.Alive)
+
+	err := s.TxnRunner().Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
+		_, err := machinestate.CreateMachine(c.Context(), tx, s.state, clock.WallClock, machinestate.CreateMachineArgs{
+			Platform: deployment.Platform{
+				OSType:       deployment.Ubuntu,
+				Architecture: architecture.ARM64,
+			},
+			MachineUUID: machinetesting.GenUUID(c).String(),
+			NetNodeUUID: tc.Must(c, domainnetwork.NewNetNodeUUID).String(),
+		})
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	err = s.state.InsertMigratingIAASUnits(c.Context(), appID, application.ImportIAASUnitArg{
+		ImportUnitArg: application.ImportUnitArg{
+			UnitName:        "foo/0",
+			WorkloadVersion: "1.2.3",
+		},
+		Machine: "0",
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the workload version was inserted
+	version, err := s.state.GetUnitWorkloadVersion(c.Context(), coreunit.Name("foo/0"))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(version, tc.Equals, "1.2.3")
+}
+
+func (s *unitStateSuite) TestInsertMigratingCAASUnitsWithWorkloadVersion(c *tc.C) {
+	appID := s.createIAASApplication(c, "foo", life.Alive)
+
+	err := s.state.InsertMigratingCAASUnits(c.Context(), appID, application.ImportCAASUnitArg{
+		ImportUnitArg: application.ImportUnitArg{
+			UnitName:        "foo/0",
+			WorkloadVersion: "2.0.0",
+		},
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the workload version was inserted
+	version, err := s.state.GetUnitWorkloadVersion(c.Context(), coreunit.Name("foo/0"))
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(version, tc.Equals, "2.0.0")
+}
+
 func (s *unitStateSuite) assertInsertMigratingUnits(c *tc.C, appID coreapplication.UUID) {
 	var unitName string
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {

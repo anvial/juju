@@ -26,7 +26,6 @@ import (
 	"github.com/juju/juju/core/instance"
 	"github.com/juju/juju/core/life"
 	"github.com/juju/juju/core/logger"
-	"github.com/juju/juju/core/lxdprofile"
 	corenetwork "github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/core/status"
@@ -38,7 +37,6 @@ import (
 	"github.com/juju/juju/environs/instances"
 	"github.com/juju/juju/environs/simplestreams"
 	"github.com/juju/juju/internal/cloudconfig/instancecfg"
-	"github.com/juju/juju/internal/container"
 	"github.com/juju/juju/internal/password"
 	providercommon "github.com/juju/juju/internal/provider/common"
 	"github.com/juju/juju/internal/storage"
@@ -108,9 +106,13 @@ type RetryStrategy struct {
 // so it can be used when we don't have a machine service available.
 type GetMachineInstanceInfoSetter func(machineProvisioner apiprovisioner.MachineProvisioner) func(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	characteristics *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error
 
 // TaskConfig holds the initialisation data for a ProvisionerTask instance.
@@ -908,7 +910,6 @@ func (task *provisionerTask) constructStartInstanceParams(
 		ImageMetadata:     possibleImageMetadata,
 		StatusCallback:    machine.SetInstanceStatus,
 		Abort:             task.catacomb.Dying(),
-		CharmLXDProfiles:  provisioningInfo.CharmLXDProfiles,
 	}
 	if provisioningInfo.RootDisk != nil {
 		startInstanceParams.RootDisk = &storage.VolumeParams{
@@ -1439,17 +1440,6 @@ func (task *provisionerTask) doStartMachine(
 	volumeNameToAttachmentInfo := volumeAttachmentsToAPIServer(result.VolumeAttachments)
 	instanceID := result.Instance.Id()
 
-	// TODO(nvinuesa): The charm LXD profiles will have to be re-wired once
-	// they are implemented as a dqlite domain.
-	// Gather the charm LXD profile names, including the lxd profile names from
-	// the container brokers.
-	charmLXDProfiles, err := task.gatherCharmLXDProfiles(
-		ctx,
-		instanceID.String(), machine.Tag().Id(), startInstanceParams.CharmLXDProfiles)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
 	if err := task.getMachineInstanceInfoSetter(machine)(
 		ctx,
 		instanceID,
@@ -1459,7 +1449,6 @@ func (task *provisionerTask) doStartMachine(
 		networkConfig,
 		volumes,
 		volumeNameToAttachmentInfo,
-		charmLXDProfiles,
 	); err != nil {
 		// We need to stop the instance right away here, set error status and go on.
 		if err2 := task.setErrorStatus(ctx, "cannot register instance for machine %v: %v", machine, err); err2 != nil {
@@ -1472,7 +1461,7 @@ func (task *provisionerTask) doStartMachine(
 	}
 	task.logger.Infof(ctx,
 		"started machine %s as instance %s with hardware %q, network config %+v, "+
-			"volumes %v, volume attachments %v, subnets to zones %v, lxd profiles %v",
+			"volumes %v, volume attachments %v, subnets to zones %v",
 		machine,
 		instanceID,
 		result.Hardware,
@@ -1480,7 +1469,6 @@ func (task *provisionerTask) doStartMachine(
 		volumes,
 		volumeNameToAttachmentInfo,
 		startInstanceParams.SubnetsToZones,
-		startInstanceParams.CharmLXDProfiles,
 	)
 	return nil
 }
@@ -1559,30 +1547,6 @@ func (task *provisionerTask) populateExcludedMachines(ctx context.Context, machi
 		}
 	}
 	return nil
-}
-
-// gatherCharmLXDProfiles consumes the charms LXD Profiles from the different
-// sources. This includes getting the information from the broker.
-func (task *provisionerTask) gatherCharmLXDProfiles(
-	ctx context.Context,
-	instanceID, machineTag string, machineProfiles []string,
-) ([]string, error) {
-	if !names.IsContainerMachine(machineTag) {
-		return machineProfiles, nil
-	}
-
-	manager, ok := task.broker.(container.LXDProfileNameRetriever)
-	if !ok {
-		task.logger.Tracef(ctx, "failed to gather profile names, broker didn't conform to LXDProfileNameRetriever")
-		return machineProfiles, nil
-	}
-
-	profileNames, err := manager.LXDProfileNames(instanceID)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	return lxdprofile.FilterLXDProfileNames(profileNames), nil
 }
 
 // markMachineFailedInAZ moves the machine in zone from MachineIds to FailedMachineIds

@@ -504,7 +504,6 @@ func (s *provisionerSuite) TestSetInstanceInfo(c *tc.C) {
 			Characteristics:   &hwChars,
 			Volumes:           volumes,
 			VolumeAttachments: volumeAttachments,
-			CharmProfiles:     []string{"profile1"},
 		}},
 	}
 	results := params.ErrorResults{
@@ -515,7 +514,7 @@ func (s *provisionerSuite) TestSetInstanceInfo(c *tc.C) {
 
 	err := machine.SetInstanceInfo(
 		c.Context(),
-		"i-will", "my machine", "fake_nonce", &hwChars, nil, volumes, volumeAttachments, []string{"profile1"},
+		"i-will", "my machine", "fake_nonce", &hwChars, nil, volumes, volumeAttachments,
 	)
 	c.Assert(err, tc.ErrorIsNil)
 }
@@ -540,28 +539,6 @@ func (s *provisionerSuite) TestAvailabilityZone(c *tc.C) {
 	zone, err := machine.AvailabilityZone(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(zone, tc.Equals, "az-666")
-}
-
-func (s *provisionerSuite) TestSetCharmProfiles(c *tc.C) {
-	ctrl := gomock.NewController(c)
-	defer ctrl.Finish()
-
-	caller, machine := s.setupMachines(c, ctrl)
-
-	args := params.SetProfileArgs{
-		Args: []params.SetProfileArg{{
-			Entity:   params.Entity{Tag: "machine-666"},
-			Profiles: []string{"profile"},
-		}},
-	}
-	results := params.ErrorResults{
-		Results: []params.ErrorResult{{}},
-	}
-
-	s.expectCall(caller, "SetCharmProfiles", args, results)
-
-	err := machine.SetCharmProfiles(c.Context(), []string{"profile"})
-	c.Assert(err, tc.ErrorIsNil)
 }
 
 func (s *provisionerSuite) TestKeepInstance(c *tc.C) {

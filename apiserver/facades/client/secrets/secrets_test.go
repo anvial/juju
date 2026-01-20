@@ -35,6 +35,7 @@ type SecretsSuite struct {
 	authTag              names.Tag
 	secretService        *mocks.MockSecretService
 	secretBackendService *mocks.MockSecretBackendService
+	modelName            string
 }
 
 func TestSecretsSuite(t *testing.T) {
@@ -45,6 +46,7 @@ func (s *SecretsSuite) SetUpTest(c *tc.C) {
 	s.IsolationSuite.SetUpTest(c)
 
 	s.authTag = names.NewUserTag("foo")
+	s.modelName = "testmodel"
 }
 
 func (s *SecretsSuite) setup(c *tc.C) *gomock.Controller {
@@ -62,6 +64,88 @@ func (s *SecretsSuite) expectAuthClient() {
 
 func (s *SecretsSuite) TestListSecrets(c *tc.C) {
 	s.assertListSecrets(c, false)
+}
+
+// This test is to verify that when the secret backend name
+// is missing from the service layer, we return an error.
+func (s *SecretsSuite) TestListSecretsErrNoBackendName(c *tc.C) {
+	defer s.setup(c).Finish()
+
+	s.expectAuthClient()
+	s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.ReadAccess, coretesting.ModelTag).Return(nil)
+
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
+	c.Assert(err, tc.ErrorIsNil)
+
+	now := time.Now()
+	uri := coresecrets.NewURI()
+	metadata := []*coresecrets.SecretMetadata{{
+		URI:                    uri,
+		Version:                1,
+		Owner:                  coresecrets.Owner{Kind: coresecrets.ApplicationOwner, ID: "mysql"},
+		RotatePolicy:           coresecrets.RotateHourly,
+		LatestRevision:         2,
+		LatestRevisionChecksum: "7a38bf81f383f69433ad6e900d35b3e2385593f76a7b7ab5d4355b8ba41ee24b",
+		LatestExpireTime:       ptr(now),
+		NextRotateTime:         ptr(now.Add(time.Hour)),
+		Description:            "shhh",
+		Label:                  "foobar",
+		CreateTime:             now,
+		UpdateTime:             now.Add(time.Second),
+	}}
+
+	// Revision backend name should have been populated in the service layer, even for unknowns.
+	// If there is no backend name for any revision, we return an rpc error, indicating there is a bug
+	// in the service layer.
+	revisions := [][]*coresecrets.SecretRevisionMetadata{
+		{{
+			// Revision backend name should have been populated in the service layer, even for unknowns.
+			// If there is no backend name, we return an error.
+			Revision:   666,
+			CreateTime: now,
+			UpdateTime: now.Add(time.Second),
+			ExpireTime: ptr(now.Add(time.Hour)),
+		}, {
+			// Revision backend name should have been populated in the service layer, even for unknowns.
+			// If there is no backend ID, backend name should be set to "<unknown>" to indicate that.
+			Revision: 667,
+			ValueRef: &coresecrets.ValueRef{
+				BackendID: "not-a-valid-backend-id",
+			},
+			BackendName: ptr("<unknown>"),
+			CreateTime:  now,
+			UpdateTime:  now.Add(2 * time.Second),
+			ExpireTime:  ptr(now.Add(2 * time.Hour)),
+		}, {
+			// Valid backend name returned which will be retained.
+			Revision:    668,
+			BackendName: ptr("some backend"),
+			CreateTime:  now,
+			UpdateTime:  now.Add(2 * time.Second),
+			ExpireTime:  ptr(now.Add(2 * time.Hour)),
+		}},
+		{},
+	}
+
+	s.secretService.EXPECT().ListSecrets(gomock.Any(), nil, secret.NilRevision, secret.NilLabels).Return(
+		metadata, revisions, nil,
+	)
+	s.secretService.EXPECT().GetSecretGrants(gomock.Any(), uri, coresecrets.RoleView).Return([]secretservice.SecretAccess{
+		{
+			Scope: secret.SecretAccessScope{
+				Kind: secret.RelationAccessScope,
+				ID:   "gitlab:server mysql:db",
+			},
+			Subject: secret.SecretAccessor{
+				Kind: secret.ApplicationAccessor,
+				ID:   "gitlab",
+			},
+			Role: coresecrets.RoleView,
+		},
+	}, nil)
+
+	_, err = facade.ListSecrets(c.Context(), params.ListSecretsArgs{ShowSecrets: false})
+	c.Assert(err, tc.ErrorMatches, "retrieving secret revision backend name for secret foobar")
 }
 
 func (s *SecretsSuite) TestListSecretsReveal(c *tc.C) {
@@ -82,7 +166,7 @@ func (s *SecretsSuite) assertListSecrets(c *tc.C, reveal bool) {
 		s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.ReadAccess, coretesting.ModelTag).Return(nil)
 	}
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	now := time.Now()
@@ -103,17 +187,48 @@ func (s *SecretsSuite) assertListSecrets(c *tc.C, reveal bool) {
 	}}
 	revisions := [][]*coresecrets.SecretRevisionMetadata{
 		{{
-			Revision:   666,
-			CreateTime: now,
-			UpdateTime: now.Add(time.Second),
-			ExpireTime: ptr(now.Add(time.Hour)),
+			// Revision backend name should have been populated in the service layer, even for unknowns.
+			// If there is no backend ID, backend name should be set to "<unknown>" to indicate that.
+			Revision:    666,
+			BackendName: ptr("<unknown>"),
+			CreateTime:  now,
+			UpdateTime:  now.Add(time.Second),
+			ExpireTime:  ptr(now.Add(time.Hour)),
 		}, {
-			Revision:    667,
+			// Revision backend name should have been populated in the service layer, even for unknowns.
+			// If there is no backend ID, backend name should be set to "<unknown>" to indicate that.
+			Revision: 667,
+			ValueRef: &coresecrets.ValueRef{
+				BackendID: "not-a-valid-backend-id",
+			},
+			BackendName: ptr("<unknown>"),
+			CreateTime:  now,
+			UpdateTime:  now.Add(2 * time.Second),
+			ExpireTime:  ptr(now.Add(2 * time.Hour)),
+		}, {
+			// Valid backend name returned which will be retained.
+			Revision:    668,
 			BackendName: ptr("some backend"),
 			CreateTime:  now,
 			UpdateTime:  now.Add(2 * time.Second),
 			ExpireTime:  ptr(now.Add(2 * time.Hour)),
+		}, {
+			// Backend name kubernetes should be transformed to the built-in name (model_name-local).
+			Revision:    669,
+			BackendName: ptr("kubernetes"),
+			CreateTime:  now,
+			UpdateTime:  now.Add(2 * time.Second),
+			ExpireTime:  ptr(now.Add(2 * time.Hour)),
+		}, {
+			// Default backend name will be retained.
+			Revision:    670,
+			ValueRef:    &coresecrets.ValueRef{},
+			BackendName: ptr("internal"),
+			CreateTime:  now,
+			UpdateTime:  now.Add(2 * time.Second),
+			ExpireTime:  ptr(now.Add(2 * time.Hour)),
 		}},
+		{},
 	}
 
 	s.secretService.EXPECT().ListSecrets(gomock.Any(), nil, secret.NilRevision, secret.NilLabels).Return(
@@ -162,13 +277,31 @@ func (s *SecretsSuite) assertListSecrets(c *tc.C, reveal bool) {
 			Value:                  valueResult,
 			Revisions: []params.SecretRevision{{
 				Revision:    666,
-				BackendName: ptr("internal"),
+				BackendName: ptr("<unknown>"),
 				CreateTime:  now,
 				UpdateTime:  now.Add(time.Second),
 				ExpireTime:  ptr(now.Add(time.Hour)),
 			}, {
 				Revision:    667,
+				BackendName: ptr("<unknown>"),
+				CreateTime:  now,
+				UpdateTime:  now.Add(2 * time.Second),
+				ExpireTime:  ptr(now.Add(2 * time.Hour)),
+			}, {
+				Revision:    668,
 				BackendName: ptr("some backend"),
+				CreateTime:  now,
+				UpdateTime:  now.Add(2 * time.Second),
+				ExpireTime:  ptr(now.Add(2 * time.Hour)),
+			}, {
+				Revision:    669,
+				BackendName: ptr("testmodel-local"),
+				CreateTime:  now,
+				UpdateTime:  now.Add(2 * time.Second),
+				ExpireTime:  ptr(now.Add(2 * time.Hour)),
+			}, {
+				Revision:    670,
+				BackendName: ptr("internal"),
 				CreateTime:  now,
 				UpdateTime:  now.Add(2 * time.Second),
 				ExpireTime:  ptr(now.Add(2 * time.Hour)),
@@ -187,7 +320,7 @@ func (s *SecretsSuite) TestListSecretsPermissionDenied(c *tc.C) {
 	s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.ReadAccess, coretesting.ModelTag).Return(
 		errors.WithType(apiservererrors.ErrPerm, authentication.ErrorEntityMissingPermission))
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	_, err = facade.ListSecrets(c.Context(), params.ListSecretsArgs{})
@@ -203,7 +336,7 @@ func (s *SecretsSuite) TestListSecretsPermissionDeniedShow(c *tc.C) {
 	s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.AdminAccess, coretesting.ModelTag).Return(
 		errors.WithType(apiservererrors.ErrPerm, authentication.ErrorEntityMissingPermission))
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	_, err = facade.ListSecrets(c.Context(), params.ListSecretsArgs{ShowSecrets: true})
@@ -217,7 +350,7 @@ func (s *SecretsSuite) TestCreateSecretsPermissionDenied(c *tc.C) {
 	s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.WriteAccess, coretesting.ModelTag).Return(
 		errors.WithType(apiservererrors.ErrPerm, authentication.ErrorEntityMissingPermission))
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	_, err = facade.CreateSecrets(c.Context(), params.CreateSecretArgs{})
@@ -233,7 +366,7 @@ func (s *SecretsSuite) TestCreateSecretsEmptyData(c *tc.C) {
 	uri := coresecrets.NewURI()
 	uriStrPtr := ptr(uri.String())
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	result, err := facade.CreateSecrets(c.Context(), params.CreateSecretArgs{
@@ -265,7 +398,7 @@ func (s *SecretsSuite) TestCreateSecrets(c *tc.C) {
 		c.Assert(params.UpdateUserSecretParams.Checksum, tc.Equals, "7a38bf81f383f69433ad6e900d35b3e2385593f76a7b7ab5d4355b8ba41ee24b")
 		return nil
 	})
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	result, err := facade.CreateSecrets(c.Context(), params.CreateSecretArgs{
@@ -312,7 +445,7 @@ func (s *SecretsSuite) assertUpdateSecrets(c *tc.C, uri *coresecrets.URI) {
 		c.Assert(params.Checksum, tc.Equals, "7a38bf81f383f69433ad6e900d35b3e2385593f76a7b7ab5d4355b8ba41ee24b")
 		return nil
 	})
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	result, err := facade.UpdateSecrets(c.Context(), params.UpdateUserSecretArgs{
@@ -355,7 +488,7 @@ func (s *SecretsSuite) TestRemoveSecrets(c *tc.C) {
 		Revisions: []int{666},
 	}).Return(nil)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 	results, err := facade.RemoveSecrets(c.Context(), params.DeleteSecretArgs{
 		Args: []params.DeleteSecretArg{{
@@ -377,7 +510,7 @@ func (s *SecretsSuite) TestRemoveSecretsFailedNotModelAdmin(c *tc.C) {
 	expectURI := *uri
 	s.authorizer.EXPECT().HasPermission(gomock.Any(), permission.WriteAccess, coretesting.ModelTag).Return(apiservererrors.ErrPerm)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 	_, err = facade.RemoveSecrets(c.Context(), params.DeleteSecretArgs{
 		Args: []params.DeleteSecretArg{{
@@ -400,7 +533,7 @@ func (s *SecretsSuite) TestRemoveSecretRevision(c *tc.C) {
 		Revisions: []int{666},
 	}).Return(nil)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 	results, err := facade.RemoveSecrets(c.Context(), params.DeleteSecretArgs{
 		Args: []params.DeleteSecretArg{{
@@ -426,7 +559,7 @@ func (s *SecretsSuite) TestRemoveSecretNotFound(c *tc.C) {
 		Revisions: []int{666},
 	}).Return(secreterrors.SecretNotFound)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 	results, err := facade.RemoveSecrets(c.Context(), params.DeleteSecretArgs{
 		Args: []params.DeleteSecretArg{{
@@ -468,7 +601,7 @@ func (s *SecretsSuite) TestGrantSecret(c *tc.C) {
 		},
 	)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	result, err := facade.GrantSecret(c.Context(), params.GrantRevokeUserSecretArg{
@@ -512,7 +645,7 @@ func (s *SecretsSuite) TestGrantSecretByName(c *tc.C) {
 		},
 	)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	result, err := facade.GrantSecret(c.Context(), params.GrantRevokeUserSecretArg{
@@ -533,7 +666,7 @@ func (s *SecretsSuite) TestGrantSecretPermissionDenied(c *tc.C) {
 		errors.WithType(apiservererrors.ErrPerm, authentication.ErrorEntityMissingPermission),
 	)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	_, err = facade.GrantSecret(c.Context(), params.GrantRevokeUserSecretArg{Label: "my-secret"})
@@ -570,7 +703,7 @@ func (s *SecretsSuite) TestRevokeSecret(c *tc.C) {
 		},
 	)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	result, err := facade.RevokeSecret(c.Context(), params.GrantRevokeUserSecretArg{
@@ -591,7 +724,7 @@ func (s *SecretsSuite) TestRevokeSecretPermissionDenied(c *tc.C) {
 		errors.WithType(apiservererrors.ErrPerm, authentication.ErrorEntityMissingPermission),
 	)
 
-	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService)
+	facade, err := apisecrets.NewTestAPI(s.authTag, s.authorizer, s.secretService, s.secretBackendService, s.modelName)
 	c.Assert(err, tc.ErrorIsNil)
 
 	_, err = facade.RevokeSecret(c.Context(), params.GrantRevokeUserSecretArg{Label: "my-secret"})

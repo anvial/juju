@@ -55,7 +55,7 @@ require (
 	github.com/juju/ansiterm v1.0.0
 	github.com/juju/clock v1.1.1
 	github.com/juju/collections v1.0.4
-	github.com/juju/description/v11 v11.0.0-20251203091952-63fec6169be0
+	github.com/juju/description/v11 v11.0.0-20260115203504-e19a7ca61eb3
 	github.com/juju/errors v1.0.0
 	github.com/juju/gnuflag v1.0.0
 	github.com/juju/gojsonschema v1.0.0
@@ -114,6 +114,7 @@ require (
 	golang.org/x/tools v0.39.0
 	google.golang.org/api v0.256.0
 	google.golang.org/grpc v1.77.0
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/errgo.v1 v1.0.1
 	gopkg.in/httprequest.v1 v1.2.1
 	gopkg.in/ini.v1 v1.67.0
@@ -289,7 +290,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20251111163417-95abcf5c77ba // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -309,7 +309,7 @@ replace gopkg.in/yaml.v2 => github.com/juju/yaml/v2 v2.0.0
 // until the issue is resolved.
 replace go.uber.org/mock => go.uber.org/mock v0.4.0
 
-replace gopkg.in/check.v1 => github.com/hpidcock/gc-compat-tc v0.0.0-20250523041742-c3a83c867edf
+replace gopkg.in/check.v1 => github.com/hpidcock/gc-compat-tc v0.0.0-20260112233041-5b2ef070e94b
 
 replace github.com/juju/testing => ./internal/testhelpers/compat
 

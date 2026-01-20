@@ -488,27 +488,6 @@ func (s *serviceSuite) TestLXDProfilesError(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, rErr)
 }
 
-func (s *serviceSuite) TestSetLXDProfilesSuccess(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	s.state.EXPECT().SetAppliedLXDProfileNames(gomock.Any(), "666", []string{"profile1", "profile2"}).Return(nil)
-
-	err := NewService(s.state, s.statusHistory, clock.WallClock, loggertesting.WrapCheckLog(c)).
-		SetAppliedLXDProfileNames(c.Context(), machine.UUID("666"), []string{"profile1", "profile2"})
-	c.Assert(err, tc.ErrorIsNil)
-}
-
-func (s *serviceSuite) TestSetLXDProfilesError(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	rErr := errors.New("boom")
-	s.state.EXPECT().SetAppliedLXDProfileNames(gomock.Any(), "666", []string{"profile1", "profile2"}).Return(rErr)
-
-	err := NewService(s.state, s.statusHistory, clock.WallClock, loggertesting.WrapCheckLog(c)).
-		SetAppliedLXDProfileNames(c.Context(), "666", []string{"profile1", "profile2"})
-	c.Assert(err, tc.ErrorIs, rErr)
-}
-
 func (s *serviceSuite) TestGetAllProvisionedMachineInstanceID(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 

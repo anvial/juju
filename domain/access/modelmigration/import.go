@@ -46,9 +46,6 @@ type ImportService interface {
 	// If a permission for the user and target key already exists,
 	// [accesserrors.PermissionAlreadyExists] is returned.
 	CreatePermission(ctx context.Context, spec corepermission.UserAccessSpec) (corepermission.UserAccess, error)
-	// ImportOfferAccess imports the user access for offers in the
-	// model.
-	ImportOfferAccess(ctx context.Context, importAccess []access.OfferImportAccess) error
 	// SetLastModelLogin will set the last login time for the user to the given
 	// value. The following error types are possible from this function:
 	// [accesserrors.UserNameNotValid] when the username supplied is not valid.
@@ -60,6 +57,9 @@ type ImportService interface {
 // ImportOfferAccessService provides a subset of the access domain
 // service methods needed for offer permissions import.
 type ImportOfferAccessService interface {
+	// DeletePermissionsByGrantOnUUID remove permissions for given GrantOn
+	// UUIDs.
+	DeletePermissionsByGrantOnUUID(ctx context.Context, grantOnUUIDs []string) error
 	// ImportOfferAccess imports the user access for offers in the
 	// model.
 	ImportOfferAccess(ctx context.Context, importAccess []access.OfferImportAccess) error
@@ -151,7 +151,7 @@ func (i *offerAccessImportOperation) Setup(scope modelmigration.Scope) error {
 	return nil
 }
 
-// Execute the import on the model user permissions contained in the model.
+// Execute the import on the offer permissions contained in the model.
 func (i *offerAccessImportOperation) Execute(ctx context.Context, model description.Model) error {
 	input := make([]access.OfferImportAccess, 0)
 	apps := model.Applications()
@@ -180,6 +180,23 @@ func (i *offerAccessImportOperation) Execute(ctx context.Context, model descript
 		return nil
 	}
 	return i.service.ImportOfferAccess(ctx, input)
+}
+
+// Rollback removes the offer permissions added to the controller db
+// when called. Rollback is important as there is no reference to the
+// offers in the controller DB, there is no referential integrity.
+func (i *offerAccessImportOperation) Rollback(ctx context.Context, model description.Model) error {
+	offerUUIDs := make([]string, 0)
+
+	for _, app := range model.Applications() {
+		for _, offer := range app.Offers() {
+			offerUUIDs = append(offerUUIDs, offer.OfferUUID())
+		}
+	}
+	if len(offerUUIDs) == 0 {
+		return nil
+	}
+	return i.service.DeletePermissionsByGrantOnUUID(ctx, offerUUIDs)
 }
 
 func encodeImportACL(input map[string]string) (map[string]corepermission.Access, error) {

@@ -410,6 +410,59 @@ func (s *stateSuite) TestDeletePublicKeysForNonExistentModel(c *tc.C) {
 	c.Check(err, tc.ErrorIs, modelerrors.NotFound)
 }
 
+func (s *stateSuite) TestDeletePublicKeysForModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	err := state.AddPublicKeysForUser(c.Context(), s.modelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	err = state.DeletePublicKeysForModel(c.Context(), s.modelId)
+	c.Assert(err, tc.ErrorIsNil)
+
+	keys, err := state.GetAllUsersPublicKeys(c.Context(), s.modelId)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(len(keys), tc.Equals, 0)
+}
+
+func (s *stateSuite) TestDeletePublicKeysForModelNonExistentModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+
+	badModelId := tc.Must0(c, model.NewUUID)
+
+	err := state.DeletePublicKeysForModel(c.Context(), badModelId)
+	c.Check(err, tc.ErrorIs, modelerrors.NotFound)
+}
+
+func (s *stateSuite) TestDeletePublicKeysForModelNoKeys(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+
+	err := state.DeletePublicKeysForModel(c.Context(), s.modelId)
+	c.Check(err, tc.ErrorIsNil)
+}
+
+func (s *stateSuite) TestDeletePublicKeysForModelKeepsOtherModels(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	err := state.AddPublicKeysForUser(c.Context(), s.modelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Create a second model to add keys onto
+	secondModelId := statemodeltesting.CreateTestModel(c, s.TxnRunnerFactory(), "second-model")
+
+	err = state.AddPublicKeysForUser(c.Context(), secondModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	err = state.DeletePublicKeysForModel(c.Context(), s.modelId)
+	c.Assert(err, tc.ErrorIsNil)
+
+	keys, err := state.GetAllUsersPublicKeys(c.Context(), secondModelId)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(len(keys), tc.Equals, 1)
+	c.Check(keys[s.userName], tc.DeepEquals, testingPublicKeys)
+}
+
 // TestGetAllUsersPublicKeys is responsible for testing the happy path of
 // getting all user keys in the model.
 func (s *stateSuite) TestGetAllUsersPublicKeys(c *tc.C) {
@@ -484,4 +537,151 @@ func (s *stateSuite) TestGetAllUserPublicKeysModelNotFound(c *tc.C) {
 		badModelUUID,
 	)
 	c.Check(err, tc.ErrorIs, modelerrors.NotFound)
+}
+
+// TestAddPublicKeysForUserOnNonActivatedModel is asserting that we can add
+// public keys for a user on a model that has not been activated yet. This is
+// important for the model creation process where keys need to be added before
+// the model is fully activated, this is the case in migrations.
+func (s *stateSuite) TestAddPublicKeysForUserOnNonActivatedModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	// Create a non-activated model using the testing helper
+	nonActivatedModelId := statemodeltesting.CreateTestModelWithoutActivation(
+		c, s.TxnRunnerFactory(), "non-activated-model",
+	)
+
+	// Should be able to add keys to a non-activated model
+	err := state.AddPublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Verify the keys were added
+	keys, err := state.GetPublicKeysDataForUser(c.Context(), nonActivatedModelId, s.userId)
+	c.Assert(err, tc.ErrorIsNil)
+	slices.Sort(keys)
+	slices.Sort(testingPublicKeys)
+	c.Check(keys, tc.DeepEquals, testingPublicKeys)
+}
+
+// TestEnsurePublicKeysForUserOnNonActivatedModel is asserting that we can
+// ensure public keys for a user on a model that has not been activated yet.
+func (s *stateSuite) TestEnsurePublicKeysForUserOnNonActivatedModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	// Create a non-activated model using the testing helper
+	nonActivatedModelId := statemodeltesting.CreateTestModelWithoutActivation(
+		c, s.TxnRunnerFactory(), "non-activated-ensure-model",
+	)
+
+	// Should be able to ensure keys on a non-activated model
+	err := state.EnsurePublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Verify the keys were added
+	keys, err := state.GetPublicKeysDataForUser(c.Context(), nonActivatedModelId, s.userId)
+	c.Assert(err, tc.ErrorIsNil)
+	slices.Sort(keys)
+	slices.Sort(testingPublicKeys)
+	c.Check(keys, tc.DeepEquals, testingPublicKeys)
+
+	// Run again to verify idempotency
+	err = state.EnsurePublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+}
+
+// TestGetPublicKeysForUserOnNonActivatedModel is asserting that we can get
+// public keys for a user on a model that has not been activated yet.
+func (s *stateSuite) TestGetPublicKeysForUserOnNonActivatedModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	// Create a non-activated model
+	nonActivatedModelId := statemodeltesting.CreateTestModelWithoutActivation(
+		c, s.TxnRunnerFactory(), "non-activated-get-model",
+	)
+
+	// Add keys
+	err := state.AddPublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Should be able to get keys from a non-activated model
+	keys, err := state.GetPublicKeysForUser(c.Context(), nonActivatedModelId, s.userId)
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(len(keys), tc.Equals, len(testingPublicKeys))
+}
+
+// TestGetPublicKeysDataForUserOnNonActivatedModel is asserting that we can get
+// public keys data for a user on a model that has not been activated yet.
+func (s *stateSuite) TestGetPublicKeysDataForUserOnNonActivatedModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	// Create a non-activated model
+	nonActivatedModelId := statemodeltesting.CreateTestModelWithoutActivation(
+		c, s.TxnRunnerFactory(), "non-activated-getdata-model",
+	)
+
+	// Add keys
+	err := state.AddPublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Should be able to get keys data from a non-activated model
+	keys, err := state.GetPublicKeysDataForUser(c.Context(), nonActivatedModelId, s.userId)
+	c.Assert(err, tc.ErrorIsNil)
+	slices.Sort(keys)
+	slices.Sort(testingPublicKeys)
+	c.Check(keys, tc.DeepEquals, testingPublicKeys)
+}
+
+// TestDeletePublicKeysForUserOnNonActivatedModel is asserting that we can
+// delete public keys for a user on a model that has not been activated yet.
+func (s *stateSuite) TestDeletePublicKeysForUserOnNonActivatedModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	// Create a non-activated model
+	nonActivatedModelId := statemodeltesting.CreateTestModelWithoutActivation(
+		c, s.TxnRunnerFactory(), "non-activated-delete-model",
+	)
+
+	// Add keys
+	err := state.AddPublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Should be able to delete keys from a non-activated model
+	err = state.DeletePublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, []string{
+		keysToAdd[0].Comment,
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	// Verify the key was deleted
+	keys, err := state.GetPublicKeysDataForUser(c.Context(), nonActivatedModelId, s.userId)
+	c.Assert(err, tc.ErrorIsNil)
+	slices.Sort(keys)
+	slices.Sort(testingPublicKeys)
+	c.Check(testingPublicKeys[1:], tc.DeepEquals, keys)
+}
+
+// TestGetAllUsersPublicKeysOnNonActivatedModel is asserting that we can get
+// all users' public keys on a model that has not been activated yet.
+func (s *stateSuite) TestGetAllUsersPublicKeysOnNonActivatedModel(c *tc.C) {
+	state := NewState(s.TxnRunnerFactory())
+	keysToAdd := generatePublicKeys(c, testingPublicKeys)
+
+	// Create a non-activated model
+	nonActivatedModelId := statemodeltesting.CreateTestModelWithoutActivation(
+		c, s.TxnRunnerFactory(), "non-activated-getall-model",
+	)
+
+	// Add keys
+	err := state.AddPublicKeysForUser(c.Context(), nonActivatedModelId, s.userId, keysToAdd)
+	c.Check(err, tc.ErrorIsNil)
+
+	// Should be able to get all keys from a non-activated model
+	allKeys, err := state.GetAllUsersPublicKeys(c.Context(), nonActivatedModelId)
+	c.Check(err, tc.ErrorIsNil)
+	c.Check(len(allKeys), tc.Equals, 1)
+	c.Check(allKeys[s.userName], tc.HasLen, len(testingPublicKeys))
 }

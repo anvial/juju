@@ -27,10 +27,6 @@ func (adaptor charmInfoAdaptor) Config() *charm.ConfigSpec {
 	return adaptor.meta.Config
 }
 
-func (adaptor charmInfoAdaptor) LXDProfile() *charm.LXDProfile {
-	return nil // not part of the essential metadata
-}
-
 func (adaptor charmInfoAdaptor) Actions() *charm.Actions {
 	return nil // not part of the essential metadata
 }

@@ -5,6 +5,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	stdtesting "testing"
@@ -264,6 +265,19 @@ func (s *MigrateSuite) TestSuccess(c *tc.C) {
 	})
 }
 
+func (s *MigrateSuite) TestDryRun(c *tc.C) {
+	ctx, err := s.makeAndRun(c, "prod/model", "target", "--dry-run")
+	c.Assert(err, tc.ErrorIsNil)
+
+	c.Check(cmdtesting.Stderr(ctx), tc.Matches, "Dry run successful: migration can proceed\n")
+}
+
+func (s *MigrateSuite) TestDryRunFails(c *tc.C) {
+	s.api.wantDryRunPrecheckErr = true
+	_, err := s.makeAndRun(c, "prod/model", "target", "--dry-run")
+	c.Assert(err, tc.ErrorMatches, "precheck failed")
+}
+
 func (s *MigrateSuite) TestSuccessMacaroons(c *tc.C) {
 	err := s.store.UpdateAccount("target", jujuclient.AccountDetails{
 		User:     "targetuser",
@@ -442,12 +456,19 @@ func (s *MigrateSuite) makeCommand() modelcmd.ModelCommand {
 }
 
 type fakeMigrateAPI struct {
-	specSeen    *controller.MigrationSpec
-	identityURL string
+	specSeen              *controller.MigrationSpec
+	identityURL           string
+	wantDryRunPrecheckErr bool
 }
 
-func (a *fakeMigrateAPI) InitiateMigration(ctx context.Context, spec controller.MigrationSpec) (string, error) {
+func (a *fakeMigrateAPI) InitiateMigration(ctx context.Context, spec controller.MigrationSpec, dryRun bool) (string, error) {
 	a.specSeen = &spec
+	if dryRun {
+		if a.wantDryRunPrecheckErr {
+			return "", errors.New("precheck failed")
+		}
+		return "", nil
+	}
 	return "uuid:0", nil
 }
 

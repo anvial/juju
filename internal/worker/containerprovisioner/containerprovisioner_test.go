@@ -418,7 +418,6 @@ type testMachine struct {
 	machineStatus  status.Status
 	instStatus     status.Status
 	instStatusMsg  string
-	modStatusMsg   string
 	password       string
 
 	containersCh chan []string
@@ -508,19 +507,6 @@ func (m *testMachine) InstanceStatus(context.Context) (status.Status, string, er
 	return m.instStatus, m.instStatusMsg, nil
 }
 
-func (m *testMachine) SetModificationStatus(_ context.Context, _ status.Status, message string, _ map[string]interface{}) error {
-	m.mu.Lock()
-	m.modStatusMsg = message
-	m.mu.Unlock()
-	return nil
-}
-
-func (m *testMachine) ModificationStatus() (status.Status, string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return "", m.modStatusMsg, nil
-}
-
 func (m *testMachine) SetStatus(_ context.Context, status status.Status, _ string, _ map[string]interface{}) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -553,7 +539,7 @@ func (m *testMachine) SetUnprovisioned() {
 func (m *testMachine) SetInstanceInfo(
 	_ context.Context,
 	instId instance.Id, _ string, _ string, _ *instance.HardwareCharacteristics, _ []params.NetworkConfig, _ []params.Volume,
-	_ map[string]params.VolumeAttachmentInfo, _ []string,
+	_ map[string]params.VolumeAttachmentInfo,
 ) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

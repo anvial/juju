@@ -386,7 +386,7 @@ func (s *networkSuite) TestInterfaceInfoFromDevices(c *tc.C) {
 			"hwaddr":  "00:16:3e:00:00:00",
 		},
 		"eno9": {
-			"parent":  "br1",
+			"network": "br1",
 			"type":    "nic",
 			"nictype": "macvlan",
 			"hwaddr":  "00:16:3e:00:00:3e",

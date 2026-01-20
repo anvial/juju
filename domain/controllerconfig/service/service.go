@@ -6,6 +6,8 @@ package service
 import (
 	"context"
 
+	"github.com/juju/collections/transform"
+
 	"github.com/juju/juju/controller"
 	"github.com/juju/juju/core/changestream"
 	coreerrors "github.com/juju/juju/core/errors"
@@ -32,9 +34,9 @@ type State interface {
 	// for the controller configuration watcher.
 	AllKeysQuery() string
 
-	// NamespaceForWatchControllerConfig returns the namespace identifier
+	// NamespacesForWatchControllerConfig returns the namespace identifiers
 	// used for watching controller configuration changes.
-	NamespaceForWatchControllerConfig() []string
+	NamespacesForWatchControllerConfig() []string
 }
 
 // WatcherFactory describes methods for creating watchers.
@@ -282,15 +284,14 @@ func (s *WatchableService) WatchControllerConfig(ctx context.Context) (watcher.S
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	namespaces := s.st.NamespaceForWatchControllerConfig()
+	namespaces := s.st.NamespacesForWatchControllerConfig()
 	if len(namespaces) == 0 {
 		return nil, errors.Errorf("no namespaces for watching controller config")
 	}
 
-	filters := make([]eventsource.FilterOption, 0, len(namespaces))
-	for _, ns := range namespaces {
-		filters = append(filters, eventsource.NamespaceFilter(ns, changestream.All))
-	}
+	filters := transform.Slice(namespaces, func(ns string) eventsource.FilterOption {
+		return eventsource.NamespaceFilter(ns, changestream.All)
+	})
 
 	return s.watcherFactory.NewNamespaceWatcher(
 		ctx,

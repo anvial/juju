@@ -82,7 +82,6 @@ func (s *watcherSuite) SetUpTest(c *tc.C) {
 		func(ctx context.Context) (service.Provider, error) {
 			return service.NewNoopProvider(), nil
 		},
-		nil,
 		domain.NewStatusHistory(loggertesting.WrapCheckLog(c), clock.WallClock),
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
@@ -298,63 +297,6 @@ func (s *watcherSuite) TestMachineCloudInstanceWatchWithSet(c *tc.C) {
 		c.Assert(err, tc.ErrorIsNil)
 	}, func(w watchertest.WatcherC[struct{}]) {
 		w.Check(watchertest.SliceAssert(struct{}{}))
-	})
-
-	harness.Run(c, struct{}{})
-}
-
-func (s *watcherSuite) TestWatchLXDProfiles(c *tc.C) {
-	res0, err := s.svc.AddMachine(c.Context(), domainmachine.AddMachineArgs{
-		Platform: deployment.Platform{
-			Channel: "24.04",
-			OSType:  deployment.Ubuntu,
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	machineUUIDm0, err := s.svc.GetMachineUUID(c.Context(), res0.MachineName)
-	c.Assert(err, tc.IsNil)
-	err = s.svc.SetMachineCloudInstance(c.Context(), machineUUIDm0, instance.Id("123"), "", "nonce", nil)
-	c.Assert(err, tc.ErrorIsNil)
-
-	res1, err := s.svc.AddMachine(c.Context(), domainmachine.AddMachineArgs{
-		Platform: deployment.Platform{
-			Channel: "24.04",
-			OSType:  deployment.Ubuntu,
-		},
-	})
-	c.Assert(err, tc.ErrorIsNil)
-	machineUUIDm1, err := s.svc.GetMachineUUID(c.Context(), res1.MachineName)
-	c.Assert(err, tc.IsNil)
-	err = s.svc.SetMachineCloudInstance(c.Context(), machineUUIDm1, instance.Id("456"), "", "nonce", nil)
-	c.Assert(err, tc.ErrorIsNil)
-
-	watcher, err := s.svc.WatchLXDProfiles(c.Context(), machineUUIDm0)
-	c.Assert(err, tc.ErrorIsNil)
-	harness := watchertest.NewHarness(s, watchertest.NewWatcherC(c, watcher))
-
-	// Should notify when a new profile is added.
-	harness.AddTest(c, func(c *tc.C) {
-		err := s.svc.SetAppliedLXDProfileNames(c.Context(), machineUUIDm0, []string{"profile-0"})
-		c.Assert(err, tc.ErrorIsNil)
-	}, func(w watchertest.WatcherC[struct{}]) {
-		w.Check(watchertest.SliceAssert(struct{}{}))
-	})
-
-	// Should notify when profiles are overwritten.
-	harness.AddTest(c, func(c *tc.C) {
-		err := s.svc.SetAppliedLXDProfileNames(c.Context(), machineUUIDm0, []string{"profile-0", "profile-1", "profile-2"})
-		c.Assert(err, tc.ErrorIsNil)
-	}, func(w watchertest.WatcherC[struct{}]) {
-		w.Check(watchertest.SliceAssert(struct{}{}))
-	})
-
-	// Nothing to notify when the lxd profiles are set on the other (non
-	// watched) machine.
-	harness.AddTest(c, func(c *tc.C) {
-		err := s.svc.SetAppliedLXDProfileNames(c.Context(), machineUUIDm1, []string{"profile-0"})
-		c.Assert(err, tc.ErrorIsNil)
-	}, func(w watchertest.WatcherC[struct{}]) {
-		w.AssertNoChange()
 	})
 
 	harness.Run(c, struct{}{})

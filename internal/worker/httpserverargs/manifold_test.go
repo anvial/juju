@@ -184,8 +184,10 @@ func (s *ManifoldSuite) TestValidate(c *tc.C) {
 
 		manifold := httpserverargs.Manifold(config)
 		w, err := manifold.Start(c.Context(), s.getter)
-		workertest.CheckNilOrKill(c, w)
 		c.Check(err, tc.ErrorMatches, test.expect)
+		if w != nil {
+			workertest.CleanKill(c, w)
+		}
 	}
 }
 

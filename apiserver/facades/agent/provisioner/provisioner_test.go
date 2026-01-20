@@ -22,13 +22,10 @@ import (
 	machinetesting "github.com/juju/juju/core/machine/testing"
 	"github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/status"
-	coreunit "github.com/juju/juju/core/unit"
-	applicationcharm "github.com/juju/juju/domain/application/charm"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	domainnetwork "github.com/juju/juju/domain/network"
 	"github.com/juju/juju/domain/network/errors"
 	environtesting "github.com/juju/juju/environs/testing"
-	"github.com/juju/juju/internal/charm"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	coretesting "github.com/juju/juju/internal/testing"
 	"github.com/juju/juju/rpc/params"
@@ -271,83 +268,6 @@ func (s *provisionerMockSuite) TestPrepareContainerInterfaceInfoProviderAddrAllo
 			}},
 		}},
 	})
-}
-
-// TODO: this is not a great test name, this test does not even call
-//
-//	ProvisionerAPI.GetContainerProfileInfo.
-func (s *provisionerMockSuite) TestGetContainerProfileInfo(c *tc.C) {
-	ctrl := s.setup(c)
-	defer ctrl.Finish()
-
-	machineName := coremachine.Name("0/lxd/0")
-	s.applicationService.EXPECT().GetUnitNamesOnMachine(gomock.Any(), machineName).Return([]coreunit.Name{"application/0"}, nil)
-	locator := applicationcharm.CharmLocator{
-		Name:     "application",
-		Revision: 42,
-		Source:   applicationcharm.CharmHubSource,
-	}
-	s.applicationService.EXPECT().GetCharmLocatorByApplicationName(gomock.Any(), "application").Return(locator, nil)
-	s.applicationService.EXPECT().GetCharmLXDProfile(gomock.Any(), locator).Return(charm.LXDProfile{
-		Config: map[string]string{
-			"security.nesting":    "true",
-			"security.privileged": "true",
-		},
-	}, 3, nil)
-
-	res := params.ContainerProfileResults{
-		Results: []params.ContainerProfileResult{{}},
-	}
-	ctx := containerProfileHandler{
-		applicationService: s.applicationService,
-		result:             res,
-		modelName:          "testme",
-		logger:             loggertesting.WrapCheckLog(c),
-		modelTag:           coretesting.ModelTag,
-	}
-	err := ctx.ProcessOneContainer(c.Context(), 0, "0/lxd/0")
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(res.Results, tc.HasLen, 1)
-	c.Assert(res.Results[0].Error, tc.IsNil)
-	c.Assert(res.Results[0].LXDProfiles, tc.HasLen, 1)
-	profile := res.Results[0].LXDProfiles[0]
-	c.Check(profile.Name, tc.Equals, "juju-testme-deadbe-application-3")
-	c.Check(profile.Profile.Config, tc.DeepEquals,
-		map[string]string{
-			"security.nesting":    "true",
-			"security.privileged": "true",
-		},
-	)
-}
-
-func (s *provisionerMockSuite) TestGetContainerProfileInfoNoProfile(c *tc.C) {
-	ctrl := s.setup(c)
-	defer ctrl.Finish()
-
-	machineName := coremachine.Name("0/lxd/0")
-	s.applicationService.EXPECT().GetUnitNamesOnMachine(gomock.Any(), machineName).Return([]coreunit.Name{"application/0"}, nil)
-	locator := applicationcharm.CharmLocator{
-		Name:     "application",
-		Revision: 42,
-		Source:   applicationcharm.CharmHubSource,
-	}
-	s.applicationService.EXPECT().GetCharmLocatorByApplicationName(gomock.Any(), "application").Return(locator, nil)
-	s.applicationService.EXPECT().GetCharmLXDProfile(gomock.Any(), locator).Return(charm.LXDProfile{}, -1, nil)
-
-	res := params.ContainerProfileResults{
-		Results: []params.ContainerProfileResult{{}},
-	}
-	ctx := containerProfileHandler{
-		applicationService: s.applicationService,
-		result:             res,
-		modelName:          "testme",
-		logger:             loggertesting.WrapCheckLog(c),
-	}
-	err := ctx.ProcessOneContainer(c.Context(), 0, "0/lxd/0")
-	c.Assert(err, tc.ErrorIsNil)
-	c.Assert(res.Results, tc.HasLen, 1)
-	c.Assert(res.Results[0].Error, tc.IsNil)
-	c.Assert(res.Results[0].LXDProfiles, tc.HasLen, 0)
 }
 
 func (s *provisionerMockSuite) TestStatusSuccess(c *tc.C) {

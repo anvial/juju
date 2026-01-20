@@ -402,12 +402,13 @@ func (st *State) importCAASUnit(
 	err = st.unitState.insertUnit(
 		ctx, tx, appUUID, unitUUID, netNodeUUID.String(),
 		insertUnitArg{
-			CharmUUID:      charmUUID,
-			UnitName:       args.UnitName.String(),
-			CloudContainer: args.CloudContainer,
-			Password:       args.Password,
-			Constraints:    args.Constraints,
-			UnitStatusArg:  args.UnitStatusArg,
+			CharmUUID:       charmUUID,
+			UnitName:        args.UnitName.String(),
+			CloudContainer:  args.CloudContainer,
+			Password:        args.Password,
+			Constraints:     args.Constraints,
+			WorkloadVersion: args.WorkloadVersion,
+			UnitStatusArg:   args.UnitStatusArg,
 		},
 	)
 	if err != nil {
@@ -496,11 +497,12 @@ func (st *State) importIAASUnit(
 	}
 
 	if err := st.unitState.insertUnit(ctx, tx, appUUID, unitUUID, netNodeUUID, insertUnitArg{
-		CharmUUID:     charmUUID,
-		UnitName:      args.UnitName.String(),
-		Password:      args.Password,
-		Constraints:   args.Constraints,
-		UnitStatusArg: args.UnitStatusArg,
+		CharmUUID:       charmUUID,
+		UnitName:        args.UnitName.String(),
+		Password:        args.Password,
+		Constraints:     args.Constraints,
+		WorkloadVersion: args.WorkloadVersion,
+		UnitStatusArg:   args.UnitStatusArg,
 	}); err != nil {
 		return errors.Errorf("importing unit for application %q: %w", appUUID, err)
 	}

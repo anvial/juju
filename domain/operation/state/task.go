@@ -688,10 +688,11 @@ ORDER BY created_at ASC
 func encodeTask(task taskResult, parameters []taskParameter, logs []taskLogEntryByOperation) (operation.Task, error) {
 	result := operation.Task{
 		TaskInfo: operation.TaskInfo{
-			ID:       task.TaskID,
-			Enqueued: task.EnqueuedAt,
-			Message:  task.Message,
-			Status:   corestatus.Status(task.Status),
+			ID:         task.TaskID,
+			Enqueued:   task.EnqueuedAt,
+			Message:    task.Message,
+			Status:     corestatus.Status(task.Status),
+			IsParallel: task.Parallel,
 		},
 	}
 

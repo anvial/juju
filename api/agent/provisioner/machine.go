@@ -73,17 +73,22 @@ type MachineProvisioner interface {
 	// to distribute instances for high availability.
 	DistributionGroup(ctx context.Context) ([]instance.Id, error)
 
-	// SetInstanceInfo sets the provider specific instance id, nonce, metadata,
-	// network config for this machine. Once set, the instance id cannot be changed.
+	// SetInstanceInfo sets the provider-specific instance id,
+	// nonce, metadata, network config for this machine.
+	// Once set, the instance id cannot be changed.
 	SetInstanceInfo(
 		ctx context.Context,
-		id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-		networkConfig []params.NetworkConfig, volumes []params.Volume,
-		volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+		id instance.Id,
+		displayName string,
+		nonce string,
+		characteristics *instance.HardwareCharacteristics,
+		networkConfig []params.NetworkConfig,
+		volumes []params.Volume,
+		volumeAttachments map[string]params.VolumeAttachmentInfo,
 	) error
 
-	// InstanceId returns the provider specific instance id for the
-	// machine or an CodeNotProvisioned error, if not set.
+	// InstanceId returns the provider-specific instance id for the
+	// machine or a CodeNotProvisioned error, if not set.
 	InstanceId(ctx context.Context) (instance.Id, error)
 
 	// KeepInstance returns the value of the keep-instance
@@ -105,9 +110,6 @@ type MachineProvisioner interface {
 
 	// SupportedContainers returns a list of containers supported by this machine.
 	SupportedContainers(ctx context.Context) ([]instance.ContainerType, bool, error)
-
-	// SetCharmProfiles records the given slice of charm profile names.
-	SetCharmProfiles(context.Context, []string) error
 }
 
 // Machine represents a juju machine as seen by the provisioner worker.
@@ -305,9 +307,13 @@ func (m *Machine) DistributionGroup(ctx context.Context) ([]instance.Id, error) 
 // SetInstanceInfo implements MachineProvisioner.SetInstanceInfo.
 func (m *Machine) SetInstanceInfo(
 	ctx context.Context,
-	id instance.Id, displayName string, nonce string, characteristics *instance.HardwareCharacteristics,
-	networkConfig []params.NetworkConfig, volumes []params.Volume,
-	volumeAttachments map[string]params.VolumeAttachmentInfo, charmProfiles []string,
+	id instance.Id,
+	displayName string,
+	nonce string,
+	characteristics *instance.HardwareCharacteristics,
+	networkConfig []params.NetworkConfig,
+	volumes []params.Volume,
+	volumeAttachments map[string]params.VolumeAttachmentInfo,
 ) error {
 	var result params.ErrorResults
 	args := params.InstancesInfo{
@@ -320,7 +326,6 @@ func (m *Machine) SetInstanceInfo(
 			Volumes:           volumes,
 			VolumeAttachments: volumeAttachments,
 			NetworkConfig:     networkConfig,
-			CharmProfiles:     charmProfiles,
 		}},
 	}
 	err := m.st.facade.FacadeCall(ctx, "SetInstanceInfo", args, &result)
@@ -472,29 +477,4 @@ func (m *Machine) SupportedContainers(ctx context.Context) ([]instance.Container
 	}
 	result := results.Results[0]
 	return result.ContainerTypes, result.Determined, nil
-}
-
-// SetCharmProfiles implements MachineProvisioner.SetCharmProfiles.
-func (m *Machine) SetCharmProfiles(ctx context.Context, profiles []string) error {
-	var results params.ErrorResults
-	args := params.SetProfileArgs{
-		Args: []params.SetProfileArg{
-			{
-				Entity:   params.Entity{Tag: m.tag.String()},
-				Profiles: profiles,
-			},
-		},
-	}
-	err := m.st.facade.FacadeCall(ctx, "SetCharmProfiles", args, &results)
-	if err != nil {
-		return err
-	}
-	if len(results.Results) != 1 {
-		return fmt.Errorf("expected 1 result, got %d", len(results.Results))
-	}
-	result := results.Results[0]
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
 }

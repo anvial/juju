@@ -97,7 +97,7 @@ func (s *ManifoldsSuite) TestManifoldNamesIAAS(c *tc.C) {
 			"upgrade-check-gate",
 			"upgrade-steps-flag",
 			"upgrade-steps-gate",
-			"upgrade-steps-runner",
+			"upgrade-agent-steps-runner",
 			"upgrader",
 			"valid-credential-flag",
 		},
@@ -130,7 +130,7 @@ func (s *ManifoldsSuite) TestManifoldNamesCAAS(c *tc.C) {
 			"upgrade-check-gate",
 			"upgrade-steps-flag",
 			"upgrade-steps-gate",
-			"upgrade-steps-runner",
+			"upgrade-agent-steps-runner",
 			"upgrader",
 			"valid-credential-flag",
 		},
@@ -211,7 +211,7 @@ func (s *ManifoldsSuite) TestMigrationGuardsUsed(c *tc.C) {
 		"upgrade-database-runner",
 		"upgrade-steps-flag",
 		"upgrade-steps-gate",
-		"upgrade-steps-runner",
+		"upgrade-agent-steps-runner",
 		"upgrader",
 		"valid-credential-flag",
 	)
@@ -648,7 +648,7 @@ var expectedMachineManifoldsWithDependenciesIAAS = map[string][]string{
 
 	"upgrade-steps-gate": {},
 
-	"upgrade-steps-runner": {
+	"upgrade-agent-steps-runner": {
 		"agent",
 		"api-caller",
 		"api-config-watcher",
@@ -770,7 +770,7 @@ var expectedMachineManifoldsWithDependenciesCAAS = map[string][]string{
 
 	"upgrade-steps-gate": {},
 
-	"upgrade-steps-runner": {
+	"upgrade-agent-steps-runner": {
 		"agent",
 		"api-caller",
 		"api-config-watcher",

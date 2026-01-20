@@ -510,12 +510,11 @@ type LifeResults struct {
 // be a container.
 //
 // The InstanceInfo struct contains three categories of information:
-//   - interal data, as the machine's tag and the tags of any attached
+//   - internal data, as the machine's tag and the tags of any attached
 //     storage volumes
 //   - naming and other provider-specific information, including the
 //     instance id and display name
-//   - configuration information, including its attached storage volumes,
-//     charm profiles and networking
+//   - configuration information, including its attached storage volumes
 type InstanceInfo struct {
 	Tag             string                            `json:"tag"`
 	InstanceId      instance.Id                       `json:"instance-id"`
@@ -528,7 +527,9 @@ type InstanceInfo struct {
 	VolumeAttachments map[string]VolumeAttachmentInfo `json:"volume-attachments"`
 
 	NetworkConfig []NetworkConfig `json:"network-config"`
-	CharmProfiles []string        `json:"charm-profiles"`
+
+	// Deprecated: LXD profiles are no longer supported.
+	CharmProfiles []string `json:"charm-profiles"`
 }
 
 // InstancesInfo holds the parameters for making a SetInstanceInfo

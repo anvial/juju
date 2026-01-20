@@ -10,6 +10,7 @@ import (
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
+	"github.com/juju/juju/cloud"
 	"github.com/juju/juju/core/semversion"
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/modelmigration"
@@ -17,7 +18,7 @@ import (
 	"github.com/juju/juju/internal/testing"
 )
 
-//go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination migration_mock_test.go github.com/juju/juju/internal/migration AgentBinaryStore,ControllerConfigService,UpgradeService,ApplicationService,CredentialService,RelationService,StatusService,OperationExporter,Coordinator,ModelAgentService,CharmService,ModelService,ModelMigrationService,MachineService
+//go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination migration_mock_test.go github.com/juju/juju/internal/migration AgentBinaryStore,ControllerConfigService,UpgradeService,ApplicationService,CredentialService,RelationService,StatusService,OperationExporter,Coordinator,ModelAgentService,CharmService,ModelService,ModelMigrationService,MachineService,CloudService
 //go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination domainservices_mock_test.go github.com/juju/juju/internal/services DomainServicesGetter,DomainServices
 //go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination storage_mock_test.go github.com/juju/juju/core/storage ModelStorageRegistryGetter
 //go:generate go run go.uber.org/mock/mockgen -typed -package migration_test -destination description_mock_test.go github.com/juju/description/v11 Model
@@ -29,6 +30,7 @@ type precheckBaseSuite struct {
 	modelService          *MockModelService
 	modelMigrationService *MockModelMigrationService
 	machineService        *MockMachineService
+	cloudService          *MockCloudService
 	upgradeService        *MockUpgradeService
 	applicationService    *MockApplicationService
 	relationService       *MockRelationService
@@ -54,6 +56,7 @@ func (s *precheckBaseSuite) setupMocks(c *tc.C) *gomock.Controller {
 	s.modelMigrationService = NewMockModelMigrationService(ctrl)
 	s.modelService = NewMockModelService(ctrl)
 	s.machineService = NewMockMachineService(ctrl)
+	s.cloudService = NewMockCloudService(ctrl)
 
 	c.Cleanup(func() {
 		s.upgradeService = nil
@@ -65,9 +68,18 @@ func (s *precheckBaseSuite) setupMocks(c *tc.C) *gomock.Controller {
 		s.modelMigrationService = nil
 		s.modelService = nil
 		s.machineService = nil
+		s.cloudService = nil
 	})
 
 	return ctrl
+}
+
+func (s *precheckBaseSuite) expectMatchingCloud() {
+	s.cloudService.EXPECT().ListAll(gomock.Any()).Return([]cloud.Cloud{{
+		Name: "my-cloud",
+	}, {
+		Name: "other-cloud",
+	}}, nil)
 }
 
 func (s *precheckBaseSuite) expectMigrationModeNone() {

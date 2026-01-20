@@ -73,7 +73,7 @@ func (i *importOperation) importLinkLayerDevices(ctx context.Context, modelLLD [
 	if len(modelLLD) == 0 {
 		return nil
 	}
-	lldData, err := i.transformLinkLayerDevices(modelLLD, modelAddresses)
+	lldData, err := i.transformLinkLayerDevices(ctx, modelLLD, modelAddresses)
 	if err != nil {
 		return errors.Capture(err)
 	}
@@ -84,7 +84,11 @@ func (i *importOperation) importLinkLayerDevices(ctx context.Context, modelLLD [
 	return nil
 }
 
-func (i *importOperation) transformLinkLayerDevices(modelLLD []description.LinkLayerDevice, addresses []description.IPAddress) ([]internal.ImportLinkLayerDevice, error) {
+func (i *importOperation) transformLinkLayerDevices(
+	ctx context.Context,
+	modelLLD []description.LinkLayerDevice,
+	addresses []description.IPAddress,
+) ([]internal.ImportLinkLayerDevice, error) {
 	data := make([]internal.ImportLinkLayerDevice, len(modelLLD))
 
 	// Temporary map to index llds by machine and name, to distribute addresses
@@ -119,6 +123,13 @@ func (i *importOperation) transformLinkLayerDevices(modelLLD []description.LinkL
 	}
 
 	for _, address := range addresses {
+		scope := corenetwork.NewMachineAddress(address.Value()).Scope
+		if scope == corenetwork.ScopeFanLocal {
+			i.logger.Warningf(ctx, "ignoring legacy fan address %q on device %q for machine %q",
+				address.Value(), address.DeviceName(), address.MachineID())
+			continue
+		}
+
 		addressUUID, err := uuid.NewUUID()
 		if err != nil {
 			return nil, errors.Errorf("creating UUID for address %q of device %q", address.Value(),
@@ -142,7 +153,7 @@ func (i *importOperation) transformLinkLayerDevices(modelLLD []description.LinkL
 		device.Addresses = append(device.Addresses, internal.ImportIPAddress{
 			UUID:             addressUUID.String(),
 			Type:             addrType,
-			Scope:            corenetwork.NewMachineAddress(address.Value()).Scope,
+			Scope:            scope,
 			AddressValue:     i.ensureAddressWithCIDR(address, addrType),
 			SubnetCIDR:       address.SubnetCIDR(),
 			ConfigType:       corenetwork.AddressConfigType(address.ConfigMethod()),

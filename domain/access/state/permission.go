@@ -147,6 +147,33 @@ func (st *PermissionState) DeletePermission(ctx context.Context, subject user.Na
 	return errors.Capture(err)
 }
 
+// DeletePermissionsByGrantOnUUID removes the removes permissions by given
+// GrantOn UUIDs.
+func (st *PermissionState) DeletePermissionsByGrantOnUUID(ctx context.Context, permissionUUIDs []string) error {
+	db, err := st.DB(ctx)
+	if err != nil {
+		return errors.Capture(err)
+	}
+	type uuids []string
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		deletePermissionStmt, err := st.Prepare(`
+DELETE FROM permission WHERE grant_on IN ($uuids[:])
+`, uuids{})
+		if err != nil {
+			return errors.Capture(err)
+		}
+
+		err = tx.Query(ctx, deletePermissionStmt, uuids(permissionUUIDs)).Run()
+		if err != nil && !errors.Is(err, sqlair.ErrNoRows) {
+			return errors.Errorf("deleting permissions of %s: %w", strings.Join(permissionUUIDs, ", "), err)
+		}
+		return nil
+
+	})
+	return errors.Capture(err)
+}
+
 // UpdatePermission updates the permission on the target for the given subject
 // (user). If the subject is an external user, and they do not exist, they are
 // created. Access can be granted or revoked. Revoking Read access will delete

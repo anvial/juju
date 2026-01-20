@@ -264,6 +264,61 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddressesErrorNoDevice(c *tc
 	c.Assert(err, tc.ErrorMatches, `address \"10.0.0.1\" for machine \"0\" on device \"eth1\" not found`)
 }
 
+func (s *importSuite) TestImportLinkLayerDevicesSkipsFanAddresses(c *tc.C) {
+	// Arrange
+	defer s.setupMocks(c).Finish()
+	model := description.NewModel(description.ModelArgs{})
+
+	model.AddLinkLayerDevice(description.LinkLayerDeviceArgs{
+		Name:      "eth0",
+		MachineID: "0",
+	})
+	model.AddIPAddress(description.IPAddressArgs{
+		DeviceName: "eth0",
+		MachineID:  "0",
+
+		ConfigMethod: string(network.ConfigStatic),
+		Value:        "240.0.0.1",
+	})
+	model.AddIPAddress(description.IPAddressArgs{
+		DeviceName: "eth0",
+		MachineID:  "0",
+
+		ProviderID:       "address-10.0.0.1",
+		SubnetCIDR:       "10.0.0.0/24",
+		ConfigMethod:     string(network.ConfigStatic),
+		Value:            "10.0.0.1",
+		ProviderSubnetID: "subnet-10.0.0.0/24",
+		Origin:           "provider",
+	})
+
+	s.migrationService.EXPECT().ImportLinkLayerDevices(gomock.Any(), lldArgMatcher{c: c,
+		expected: []internal.ImportLinkLayerDevice{{
+			MachineID: "0",
+			Name:      "eth0",
+			Addresses: []internal.ImportIPAddress{{
+				ProviderID:       ptr("address-10.0.0.1"),
+				SubnetCIDR:       "10.0.0.0/24",
+				ConfigType:       network.ConfigStatic,
+				AddressValue:     "10.0.0.1/24",
+				ProviderSubnetID: ptr("subnet-10.0.0.0/24"),
+				Origin:           "provider",
+				IsShadow:         false,
+				IsSecondary:      false,
+				// Resolved values
+				Type:  network.IPv4Address,
+				Scope: network.ScopeCloudLocal,
+			}},
+		}}}).Return(nil)
+
+	// Act
+	op := s.newImportOperation(c)
+	err := op.Execute(c.Context(), model)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
 func (s *importSuite) TestImportLinkLayerDevicesWithAddressesErrorInvalidConfigMethod(c *tc.C) {
 	// Arrange
 	defer s.setupMocks(c).Finish()

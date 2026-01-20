@@ -31,7 +31,7 @@ import (
 	jujuversion "github.com/juju/juju/core/version"
 	"github.com/juju/juju/domain"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
-	agentbinarystate "github.com/juju/juju/domain/agentbinary/state"
+	agentbinarystate "github.com/juju/juju/domain/agentbinary/state/model"
 	"github.com/juju/juju/domain/application"
 	"github.com/juju/juju/domain/application/architecture"
 	"github.com/juju/juju/domain/application/charm"
