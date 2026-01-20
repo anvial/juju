@@ -166,6 +166,7 @@ func TargetPrecheck(
 	statusService StatusService,
 	modelAgentService ModelAgentService,
 	machineService MachineService,
+	cloudService CloudService,
 	modelMigrationServiceGetter func(context.Context, coremodel.UUID) (ModelMigrationService, error),
 ) error {
 	if err := modelInfo.Validate(); err != nil {
@@ -185,6 +186,22 @@ func TargetPrecheck(
 	if !controllerVersionCompatible(modelInfo.ControllerAgentVersion, controllerVersion) {
 		return errors.Errorf("source controller has higher version than target controller (%s > %s)",
 			modelInfo.ControllerAgentVersion, controllerVersion)
+	}
+
+	clouds, err := cloudService.ListAll(ctx)
+	if err != nil {
+		return errors.Annotate(err, "retrieving clouds")
+	}
+	descCloud := modelInfo.ModelDescription.Cloud()
+	cloudFound := false
+	for _, cloud := range clouds {
+		if cloud.Name == descCloud {
+			cloudFound = true
+			break
+		}
+	}
+	if !cloudFound {
+		return errors.Errorf("model's cloud %q not found on target controller", descCloud)
 	}
 
 	controllerCtx := newPrecheckController(

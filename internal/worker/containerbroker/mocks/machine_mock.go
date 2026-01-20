@@ -509,56 +509,18 @@ func (c *MockMachineProvisionerRefreshCall) DoAndReturn(f func(context.Context) 
 	return c
 }
 
-// SetCharmProfiles mocks base method.
-func (m *MockMachineProvisioner) SetCharmProfiles(arg0 context.Context, arg1 []string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetCharmProfiles", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetCharmProfiles indicates an expected call of SetCharmProfiles.
-func (mr *MockMachineProvisionerMockRecorder) SetCharmProfiles(arg0, arg1 any) *MockMachineProvisionerSetCharmProfilesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCharmProfiles", reflect.TypeOf((*MockMachineProvisioner)(nil).SetCharmProfiles), arg0, arg1)
-	return &MockMachineProvisionerSetCharmProfilesCall{Call: call}
-}
-
-// MockMachineProvisionerSetCharmProfilesCall wrap *gomock.Call
-type MockMachineProvisionerSetCharmProfilesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockMachineProvisionerSetCharmProfilesCall) Return(arg0 error) *MockMachineProvisionerSetCharmProfilesCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockMachineProvisionerSetCharmProfilesCall) Do(f func(context.Context, []string) error) *MockMachineProvisionerSetCharmProfilesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockMachineProvisionerSetCharmProfilesCall) DoAndReturn(f func(context.Context, []string) error) *MockMachineProvisionerSetCharmProfilesCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // SetInstanceInfo mocks base method.
-func (m *MockMachineProvisioner) SetInstanceInfo(arg0 context.Context, arg1 instance.Id, arg2, arg3 string, arg4 *instance.HardwareCharacteristics, arg5 []params.NetworkConfig, arg6 []params.Volume, arg7 map[string]params.VolumeAttachmentInfo, arg8 []string) error {
+func (m *MockMachineProvisioner) SetInstanceInfo(arg0 context.Context, arg1 instance.Id, arg2, arg3 string, arg4 *instance.HardwareCharacteristics, arg5 []params.NetworkConfig, arg6 []params.Volume, arg7 map[string]params.VolumeAttachmentInfo) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetInstanceInfo", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	ret := m.ctrl.Call(m, "SetInstanceInfo", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetInstanceInfo indicates an expected call of SetInstanceInfo.
-func (mr *MockMachineProvisionerMockRecorder) SetInstanceInfo(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 any) *MockMachineProvisionerSetInstanceInfoCall {
+func (mr *MockMachineProvisionerMockRecorder) SetInstanceInfo(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7 any) *MockMachineProvisionerSetInstanceInfoCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceInfo", reflect.TypeOf((*MockMachineProvisioner)(nil).SetInstanceInfo), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceInfo", reflect.TypeOf((*MockMachineProvisioner)(nil).SetInstanceInfo), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	return &MockMachineProvisionerSetInstanceInfoCall{Call: call}
 }
 
@@ -574,13 +536,13 @@ func (c *MockMachineProvisionerSetInstanceInfoCall) Return(arg0 error) *MockMach
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockMachineProvisionerSetInstanceInfoCall) Do(f func(context.Context, instance.Id, string, string, *instance.HardwareCharacteristics, []params.NetworkConfig, []params.Volume, map[string]params.VolumeAttachmentInfo, []string) error) *MockMachineProvisionerSetInstanceInfoCall {
+func (c *MockMachineProvisionerSetInstanceInfoCall) Do(f func(context.Context, instance.Id, string, string, *instance.HardwareCharacteristics, []params.NetworkConfig, []params.Volume, map[string]params.VolumeAttachmentInfo) error) *MockMachineProvisionerSetInstanceInfoCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockMachineProvisionerSetInstanceInfoCall) DoAndReturn(f func(context.Context, instance.Id, string, string, *instance.HardwareCharacteristics, []params.NetworkConfig, []params.Volume, map[string]params.VolumeAttachmentInfo, []string) error) *MockMachineProvisionerSetInstanceInfoCall {
+func (c *MockMachineProvisionerSetInstanceInfoCall) DoAndReturn(f func(context.Context, instance.Id, string, string, *instance.HardwareCharacteristics, []params.NetworkConfig, []params.Volume, map[string]params.VolumeAttachmentInfo) error) *MockMachineProvisionerSetInstanceInfoCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

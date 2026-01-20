@@ -4,6 +4,7 @@
 package modelmigration
 
 import (
+	"context"
 	"testing"
 
 	"github.com/juju/clock"
@@ -107,6 +108,7 @@ func (s *importSuite) TestImportRemoteApplications(c *tc.C) {
 			},
 			Bindings:        map[string]string{"db": "alpha"},
 			IsConsumerProxy: false,
+			Units:           nil,
 		},
 	}
 	s.importService.EXPECT().ImportRemoteApplications(
@@ -114,8 +116,9 @@ func (s *importSuite) TestImportRemoteApplications(c *tc.C) {
 		expected,
 	).Return(nil)
 
-	// Act
-	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications())
+	// Act - no relations, so no units to extract
+	remoteAppUnits := make(map[string][]string)
+	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications(), remoteAppUnits)
 
 	// Assert
 	c.Assert(err, tc.ErrorIsNil)
@@ -128,7 +131,8 @@ func (s *importSuite) TestImportRemoteApplicationsEmpty(c *tc.C) {
 	model := description.NewModel(description.ModelArgs{})
 
 	// Act - no remote applications, no mock expectations needed
-	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications())
+	remoteAppUnits := make(map[string][]string)
+	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications(), remoteAppUnits)
 
 	// Assert
 	c.Assert(err, tc.ErrorIsNil)
@@ -208,7 +212,82 @@ func (s *importSuite) TestImportRemoteApplicationsMultiple(c *tc.C) {
 	).Return(nil)
 
 	// Act
-	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications())
+	remoteAppUnits := make(map[string][]string)
+	err := s.newImportOperation(c).importRemoteApplications(c.Context(), model.RemoteApplications(), remoteAppUnits)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importSuite) TestImportRemoteApplicationsWithUnitsFromRelations(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange - create a model with a remote application and a relation
+	// that has unit settings for the remote application
+	model := description.NewModel(description.ModelArgs{})
+
+	// Add a local application
+	model.AddApplication(description.ApplicationArgs{
+		Name: "local-app",
+	})
+
+	// Add a remote application
+	remoteApp := model.AddRemoteApplication(description.RemoteApplicationArgs{
+		Name:            "remote-mysql",
+		OfferUUID:       "offer-uuid-1234",
+		URL:             "ctrl:admin/model.mysql",
+		SourceModelUUID: "source-model-uuid",
+	})
+	remoteApp.AddEndpoint(description.RemoteEndpointArgs{
+		Name:      "db",
+		Role:      "provider",
+		Interface: "mysql",
+	})
+
+	// Add a relation between local-app and remote-mysql
+	rel := model.AddRelation(description.RelationArgs{
+		Id:  1,
+		Key: "local-app:database remote-mysql:db",
+	})
+	// Add endpoint for local app
+	localEp := rel.AddEndpoint(description.EndpointArgs{
+		ApplicationName: "local-app",
+		Name:            "database",
+		Role:            "requirer",
+		Interface:       "mysql",
+		Scope:           "global",
+	})
+	localEp.SetUnitSettings("local-app/0", map[string]interface{}{"key": "value"})
+
+	// Add endpoint for remote app with unit settings
+	remoteEp := rel.AddEndpoint(description.EndpointArgs{
+		ApplicationName: "remote-mysql",
+		Name:            "db",
+		Role:            "provider",
+		Interface:       "mysql",
+		Scope:           "global",
+	})
+	// These unit settings represent the remote units
+	remoteEp.SetUnitSettings("remote-mysql/0", map[string]interface{}{"key": "value1"})
+	remoteEp.SetUnitSettings("remote-mysql/1", map[string]interface{}{"key": "value2"})
+
+	// The expected import should include the units extracted from relations
+	s.importService.EXPECT().ImportRemoteApplications(
+		gomock.Any(),
+		gomock.Any(),
+	).DoAndReturn(func(ctx context.Context, imports []crossmodelrelation.RemoteApplicationImport) error {
+		c.Assert(imports, tc.HasLen, 1)
+		c.Check(imports[0].Name, tc.Equals, "remote-mysql")
+		// Units should be extracted from relation endpoint settings
+		c.Check(imports[0].Units, tc.HasLen, 2)
+		c.Check(imports[0].Units, tc.SameContents, []string{"remote-mysql/0", "remote-mysql/1"})
+		return nil
+	})
+
+	// Act - use Execute which extracts units from relations
+	op := s.newImportOperation(c)
+	remoteAppUnits := op.extractRemoteAppUnits(model)
+	err := op.importRemoteApplications(c.Context(), model.RemoteApplications(), remoteAppUnits)
 
 	// Assert
 	c.Assert(err, tc.ErrorIsNil)

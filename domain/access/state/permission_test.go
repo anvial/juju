@@ -6,6 +6,7 @@ package state
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/juju/juju/core/credential"
 	coremodel "github.com/juju/juju/core/model"
+	"github.com/juju/juju/core/offer"
 	corepermission "github.com/juju/juju/core/permission"
 	"github.com/juju/juju/core/user"
 	usertesting "github.com/juju/juju/core/user/testing"
@@ -1254,6 +1256,32 @@ func (s *permissionStateSuite) TestImportOfferAccessEveryOneOnce(c *tc.C) {
 	s.checkPermissionRowSimplified(c, "567", corepermission.EveryoneUserName.Name(), offerUUID.String(), corepermission.ReadAccess)
 }
 
+func (s *permissionStateSuite) TestDeletePermissionsByGrantOnUUID(c *tc.C) {
+	st := NewPermissionState(s.TxnRunnerFactory(), loggertesting.WrapCheckLog(c))
+
+	// Arrange
+	offerUUID := tc.Must(c, offer.NewUUID).String()
+	s.ensurePermission(c, "123", offerUUID, corepermission.ConsumeAccess, corepermission.Offer)
+
+	// Act
+	err := st.DeletePermissionsByGrantOnUUID(c.Context(), []string{offerUUID})
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+	s.checkRowCount(c, "v_permission_offer", 0)
+}
+
+// checkRowCount checks that the given table has the expected number of rows.
+func (s *permissionStateSuite) checkRowCount(c *tc.C, table string, expected int) {
+	obtained := -1
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table)
+		return tx.QueryRowContext(ctx, query).Scan(&obtained)
+	})
+	c.Assert(err, tc.IsNil, tc.Commentf("counting rows in table %q", table))
+	c.Check(obtained, tc.Equals, expected, tc.Commentf("count of %q rows", table))
+}
+
 func (s *permissionStateSuite) checkPermissionRowSimplified(c *tc.C, userUUID, userName, offerUUID string, access corepermission.Access) {
 	s.checkPermissionRow(c, userUUID, corepermission.UserAccessSpec{
 		AccessSpec: corepermission.AccessSpec{
@@ -1354,6 +1382,24 @@ func (s *permissionStateSuite) ensureUser(c *tc.C, userUUID, name, createdByUUID
 		return err
 	})
 	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *permissionStateSuite) ensurePermission(c *tc.C, grantOn, grantTo string, access corepermission.Access, objectType corepermission.ObjectType) {
+	permissionUUID := tc.Must(c, uuid.NewUUID).String()
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO permission (uuid, grant_on, grant_to, access_type_id, object_type_id)
+			SELECT
+			    ?, ?, ?, pat.id, pot.id
+			FROM permission_access_type AS pat
+			LEFT JOIN permission_object_type AS pot
+			WHERE pat.type = ?
+			AND   pot.type = ?
+		`, permissionUUID, grantTo, grantOn, access, objectType)
+		return err
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
 }
 
 func (s *permissionStateSuite) ensureCloud(c *tc.C, cloudUUID, cloudName, credUUID, ownerUUID string) {

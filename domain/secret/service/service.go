@@ -21,6 +21,7 @@ import (
 	backenderrors "github.com/juju/juju/domain/secretbackend/errors"
 	"github.com/juju/juju/internal/errors"
 	"github.com/juju/juju/internal/secrets/provider"
+	"github.com/juju/juju/internal/secrets/provider/juju"
 	"github.com/juju/juju/internal/secrets/provider/kubernetes"
 	"github.com/juju/juju/internal/uuid"
 )
@@ -603,7 +604,11 @@ func (s *SecretService) createSecret(
 func (s *SecretService) ListSecrets(ctx context.Context, uri *secrets.URI,
 	revision *int,
 	labels domainsecret.Labels,
-) ([]*secrets.SecretMetadata, [][]*secrets.SecretRevisionMetadata, error) {
+) (
+	metadataList []*secrets.SecretMetadata,
+	revisionsList [][]*secrets.SecretRevisionMetadata,
+	err error,
+) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
@@ -612,20 +617,37 @@ func (s *SecretService) ListSecrets(ctx context.Context, uri *secrets.URI,
 		return nil, nil, errors.Errorf("cannot specify both URI and labels")
 	}
 
+	secretBackendUUIDstoNames, err := s.secretBackendState.GetSecretBackendNamesByUUID(ctx)
+	if err != nil {
+		return nil, nil, errors.Errorf("getting secret backend names with UUIDs: %w", err)
+	}
+
+	defer func() {
+		if err == nil && len(revisionsList) > 0 {
+			s.populateRevisionBackendNames(revisionsList, secretBackendUUIDstoNames)
+		}
+	}()
+
 	if uri != nil {
-		metadata, revisions, err := s.secretState.GetSecretByURI(ctx, *uri, revision)
+		var metadata *secrets.SecretMetadata
+		var revisions []*secrets.SecretRevisionMetadata
+
+		metadata, revisions, err = s.secretState.GetSecretByURI(ctx, *uri, revision)
 		if err != nil {
 			return nil, nil, errors.Errorf("getting secret by URI %q: %w", uri.ID, err)
 		}
-		return []*secrets.SecretMetadata{metadata}, [][]*secrets.SecretRevisionMetadata{revisions}, nil
+
+		metadataList = []*secrets.SecretMetadata{metadata}
+		revisionsList = [][]*secrets.SecretRevisionMetadata{revisions}
+		return
 	}
 
 	if len(labels) > 0 {
-		metadataList, revisionsList, err := s.secretState.ListSecretsByLabels(ctx, labels, revision)
+		metadataList, revisionsList, err = s.secretState.ListSecretsByLabels(ctx, labels, revision)
 		if err != nil {
 			return nil, nil, errors.Errorf("getting secrets by labels: %w", err)
 		}
-		return metadataList, revisionsList, nil
+		return
 	}
 
 	// If there is no URI or labels, we will list all secrets. In this case, a
@@ -634,11 +656,46 @@ func (s *SecretService) ListSecrets(ctx context.Context, uri *secrets.URI,
 		return nil, nil, errors.Errorf("cannot specify revision without URI or labels")
 	}
 
-	metadataList, revisionList, err := s.secretState.ListAllSecrets(ctx)
+	metadataList, revisionsList, err = s.secretState.ListAllSecrets(ctx)
 	if err != nil {
 		return nil, nil, errors.Errorf("listing all secrets: %w", err)
 	}
-	return metadataList, revisionList, nil
+	return
+}
+
+// populateRevisionBackendNames mutates the provided revisions by setting their
+// backend name based on the mapping of backend UUIDs to names, or sets a default
+// if no mapping exists.
+// Revisions are mutated in-place.
+// Backend name will be populated for all revisions.
+func (s *SecretService) populateRevisionBackendNames(
+	revisionsList [][]*secrets.SecretRevisionMetadata,
+	secretBackendUUIDstoNames map[string]string,
+) {
+	defaultBackendName := juju.BackendName
+
+	for _, revisionsForOneSecret := range revisionsList {
+		for _, revision := range revisionsForOneSecret {
+			if revision == nil {
+				continue
+			}
+			// ValueRef may not exist, eg. LXD model with no external vaults.
+			// In that case, we leave BackendName as the default value.
+			if revision.ValueRef == nil {
+				revision.BackendName = &defaultBackendName
+				continue
+			}
+			secretBackendName, exists := secretBackendUUIDstoNames[revision.ValueRef.BackendID]
+			if exists {
+				revision.BackendName = &secretBackendName
+				continue
+			}
+			// BackendUUID may not exist, eg. if backend is deleted.
+			// In that case, we set BackendName as unknown.
+			unknown := juju.UnknownBackendName
+			revision.BackendName = &unknown
+		}
+	}
 }
 
 func splitCharmSecretOwners(owners ...domainsecret.CharmSecretOwner) (domainsecret.ApplicationOwners, domainsecret.UnitOwners) {
@@ -666,7 +723,18 @@ func (s *SecretService) ListCharmSecrets(
 	defer span.End()
 
 	appOwners, unitOwners := splitCharmSecretOwners(owners...)
-	return s.secretState.ListCharmSecrets(ctx, appOwners, unitOwners)
+	metadataList, revisionsList, err := s.secretState.ListCharmSecrets(ctx, appOwners, unitOwners)
+	if err != nil {
+		return nil, nil, errors.Capture(err)
+	}
+
+	secretBackendUUIDstoNames, err := s.secretBackendState.GetSecretBackendNamesByUUID(ctx)
+	if err != nil {
+		return nil, nil, errors.Errorf("getting secret backend names with UUIDs: %w", err)
+	}
+
+	s.populateRevisionBackendNames(revisionsList, secretBackendUUIDstoNames)
+	return metadataList, revisionsList, nil
 }
 
 // GetSecret returns the secret with the specified URI.

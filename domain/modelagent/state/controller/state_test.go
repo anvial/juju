@@ -20,7 +20,7 @@ import (
 	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/core/semversion"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
-	agentbinarystate "github.com/juju/juju/domain/agentbinary/state"
+	agentbinarystate "github.com/juju/juju/domain/agentbinary/state/model"
 	"github.com/juju/juju/domain/application/architecture"
 	schematesting "github.com/juju/juju/domain/schema/testing"
 	"github.com/juju/juju/internal/uuid"

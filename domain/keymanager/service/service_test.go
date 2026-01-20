@@ -436,6 +436,32 @@ func (s *serviceSuite) TestDeleteKeysForUserCombination(c *tc.C) {
 	c.Check(err, tc.ErrorIsNil)
 }
 
+func (s *serviceSuite) TestDeleteKeysForModel(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.state.EXPECT().DeletePublicKeysForModel(
+		gomock.Any(),
+		s.modelUUID,
+	).Return(nil)
+
+	err := NewService(s.modelUUID, s.state).
+		DeleteKeysForModel(c.Context())
+	c.Check(err, tc.ErrorIsNil)
+}
+
+func (s *serviceSuite) TestDeleteKeysForModelNotFound(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	s.state.EXPECT().DeletePublicKeysForModel(
+		gomock.Any(),
+		s.modelUUID,
+	).Return(modelerrors.NotFound)
+
+	err := NewService(s.modelUUID, s.state).
+		DeleteKeysForModel(c.Context())
+	c.Check(err, tc.ErrorIs, modelerrors.NotFound)
+}
+
 // TestImportKeyForUnknownSource is asserting that if we try and import keys for
 // a subject where the source is unknown.
 func (s *serviceSuite) TestImportKeysForUnknownSource(c *tc.C) {

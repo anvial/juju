@@ -55,7 +55,6 @@ type CharmArchive interface {
 	charm.Charm
 
 	Version() string
-	LXDProfile() *charm.LXDProfile
 }
 
 // MetadataRequest encapsulates the arguments for a charm essential metadata

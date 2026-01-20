@@ -160,10 +160,14 @@ bootcmd:
         match:
           macaddress: aa:bb:cc:dd:ee:f2
         dhcp4: true
+        dhcp4-overrides:
+          route-metric: 100
       any3:
         match:
           macaddress: aa:bb:cc:dd:ee:f3
         dhcp4: true
+        dhcp4-overrides:
+          route-metric: 110
       any4:
         match:
           macaddress: aa:bb:cc:dd:ee:f4
@@ -207,10 +211,14 @@ network:
       match:
         macaddress: aa:bb:cc:dd:ee:f2
       dhcp4: true
+      dhcp4-overrides:
+        route-metric: 100
     any3:
       match:
         macaddress: aa:bb:cc:dd:ee:f3
       dhcp4: true
+      dhcp4-overrides:
+        route-metric: 110
     any4:
       match:
         macaddress: aa:bb:cc:dd:ee:f4

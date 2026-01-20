@@ -65,7 +65,7 @@ import (
 	"github.com/juju/juju/internal/worker/terminationworker"
 	"github.com/juju/juju/internal/worker/trace"
 	"github.com/juju/juju/internal/worker/upgrader"
-	"github.com/juju/juju/internal/worker/upgradestepsmachine"
+	"github.com/juju/juju/internal/worker/upgradestepsagent"
 )
 
 // ManifoldsConfig allows specialisation of the result of Manifolds.
@@ -454,18 +454,19 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Clock:                config.Clock,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+		// The upgradesteps worker runs soon after the machine agent starts and
+		// runs any steps required to upgrade to the running jujud version. Once
+		// upgrade steps have run, the upgradesteps gate is unlocked and the
+		// worker exits.
+		upgradeAgentStepsName: upgradestepsagent.Manifold(upgradestepsagent.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			UpgradeStepsGateName: upgradeStepsGateName,
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.IAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			NewAgentWorker:       upgradestepsagent.NewAgentWorker,
+			Logger:               internallogger.GetLogger("juju.worker.upgradestepsagent"),
 			Clock:                config.Clock,
 		}),
 
@@ -551,18 +552,19 @@ func CAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			PreviousAgentVersion: config.PreviousAgentVersion,
 		}),
 
-		// The upgradesteps worker runs soon after the machine agent
-		// starts and runs any steps required to upgrade to the
-		// running jujud version. Once upgrade steps have run, the
-		// upgradesteps gate is unlocked and the worker exits.
-		upgradeStepsName: upgradestepsmachine.Manifold(upgradestepsmachine.ManifoldConfig{
+		// The upgradesteps worker runs soon after the machine agent starts and
+		// runs any steps required to upgrade to the running jujud version. Once
+		// upgrade steps have run, the upgradesteps gate is unlocked and the
+		// worker exits.
+		upgradeAgentStepsName: upgradestepsagent.Manifold(upgradestepsagent.ManifoldConfig{
 			AgentName:            agentName,
 			APICallerName:        apiCallerName,
 			UpgradeStepsGateName: upgradeStepsGateName,
 			PreUpgradeSteps:      config.PreUpgradeSteps(model.CAAS),
 			UpgradeSteps:         config.UpgradeSteps,
 			NewAgentStatusSetter: config.NewAgentStatusSetter,
-			Logger:               internallogger.GetLogger("juju.worker.upgradesteps"),
+			NewAgentWorker:       upgradestepsagent.NewAgentWorker,
+			Logger:               internallogger.GetLogger("juju.worker.upgrademachinesteps"),
 			Clock:                config.Clock,
 		}),
 	})
@@ -613,12 +615,12 @@ const (
 	clockName            = "clock"
 	flightRecorderName   = "flight-recorder"
 
-	upgraderName         = "upgrader"
-	upgradeStepsName     = "upgrade-steps-runner"
-	upgradeStepsGateName = "upgrade-steps-gate"
-	upgradeStepsFlagName = "upgrade-steps-flag"
-	upgradeCheckGateName = "upgrade-check-gate"
-	upgradeCheckFlagName = "upgrade-check-flag"
+	upgraderName          = "upgrader"
+	upgradeAgentStepsName = "upgrade-agent-steps-runner"
+	upgradeStepsGateName  = "upgrade-steps-gate"
+	upgradeStepsFlagName  = "upgrade-steps-flag"
+	upgradeCheckGateName  = "upgrade-check-gate"
+	upgradeCheckFlagName  = "upgrade-check-flag"
 
 	migrationFortressName     = "migration-fortress"
 	migrationInactiveFlagName = "migration-inactive-flag"
@@ -638,8 +640,6 @@ const (
 	identityFileWriterName   = "ssh-identity-writer"
 	machineActionName        = "machine-action-runner"
 	hostKeyReporterName      = "host-key-reporter"
-	instanceMutaterName      = "instance-mutater"
-	auditConfigUpdaterName   = "audit-config-updater"
 	machineConverterName     = "machine-converter"
 	lxdContainerProvisioner  = "lxd-container-provisioner"
 

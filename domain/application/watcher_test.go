@@ -1064,7 +1064,6 @@ func (s *watcherSuite) TestWatchUnitAddRemoveOnMachine(c *tc.C) {
 		func(ctx context.Context) (machineservice.Provider, error) {
 			return machineservice.NewNoopProvider(), nil
 		},
-		nil,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)
@@ -1624,7 +1623,6 @@ func (s *watcherSuite) createMachine(
 		func(ctx context.Context) (machineservice.Provider, error) {
 			return machineservice.NewNoopProvider(), nil
 		},
-		nil,
 		clock.WallClock,
 		loggertesting.WrapCheckLog(c),
 	)

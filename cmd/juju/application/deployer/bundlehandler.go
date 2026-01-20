@@ -35,7 +35,6 @@ import (
 	"github.com/juju/juju/core/devices"
 	"github.com/juju/juju/core/instance"
 	corelogger "github.com/juju/juju/core/logger"
-	"github.com/juju/juju/core/lxdprofile"
 	"github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/storage"
 	"github.com/juju/juju/environs/config"
@@ -693,11 +692,6 @@ func (h *bundleHandler) addLocalCharm(ctx context.Context, chParams bundlechange
 		return errors.Annotatef(err, "cannot deploy local charm at %q", charmPath)
 	}
 
-	if err := lxdprofile.ValidateLXDProfile(lxdCharmProfiler{
-		Charm: ch,
-	}); err != nil && !h.force {
-		return errors.Annotatef(err, "cannot deploy local charm at %q", charmPath)
-	}
 	if curl, err = h.deployAPI.AddLocalCharm(ctx, curl, ch, h.force); err != nil {
 		return err
 	}
@@ -833,12 +827,6 @@ func (h *bundleHandler) addApplication(ctx context.Context, change *bundlechange
 	}
 
 	resMap := h.makeResourceMap(charmInfo.Meta.Resources, p.Resources, p.LocalResources)
-
-	if err := lxdprofile.ValidateLXDProfile(lxdCharmInfoProfiler{
-		CharmInfo: charmInfo,
-	}); err != nil && !h.force {
-		return errors.Trace(err)
-	}
 
 	resNames2IDs, err := h.deployResources(
 		ctx,

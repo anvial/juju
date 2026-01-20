@@ -354,8 +354,8 @@ github.com/hashicorp/vault/api v1.10.0 h1:/US7sIjWN6Imp4o/Rj1Ce2Nr5bki/AXi9vAW3p
 github.com/hashicorp/vault/api v1.10.0/go.mod h1:jo5Y/ET+hNyz+JnKDt8XLAdKs+AM0G5W0Vp1IrFI8N8=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
-github.com/hpidcock/gc-compat-tc v0.0.0-20250523041742-c3a83c867edf h1:sFwkVpTbk799e1EPlDfWLULd5/+w5EuMv2z5koBa908=
-github.com/hpidcock/gc-compat-tc v0.0.0-20250523041742-c3a83c867edf/go.mod h1:lyEaDukSWSGyb/L0YGDaS1hU2p40qb5s/Ck6qm4CneU=
+github.com/hpidcock/gc-compat-tc v0.0.0-20260112233041-5b2ef070e94b h1:JpZH2VBCeWlQTRzWYRDvlru3/ZOQjEgMjfEbGWK9hTY=
+github.com/hpidcock/gc-compat-tc v0.0.0-20260112233041-5b2ef070e94b/go.mod h1:lyEaDukSWSGyb/L0YGDaS1hU2p40qb5s/Ck6qm4CneU=
 github.com/icza/backscanner v0.0.0-20241124160932-dff01ac50250 h1:BNmTcPx0VddsU1pIgq3GoXtO8ek6tygVtj+l37Dcqo0=
 github.com/icza/backscanner v0.0.0-20241124160932-dff01ac50250/go.mod h1:GYeBD1CF7AqnKZK+UCytLcY3G+UKo0ByXX/3xfdNyqQ=
 github.com/icza/mighty v0.0.0-20180919140131-cfd07d671de6/go.mod h1:xQig96I1VNBDIWGCdTt54nHt6EeI639SmHycLYL7FkA=
@@ -393,8 +393,8 @@ github.com/juju/collections v0.0.0-20220203020748-febd7cad8a7a/go.mod h1:JWeZdyt
 github.com/juju/collections v1.0.0/go.mod h1:JWeZdyttIEbkR51z2S13+J+aCuHVe0F6meRy+P0YGDo=
 github.com/juju/collections v1.0.4 h1:GjL+aN512m2rVDqhPII7P6qB0e+iYFubz8sqBhZaZtk=
 github.com/juju/collections v1.0.4/go.mod h1:hVrdB0Zwq9wIU1Fl6ItD2+UETeNeOEs+nGvJufVe+0c=
-github.com/juju/description/v11 v11.0.0-20251203091952-63fec6169be0 h1:RnvRXCkRgeHPE26QWWorCnQz78z8NHBZn/EeSUzMkfc=
-github.com/juju/description/v11 v11.0.0-20251203091952-63fec6169be0/go.mod h1:7O7UhXGw29sIx7AoACdKSGq8rmwXkqfGinpCOn0fprE=
+github.com/juju/description/v11 v11.0.0-20260115203504-e19a7ca61eb3 h1:5u7WACJ2dZ39G/oMTNhcf3QHBk29qmGt23SDjVCqgZo=
+github.com/juju/description/v11 v11.0.0-20260115203504-e19a7ca61eb3/go.mod h1:7O7UhXGw29sIx7AoACdKSGq8rmwXkqfGinpCOn0fprE=
 github.com/juju/errors v0.0.0-20150916125642-1b5e39b83d18/go.mod h1:W54LbzXuIE0boCoNJfwqpmkKJ1O4TCTZMetAt6jGk7Q=
 github.com/juju/errors v0.0.0-20200330140219-3fe23663418f/go.mod h1:W54LbzXuIE0boCoNJfwqpmkKJ1O4TCTZMetAt6jGk7Q=
 github.com/juju/errors v0.0.0-20210818161939-5560c4c073ff/go.mod h1:i1eL7XREII6aHpQ2gApI/v6FkVUDEBremNkcBCKYAcY=

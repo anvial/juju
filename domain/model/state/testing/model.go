@@ -178,6 +178,119 @@ func CreateTestModel(
 	return modelUUID
 }
 
+// CreateTestModelWithoutActivation is a testing utility function for creating
+// a basic model without activating it. This is useful for testing behavior
+// that needs to work with models that haven't been fully activated (migration not finished) yet.
+//
+// This should only ever be used from within other state packages to establish a
+// reference model for testing non-activated model behavior. This avoids the
+// need for introducing cyclic imports with tests.
+func CreateTestModelWithoutActivation(
+	c *tc.C,
+	txnRunner database.TxnRunnerFactory,
+	name string,
+) coremodel.UUID {
+	userUUID, err := user.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	cloudUUID, err := uuid.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	regionName := name + "-region"
+	cloudRegionUUID, err := uuid.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	credId, err := corecredential.NewUUID()
+	c.Assert(err, tc.ErrorIsNil)
+
+	userName := usertesting.GenNewName(c, "test-user"+name)
+	runner, err := txnRunner(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+
+	CreateInternalSecretBackend(c, runner)
+
+	err = runner.StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO user (uuid, name, display_name, external, removed, created_by_uuid, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, userUUID.String(), userName.Name(), userName.Name(), false, false, userUUID, time.Now())
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO user_authentication (user_uuid, disabled)
+			VALUES (?, ?)
+		`, userUUID.String(), false)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO cloud (uuid, name, cloud_type_id, endpoint, skip_tls_verify)
+			VALUES (?, ?, ?, "", true)
+		`, cloudUUID.String(), name, 5)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO cloud_region (uuid, name, cloud_uuid)
+			VALUES (?, ?, ?)
+		`, cloudRegionUUID.String(), regionName, cloudUUID.String())
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO cloud_auth_type (cloud_uuid, auth_type_id)
+			VALUES (?, 0), (?, 2)
+		`, cloudUUID.String(), cloudUUID.String())
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO cloud_credential (uuid, cloud_uuid, auth_type_id, owner_uuid, name, revoked, invalid)
+			VALUES (?, ?, ?, ?, "foobar", false, false)
+		`, credId, cloudUUID.String(), 0, userUUID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	modelUUID := tc.Must0(c, coremodel.NewUUID)
+	err = runner.Txn(c.Context(), func(ctx context.Context, tx *sqlair.TX) error {
+		// Create the model but do NOT activate it
+		return controllermodel.Create(
+			ctx,
+			preparer{},
+			tx,
+			modelUUID,
+			coremodel.IAAS,
+			model.GlobalModelCreationArgs{
+				Cloud:       name,
+				CloudRegion: regionName,
+				Credential: corecredential.Key{
+					Cloud: name,
+					Owner: userName,
+					Name:  "foobar",
+				},
+				Name:          name,
+				Qualifier:     "prod",
+				AdminUsers:    []user.UUID{userUUID},
+				SecretBackend: juju.BackendName,
+			},
+		)
+	})
+	c.Assert(err, tc.ErrorIsNil)
+
+	return modelUUID
+}
+
 // DeleteTestModel is responsible for cleaning up a testing mode previously
 // created with [CreateTestModel].
 func DeleteTestModel(c *tc.C, ctx context.Context, txnRunner database.TxnRunnerFactory, modelUUID coremodel.UUID) {

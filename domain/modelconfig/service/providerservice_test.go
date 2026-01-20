@@ -4,6 +4,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/juju/schema"
@@ -32,7 +33,7 @@ func (s *providerServiceSuite) setupMocks(c *tc.C) *gomock.Controller {
 }
 
 func (s *providerServiceSuite) modelConfigProviderFunc(cloudType string) ModelConfigProviderFunc {
-	return func() (environs.ModelConfigProvider, error) {
+	return func(context.Context) (environs.ModelConfigProvider, error) {
 		// In tests, we don't need to fetch the cloud type from state,
 		// we just return the mock provider for the expected cloud type.
 		return s.mockModelConfigProvider, nil
@@ -128,7 +129,7 @@ func (s *providerServiceSuite) TestModelConfigWithProviderNotFound(c *tc.C) {
 		nil,
 	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unknown cloud type %q", "unknown").Add(coreerrors.NotFound)
 	}
 
@@ -212,7 +213,7 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsNotSupportedErr
 		nil,
 	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("unsupported").Add(coreerrors.NotSupported)
 	}
 
@@ -235,7 +236,7 @@ func (s *providerServiceSuite) TestModelConfigWithProviderReturnsOtherError(c *t
 		nil,
 	)
 
-	providerGetter := func() (environs.ModelConfigProvider, error) {
+	providerGetter := func(context.Context) (environs.ModelConfigProvider, error) {
 		return nil, errors.Errorf("some other error")
 	}
 
@@ -268,5 +269,5 @@ func (s *providerServiceSuite) TestModelConfigCoercionError(c *tc.C) {
 
 	svc := NewProviderService(s.mockState, providerGetter)
 	_, err := svc.ModelConfig(c.Context())
-	c.Check(err, tc.ErrorMatches, `coercing provider config attributes:.*unable to coerce provider config key "provider-bool".*`)
+	c.Check(err, tc.ErrorMatches, `.*coercing provider config key "provider-bool".*`)
 }

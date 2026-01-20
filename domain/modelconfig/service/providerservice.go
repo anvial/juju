@@ -6,6 +6,8 @@ package service
 import (
 	"context"
 
+	"github.com/juju/collections/transform"
+
 	"github.com/juju/juju/core/changestream"
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/trace"
@@ -20,11 +22,17 @@ type ProviderState interface {
 	// AllKeysQuery returns a SQL statement that will return all known model config
 	// keys.
 	AllKeysQuery() string
+
 	// ModelConfig returns the currently set config for the model.
 	ModelConfig(context.Context) (map[string]string, error)
-	// NamespaceForWatchModelConfig returns the namespace identifier used for
+
+	// NamespacesForWatchModelConfig returns the namespace identifiers used for
 	// watching model configuration changes.
-	NamespaceForWatchModelConfig() string
+	NamespacesForWatchModelConfig() []string
+
+	// GetModelAgentVersionAndStream returns the current model's set agent
+	// version and stream.
+	GetModelAgentVersionAndStream(context.Context) (ver string, stream string, err error)
 }
 
 // ProviderService defines the service for interacting with ModelConfig.
@@ -66,19 +74,19 @@ func (s *ProviderService) ModelConfig(ctx context.Context) (*config.Config, erro
 	}
 
 	// Coerce provider-specific attributes from string to their proper types.
-	coerced, err := s.deserializeMap(stConfig)
+	altConfig, err := s.getCoercedProviderConfig(ctx, stConfig)
 	if err != nil {
 		return nil, errors.Errorf("coercing provider config attributes: %w", err)
 	}
-
-	return config.New(config.NoDefaults, coerced)
+	return config.New(config.NoDefaults, altConfig)
 }
 
-// deserializeMap converts a map[string]string from the database to map[string]any
-// and coerces any provider-specific values that are found in the provider's schema.
-// This is necessary because the database stores all config as strings, but provider
-// code expects typed values (e.g., bool, int) for provider-specific attributes.
-func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, error) {
+// getCoercedProviderConfig converts a map[string]string from the database to
+// map[string]any and coerces any provider-specific values that are found in the
+// provider's schema. This is necessary because the database stores all config
+// as strings, but provider code expects typed values (e.g., bool, int) for
+// provider-specific attributes.
+func (s *ProviderService) getCoercedProviderConfig(ctx context.Context, m map[string]string) (map[string]any, error) {
 	if s.modelConfigProviderGetterFunc == nil {
 		return nil, errors.New("no model config provider getter")
 	}
@@ -89,7 +97,7 @@ func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, e
 		return stringMapToAny(m), nil
 	}
 
-	provider, err := s.modelConfigProviderGetterFunc()
+	provider, err := s.modelConfigProviderGetterFunc(ctx)
 	if err != nil && !errors.Is(err, coreerrors.NotSupported) {
 		return nil, errors.Capture(err)
 	} else if provider == nil {
@@ -104,13 +112,14 @@ func (s *ProviderService) deserializeMap(m map[string]string) (map[string]any, e
 			// This is a provider-specific attribute - coerce it to proper type.
 			coercedVal, err := field.Coerce(strVal, []string{key})
 			if err != nil {
-				return nil, errors.Errorf("unable to coerce provider config key %q: %w", key, err)
+				return nil, errors.Errorf("coercing provider config key %q: %w", key, err)
 			}
 			result[key] = coercedVal
-		} else {
-			// Not a provider-specific attribute - keep as string.
-			result[key] = strVal
+			continue
 		}
+
+		// Not a provider-specific attribute - keep as string.
+		result[key] = strVal
 	}
 
 	return result, nil
@@ -145,10 +154,25 @@ func (s *WatchableProviderService) Watch(ctx context.Context) (watcher.StringsWa
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
-	return s.watcherFactory.NewNamespaceWatcher(
+	namespaces := s.st.NamespacesForWatchModelConfig()
+	if len(namespaces) == 0 {
+		return nil, errors.Errorf("no namespaces for watching model config")
+	}
+
+	filters := transform.Slice(namespaces, func(ns string) eventsource.FilterOption {
+		return eventsource.NamespaceFilter(ns, changestream.All)
+	})
+
+	agentVersion, agentStream, err := s.st.GetModelAgentVersionAndStream(ctx)
+	if err != nil {
+		return nil, errors.Errorf("getting model agent version and stream: %w", err)
+	}
+
+	return s.watcherFactory.NewNamespaceMapperWatcher(
 		ctx,
 		eventsource.InitialNamespaceChanges(s.st.AllKeysQuery()),
-		"provider model config watcher",
-		eventsource.NamespaceFilter(s.st.NamespaceForWatchModelConfig(), changestream.All),
+		"model config watcher",
+		modelConfigMapper(s.st, agentVersion, agentStream),
+		filters[0], filters[1:]...,
 	)
 }

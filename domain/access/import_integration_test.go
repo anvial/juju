@@ -23,6 +23,7 @@ import (
 	"github.com/juju/juju/domain/access/modelmigration"
 	"github.com/juju/juju/domain/access/service"
 	"github.com/juju/juju/domain/access/state"
+	migrationtesting "github.com/juju/juju/domain/modelmigration/testing"
 	schematesting "github.com/juju/juju/domain/schema/testing"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/internal/errors"
@@ -145,6 +146,58 @@ func (s *importSuite) TestOfferPermissionImport(c *tc.C) {
 	})
 }
 
+func (s *importSuite) TestOfferPermissionRollback(c *tc.C) {
+	// Arrange:
+	modelmigration.RegisterOfferAccessImport(s.coordinator, loggertesting.WrapCheckLog(c))
+	migrationtesting.RegisterFailingImport(s.coordinator)
+
+	// Arrange: add users on which offer permissions are set.
+	s.addUserToController(c, "joe", permission.LoginAccess)
+	s.addUserToController(c, "simon", permission.LoginAccess)
+
+	// Arrange: set up the import data
+	desc := description.NewModel(description.ModelArgs{
+		Type: string(model.IAAS),
+		Config: map[string]interface{}{
+			config.UUIDKey: s.modelUUID.String()},
+	})
+	appName := "foo"
+	app := desc.AddApplication(description.ApplicationArgs{
+		Name: appName,
+	})
+	offerOneUUID := tc.Must(c, uuid.NewUUID).String()
+	offerOneName := "foo"
+	app.AddOffer(description.ApplicationOfferArgs{
+		OfferUUID:       offerOneUUID,
+		OfferName:       offerOneName,
+		Endpoints:       map[string]string{"db": "db"},
+		ApplicationName: appName,
+		ACL: map[string]string{
+			"admin": "admin",
+			"joe":   "consume",
+			"simon": "read",
+		},
+	})
+	offerTwoUUID := tc.Must(c, uuid.NewUUID).String()
+	offerTwoName := "agent"
+	app.AddOffer(description.ApplicationOfferArgs{
+		OfferUUID:       offerTwoUUID,
+		OfferName:       offerTwoName,
+		Endpoints:       map[string]string{"cos-agent": "cos-agent"},
+		ApplicationName: appName,
+		ACL: map[string]string{
+			"simon": "admin",
+		},
+	})
+
+	// Act
+	err := s.coordinator.Perform(c.Context(), s.scope, desc)
+
+	// Assert
+	c.Check(err, tc.ErrorIs, migrationtesting.IntentionalImportFailure)
+	s.checkRowCount(c, "v_permission_offer", 0)
+}
+
 func (s *importSuite) TestPermissionImport(c *tc.C) {
 	// Arrange
 	s.seedModel(c)
@@ -260,4 +313,15 @@ FROM %s
 	c.Assert(err, tc.ErrorIsNil, tc.Commentf("(Assert) getting offer permissions: %s",
 		errors.ErrorStack(err)))
 	return access
+}
+
+// checkRowCount checks that the given table has the expected number of rows.
+func (s *importSuite) checkRowCount(c *tc.C, table string, expected int) {
+	obtained := -1
+	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
+		query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table)
+		return tx.QueryRowContext(ctx, query).Scan(&obtained)
+	})
+	c.Assert(err, tc.IsNil, tc.Commentf("counting rows in table %q", table))
+	c.Check(obtained, tc.Equals, expected, tc.Commentf("count of %q rows", table))
 }

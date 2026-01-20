@@ -39,9 +39,6 @@ const (
 	GradeDevel = "devel"
 )
 
-// The version that we switched over from old style numbering to new style.
-var switchOverVersion = semversion.MustParse("1.19.9")
-
 // build is a string representing this build of Juju's number.
 //
 // NOTE: This is injected by the build system. In Makefile, we override
@@ -103,19 +100,10 @@ func init() {
 	Current = semversion.MustParse(strings.TrimSpace(string(v)))
 }
 
-func isOdd(x int) bool {
-	return x%2 != 0
-}
-
 // IsDev returns whether the version represents a development version. A
-// version with a tag or a nonzero build component is considered to be a
-// development version.  Versions older than or equal to 1.19.3 (the switch
-// over time) check for odd minor versions.
+// version with a tag will be considered a development version.
 func IsDev(v semversion.Number) bool {
-	if v.Compare(switchOverVersion) <= 0 {
-		return isOdd(v.Minor) || v.Build > 0
-	}
-	return v.Tag != "" || v.Build > 0
+	return v.Tag != ""
 }
 
 func mustParseBuildInt(buildInt string) int {

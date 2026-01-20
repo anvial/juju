@@ -304,52 +304,6 @@ func (s *charmServiceSuite) TestGetCharmMetadataCharmNotFound(c *tc.C) {
 	c.Assert(err, tc.ErrorIs, applicationerrors.CharmNotFound)
 }
 
-func (s *charmServiceSuite) TestGetCharmLXDProfile(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	id := charmtesting.GenCharmID(c)
-
-	locator := charm.CharmLocator{
-		Name:     "foo",
-		Revision: 42,
-		Source:   charm.CharmHubSource,
-	}
-	s.state.EXPECT().GetCharmID(gomock.Any(), locator.Name, locator.Revision, locator.Source).Return(id, nil)
-	s.state.EXPECT().GetCharmLXDProfile(gomock.Any(), id).Return([]byte(`{"config": {"foo":"bar"}, "description": "description", "devices": {"gpu":{"baz": "x"}}}`), 42, nil)
-
-	profile, revision, err := s.service.GetCharmLXDProfile(c.Context(), locator)
-	c.Assert(err, tc.ErrorIsNil)
-	c.Check(profile, tc.DeepEquals, internalcharm.LXDProfile{
-		Config: map[string]string{
-			"foo": "bar",
-		},
-		Description: "description",
-		Devices: map[string]map[string]string{
-			"gpu": {
-				"baz": "x",
-			},
-		},
-	})
-	c.Check(revision, tc.Equals, 42)
-}
-
-func (s *charmServiceSuite) TestGetCharmLXDProfileCharmNotFound(c *tc.C) {
-	defer s.setupMocks(c).Finish()
-
-	id := charmtesting.GenCharmID(c)
-
-	locator := charm.CharmLocator{
-		Name:     "foo",
-		Revision: 42,
-		Source:   charm.CharmHubSource,
-	}
-	s.state.EXPECT().GetCharmID(gomock.Any(), locator.Name, locator.Revision, locator.Source).Return(id, nil)
-	s.state.EXPECT().GetCharmLXDProfile(gomock.Any(), id).Return(nil, -1, applicationerrors.CharmNotFound)
-
-	_, _, err := s.service.GetCharmLXDProfile(c.Context(), locator)
-	c.Assert(err, tc.ErrorIs, applicationerrors.CharmNotFound)
-}
-
 func (s *charmServiceSuite) TestGetCharmMetadataName(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 

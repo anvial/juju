@@ -22,7 +22,8 @@ import (
 	corestorage "github.com/juju/juju/core/storage"
 	"github.com/juju/juju/domain"
 	agentbinaryservice "github.com/juju/juju/domain/agentbinary/service"
-	agentbinarystate "github.com/juju/juju/domain/agentbinary/state"
+	agentbinarystatecontroller "github.com/juju/juju/domain/agentbinary/state/controller"
+	agentbinarystatemodel "github.com/juju/juju/domain/agentbinary/state/model"
 	agentpasswordservice "github.com/juju/juju/domain/agentpassword/service"
 	agentpasswordstate "github.com/juju/juju/domain/agentpassword/state"
 	agentprovisionerservice "github.com/juju/juju/domain/agentprovisioner/service"
@@ -179,7 +180,7 @@ func NewModelServices(
 // for the current model.
 func (s *ModelServices) AgentBinaryStore() *agentbinaryservice.AgentBinaryStore {
 	return agentbinaryservice.NewAgentBinaryStore(
-		agentbinarystate.NewModelState(changestream.NewTxnRunnerFactory(s.modelDB)),
+		agentbinarystatemodel.NewModelState(changestream.NewTxnRunnerFactory(s.modelDB)),
 		s.logger.Child("agentbinary"),
 		s.modelObjectStoreGetter,
 	)
@@ -187,22 +188,29 @@ func (s *ModelServices) AgentBinaryStore() *agentbinaryservice.AgentBinaryStore 
 
 // AgentBinary returns the model's [agentbinaryservice.AgentBinaryService].
 func (s *ModelServices) AgentBinary() *agentbinaryservice.AgentBinaryService {
+	modelUUID := s.modelUUID.String()
+	controllerState := agentbinarystatecontroller.NewControllerState(changestream.NewTxnRunnerFactory(s.controllerDB))
+
 	return agentbinaryservice.NewAgentBinaryService(
 		providertracker.ProviderRunner[agentbinaryservice.ProviderForAgentBinaryFinder](
-			s.providerFactory, s.modelUUID.String(),
-		), envtools.PreferredStreams, envtools.FindTools,
-		agentbinarystate.NewControllerState(changestream.NewTxnRunnerFactory(s.controllerDB)),
-		agentbinarystate.NewModelState(changestream.NewTxnRunnerFactory(s.modelDB)),
+			s.providerFactory, modelUUID,
+		),
+		envtools.PreferredStreams,
+		envtools.FindTools,
+		controllerState,
+		agentbinarystatemodel.NewModelState(changestream.NewTxnRunnerFactory(s.modelDB)),
 		s.AgentBinaryStore(),
 		agentbinaryservice.NewAgentBinaryStore(
-			agentbinarystate.NewControllerState(changestream.NewTxnRunnerFactory(s.controllerDB)),
+			controllerState,
 			s.logger.Child("controlleragentbinary"),
 			s.controllerObjectStoreGetter,
 		),
 		agentbinaryservice.NewSimpleStreamAgentBinaryStore(
 			providertracker.ProviderRunner[agentbinaryservice.ProviderForAgentBinaryFinder](
-				s.providerFactory, s.modelUUID.String(),
-			), envtools.FindTools, s.simpleStreamsClient,
+				s.providerFactory, modelUUID,
+			),
+			envtools.FindTools,
+			s.simpleStreamsClient,
 		))
 }
 
@@ -228,7 +236,7 @@ func (s *ModelServices) Config() *modelconfigservice.WatchableService {
 	return modelconfigservice.NewWatchableService(
 		defaultsProvider,
 		config.ModelValidator(),
-		modelconfigservice.ProviderModelConfigGetter(context.Background(), st),
+		modelconfigservice.ProviderModelConfigGetter(st),
 		st,
 		s.modelWatcherFactory("modelconfig"),
 	)
@@ -242,7 +250,6 @@ func (s *ModelServices) Machine() *machineservice.WatchableService {
 		machinestate.NewState(changestream.NewTxnRunnerFactory(s.modelDB), s.clock, logger),
 		s.modelWatcherFactory("machine"),
 		providertracker.ProviderRunner[machineservice.Provider](s.providerFactory, s.modelUUID.String()),
-		providertracker.ProviderRunner[machineservice.LXDProfileProvider](s.providerFactory, s.modelUUID.String()),
 		domain.NewStatusHistory(logger, s.clock),
 		s.clock,
 		logger,

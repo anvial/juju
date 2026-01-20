@@ -169,10 +169,6 @@ type ApplicationService interface {
 	// not available, [applicationerrors.CharmNotResolved] is returned.
 	GetAvailableCharmArchiveSHA256(context.Context, charm.CharmLocator) (string, error)
 
-	// GetCharmLXDProfile returns the LXD profile along with the revision of the
-	// charm using the charm name, source and revision.
-	GetCharmLXDProfile(context.Context, charm.CharmLocator) (internalcharm.LXDProfile, charm.Revision, error)
-
 	// GetApplicationTrustSetting returns the application trust setting.
 	GetApplicationTrustSetting(ctx context.Context, appName string) (bool, error)
 
@@ -408,10 +404,6 @@ type MachineService interface {
 	// AppliedLXDProfileNames returns the names of the LXD profiles on the
 	// machine.
 	AppliedLXDProfileNames(ctx context.Context, mUUID coremachine.UUID) ([]string, error)
-
-	// WatchMachineCloudInstances returns a StringsWatcher that is subscribed to
-	// the changes in the machine_cloud_instance table in the model.
-	WatchLXDProfiles(ctx context.Context, machineUUID coremachine.UUID) (watcher.NotifyWatcher, error)
 
 	// AvailabilityZone returns the hardware characteristics of the specified
 	// machine.

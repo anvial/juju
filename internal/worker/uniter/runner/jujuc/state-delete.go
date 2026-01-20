@@ -24,12 +24,12 @@ func NewStateDeleteCommand(ctx Context) (cmd.Command, error) {
 // Info implements part of the cmd.Command interface.
 func (c *StateDeleteCommand) Info() *cmd.Info {
 	doc := `
-state-delete deletes the value of the server side state specified by key.
+` + "`state-delete`" + ` deletes the value of the server side state specified by key.
 `
 	return jujucmd.Info(&cmd.Info{
 		Name:    "state-delete",
 		Args:    "<key>",
-		Purpose: "Delete server-side-state key value pairs.",
+		Purpose: "Deletes server-side-state key-value pairs.",
 		Doc:     doc,
 		SeeAlso: []string{"state-get", "state-set"},
 	})

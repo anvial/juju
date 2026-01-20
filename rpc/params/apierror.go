@@ -215,6 +215,7 @@ const (
 	CodeSecretBackendNotValid      = "secret backend not valid"
 	CodeAccessRequired             = "access required"
 	CodeAppShouldNotHaveUnits      = "application should not have units"
+	CodeFatalLoginError            = "fatal login error"
 
 	//
 	// Tag based error
@@ -559,4 +560,10 @@ func IsCodeDeadlineExceeded(err error) bool {
 
 func IsCodeAppShouldNotHaveUnits(err error) bool {
 	return ErrCode(err) == CodeAppShouldNotHaveUnits
+}
+
+// IsCodeFatalLoginError returns true if err includes a FatalLoginError
+// error code.
+func IsCodeFatalLoginError(err error) bool {
+	return ErrCode(err) == CodeFatalLoginError
 }

@@ -195,16 +195,16 @@ func (a *API) AddPendingResources(
 	appName := tag.Id()
 
 	appDetails, err := a.applicationService.GetApplicationDetailsByName(ctx, appName)
-	if err != nil {
+	if err != nil && !errors.Is(err, applicationerrors.ApplicationNotFound) {
 		result.Error = apiservererrors.ServerError(err)
 		return result, nil
-	}
-
-	// Reject synthetic (SAAS) applications - they don't support resource operations
-	if appDetails.IsApplicationSynthetic {
+	} else if appDetails.IsApplicationSynthetic {
+		// Reject synthetic (SAAS) applications - they don't support resource
+		// operations
 		result.Error = apiservererrors.ServerError(errors.NotFoundf("application %s", appName))
 		return result, nil
 	}
+	applicationExists := err == nil
 
 	requestedOrigin, err := charms.ConvertParamsOrigin(args.CharmOrigin)
 	if err != nil {
@@ -235,16 +235,14 @@ func (a *API) AddPendingResources(
 		return result, nil
 	}
 
-	applicationID, err := a.applicationService.GetApplicationUUIDByName(ctx, appName)
-	if err == nil {
-		// The application does exist, therefore the intent is to
-		// update a resource.
-		newUUIDs, err := a.updateResources(ctx, applicationID, resolvedResources)
-		result.Error = apiservererrors.ServerError(err)
+	if applicationExists {
+		newUUIDs, err := a.updateResources(ctx, appDetails.UUID, resolvedResources)
+		if err != nil {
+			result.Error = apiservererrors.ServerError(err)
+			return result, nil
+		}
 		result.PendingIDs = newUUIDs
 		return result, nil
-	} else if !errors.Is(err, applicationerrors.ApplicationNotFound) {
-		return result, internalerrors.Capture(err)
 	}
 
 	ids, err := a.addPendingResources(ctx, appName, charmLocator, resolvedResources)

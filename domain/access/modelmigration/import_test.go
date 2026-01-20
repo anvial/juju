@@ -200,13 +200,13 @@ func (s *importOfferAccessSuite) TestExecute(c *tc.C) {
 	// Arrange
 	model := description.NewModel(description.ModelArgs{})
 	app := model.AddApplication(description.ApplicationArgs{})
-	offerUUID := uuid.MustNewUUID()
+	offerUUID := tc.Must(c, uuid.NewUUID)
 	offerArgs := description.ApplicationOfferArgs{
 		OfferUUID: offerUUID.String(),
 		ACL:       map[string]string{"admin": permission.AdminAccess.String()},
 	}
 	app.AddOffer(offerArgs)
-	offerUUID2 := uuid.MustNewUUID()
+	offerUUID2 := tc.Must(c, uuid.NewUUID)
 	offerArgs2 := description.ApplicationOfferArgs{
 		OfferUUID: offerUUID2.String(),
 		ACL:       map[string]string{"george": permission.ConsumeAccess.String()},
@@ -225,6 +225,34 @@ func (s *importOfferAccessSuite) TestExecute(c *tc.C) {
 
 	// Act
 	err := s.newImportOfferAccessOperation().Execute(c.Context(), model)
+
+	// Assert
+	c.Assert(err, tc.ErrorIsNil)
+}
+
+func (s *importOfferAccessSuite) TestRollback(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	// Arrange
+	model := description.NewModel(description.ModelArgs{})
+	app := model.AddApplication(description.ApplicationArgs{})
+	offerUUID := tc.Must(c, uuid.NewUUID)
+	offerArgs := description.ApplicationOfferArgs{
+		OfferUUID: offerUUID.String(),
+		ACL:       map[string]string{"admin": permission.AdminAccess.String()},
+	}
+	app.AddOffer(offerArgs)
+	offerUUID2 := tc.Must(c, uuid.NewUUID)
+	offerArgs2 := description.ApplicationOfferArgs{
+		OfferUUID: offerUUID2.String(),
+		ACL:       map[string]string{"george": permission.ConsumeAccess.String()},
+	}
+	app.AddOffer(offerArgs2)
+	s.service.EXPECT().DeletePermissionsByGrantOnUUID(
+		gomock.Any(), []string{offerUUID.String(), offerUUID2.String()}).Return(nil)
+
+	// Act
+	err := s.newImportOfferAccessOperation().Rollback(c.Context(), model)
 
 	// Assert
 	c.Assert(err, tc.ErrorIsNil)

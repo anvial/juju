@@ -1374,44 +1374,6 @@ func (c *MockStateNamespaceForWatchMachineCloudInstanceCall) DoAndReturn(f func(
 	return c
 }
 
-// NamespaceForWatchMachineLXDProfiles mocks base method.
-func (m *MockState) NamespaceForWatchMachineLXDProfiles() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NamespaceForWatchMachineLXDProfiles")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// NamespaceForWatchMachineLXDProfiles indicates an expected call of NamespaceForWatchMachineLXDProfiles.
-func (mr *MockStateMockRecorder) NamespaceForWatchMachineLXDProfiles() *MockStateNamespaceForWatchMachineLXDProfilesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NamespaceForWatchMachineLXDProfiles", reflect.TypeOf((*MockState)(nil).NamespaceForWatchMachineLXDProfiles))
-	return &MockStateNamespaceForWatchMachineLXDProfilesCall{Call: call}
-}
-
-// MockStateNamespaceForWatchMachineLXDProfilesCall wrap *gomock.Call
-type MockStateNamespaceForWatchMachineLXDProfilesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockStateNamespaceForWatchMachineLXDProfilesCall) Return(arg0 string) *MockStateNamespaceForWatchMachineLXDProfilesCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockStateNamespaceForWatchMachineLXDProfilesCall) Do(f func() string) *MockStateNamespaceForWatchMachineLXDProfilesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateNamespaceForWatchMachineLXDProfilesCall) DoAndReturn(f func() string) *MockStateNamespaceForWatchMachineLXDProfilesCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // NamespaceForWatchMachineReboot mocks base method.
 func (m *MockState) NamespaceForWatchMachineReboot() string {
 	m.ctrl.T.Helper()
@@ -1484,44 +1446,6 @@ func (c *MockStateRequireMachineRebootCall) Do(f func(context.Context, machine.U
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockStateRequireMachineRebootCall) DoAndReturn(f func(context.Context, machine.UUID) error) *MockStateRequireMachineRebootCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SetAppliedLXDProfileNames mocks base method.
-func (m *MockState) SetAppliedLXDProfileNames(ctx context.Context, mUUID string, profileNames []string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetAppliedLXDProfileNames", ctx, mUUID, profileNames)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetAppliedLXDProfileNames indicates an expected call of SetAppliedLXDProfileNames.
-func (mr *MockStateMockRecorder) SetAppliedLXDProfileNames(ctx, mUUID, profileNames any) *MockStateSetAppliedLXDProfileNamesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetAppliedLXDProfileNames", reflect.TypeOf((*MockState)(nil).SetAppliedLXDProfileNames), ctx, mUUID, profileNames)
-	return &MockStateSetAppliedLXDProfileNamesCall{Call: call}
-}
-
-// MockStateSetAppliedLXDProfileNamesCall wrap *gomock.Call
-type MockStateSetAppliedLXDProfileNamesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockStateSetAppliedLXDProfileNamesCall) Return(arg0 error) *MockStateSetAppliedLXDProfileNamesCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockStateSetAppliedLXDProfileNamesCall) Do(f func(context.Context, string, []string) error) *MockStateSetAppliedLXDProfileNamesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStateSetAppliedLXDProfileNamesCall) DoAndReturn(f func(context.Context, string, []string) error) *MockStateSetAppliedLXDProfileNamesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

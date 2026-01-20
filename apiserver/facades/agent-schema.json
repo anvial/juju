@@ -4545,7 +4545,7 @@
     {
         "Name": "Provisioner",
         "Description": "",
-        "Version": 11,
+        "Version": 12,
         "Schema": {
             "type": "object",
             "properties": {
@@ -4677,17 +4677,6 @@
                         }
                     }
                 },
-                "GetContainerProfileInfo": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/Entities"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ContainerProfileResults"
-                        }
-                    }
-                },
                 "HostChangesForContainers": {
                     "type": "object",
                     "properties": {
@@ -4811,28 +4800,6 @@
                         }
                     }
                 },
-                "Remove": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/Entities"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ErrorResults"
-                        }
-                    }
-                },
-                "SetCharmProfiles": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/SetProfileArgs"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ErrorResults"
-                        }
-                    }
-                },
                 "SetHostMachineNetworkConfig": {
                     "type": "object",
                     "properties": {
@@ -4853,17 +4820,6 @@
                     }
                 },
                 "SetInstanceStatus": {
-                    "type": "object",
-                    "properties": {
-                        "Params": {
-                            "$ref": "#/definitions/SetStatus"
-                        },
-                        "Result": {
-                            "$ref": "#/definitions/ErrorResults"
-                        }
-                    }
-                },
-                "SetModificationStatus": {
                     "type": "object",
                     "properties": {
                         "Params": {
@@ -5158,41 +5114,6 @@
                         "result"
                     ]
                 },
-                "CharmLXDProfile": {
-                    "type": "object",
-                    "properties": {
-                        "config": {
-                            "type": "object",
-                            "patternProperties": {
-                                ".*": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "devices": {
-                            "type": "object",
-                            "patternProperties": {
-                                ".*": {
-                                    "type": "object",
-                                    "patternProperties": {
-                                        ".*": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "config",
-                        "description",
-                        "devices"
-                    ]
-                },
                 "CloudImageMetadata": {
                     "type": "object",
                     "properties": {
@@ -5334,22 +5255,6 @@
                         "UpdateBehavior"
                     ]
                 },
-                "ContainerLXDProfile": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string"
-                        },
-                        "profile": {
-                            "$ref": "#/definitions/CharmLXDProfile"
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "profile",
-                        "name"
-                    ]
-                },
                 "ContainerManagerConfig": {
                     "type": "object",
                     "properties": {
@@ -5377,36 +5282,6 @@
                     "additionalProperties": false,
                     "required": [
                         "type"
-                    ]
-                },
-                "ContainerProfileResult": {
-                    "type": "object",
-                    "properties": {
-                        "error": {
-                            "$ref": "#/definitions/Error"
-                        },
-                        "lxd-profiles": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ContainerLXDProfile"
-                            }
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "ContainerProfileResults": {
-                    "type": "object",
-                    "properties": {
-                        "results": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ContainerProfileResult"
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "results"
                     ]
                 },
                 "ControllerAPIInfoResult": {
@@ -6405,40 +6280,6 @@
                     "required": [
                         "tag",
                         "config"
-                    ]
-                },
-                "SetProfileArg": {
-                    "type": "object",
-                    "properties": {
-                        "entity": {
-                            "$ref": "#/definitions/Entity"
-                        },
-                        "profiles": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "entity",
-                        "profiles"
-                    ]
-                },
-                "SetProfileArgs": {
-                    "type": "object",
-                    "properties": {
-                        "args": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/SetProfileArg"
-                            }
-                        }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                        "args"
                     ]
                 },
                 "SetStatus": {
