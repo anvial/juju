@@ -19,6 +19,36 @@ import (
 	coretools "github.com/juju/juju/internal/tools"
 )
 
+// AgentBinaryGetterStore defines a agent binary store that can be used to
+// get agent binaries.
+type AgentBinaryGetterStore interface {
+	AgentBinaryQuerierStore
+
+	// GetAgentBinaryForSHA256 returns the agent binary associated with the
+	// given SHA256 sum.
+	//
+	// The following errors can be expected:
+	// - [domainagenterrors.NotFound] when no agent binaries exist for the
+	// provided sha.
+	GetAgentBinaryForSHA256(
+		ctx context.Context,
+		sha256Sum string,
+	) (io.ReadCloser, int64, error)
+
+	// GetAgentBinary retrieves the agent binary
+	// corresponding to the given version, architecture and stream. If
+	// successfully found the the agent binary stream is returned along with its
+	// size and sha256 sum. It is the caller's responsibility to close the
+	// returned stream when no error condition exists.
+	//
+	// The following errors may be returned:
+	// - [domainagenterrors.NotFound] if the agent binary does not exist.
+	GetAgentBinary(
+		context.Context,
+		agentbinary.AgentBinary,
+	) (io.ReadCloser, int64, string, error)
+}
+
 type AgentBinaryDiscoverableStore interface {
 	// GetAgentBinaryWithSHA256 retrieves the agent binary corresponding to the given version
 	// and stream from an external store.
@@ -31,6 +61,47 @@ type AgentBinaryDiscoverableStore interface {
 		coreagentbinary.Version,
 		agentbinary.Stream,
 	) (io.ReadCloser, int64, string, error)
+}
+
+// AgentBinaryPutterStore defines a agent binary store that can be used to
+// put agent binaries.
+type AgentBinaryPutterStore interface {
+	// AddAgentBinaryWithSHA256 adds a new agent binary to the store. The agent
+	// binary WILL be strictly checked for size and sha.
+	//
+	// - [coreerrors.NotSupported] if the architecture is not supported.
+	// - [domainagenterrors.AlreadyExists] if an agent binary already exists for
+	// this version and architecture.
+	// - [coreerrors.NotValid] if the agent version is not valid.
+	// - [domainagenterrors.HashMismatch] when the expected sha does not match
+	// that which was computed against the binary data.
+	AddAgentBinaryWithSHA256(
+		context.Context, agentbinary.AgentBinary, io.Reader, int64, string,
+	) error
+}
+
+// AgentBinaryQuerierStore defines an agent binary store that can be queried for
+// what is available to the consumer.
+type AgentBinaryQuerierStore interface {
+	// GetAvailableForVersionInStream returns the available agent binaries for
+	// the provided version and stream in the store. If no agent binaries are
+	// available for the requested version and stream an empty slice is returned.
+	//
+	// The following errors may be returned:
+	// - [coreerrors.NotValid] if the stream value is not valid.
+	GetAvailableForVersionInStream(
+		context.Context, semversion.Number, agentbinary.Stream,
+	) ([]agentbinary.AgentBinary, error)
+
+	// GetAvailablePatchVersionsInStream returns a slice of [agentbinary.AgentBinary]s
+	// that are available from store that share the the same major and minor
+	// version as that of the supplied version.
+	//
+	// The following errors may be returned:
+	// - [coreerrors.NotValid] if the stream value is not valid.
+	GetAvailablePatchVersionsInStream(
+		context.Context, semversion.Number, agentbinary.Stream,
+	) ([]agentbinary.AgentBinary, error)
 }
 
 type AgentBinaryLocalStore interface {
