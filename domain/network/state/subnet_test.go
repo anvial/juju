@@ -6,11 +6,11 @@ package state
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/juju/tc"
 
+	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/network"
 	networktesting "github.com/juju/juju/core/network/testing"
 	networkerrors "github.com/juju/juju/domain/network/errors"
@@ -256,7 +256,7 @@ func (s *stateSuite) TestFailAddTwoSubnetsSameProviderID(c *tc.C) {
 			SpaceID:           spUUID,
 		},
 	)
-	c.Assert(err, tc.ErrorMatches, fmt.Sprintf("provider id %q for subnet %q already exists", "provider-id", subnetUUID1.String()))
+	c.Assert(err, tc.ErrorIs, coreerrors.AlreadyExists)
 }
 
 func (s *stateSuite) TestRetrieveFanSubnet(c *tc.C) {
