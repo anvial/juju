@@ -718,7 +718,7 @@ func (s *volumeSuite) TestGetVolumeAttachmentPlanUUIDForVolumeNetNode(c *tc.C) {
 // model.
 func (s *volumeSuite) TestGetVolumeAttachmentPlanUUIDForVolumeNetNodeVolNotFound(c *tc.C) {
 	netNodeUUID := s.newNetNode(c)
-	notFoundVol := domaintesting.GenVolumeUUID(c)
+	notFoundVol := tc.Must(c, domainstorage.NewVolumeUUID)
 	st := NewState(s.TxnRunnerFactory())
 
 	_, err := st.GetVolumeAttachmentPlanUUIDForVolumeNetNode(
@@ -782,7 +782,7 @@ func (s *volumeSuite) TestGetVolumeAttachmentUUIDForVolumeNetNode(c *tc.C) {
 // for an attachment using a volume uuid that does not exist in the model.
 func (s *volumeSuite) TestGetVolumeAttachmentUUIDForVolumeNetNodeVolNotFound(c *tc.C) {
 	netNodeUUID := s.newNetNode(c)
-	notFoundFS := domaintesting.GenVolumeUUID(c)
+	notFoundFS := tc.Must(c, domainstorage.NewVolumeUUID)
 	st := NewState(s.TxnRunnerFactory())
 
 	_, err := st.GetVolumeAttachmentUUIDForVolumeNetNode(
@@ -832,7 +832,7 @@ func (s *volumeSuite) TestGetVolumeAttachmentUUIDForVolumeNetNodeUnrelated(c *tc
 // attachment that doesn't exist returns to the caller an error satisfying
 // [storageprovisioningerrors.VolumeNotFound].
 func (s *volumeSuite) TestGetVolumeLifeNotFound(c *tc.C) {
-	uuid := domaintesting.GenVolumeUUID(c)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 	st := NewState(s.TxnRunnerFactory())
 
 	_, err := st.GetVolumeLife(c.Context(), uuid)
@@ -879,7 +879,7 @@ func (s *volumeSuite) TestGetVolumeUUIDForID(c *tc.C) {
 // found error.
 func (s *volumeSuite) TestGetVolumeParamsNotFound(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory())
-	volUUID := domaintesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	_, err := st.GetVolumeParams(c.Context(), volUUID)
 	c.Check(err, tc.ErrorIs, storageprovisioningerrors.VolumeNotFound)
@@ -950,7 +950,7 @@ func (s *volumeSuite) TestGetVolumeParamsWithVolumeAttachment(c *tc.C) {
 
 func (s *volumeSuite) TestGetVolumeRemovalParamsNotFound(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory())
-	volUUID := domaintesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	_, err := st.GetVolumeRemovalParams(c.Context(), volUUID)
 	c.Check(err, tc.ErrorIs, storageprovisioningerrors.VolumeNotFound)
@@ -1593,7 +1593,7 @@ func (s *volumeSuite) TestGetVolume(c *tc.C) {
 func (s *volumeSuite) TestGetVolumeNotFound(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory())
 
-	uuid := domaintesting.GenVolumeUUID(c)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	_, err := st.GetVolume(c.Context(), uuid)
 	c.Check(err, tc.ErrorIs, storageprovisioningerrors.VolumeNotFound)
@@ -1627,7 +1627,7 @@ func (s *volumeSuite) TestSetVolumeProvisionedInfo(c *tc.C) {
 }
 
 func (s *volumeSuite) TestSetVolumeProvisionedInfoNotFound(c *tc.C) {
-	volUUID := domaintesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	st := NewState(s.TxnRunnerFactory())
 

@@ -1650,7 +1650,7 @@ VALUES (?, ?, ?, 0, 1)
 // newMachineVolume creates a new volume in the model with machine
 // provision scope. Returned is the uuid and volume id of the entity.
 func (s *watcherSuite) newMachineVolume(c *tc.C) (domainstorage.VolumeUUID, string) {
-	vsUUID := domaintesting.GenVolumeUUID(c)
+	vsUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	vsID := fmt.Sprintf("foo/%s", vsUUID.String())
 

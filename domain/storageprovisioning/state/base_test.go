@@ -136,7 +136,7 @@ VALUES (?, 0, ?)
 // newMachineVolume creates a new volume in the model with machine
 // provision scope. Returned is the uuid and volume id of the entity.
 func (s *baseSuite) newMachineVolume(c *tc.C) (domainstorage.VolumeUUID, string) {
-	vsUUID := domaintesting.GenVolumeUUID(c)
+	vsUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 	vsID := strconv.FormatUint(s.nextVolumeSequenceNumber(c), 10)
 
 	_, err := s.DB().Exec(`
@@ -232,7 +232,7 @@ VALUES (?, ?, ?, 0, ?, ?, 0)
 // newModelVolume creates a new volume in the model with model
 // provision scope. Return is the uuid and volume id of the entity.
 func (s *baseSuite) newModelVolume(c *tc.C) (domainstorage.VolumeUUID, string) {
-	vsUUID := domaintesting.GenVolumeUUID(c)
+	vsUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 	vsID := strconv.FormatUint(s.nextVolumeSequenceNumber(c), 10)
 
 	_, err := s.DB().Exec(`

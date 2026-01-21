@@ -235,7 +235,7 @@ VALUES (?, ?, ?)`, spUUID.String(), k, v)
 // newVolume creates a new volume in the model with model
 // provision scope. Return is the uuid and volume id of the entity.
 func (s *baseStorageSuite) newVolume(c *tc.C) (storage.VolumeUUID, string) {
-	vsUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	vsUUID := tc.Must(c, storage.NewVolumeUUID)
 
 	vsID := fmt.Sprintf("foo/%s", vsUUID.String())
 

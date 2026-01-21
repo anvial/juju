@@ -313,7 +313,7 @@ func (s *storageSuite) TestSetVolumeStatusVolumeNotFound(c *tc.C) {
 		Since:   ptr(now),
 	}
 
-	uuid := storageprovisioningtesting.GenVolumeUUID(c)
+	uuid := tc.Must(c, storage.NewVolumeUUID)
 	err := s.modelState.SetVolumeStatus(c.Context(), uuid, expected)
 	c.Assert(err, tc.ErrorIs, storageerrors.VolumeNotFound)
 }
