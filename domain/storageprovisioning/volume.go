@@ -188,7 +188,7 @@ type VolumeParams struct {
 	ID                   string
 	Provider             string
 	SizeMiB              uint64
-	VolumeAttachmentUUID *VolumeAttachmentUUID
+	VolumeAttachmentUUID *domainstorage.VolumeAttachmentUUID
 }
 
 // VolumeRemovalParams defines the set of parameters that a caller needs to

@@ -189,7 +189,7 @@ type CreateUnitStorageVolumeAttachmentArg struct {
 
 	// UUID is the unique identifier to give the volume attachment in the
 	// model.
-	UUID domainstorageprov.VolumeAttachmentUUID
+	UUID domainstorage.VolumeAttachmentUUID
 
 	// ProviderID if set, forms the pre-determined volume attachment
 	// provider id.
@@ -234,7 +234,7 @@ type RegisterUnitStorageArg struct {
 	// VolumeAttachmentProviderIDs defines the provider id value to set for
 	// each volume attachment. This allows associating volume attachments that
 	// are being created with the provider's identifier for this storage.
-	VolumeAttachmentProviderIDs map[domainstorageprov.VolumeAttachmentUUID]string
+	VolumeAttachmentProviderIDs map[domainstorage.VolumeAttachmentUUID]string
 }
 
 // StorageInstanceComposition describes the composition of a storage instance
@@ -345,7 +345,7 @@ type StorageInstanceCompositionVolumeAttachment struct {
 
 	// UUID is the unique id of the volume attachment that is associated with
 	// this storage instance.
-	UUID domainstorageprov.VolumeAttachmentUUID
+	UUID domainstorage.VolumeAttachmentUUID
 
 	// VolumeUUID is the unique id of the volume that is associated with this
 	// volume attachment.

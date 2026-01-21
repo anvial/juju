@@ -1027,7 +1027,7 @@ func (s *watcherSuite) createAttachedVolume(
 	c *tc.C, machineUUID string,
 ) string {
 	volUUID := tc.Must(c, domainstorage.NewVolumeUUID).String()
-	vaUUID := tc.Must(c, storageprovisioning.NewVolumeAttachmentUUID).String()
+	vaUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID).String()
 	txn := func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 INSERT INTO storage_volume (uuid, volume_id, life_id, provision_scope_id)
@@ -1055,7 +1055,7 @@ func (s *watcherSuite) createPlanAttachedVolume(
 	c *tc.C, machineUUID string,
 ) string {
 	volUUID := tc.Must(c, domainstorage.NewVolumeUUID).String()
-	vaUUID := tc.Must(c, storageprovisioning.NewVolumeAttachmentUUID).String()
+	vaUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID).String()
 	txn := func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 INSERT INTO storage_volume (uuid, volume_id, life_id, provision_scope_id)

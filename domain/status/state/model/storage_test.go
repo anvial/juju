@@ -842,7 +842,7 @@ func (s *storageStatusSuite) newBlockDevice(
 
 func (s *storageStatusSuite) changeVolumeAttachmentInfo(
 	c *tc.C,
-	uuid storageprovisioning.VolumeAttachmentUUID,
+	uuid storage.VolumeAttachmentUUID,
 	blockDeviceUUID string,
 	readOnly bool,
 ) {
@@ -973,8 +973,8 @@ func (s *storageStatusSuite) newVolumeAttachment(
 	c *tc.C,
 	vsUUID storage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
-) storageprovisioning.VolumeAttachmentUUID {
-	attachmentUUID := storageprovisioningtesting.GenVolumeAttachmentUUID(c)
+) storage.VolumeAttachmentUUID {
+	attachmentUUID := tc.Must(c, storage.NewVolumeAttachmentUUID)
 
 	_, err := s.DB().Exec(`
 INSERT INTO storage_volume_attachment (uuid,
