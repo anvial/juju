@@ -80,4 +80,3 @@ func (u StorageInstanceUUID) Validate() error {
 func (u StoragePoolUUID) Validate() error {
 	return baseUUID(u).validate()
 }
-
