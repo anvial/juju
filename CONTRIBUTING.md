@@ -137,23 +137,17 @@ errors, try `make clean`, then `make run` again. For other checks, see `make
 
 ### Install prerequisites
 
-`juju` is written in [Go](https://go.dev/). To install Go see [Go
-docs](https://golang.org/doc/install#install).
+#### Install Go 
+To install Go see [Go docs](https://golang.org/doc/install#install).
 
-### Building Juju and its dependencies
-
-To build Juju from source, follow these steps to set up your environment and
-compile the binaries:
-
-1. **Install Dependencies:** Run the following command to install the necessary
-   system packages and build tools:
+#### Install project dependencies
 
 ```sh
 make install-dependencies
 ```
 
-2. **Build and Install:** Compile the Juju source code. This will install the
-   resulting binaries into your `$GOBIN` directory (typically `~/go/bin`):
+### Build and install Juju
+To compile the Juju source code and install the resulting binaries into your `$GOBIN` directory (typically `~/go/bin`):
 
 ```sh
 make install
