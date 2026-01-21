@@ -5,7 +5,7 @@ package internal
 
 import (
 	domainblockdevice "github.com/juju/juju/domain/blockdevice"
-	domainstorageprovisioning "github.com/juju/juju/domain/storageprovisioning"
+	domainstorage "github.com/juju/juju/domain/storage"
 )
 
 // MachineVolumeAttachmentProvisioningParams is a internal type for representing
@@ -36,7 +36,7 @@ type MachineVolumeAttachmentProvisioningParams struct {
 
 	// VolumeUUID is the unique uuid of the volume this attachment is for. When
 	// performing compparison of this attachment ALWAYS use this value.
-	VolumeUUID domainstorageprovisioning.VolumeUUID
+	VolumeUUID domainstorage.VolumeUUID
 }
 
 // MachineVolumeProvisioningParams is a internal type for representing the
@@ -80,5 +80,5 @@ type MachineVolumeProvisioningParams struct {
 
 	// UUID is the unique uuid given to this volume. ALWAYS use this value in
 	// comparison checks.
-	UUID domainstorageprovisioning.VolumeUUID
+	UUID domainstorage.VolumeUUID
 }

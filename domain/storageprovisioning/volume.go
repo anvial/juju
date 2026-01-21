@@ -8,6 +8,7 @@ import (
 	coreunit "github.com/juju/juju/core/unit"
 	"github.com/juju/juju/domain/blockdevice"
 	"github.com/juju/juju/domain/life"
+	domainstorage "github.com/juju/juju/domain/storage"
 )
 
 // MachineVolumeAttachmentProvisioningParams defines the set of parameters
@@ -34,7 +35,7 @@ type MachineVolumeAttachmentProvisioningParams struct {
 
 	// VolumeUUID is the unique uuid of the volume this attachment is for. When
 	// performing compparison of this attachment ALWAYS use this value.
-	VolumeUUID VolumeUUID
+	VolumeUUID domainstorage.VolumeUUID
 }
 
 // MachineVolumeProvisioningParams defines the set of parameters required to
@@ -66,7 +67,7 @@ type MachineVolumeProvisioningParams struct {
 
 	// UUID is the unique uuid given to this volume. ALWAYS use this value in
 	// comparison checks.
-	UUID VolumeUUID
+	UUID domainstorage.VolumeUUID
 }
 
 // VolumeAttachmentID is a struct that provides the IDs and names associated

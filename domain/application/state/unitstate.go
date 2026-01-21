@@ -1121,7 +1121,7 @@ func (st *InsertIAASUnitState) insertMachineVolumeOwnership(
 	ctx context.Context,
 	tx *sqlair.TX,
 	machineUUID coremachine.UUID,
-	volumesToOwn []domainstorageprov.VolumeUUID,
+	volumesToOwn []domainstorage.VolumeUUID,
 ) error {
 	args := makeInsertMachineVolumeOwnerArgs(ctx, machineUUID, volumesToOwn)
 	if len(args) == 0 {

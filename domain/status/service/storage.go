@@ -37,14 +37,14 @@ type StorageState interface {
 	// - [storageerrors.VolumeNotFound] if the volume doesn't exist.
 	SetVolumeStatus(
 		ctx context.Context,
-		volumeUUID storageprovisioning.VolumeUUID,
+		volumeUUID storage.VolumeUUID,
 		sts status.StatusInfo[status.StorageVolumeStatusType],
 	) error
 
 	// GetVolumeUUIDByID returns the volume UUID for the given
 	// volume unique id. If no volume is found, an error satisfying
 	// [storageerrors.VolumeNotFound] is returned.
-	GetVolumeUUIDByID(ctx context.Context, id string) (storageprovisioning.VolumeUUID, error)
+	GetVolumeUUIDByID(ctx context.Context, id string) (storage.VolumeUUID, error)
 
 	// GetStorageInstances returns all the storage instances for this model.
 	GetStorageInstances(ctx context.Context) ([]status.StorageInstance, error)
@@ -278,7 +278,7 @@ func (s *Service) GetVolumeStatuses(ctx context.Context) ([]Volume, error) {
 		return nil, errors.Capture(err)
 	}
 
-	volumeMap := map[storageprovisioning.VolumeUUID]*Volume{}
+	volumeMap := map[storage.VolumeUUID]*Volume{}
 	for _, dv := range volumes {
 		v := Volume{
 			ID:         dv.ID,

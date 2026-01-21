@@ -681,7 +681,7 @@ func (s *Service) RemoveStorageInstance(
 	}
 
 	if cascaded.VolumeUUID != nil {
-		volUUID := storageprovisioning.VolumeUUID(*cascaded.VolumeUUID)
+		volUUID := storage.VolumeUUID(*cascaded.VolumeUUID)
 		if force && wait > 0 {
 			if _, err := s.volumeScheduleRemoval(ctx, volUUID, false, 0); err != nil {
 				return errors.Capture(err)
@@ -1022,7 +1022,7 @@ deleteFilesystem:
 // - [storageprovisioningerrors.VolumeNotDead] when the volume exists but was
 // expected to be dead but was not.
 func (s *Service) RemoveDeadVolume(
-	ctx context.Context, uuid storageprovisioning.VolumeUUID,
+	ctx context.Context, uuid storage.VolumeUUID,
 ) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -1057,7 +1057,7 @@ func (s *Service) RemoveDeadVolume(
 
 func (s *Service) volumeScheduleRemoval(
 	ctx context.Context,
-	volUUID storageprovisioning.VolumeUUID,
+	volUUID storage.VolumeUUID,
 	force bool, wait time.Duration,
 ) (removal.UUID, error) {
 	jobUUID, err := removal.NewUUID()

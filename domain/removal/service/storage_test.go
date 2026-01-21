@@ -981,7 +981,7 @@ func (s *storageSuite) TestRemoveStorageInstanceCascade(c *tc.C) {
 
 	uuid := tc.Must(c, storage.NewStorageInstanceUUID)
 	fsUUID := tc.Must(c, storageprovisioning.NewFilesystemUUID).String()
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID).String()
+	volUUID := tc.Must(c, storage.NewVolumeUUID).String()
 
 	cascaded := internal.CascadedStorageInstanceLifeChildren{
 		FileSystemUUID: &fsUUID,
@@ -1013,7 +1013,7 @@ func (s *storageSuite) TestRemoveStorageInstanceCascadeForce(c *tc.C) {
 
 	uuid := tc.Must(c, storage.NewStorageInstanceUUID)
 	fsUUID := tc.Must(c, storageprovisioning.NewFilesystemUUID).String()
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID).String()
+	volUUID := tc.Must(c, storage.NewVolumeUUID).String()
 
 	cascaded := internal.CascadedStorageInstanceLifeChildren{
 		FileSystemUUID: &fsUUID,
@@ -1814,7 +1814,7 @@ func newStorageFilesystemJob(c *tc.C) removal.Job {
 func (s *storageSuite) TestRemoveDeadVolumeNotFound(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	fsUUID := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	fsUUID := tc.Must(c, storage.NewVolumeUUID)
 
 	s.modelState.EXPECT().GetVolumeLife(
 		gomock.Any(), fsUUID.String(),
@@ -1828,7 +1828,7 @@ func (s *storageSuite) TestRemoveDeadVolumeNotFound(c *tc.C) {
 func (s *storageSuite) TestRemoveDeadVolumeAlive(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	volUUID := tc.Must(c, storage.NewVolumeUUID)
 
 	s.modelState.EXPECT().GetVolumeLife(
 		gomock.Any(), volUUID.String(),
@@ -1842,7 +1842,7 @@ func (s *storageSuite) TestRemoveDeadVolumeAlive(c *tc.C) {
 func (s *storageSuite) TestRemoveDeadVolumeDying(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	volUUID := tc.Must(c, storage.NewVolumeUUID)
 
 	s.modelState.EXPECT().GetVolumeLife(
 		gomock.Any(), volUUID.String(),
@@ -1856,7 +1856,7 @@ func (s *storageSuite) TestRemoveDeadVolumeDying(c *tc.C) {
 func (s *storageSuite) TestRemoveDeadVolume(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	volUUID := tc.Must(c, storage.NewVolumeUUID)
 
 	s.modelState.EXPECT().GetVolumeLife(
 		gomock.Any(), volUUID.String(),
@@ -1948,6 +1948,6 @@ func newStorageVolumeJob(c *tc.C) removal.Job {
 	return removal.Job{
 		UUID:        jUUID,
 		RemovalType: removal.StorageVolumeJob,
-		EntityUUID:  tc.Must(c, storageprovisioning.NewVolumeUUID).String(),
+		EntityUUID:  tc.Must(c, storage.NewVolumeUUID).String(),
 	}
 }

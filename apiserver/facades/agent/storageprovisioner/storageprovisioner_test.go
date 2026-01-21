@@ -29,6 +29,7 @@ import (
 	domainlife "github.com/juju/juju/domain/life"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
+	domainstorage "github.com/juju/juju/domain/storage"
 	"github.com/juju/juju/domain/storageprovisioning"
 	storageprovisioningerrors "github.com/juju/juju/domain/storageprovisioning/errors"
 	storageprovisioningtesting "github.com/juju/juju/domain/storageprovisioning/testing"
@@ -4044,7 +4045,7 @@ func (s *provisionerSuite) TestRemoveWithVolumeTagNotFoundUUID(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	uuid := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	svc := s.storageProvisioningService
 	rsvc := s.removalService
@@ -4070,7 +4071,7 @@ func (s *provisionerSuite) TestRemoveWithVolumeTagNotDead(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	uuid := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	svc := s.storageProvisioningService
 	rsvc := s.removalService
@@ -4096,7 +4097,7 @@ func (s *provisionerSuite) TestRemoveWithVolumeTag(c *tc.C) {
 	defer ctrl.Finish()
 
 	tag := names.NewVolumeTag("123")
-	uuid := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	svc := s.storageProvisioningService
 	rsvc := s.removalService

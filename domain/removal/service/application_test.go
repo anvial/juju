@@ -186,7 +186,7 @@ func (s *applicationSuite) TestRemoveApplicationCascadeStorage(c *tc.C) {
 	saUUID := tc.Must(c, storageprovisioning.NewStorageAttachmentUUID)
 	fsUUID := tc.Must(c, storageprovisioning.NewFilesystemUUID)
 	fsaUUID := tc.Must(c, storageprovisioning.NewFilesystemAttachmentUUID)
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	volUUID := tc.Must(c, storage.NewVolumeUUID)
 	vaUUID := tc.Must(c, storageprovisioning.NewVolumeAttachmentUUID)
 	vapUUID := tc.Must(c, storageprovisioning.NewVolumeAttachmentPlanUUID)
 

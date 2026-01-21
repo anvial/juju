@@ -195,7 +195,7 @@ ON CONFLICT(filesystem_uuid) DO UPDATE SET
 // - [storageerrors.VolumeNotFound] if the volume doesn't exist.
 func (st *ModelState) SetVolumeStatus(
 	ctx context.Context,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID storage.VolumeUUID,
 	sts status.StatusInfo[status.StorageVolumeStatusType],
 ) error {
 	db, err := st.DB(ctx)
@@ -232,7 +232,7 @@ func (st *ModelState) SetVolumeStatus(
 func (st *ModelState) getVolumeProvisioningStatus(
 	ctx context.Context,
 	tx *sqlair.TX,
-	uuid storageprovisioning.VolumeUUID,
+	uuid storage.VolumeUUID,
 ) (status.StorageVolumeStatusType, bool, error) {
 	id := volumeUUID{
 		VolumeUUID: uuid.String(),
@@ -272,7 +272,7 @@ WHERE     sv.uuid = $volumeUUID.uuid
 // - [storageerrors.VolumeNotFound] if the volume doesn't exist.
 func (st *ModelState) ImportVolumeStatus(
 	ctx context.Context,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID storage.VolumeUUID,
 	sts status.StatusInfo[status.StorageVolumeStatusType],
 ) error {
 	db, err := st.DB(ctx)
@@ -291,7 +291,7 @@ func (st *ModelState) ImportVolumeStatus(
 func (st *ModelState) GetVolumeUUIDByID(
 	ctx context.Context,
 	id string,
-) (storageprovisioning.VolumeUUID, error) {
+) (storage.VolumeUUID, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return "", errors.Capture(err)
@@ -318,13 +318,13 @@ WHERE  volume_id = $volumeUUIDID.volume_id
 	if err != nil {
 		return "", errors.Capture(err)
 	}
-	return storageprovisioning.VolumeUUID(arg.UUID), nil
+	return storage.VolumeUUID(arg.UUID), nil
 }
 
 func (st *ModelState) updateVolumeStatus(
 	ctx context.Context,
 	tx *sqlair.TX,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID storage.VolumeUUID,
 	sts status.StatusInfo[status.StorageVolumeStatusType],
 ) error {
 	statusID, err := status.EncodeStorageVolumeStatus(sts.Status)
@@ -613,7 +613,7 @@ LEFT JOIN storage_instance si ON si.uuid=siv.storage_instance_uuid
 			return status.Volume{}, errors.Capture(err)
 		}
 		return status.Volume{
-			UUID: storageprovisioning.VolumeUUID(v.UUID),
+			UUID: storage.VolumeUUID(v.UUID),
 			ID:   v.ID,
 			Life: life.Life(v.LifeID),
 			Status: status.StatusInfo[status.StorageVolumeStatusType]{
@@ -717,7 +717,7 @@ LEFT JOIN storage_volume_attachment_plan_attr svapa ON svapa.attachment_plan_uui
 			unitName = &u
 		}
 		return status.VolumeAttachment{
-			VolumeUUID:           storageprovisioning.VolumeUUID(v.VolumeUUID),
+			VolumeUUID:           storage.VolumeUUID(v.VolumeUUID),
 			Life:                 life.Life(v.LifeID),
 			Unit:                 unitName,
 			Machine:              machineName,

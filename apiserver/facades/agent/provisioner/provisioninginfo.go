@@ -28,8 +28,8 @@ import (
 	cloudimagemetadataerrors "github.com/juju/juju/domain/cloudimagemetadata/errors"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	networkerrors "github.com/juju/juju/domain/network/errors"
+	domainstorage "github.com/juju/juju/domain/storage"
 	storageerrors "github.com/juju/juju/domain/storage/errors"
-	domainstorageprovisioning "github.com/juju/juju/domain/storageprovisioning"
 	"github.com/juju/juju/environs"
 	"github.com/juju/juju/environs/config"
 	"github.com/juju/juju/environs/imagemetadata"
@@ -297,7 +297,7 @@ func (api *ProvisionerAPI) machineVolumeParams(
 	}
 
 	capturedVolumes := make(
-		map[domainstorageprovisioning.VolumeUUID]params.VolumeParams, len(volumeParams),
+		map[domainstorage.VolumeUUID]params.VolumeParams, len(volumeParams),
 	)
 	for _, vp := range volumeParams {
 		vTag, err := names.ParseVolumeTag(names.VolumeTagKind + "-" + vp.ID)

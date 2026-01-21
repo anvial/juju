@@ -102,7 +102,7 @@ type Filesystem struct {
 
 // Volume represents the status of a volume.
 type Volume struct {
-	UUID       storageprovisioning.VolumeUUID
+	UUID       storage.VolumeUUID
 	ID         string
 	Life       life.Life
 	Status     StatusInfo[StorageVolumeStatusType]
@@ -126,7 +126,7 @@ type FilesystemAttachment struct {
 
 // VolumeAttachment represents the status of a volume attachment.
 type VolumeAttachment struct {
-	VolumeUUID           storageprovisioning.VolumeUUID
+	VolumeUUID           storage.VolumeUUID
 	Life                 life.Life
 	Unit                 *unit.Name
 	Machine              *machine.Name

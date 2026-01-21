@@ -19,6 +19,7 @@ import (
 	remoteapplication "github.com/juju/juju/core/remoteapplication"
 	unit "github.com/juju/juju/core/unit"
 	status "github.com/juju/juju/domain/status"
+	storage "github.com/juju/juju/domain/storage"
 	storageprovisioning "github.com/juju/juju/domain/storageprovisioning"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -1333,10 +1334,10 @@ func (c *MockModelStateGetVolumeAttachmentsCall) DoAndReturn(f func(context.Cont
 }
 
 // GetVolumeUUIDByID mocks base method.
-func (m *MockModelState) GetVolumeUUIDByID(ctx context.Context, id string) (storageprovisioning.VolumeUUID, error) {
+func (m *MockModelState) GetVolumeUUIDByID(ctx context.Context, id string) (storage.VolumeUUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetVolumeUUIDByID", ctx, id)
-	ret0, _ := ret[0].(storageprovisioning.VolumeUUID)
+	ret0, _ := ret[0].(storage.VolumeUUID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1354,19 +1355,19 @@ type MockModelStateGetVolumeUUIDByIDCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockModelStateGetVolumeUUIDByIDCall) Return(arg0 storageprovisioning.VolumeUUID, arg1 error) *MockModelStateGetVolumeUUIDByIDCall {
+func (c *MockModelStateGetVolumeUUIDByIDCall) Return(arg0 storage.VolumeUUID, arg1 error) *MockModelStateGetVolumeUUIDByIDCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelStateGetVolumeUUIDByIDCall) Do(f func(context.Context, string) (storageprovisioning.VolumeUUID, error)) *MockModelStateGetVolumeUUIDByIDCall {
+func (c *MockModelStateGetVolumeUUIDByIDCall) Do(f func(context.Context, string) (storage.VolumeUUID, error)) *MockModelStateGetVolumeUUIDByIDCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateGetVolumeUUIDByIDCall) DoAndReturn(f func(context.Context, string) (storageprovisioning.VolumeUUID, error)) *MockModelStateGetVolumeUUIDByIDCall {
+func (c *MockModelStateGetVolumeUUIDByIDCall) DoAndReturn(f func(context.Context, string) (storage.VolumeUUID, error)) *MockModelStateGetVolumeUUIDByIDCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1986,7 +1987,7 @@ func (c *MockModelStateSetUnitWorkloadStatusCall) DoAndReturn(f func(context.Con
 }
 
 // SetVolumeStatus mocks base method.
-func (m *MockModelState) SetVolumeStatus(ctx context.Context, volumeUUID storageprovisioning.VolumeUUID, sts status.StatusInfo[status.StorageVolumeStatusType]) error {
+func (m *MockModelState) SetVolumeStatus(ctx context.Context, volumeUUID storage.VolumeUUID, sts status.StatusInfo[status.StorageVolumeStatusType]) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetVolumeStatus", ctx, volumeUUID, sts)
 	ret0, _ := ret[0].(error)
@@ -2012,13 +2013,13 @@ func (c *MockModelStateSetVolumeStatusCall) Return(arg0 error) *MockModelStateSe
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelStateSetVolumeStatusCall) Do(f func(context.Context, storageprovisioning.VolumeUUID, status.StatusInfo[status.StorageVolumeStatusType]) error) *MockModelStateSetVolumeStatusCall {
+func (c *MockModelStateSetVolumeStatusCall) Do(f func(context.Context, storage.VolumeUUID, status.StatusInfo[status.StorageVolumeStatusType]) error) *MockModelStateSetVolumeStatusCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateSetVolumeStatusCall) DoAndReturn(f func(context.Context, storageprovisioning.VolumeUUID, status.StatusInfo[status.StorageVolumeStatusType]) error) *MockModelStateSetVolumeStatusCall {
+func (c *MockModelStateSetVolumeStatusCall) DoAndReturn(f func(context.Context, storage.VolumeUUID, status.StatusInfo[status.StorageVolumeStatusType]) error) *MockModelStateSetVolumeStatusCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

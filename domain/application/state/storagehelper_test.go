@@ -94,11 +94,11 @@ func (s *storageHelper) newStorageInstanceFilesystemBackedVolumeWithProviderID(
 ) (
 	domainstorage.StorageInstanceUUID,
 	domainstorageprov.FilesystemUUID,
-	domainstorageprov.VolumeUUID,
+	domainstorage.VolumeUUID,
 ) {
 	storageInstUUID := tc.Must(c, domainstorage.NewStorageInstanceUUID)
 	storageFilesystemUUID := tc.Must(c, domainstorageprov.NewFilesystemUUID)
-	storageVolumeUUID := tc.Must(c, domainstorageprov.NewVolumeUUID)
+	storageVolumeUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 	storagePoolUUID := s.newStoragePool(c, storageInstUUID.String(), "lxd")
 
 	_, err := s.DB().ExecContext(
@@ -164,9 +164,9 @@ VALUES (?, ?, 0, ?, 0)
 // the model backed by a volume with the given provider ID set.
 func (s *storageHelper) newStorageInstanceVolumeWithProviderID(
 	c *tc.C, storageName string, providerID string,
-) (domainstorage.StorageInstanceUUID, domainstorageprov.VolumeUUID) {
+) (domainstorage.StorageInstanceUUID, domainstorage.VolumeUUID) {
 	storageInstUUID := tc.Must(c, domainstorage.NewStorageInstanceUUID)
-	storageVolumeUUID := tc.Must(c, domainstorageprov.NewVolumeUUID)
+	storageVolumeUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 	storagePoolUUID := s.newStoragePool(c, storageInstUUID.String(), "lxd")
 
 	_, err := s.DB().ExecContext(

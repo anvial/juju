@@ -22,6 +22,7 @@ import (
 	domainlife "github.com/juju/juju/domain/life"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	domainnetwork "github.com/juju/juju/domain/network"
+	domainstorage "github.com/juju/juju/domain/storage"
 	"github.com/juju/juju/domain/storageprovisioning"
 	storageprovisioningerrors "github.com/juju/juju/domain/storageprovisioning/errors"
 	"github.com/juju/juju/domain/storageprovisioning/internal"
@@ -1279,10 +1280,10 @@ func (s *volumeSuite) TestGetMachineProvisioningVolumeParams(c *tc.C) {
 	machineUUID := tc.Must(c, coremachine.NewUUID)
 	modelUUID := tc.Must(c, coremodel.NewUUID)
 	blockDeviceUUID := tc.Must(c, blockdevice.NewBlockDeviceUUID)
-	volumeUUID1 := tc.Must(c, storageprovisioning.NewVolumeUUID)
-	volumeUUID2 := tc.Must(c, storageprovisioning.NewVolumeUUID)
-	volumeUUID3 := tc.Must(c, storageprovisioning.NewVolumeUUID)
-	volumeUUID4 := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	volumeUUID1 := tc.Must(c, domainstorage.NewVolumeUUID)
+	volumeUUID2 := tc.Must(c, domainstorage.NewVolumeUUID)
+	volumeUUID3 := tc.Must(c, domainstorage.NewVolumeUUID)
+	volumeUUID4 := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	stExp := s.state.EXPECT()
 	stExp.GetStorageResourceTagInfoForModel(gomock.Any(), gomock.Any()).Return(

@@ -79,7 +79,7 @@ WHERE filesystem_uuid=?`, filesystemUUID).Scan(
 
 func (s *storageSuite) assertVolumeStatus(
 	c *tc.C,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID storage.VolumeUUID,
 	expected status.StatusInfo[status.StorageVolumeStatusType]) {
 	ctx := c.Context()
 
@@ -799,7 +799,7 @@ func (s *storageStatusSuite) TestGetVolumeAttachments(c *tc.C) {
 
 func (s *storageStatusSuite) newStorageVolumeAttachmentPlan(
 	c *tc.C,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID storage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
 	deviceTypeID storageprovisioning.PlanDeviceType,
 	attrs map[string]string,
@@ -854,7 +854,7 @@ func (s *storageStatusSuite) changeVolumeAttachmentInfo(
 
 func (s *storageStatusSuite) changeVolumeInfo(
 	c *tc.C,
-	uuid storageprovisioning.VolumeUUID,
+	uuid storage.VolumeUUID,
 	providerID string,
 	sizeMiB uint64,
 	hardwareID string,
@@ -971,7 +971,7 @@ func (s *storageStatusSuite) newMachineWithNetNode(
 // volume uuid and net node uuid.
 func (s *storageStatusSuite) newVolumeAttachment(
 	c *tc.C,
-	vsUUID storageprovisioning.VolumeUUID,
+	vsUUID storage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
 ) storageprovisioning.VolumeAttachmentUUID {
 	attachmentUUID := storageprovisioningtesting.GenVolumeAttachmentUUID(c)

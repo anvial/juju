@@ -15,6 +15,7 @@ import (
 	domainmachineerrors "github.com/juju/juju/domain/machine/errors"
 	domainnetwork "github.com/juju/juju/domain/network"
 	networkerrors "github.com/juju/juju/domain/network/errors"
+	domainstorage "github.com/juju/juju/domain/storage"
 	domainstorageprovisioning "github.com/juju/juju/domain/storageprovisioning"
 	storageprovisioningerrors "github.com/juju/juju/domain/storageprovisioning/errors"
 	domaininternal "github.com/juju/juju/domain/storageprovisioning/internal"
@@ -1751,7 +1752,7 @@ func (s *volumeSuite) TestGetBlockDeviceForVolumeAttachmentNotFound(c *tc.C) {
 // changeVolumeLife is a utility function for updating the life value of a
 // volume.
 func (s *volumeSuite) changeVolumeLife(
-	c *tc.C, uuid domainstorageprovisioning.VolumeUUID, life domainlife.Life,
+	c *tc.C, uuid domainstorage.VolumeUUID, life domainlife.Life,
 ) {
 	_, err := s.DB().Exec(`
 UPDATE storage_volume
@@ -1795,7 +1796,7 @@ WHERE  uuid = ?
 
 func (s *volumeSuite) setVolumeProviderID(
 	c *tc.C,
-	volUUID domainstorageprovisioning.VolumeUUID,
+	volUUID domainstorage.VolumeUUID,
 	providerID string,
 ) {
 	_, err := s.DB().Exec(`

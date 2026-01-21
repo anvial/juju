@@ -123,7 +123,7 @@ type RemovalService interface {
 	// RemoveDeadVolume is to be called from the storage provisoner to finally
 	// remove a dead volume that it has been gracefully cleaned up.
 	RemoveDeadVolume(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) error
 }
 
@@ -256,13 +256,13 @@ type StorageProvisioningService interface {
 	// - [github.com/juju/juju/domain/storageprovisioning/errors.VolumeNotFound]
 	// when no volume attachment exists for the supplied values.
 	GetVolumeParams(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) (storageprovisioning.VolumeParams, error)
 
 	// GetVolumeRemovalParams returns the volume removal params for the supplied
 	// uuid.
 	GetVolumeRemovalParams(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) (storageprovisioning.VolumeRemovalParams, error)
 
 	// CheckVolumeForIDExists checks if a volume exists for the supplied volume
@@ -289,14 +289,14 @@ type StorageProvisioningService interface {
 
 	// GetVolumeLife returns the current life value for a volume UUID.
 	GetVolumeLife(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) (domainlife.Life, error)
 
 	// GetVolumeUUIDForID returns the UUID for a volume with the supplied
 	// id.
 	GetVolumeUUIDForID(
 		ctx context.Context, volumeID string,
-	) (storageprovisioning.VolumeUUID, error)
+	) (domainstorage.VolumeUUID, error)
 
 	// GetVolumeByID retrieves the [storageprovisioning.Volume] for the given
 	// volume ID.
