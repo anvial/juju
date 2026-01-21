@@ -3,8 +3,18 @@
 
 package storage
 
+// VolumeAttachmentUUID represents the unique id for a storage VolumeAttachment.
+type VolumeAttachmentUUID baseUUID
+
 // VolumeUUID represents the unique id for a storage volume instance.
 type VolumeUUID baseUUID
+
+// NewVolumeAttachmentUUID creates a new, valid storage VolumeAttachment
+// identifier.
+func NewVolumeAttachmentUUID() (VolumeAttachmentUUID, error) {
+	u, err := newUUID()
+	return VolumeAttachmentUUID(u), err
+}
 
 // NewVolumeUUID creates a new, valid storage volume identifier.
 func NewVolumeUUID() (VolumeUUID, error) {
@@ -12,10 +22,21 @@ func NewVolumeUUID() (VolumeUUID, error) {
 	return VolumeUUID(u), err
 }
 
+// String returns the string representation of this [VolumeAttachment] uuid.
+// This function satisfies the [fmt.Stringer] interface.
+func (u VolumeAttachmentUUID) String() string {
+	return baseUUID(u).String()
+}
+
 // String returns the string representation of this volume uuid. This function
 // satisfies the [fmt.Stringer] interface.
 func (u VolumeUUID) String() string {
 	return baseUUID(u).String()
+}
+// 
+// Validate returns an error if the [VolumeAttachmentUUID] is not valid.
+func (u VolumeAttachmentUUID) Validate() error {
+	return baseUUID(u).validate()
 }
 
 // Validate returns an error if the [VolumeUUID] is not valid.
