@@ -22,18 +22,18 @@ func NewVolumeUUID() (VolumeUUID, error) {
 	return VolumeUUID(u), err
 }
 
-// String returns the string representation of this [VolumeAttachment] uuid.
+// String returns the string representation of this [VolumeAttachmentUUID].
 // This function satisfies the [fmt.Stringer] interface.
 func (u VolumeAttachmentUUID) String() string {
 	return baseUUID(u).String()
 }
 
-// String returns the string representation of this volume uuid. This function
+// String returns the string representation of this [VolumeUUID]. This function
 // satisfies the [fmt.Stringer] interface.
 func (u VolumeUUID) String() string {
 	return baseUUID(u).String()
 }
-// 
+
 // Validate returns an error if the [VolumeAttachmentUUID] is not valid.
 func (u VolumeAttachmentUUID) Validate() error {
 	return baseUUID(u).validate()
