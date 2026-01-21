@@ -25,7 +25,7 @@ const (
 
 // ArchitectureFromString takes a string representation of an architecture and
 // returns the equivalent [Architecture] value. If the string is not recognised
-// a zero value [Architecture] and false is returned.
+// a invalid [Architecture] value and false is returned.
 func ArchitectureFromString(a string) (Architecture, bool) {
 	switch a {
 	case "amd64":
@@ -39,7 +39,7 @@ func ArchitectureFromString(a string) (Architecture, bool) {
 	case "riscv64":
 		return RISCV64, true
 	default:
-		return 0, false
+		return -1, false
 	}
 }
 

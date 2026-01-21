@@ -98,12 +98,12 @@ func (architectureSuite) TestFromString(c *tc.C) {
 }
 
 // TestFromStringUnknown tests that calling [ArchitectureFromString] with an
-// unknown architecture string returns false and a zero value to the caller.
+// unknown architecture string returns false and an invalid [Architecture]
+// value.
 func (architectureSuite) TestFromStringUnknown(c *tc.C) {
-	var zeroArch Architecture
 	val, converted := ArchitectureFromString("unknown")
 	c.Check(converted, tc.IsFalse)
-	c.Check(val, tc.Equals, zeroArch)
+	c.Check(val.IsValid(), tc.IsFalse)
 }
 
 // TestIsValid checks all of the defined [Architecture] constants report that
