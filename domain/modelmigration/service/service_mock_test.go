@@ -204,10 +204,10 @@ func (c *MockControllerStateDeleteModelImportingStatusCall) DoAndReturn(f func(c
 }
 
 // GetControllerTargetVersion mocks base method.
-func (m *MockControllerState) GetControllerTargetVersion(arg0 context.Context) (semversion.Number, error) {
+func (m *MockControllerState) GetControllerTargetVersion(arg0 context.Context) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetControllerTargetVersion", arg0)
-	ret0, _ := ret[0].(semversion.Number)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -225,19 +225,19 @@ type MockControllerStateGetControllerTargetVersionCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockControllerStateGetControllerTargetVersionCall) Return(arg0 semversion.Number, arg1 error) *MockControllerStateGetControllerTargetVersionCall {
+func (c *MockControllerStateGetControllerTargetVersionCall) Return(arg0 string, arg1 error) *MockControllerStateGetControllerTargetVersionCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockControllerStateGetControllerTargetVersionCall) Do(f func(context.Context) (semversion.Number, error)) *MockControllerStateGetControllerTargetVersionCall {
+func (c *MockControllerStateGetControllerTargetVersionCall) Do(f func(context.Context) (string, error)) *MockControllerStateGetControllerTargetVersionCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockControllerStateGetControllerTargetVersionCall) DoAndReturn(f func(context.Context) (semversion.Number, error)) *MockControllerStateGetControllerTargetVersionCall {
+func (c *MockControllerStateGetControllerTargetVersionCall) DoAndReturn(f func(context.Context) (string, error)) *MockControllerStateGetControllerTargetVersionCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -382,10 +382,10 @@ func (c *MockModelStateGetControllerUUIDCall) DoAndReturn(f func(context.Context
 }
 
 // GetModelTargetAgentVersion mocks base method.
-func (m *MockModelState) GetModelTargetAgentVersion(arg0 context.Context) (semversion.Number, error) {
+func (m *MockModelState) GetModelTargetAgentVersion(arg0 context.Context) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetModelTargetAgentVersion", arg0)
-	ret0, _ := ret[0].(semversion.Number)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -403,25 +403,25 @@ type MockModelStateGetModelTargetAgentVersionCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockModelStateGetModelTargetAgentVersionCall) Return(arg0 semversion.Number, arg1 error) *MockModelStateGetModelTargetAgentVersionCall {
+func (c *MockModelStateGetModelTargetAgentVersionCall) Return(arg0 string, arg1 error) *MockModelStateGetModelTargetAgentVersionCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelStateGetModelTargetAgentVersionCall) Do(f func(context.Context) (semversion.Number, error)) *MockModelStateGetModelTargetAgentVersionCall {
+func (c *MockModelStateGetModelTargetAgentVersionCall) Do(f func(context.Context) (string, error)) *MockModelStateGetModelTargetAgentVersionCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateGetModelTargetAgentVersionCall) DoAndReturn(f func(context.Context) (semversion.Number, error)) *MockModelStateGetModelTargetAgentVersionCall {
+func (c *MockModelStateGetModelTargetAgentVersionCall) DoAndReturn(f func(context.Context) (string, error)) *MockModelStateGetModelTargetAgentVersionCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SetModelTargetAgentVersion mocks base method.
-func (m *MockModelState) SetModelTargetAgentVersion(arg0 context.Context, arg1, arg2 semversion.Number) error {
+func (m *MockModelState) SetModelTargetAgentVersion(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetModelTargetAgentVersion", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -447,13 +447,13 @@ func (c *MockModelStateSetModelTargetAgentVersionCall) Return(arg0 error) *MockM
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelStateSetModelTargetAgentVersionCall) Do(f func(context.Context, semversion.Number, semversion.Number) error) *MockModelStateSetModelTargetAgentVersionCall {
+func (c *MockModelStateSetModelTargetAgentVersionCall) Do(f func(context.Context, string, string) error) *MockModelStateSetModelTargetAgentVersionCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateSetModelTargetAgentVersionCall) DoAndReturn(f func(context.Context, semversion.Number, semversion.Number) error) *MockModelStateSetModelTargetAgentVersionCall {
+func (c *MockModelStateSetModelTargetAgentVersionCall) DoAndReturn(f func(context.Context, string, string) error) *MockModelStateSetModelTargetAgentVersionCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

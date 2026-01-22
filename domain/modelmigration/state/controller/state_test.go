@@ -302,15 +302,12 @@ func (s *stateSuite) TestDeleteModelImportingStatusIdempotent(c *tc.C) {
 	c.Check(count, tc.Equals, 0)
 }
 
-// TestSetAndGetControllerVersion tests that the controller version can be
-// retrieved with no errors and can also be set (upgraded) with no errors.
-func (s *stateSuite) TestSetAndGetControllerVersion(c *tc.C) {
+func (s *stateSuite) TestGetControllerTargetVersion(c *tc.C) {
 	st := New(s.TxnRunnerFactory())
 
-	// Check initial version is reported correctly.
 	ver, err := st.GetControllerTargetVersion(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(ver, tc.Equals, jujuversion.Current)
+	c.Check(ver, tc.Equals, jujuversion.Current.String())
 }
 
 // createControllerModel creates a the database for use in tests.

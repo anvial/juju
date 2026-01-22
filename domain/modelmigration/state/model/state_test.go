@@ -272,15 +272,14 @@ func (s *migrationSuite) TestDeleteModelImportingStatusIdempotent(c *tc.C) {
 // TestSetModelTargetAgentVersion is a happy path test for
 // [State.SetModelTargetAgentVersion].
 func (s *migrationSuite) TestSetModelTargetAgentVersion(c *tc.C) {
-	toVersion, err := semversion.Parse("5.2.0")
-	c.Assert(err, tc.ErrorIsNil)
+	toVersion := semversion.MustParse("5.2.0").String()
 
 	st := New(s.TxnRunnerFactory(), s.modelUUID)
 
-	err = st.SetModelTargetAgentVersion(c.Context(), jujuversion.Current, toVersion)
+	err := st.SetModelTargetAgentVersion(c.Context(), jujuversion.Current.String(), toVersion)
 	c.Check(err, tc.ErrorIsNil)
 
 	ver, err := st.GetModelTargetAgentVersion(c.Context())
 	c.Check(err, tc.ErrorIsNil)
-	c.Check(ver.String(), tc.Equals, "5.2.0")
+	c.Check(ver, tc.Equals, "5.2.0")
 }

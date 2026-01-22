@@ -65,7 +65,7 @@ type Service struct {
 type ControllerState interface {
 	// GetControllerTargetVersion returns the target controller version in use
 	// by the cluster.
-	GetControllerTargetVersion(ctx context.Context) (semversion.Number, error)
+	GetControllerTargetVersion(ctx context.Context) (string, error)
 
 	// DeleteModelImportingStatus removes the entry from the model_migrating
 	// table in the model database, indicating that the model import has
@@ -84,15 +84,13 @@ type ModelState interface {
 	GetAllInstanceIDs(ctx context.Context) (set.Strings, error)
 	// GetModelTargetAgentVersion returns the target agent version for this
 	// model.
-	GetModelTargetAgentVersion(context.Context) (semversion.Number, error)
+	GetModelTargetAgentVersion(context.Context) (string, error)
 	// SetModelTargetAgentVersion is responsible for setting the current target
 	// agent version of the model. This function expects a precondition version
 	// to be supplied. The model's target version at the time the operation is
 	// applied must match the preCondition version or else an error is returned.
 	SetModelTargetAgentVersion(
-		ctx context.Context,
-		preCondition semversion.Number,
-		toVersion semversion.Number,
+		ctx context.Context, preCondition, toVersion string,
 	) error
 	// DeleteModelImportingStatus removes the entry from the model_migrating
 	// table in the model database, indicating that the model import has
@@ -326,17 +324,35 @@ func (s *Service) ActivateImport(ctx context.Context) error {
 	// to be in a state where it was running a very old agent version until the
 	// the operator manually upgraded the agents.
 
-	desiredTargetVersion, err := s.controllerState.GetControllerTargetVersion(ctx)
+	desiredTargetVersionStr, err := s.controllerState.GetControllerTargetVersion(ctx)
 	if err != nil {
 		return errors.Errorf("getting current controller agent version: %w", err)
-	} else if desiredTargetVersion.IsZero() {
+	} else if desiredTargetVersionStr == "" {
 		// This shouldn't happen, and indicates a programming error somewhere.
 		return errors.Errorf("current controller agent version is not set")
 	}
 
-	currentTargetVersion, err := s.modelState.GetModelTargetAgentVersion(ctx)
+	desiredTargetVersion, err := semversion.Parse(desiredTargetVersionStr)
+	if err != nil {
+		return errors.Errorf(
+			"parsing current controller agent version %q: %w",
+			desiredTargetVersionStr,
+			err,
+		)
+	}
+
+	currentTargetVersionStr, err := s.modelState.GetModelTargetAgentVersion(ctx)
 	if err != nil {
 		return errors.Errorf("getting current model agent version: %w", err)
+	}
+
+	currentTargetVersion, err := semversion.Parse(currentTargetVersionStr)
+	if err != nil {
+		return errors.Errorf(
+			"parsing current model agent version %q: %w",
+			currentTargetVersionStr,
+			err,
+		)
 	}
 
 	// TODO (stickupkid): We should validate if we have all the binaries
@@ -348,7 +364,7 @@ func (s *Service) ActivateImport(ctx context.Context) error {
 		// Update the model target agent version to match the controller's
 		// target agent version.
 		if err = s.modelState.SetModelTargetAgentVersion(
-			ctx, currentTargetVersion, desiredTargetVersion,
+			ctx, currentTargetVersion.String(), desiredTargetVersion.String(),
 		); err != nil {
 			return errors.Capture(err)
 		}

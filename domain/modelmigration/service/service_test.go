@@ -174,8 +174,8 @@ func (s *serviceSuite) TestMachineInstanceIDsNotInProvider(c *tc.C) {
 func (s *serviceSuite) TestActivateImport(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	currentVersion := semversion.MustParse("4.0.0")
-	desiredVersion := semversion.MustParse("4.0.1")
+	currentVersion := semversion.MustParse("4.0.0").String()
+	desiredVersion := semversion.MustParse("4.0.1").String()
 
 	mExp := s.modelState.EXPECT()
 	cExp := s.controllerState.EXPECT()
@@ -204,8 +204,8 @@ func (s *serviceSuite) TestActivateImport(c *tc.C) {
 func (s *serviceSuite) TestActivateImportSameVersion(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	currentVersion := semversion.MustParse("4.0.0")
-	desiredVersion := semversion.MustParse("4.0.0")
+	currentVersion := semversion.MustParse("4.0.0").String()
+	desiredVersion := semversion.MustParse("4.0.0").String()
 
 	mExp := s.modelState.EXPECT()
 	cExp := s.controllerState.EXPECT()
@@ -235,7 +235,7 @@ func (s *serviceSuite) TestActivateImportControllerFails(c *tc.C) {
 
 	cExp := s.controllerState.EXPECT()
 
-	cExp.GetControllerTargetVersion(gomock.Any()).Return(semversion.Zero, errors.Errorf("front fell off"))
+	cExp.GetControllerTargetVersion(gomock.Any()).Return("", errors.Errorf("front fell off"))
 
 	err := NewService(
 		s.controllerState,
@@ -250,13 +250,13 @@ func (s *serviceSuite) TestActivateImportControllerFails(c *tc.C) {
 func (s *serviceSuite) TestActivateImportModelFails(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
-	desiredVersion := semversion.MustParse("4.0.1")
+	desiredVersion := semversion.MustParse("4.0.1").String()
 
 	mExp := s.modelState.EXPECT()
 	cExp := s.controllerState.EXPECT()
 
 	cExp.GetControllerTargetVersion(gomock.Any()).Return(desiredVersion, nil)
-	mExp.GetModelTargetAgentVersion(gomock.Any()).Return(semversion.Zero, errors.Errorf("front fell off"))
+	mExp.GetModelTargetAgentVersion(gomock.Any()).Return("", errors.Errorf("front fell off"))
 
 	err := NewService(
 		s.controllerState,

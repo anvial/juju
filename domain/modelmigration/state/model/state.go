@@ -11,7 +11,6 @@ import (
 
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/model"
-	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/domain"
 	"github.com/juju/juju/internal/errors"
 )
@@ -137,14 +136,14 @@ WHERE model_uuid = $entityUUID.uuid
 }
 
 // GetModelTargetAgentVersion returns the target agent version currently set for
-// the model. This func expects that the target agent version for
-// the model has already been set.
+// the model. This func expects that the target agent version for the model has
+// already been set.
 func (s *State) GetModelTargetAgentVersion(
 	ctx context.Context,
-) (semversion.Number, error) {
+) (string, error) {
 	db, err := s.DB(ctx)
 	if err != nil {
-		return semversion.Zero, errors.Capture(err)
+		return "", errors.Capture(err)
 	}
 
 	var currentVersion string
@@ -152,19 +151,11 @@ func (s *State) GetModelTargetAgentVersion(
 		currentVersion, err = s.getModelTargetAgentVersion(ctx, tx)
 		return err
 	})
-
 	if err != nil {
-		return semversion.Zero, errors.Capture(err)
+		return "", errors.Capture(err)
 	}
 
-	rval, err := semversion.Parse(currentVersion)
-	if err != nil {
-		return semversion.Zero, errors.Errorf(
-			"parsing controller model target agent version %q: %w",
-			currentVersion, err,
-		)
-	}
-	return rval, nil
+	return currentVersion, nil
 }
 
 // SetModelTargetAgentVersion is responsible for setting the current target
@@ -174,15 +165,14 @@ func (s *State) GetModelTargetAgentVersion(
 // returned.
 func (s *State) SetModelTargetAgentVersion(
 	ctx context.Context,
-	preCondition semversion.Number,
-	toVersion semversion.Number,
+	preCondition, toVersion string,
 ) error {
 	db, err := s.DB(ctx)
 	if err != nil {
 		return errors.Capture(err)
 	}
 
-	toVersionInput := setAgentVersionTarget{TargetVersion: toVersion.String()}
+	toVersionInput := setAgentVersionTarget{TargetVersion: toVersion}
 	setAgentVersionStmt, err := s.Prepare(`
 UPDATE agent_version
 SET    target_version = $setAgentVersionTarget.target_version
@@ -193,7 +183,6 @@ SET    target_version = $setAgentVersionTarget.target_version
 		return errors.Capture(err)
 	}
 
-	preConditionVersionStr := preCondition.String()
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
 		currentAgentVersion, err := s.getModelTargetAgentVersion(ctx, tx)
 		if err != nil {
@@ -202,7 +191,7 @@ SET    target_version = $setAgentVersionTarget.target_version
 			)
 		}
 
-		if currentAgentVersion != preConditionVersionStr {
+		if currentAgentVersion != preCondition {
 			return errors.Errorf(
 				"unable to set agent version for model. The agent version has changed to %q",
 				currentAgentVersion,
@@ -220,7 +209,7 @@ SET    target_version = $setAgentVersionTarget.target_version
 		if err != nil {
 			return errors.Errorf(
 				"setting target agent version to %q for model: %w",
-				toVersion.String(), err,
+				toVersion, err,
 			)
 		}
 		return nil
