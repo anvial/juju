@@ -19,7 +19,7 @@ func TestVolumeAttachmentUUIDSuite(t *testing.T) {
 	tc.Run(t, volumeAttachmentUUIDSuite{})
 }
 
-// TestNew tests that constructing a new [VolumeAttachmentUUID] suceeds with no
+// TestNew tests that constructing a new [VolumeAttachmentUUID] succeeds with no
 // errors and the end result is valid.
 func (volumeAttachmentUUIDSuite) TestNew(c *tc.C) {
 	u, err := NewVolumeAttachmentUUID()
