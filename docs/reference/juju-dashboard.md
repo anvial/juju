@@ -79,7 +79,7 @@ The machine details view displays all machine information for the selected machi
 ### Relations view
 
 
-The relations view (sometimes called relations) displays the information about each relation in a model. This view is accessible from the model details view as an option in the tabbed navigation at the top of the page.
+The relations view displays the information about each relation in a model. This view is accessible from the model details view as an option in the tabbed navigation at the top of the page.
 
 ![Juju dashboard relations view](juju-dashboard-relations-view.png)
 
