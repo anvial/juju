@@ -387,7 +387,7 @@ Beyond a certain number of firewall rules, which have been dynamically created t
 See more: {ref}`command-juju-set-firewall-rule`, {ref}`command-juju-firewall-rules`
 ```
 
-## Inspect relations with an offer
+## Inspect relations to an offer
 > Who: User with {ref}`offer admin access <user-access-offer-admin>`.
 
 The `offers` command is used to see all connections to one more offers.
@@ -453,7 +453,7 @@ The above command is best run with `--format` summary as the intent is to see, f
 See more: {ref}`command-juju-offers`
 ```
 
-## Suspend, resume, or remove a relation with an offer
+## Suspend, resume, or remove a relation to an offer
 > Who: User with {ref}`offer admin access <user-access-offer-admin>`.
 
 Before you can suspend, resume, or remove a relation, you need to know the relation ID. (That is because, once you've made an offer, there could potentially be many instances of the same application integrating with that offer, so the only way to identify uniquely is via the relation ID.)
@@ -465,9 +465,9 @@ Given two related apps (app1: endpoint, app2), the relation ID can be found as f
 juju exec --unit $UNIT_FOR_APP1 -- relation-ids endpoint
 ```
 
-The output, `<ENDPOINT>:<REL_ID`, gives you the relation id.
+The output, `<ENDPOINT>:<REL_ID`, gives you the relation ID.
 
-Once you have the relation id:
+Once you have the relation ID:
 
 To suspend a relation, do:
 
