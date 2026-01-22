@@ -17,6 +17,7 @@ import (
 	coreerrors "github.com/juju/juju/core/errors"
 	"github.com/juju/juju/core/machine"
 	corenetwork "github.com/juju/juju/core/network"
+	"github.com/juju/juju/domain/network"
 	"github.com/juju/juju/domain/network/internal"
 	"github.com/juju/juju/internal/errors"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
@@ -721,7 +722,7 @@ func (m cloudServiceLLDMatcher) Matches(x interface{}) bool {
 			IsEnabled:       true,
 			NetNodeUUID:     expected.NetNodeUUID,
 			Name:            fmt.Sprintf("placeholder for %q cloud service", expected.ApplicationName),
-			Type:            corenetwork.UnknownDevice,
+			Type:            network.DeviceTypeUnknown,
 			VirtualPortType: corenetwork.NonVirtualPort,
 		})
 		if !m.c.Check(slices.Collect(maps.Keys(inputAddrByUUID)), tc.SameContents,

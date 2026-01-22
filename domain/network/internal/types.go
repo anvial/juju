@@ -5,6 +5,7 @@ package internal
 
 import (
 	corenetwork "github.com/juju/juju/core/network"
+	"github.com/juju/juju/domain/network"
 )
 
 // ImportLinkLayerDevice represents a physical or virtual
@@ -20,7 +21,7 @@ type ImportLinkLayerDevice struct {
 	Name             string
 	ParentDeviceName string
 	ProviderID       *string
-	Type             corenetwork.LinkLayerDeviceType
+	Type             network.DeviceType
 	VirtualPortType  corenetwork.VirtualPortType
 	Addresses        []ImportIPAddress
 }

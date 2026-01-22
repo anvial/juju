@@ -34,6 +34,10 @@ const (
 	VXLANDevice LinkLayerDeviceType = "vxlan"
 )
 
+func (t LinkLayerDeviceType) String() string {
+	return string(t)
+}
+
 // IsValidLinkLayerDeviceType returns whether the given value is a valid
 // link-layer network device type.
 func IsValidLinkLayerDeviceType(value string) bool {

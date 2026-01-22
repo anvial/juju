@@ -13,7 +13,8 @@ import (
 	"github.com/juju/tc"
 	"go.uber.org/mock/gomock"
 
-	"github.com/juju/juju/core/network"
+	corenetwork "github.com/juju/juju/core/network"
+	"github.com/juju/juju/domain/network"
 	"github.com/juju/juju/domain/network/internal"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 )
@@ -70,7 +71,7 @@ func (s *importSuite) TestImportLinkLayerDevices(c *tc.C) {
 			MACAddress:  ptr(dArgs.MACAddress),
 			Name:        dArgs.Name,
 			ProviderID:  ptr(dArgs.ProviderID),
-			Type:        network.EthernetDevice,
+			Type:        network.DeviceTypeEthernet,
 		},
 	}
 	s.migrationService.EXPECT().ImportLinkLayerDevices(gomock.Any(), lldArgMatcher{c: c, expected: args}).Return(nil)
@@ -109,7 +110,7 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddresses(c *tc.C) {
 
 		ProviderID:       "address-10.0.0.1",
 		SubnetCIDR:       "10.0.0.0/24",
-		ConfigMethod:     string(network.ConfigStatic),
+		ConfigMethod:     string(corenetwork.ConfigStatic),
 		Value:            "10.0.0.1",
 		ProviderSubnetID: "subnet-10.0.0.0/24",
 		Origin:           "provider",
@@ -122,7 +123,7 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddresses(c *tc.C) {
 
 		ProviderID:       "address-fd42:9102:88cb:dce3:216:3eff:fe59:a9dc",
 		SubnetCIDR:       "fd42:9102:88cb:dce3::/64",
-		ConfigMethod:     string(network.ConfigManual),
+		ConfigMethod:     string(corenetwork.ConfigManual),
 		Value:            "fd42:9102:88cb:dce3:216:3eff:fe59:a9dc",
 		ProviderSubnetID: "subnet-fd42:9102:88cb:dce3::/64",
 		Origin:           "provider",
@@ -135,7 +136,7 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddresses(c *tc.C) {
 
 		ProviderID:       "address-198.0.0.1",
 		SubnetCIDR:       "198.0.0.0/24",
-		ConfigMethod:     string(network.ConfigDHCP),
+		ConfigMethod:     string(corenetwork.ConfigDHCP),
 		Value:            "198.0.0.1",
 		ProviderSubnetID: "subnet-198.0.0.0/24",
 		Origin:           "provider",
@@ -146,7 +147,7 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddresses(c *tc.C) {
 		DeviceName: "eth0",
 		MachineID:  "1",
 
-		ConfigMethod: string(network.ConfigDHCP),
+		ConfigMethod: string(corenetwork.ConfigDHCP),
 		Value:        "172.0.0.1",
 		Origin:       "machine",
 		IsShadow:     false,
@@ -157,7 +158,7 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddresses(c *tc.C) {
 		DeviceName: "eth0",
 		MachineID:  "1",
 
-		ConfigMethod: string(network.ConfigDHCP),
+		ConfigMethod: string(corenetwork.ConfigDHCP),
 		Value:        "fd42:9102:88cb:dce3:216:3eff:dead:a9dc",
 		Origin:       "machine",
 		IsShadow:     false,
@@ -171,27 +172,27 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddresses(c *tc.C) {
 			Addresses: []internal.ImportIPAddress{{
 				ProviderID:       ptr("address-10.0.0.1"),
 				SubnetCIDR:       "10.0.0.0/24",
-				ConfigType:       network.ConfigStatic,
+				ConfigType:       corenetwork.ConfigStatic,
 				AddressValue:     "10.0.0.1/24",
 				ProviderSubnetID: ptr("subnet-10.0.0.0/24"),
 				Origin:           "provider",
 				IsShadow:         false,
 				IsSecondary:      false,
 				// Resolved values
-				Type:  network.IPv4Address,
-				Scope: network.ScopeCloudLocal,
+				Type:  corenetwork.IPv4Address,
+				Scope: corenetwork.ScopeCloudLocal,
 			}, {
 				ProviderID:       ptr("address-fd42:9102:88cb:dce3:216:3eff:fe59:a9dc"),
 				SubnetCIDR:       "fd42:9102:88cb:dce3::/64",
-				ConfigType:       network.ConfigManual,
+				ConfigType:       corenetwork.ConfigManual,
 				AddressValue:     "fd42:9102:88cb:dce3:216:3eff:fe59:a9dc/64",
 				ProviderSubnetID: ptr("subnet-fd42:9102:88cb:dce3::/64"),
 				Origin:           "provider",
 				IsShadow:         true,
 				IsSecondary:      true,
 				// Resolved values
-				Type:  network.IPv6Address,
-				Scope: network.ScopeCloudLocal,
+				Type:  corenetwork.IPv6Address,
+				Scope: corenetwork.ScopeCloudLocal,
 			}},
 		}, {
 			MachineID: "0",
@@ -199,37 +200,37 @@ func (s *importSuite) TestImportLinkLayerDevicesWithAddresses(c *tc.C) {
 			Addresses: []internal.ImportIPAddress{{
 				ProviderID:       ptr("address-198.0.0.1"),
 				SubnetCIDR:       "198.0.0.0/24",
-				ConfigType:       network.ConfigDHCP,
+				ConfigType:       corenetwork.ConfigDHCP,
 				AddressValue:     "198.0.0.1/24",
 				ProviderSubnetID: ptr("subnet-198.0.0.0/24"),
 				Origin:           "provider",
 				IsShadow:         true,
 				IsSecondary:      false,
 				// Resolved values
-				Type:  network.IPv4Address,
-				Scope: network.ScopePublic,
+				Type:  corenetwork.IPv4Address,
+				Scope: corenetwork.ScopePublic,
 			}},
 		}, {
 			MachineID: "1",
 			Name:      "eth0",
 			Addresses: []internal.ImportIPAddress{{
-				ConfigType:   network.ConfigDHCP,
+				ConfigType:   corenetwork.ConfigDHCP,
 				AddressValue: "172.0.0.1/32",
 				Origin:       "machine",
 				IsShadow:     false,
 				IsSecondary:  true,
 				// Resolved values
-				Type:  network.IPv4Address,
-				Scope: network.ScopePublic,
+				Type:  corenetwork.IPv4Address,
+				Scope: corenetwork.ScopePublic,
 			}, {
-				ConfigType:   network.ConfigDHCP,
+				ConfigType:   corenetwork.ConfigDHCP,
 				AddressValue: "fd42:9102:88cb:dce3:216:3eff:dead:a9dc/128",
 				Origin:       "machine",
 				IsShadow:     false,
 				IsSecondary:  true,
 				// Resolved values
-				Type:  network.IPv6Address,
-				Scope: network.ScopeCloudLocal,
+				Type:  corenetwork.IPv6Address,
+				Scope: corenetwork.ScopeCloudLocal,
 			}}}}}).Return(nil)
 
 	// Act
@@ -277,7 +278,7 @@ func (s *importSuite) TestImportLinkLayerDevicesSkipsFanAddresses(c *tc.C) {
 		DeviceName: "eth0",
 		MachineID:  "0",
 
-		ConfigMethod: string(network.ConfigStatic),
+		ConfigMethod: string(corenetwork.ConfigStatic),
 		Value:        "240.0.0.1",
 	})
 	model.AddIPAddress(description.IPAddressArgs{
@@ -286,7 +287,7 @@ func (s *importSuite) TestImportLinkLayerDevicesSkipsFanAddresses(c *tc.C) {
 
 		ProviderID:       "address-10.0.0.1",
 		SubnetCIDR:       "10.0.0.0/24",
-		ConfigMethod:     string(network.ConfigStatic),
+		ConfigMethod:     string(corenetwork.ConfigStatic),
 		Value:            "10.0.0.1",
 		ProviderSubnetID: "subnet-10.0.0.0/24",
 		Origin:           "provider",
@@ -299,15 +300,15 @@ func (s *importSuite) TestImportLinkLayerDevicesSkipsFanAddresses(c *tc.C) {
 			Addresses: []internal.ImportIPAddress{{
 				ProviderID:       ptr("address-10.0.0.1"),
 				SubnetCIDR:       "10.0.0.0/24",
-				ConfigType:       network.ConfigStatic,
+				ConfigType:       corenetwork.ConfigStatic,
 				AddressValue:     "10.0.0.1/24",
 				ProviderSubnetID: ptr("subnet-10.0.0.0/24"),
 				Origin:           "provider",
 				IsShadow:         false,
 				IsSecondary:      false,
 				// Resolved values
-				Type:  network.IPv4Address,
-				Scope: network.ScopeCloudLocal,
+				Type:  corenetwork.IPv4Address,
+				Scope: corenetwork.ScopeCloudLocal,
 			}},
 		}}}).Return(nil)
 
@@ -365,7 +366,7 @@ func (s *importSuite) TestImportLinkLayerDevicesOptionalValues(c *tc.C) {
 			IsEnabled:   dArgs.IsUp,
 			MachineID:   dArgs.MachineID,
 			Name:        dArgs.Name,
-			Type:        network.EthernetDevice,
+			Type:        network.DeviceTypeEthernet,
 		},
 	}
 	s.migrationService.EXPECT().ImportLinkLayerDevices(gomock.Any(), lldArgMatcher{c: c, expected: args}).Return(nil)
