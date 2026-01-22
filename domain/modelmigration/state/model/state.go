@@ -172,10 +172,13 @@ func (s *State) SetModelTargetAgentVersion(
 		return errors.Capture(err)
 	}
 
-	toVersionInput := setAgentVersionTarget{TargetVersion: toVersion}
+	toVersionInput := setAgentVersionTarget{
+		TargetVersion:   toVersion,
+		PreviousVersion: preCondition}
 	setAgentVersionStmt, err := s.Prepare(`
 UPDATE agent_version
 SET    target_version = $setAgentVersionTarget.target_version
+WHERE  target_version = $setAgentVersionTarget.previous_version
 `,
 		toVersionInput,
 	)
@@ -184,32 +187,22 @@ SET    target_version = $setAgentVersionTarget.target_version
 	}
 
 	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
-		currentAgentVersion, err := s.getModelTargetAgentVersion(ctx, tx)
-		if err != nil {
-			return errors.Errorf(
-				"checking current target agent version for model to validate precondition: %w", err,
-			)
-		}
-
-		if currentAgentVersion != preCondition {
-			return errors.Errorf(
-				"unable to set agent version for model. The agent version has changed to %q",
-				currentAgentVersion,
-			)
-		}
-
-		// If the current version is the same as the toVersion we don't need to
-		// perform the set operation. This avoids creating any churn in the
-		// change log.
-		if currentAgentVersion == toVersionInput.TargetVersion {
-			return nil
-		}
-
-		err = tx.Query(ctx, setAgentVersionStmt, toVersionInput).Run()
-		if err != nil {
+		var outcome sqlair.Outcome
+		if err := tx.Query(ctx, setAgentVersionStmt, toVersionInput).Get(&outcome); err != nil {
 			return errors.Errorf(
 				"setting target agent version to %q for model: %w",
 				toVersion, err,
+			)
+		}
+		if affected, err := outcome.Result().RowsAffected(); err != nil {
+			return errors.Errorf(
+				"checking rows affected when setting target agent version to %q for model: %w",
+				toVersion, err,
+			)
+		} else if affected == 0 {
+			return errors.Errorf(
+				"setting target agent version to %q for model: expected current version %q",
+				toVersion, preCondition,
 			)
 		}
 		return nil
@@ -227,10 +220,7 @@ func (s *State) getModelTargetAgentVersion(
 	tx *sqlair.TX,
 ) (string, error) {
 	var dbVal agentVersionTarget
-	stmt, err := s.Prepare(
-		"SELECT &agentVersionTarget.* FROM agent_version",
-		dbVal,
-	)
+	stmt, err := s.Prepare("SELECT &agentVersionTarget.* FROM agent_version", dbVal)
 	if err != nil {
 		return "", errors.Capture(err)
 	}

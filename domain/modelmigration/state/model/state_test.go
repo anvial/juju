@@ -277,9 +277,18 @@ func (s *migrationSuite) TestSetModelTargetAgentVersion(c *tc.C) {
 	st := New(s.TxnRunnerFactory(), s.modelUUID)
 
 	err := st.SetModelTargetAgentVersion(c.Context(), jujuversion.Current.String(), toVersion)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 
 	ver, err := st.GetModelTargetAgentVersion(c.Context())
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(ver, tc.Equals, "5.2.0")
+}
+
+func (s *migrationSuite) TestSetModelTargetAgentVersionDifferentVersion(c *tc.C) {
+	toVersion := semversion.MustParse("5.2.0").String()
+
+	st := New(s.TxnRunnerFactory(), s.modelUUID)
+
+	err := st.SetModelTargetAgentVersion(c.Context(), "6.6.6", toVersion)
+	c.Assert(err, tc.ErrorMatches, `.*expected current version "6.6.6"`)
 }

@@ -29,5 +29,6 @@ type agentVersionTarget struct {
 // setAgentVersionTarget represents the set of update values required for
 // setting the model's target agent version.
 type setAgentVersionTarget struct {
-	TargetVersion string `db:"target_version"`
+	TargetVersion   string `db:"target_version"`
+	PreviousVersion string `db:"previous_version"`
 }
