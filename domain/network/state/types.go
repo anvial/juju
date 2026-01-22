@@ -537,22 +537,6 @@ type linkLayerDevice struct {
 	VLAN            int            `db:"vlan_tag"`
 }
 
-// readLinkLayerDevice is used to verify data in tests.
-// It contains type names rather than IDs.
-type readLinkLayerDevice struct {
-	UUID           string         `db:"uuid"`
-	NetNodeUUID    string         `db:"net_node_uuid"`
-	Name           string         `db:"name"`
-	MTU            sql.NullInt64  `db:"mtu"`
-	MAC            sql.NullString `db:"mac_address"`
-	GatewayAddress sql.NullString `db:"gateway_address"`
-	IsAutoStart    bool           `db:"is_auto_start"`
-	IsEnabled      bool           `db:"is_enabled"`
-	DeviceType     string         `db:"device_type"`
-	VirtualPort    string         `db:"virtual_port_type"`
-	VLAN           int            `db:"vlan_tag"`
-}
-
 // linkLayerDeviceName is used for identifying
 // known link-layer devices on a single node.
 type linkLayerDeviceName struct {
