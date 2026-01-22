@@ -91,7 +91,7 @@ func (st *State) GetAllMachineTargetAgentVersionByArches(
 	}
 
 	stmt, err := st.Prepare(`
-SELECT &agentBinaryStore.*
+SELECT DISTINCT architecture_id AS &agentBinaryStore.*
 FROM   agent_binary_store
 WHERE  version = $agentBinaryStore.version 
 `, key)
@@ -116,8 +116,6 @@ WHERE  version = $agentBinaryStore.version
 		return nil, errors.Capture(err)
 	}
 
-	// Removed the found architectures from the input set. The resulting
-	// set is the missing architectures.
 	result := make(map[architecture.Architecture]struct{})
 	for _, abs := range found {
 		result[architecture.Architecture(abs.ArchitectureID)] = struct{}{}
