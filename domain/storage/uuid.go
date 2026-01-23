@@ -10,15 +10,15 @@ import (
 	internaluuid "github.com/juju/juju/internal/uuid"
 )
 
+// baseUUID is a type that is used to build strongly typed entity uuids within
+// this domain.
+type baseUUID string
+
 // StorageInstanceUUID uniquely identifies a storage instance in the model.
 type StorageInstanceUUID baseUUID
 
 // StoragePoolUUID uniquely identifies a storage pool in the model.
 type StoragePoolUUID baseUUID
-
-// baseUUID is a type that is used to build strongly typed entity uuids within
-// this domain.
-type baseUUID string
 
 // NewStorageInstanceUUID creates a new, valid storage instance identifier.
 func NewStorageInstanceUUID() (StorageInstanceUUID, error) {
@@ -43,6 +43,12 @@ func newUUID() (baseUUID, error) {
 
 // String returns the string representation of this UUID. This function
 // satisfies the [fmt.Stringer] interface.
+func (u baseUUID) String() string {
+	return string(u)
+}
+
+// String returns the string representation of this UUID. This function
+// satisfies the [fmt.Stringer] interface.
 func (u StorageInstanceUUID) String() string {
 	return baseUUID(u).String()
 }
@@ -51,22 +57,6 @@ func (u StorageInstanceUUID) String() string {
 // satisfies the [fmt.Stringer] interface.
 func (u StoragePoolUUID) String() string {
 	return baseUUID(u).String()
-}
-
-// String returns the string representation of this UUID. This function
-// satisfies the [fmt.Stringer] interface.
-func (u baseUUID) String() string {
-	return string(u)
-}
-
-// Validate returns an error if the [StorageInstanceUUID] is not valid.
-func (u StorageInstanceUUID) Validate() error {
-	return baseUUID(u).validate()
-}
-
-// Validate returns an error if the [StoragePoolUUID] is not valid.
-func (u StoragePoolUUID) Validate() error {
-	return baseUUID(u).validate()
 }
 
 // validate checks that [uuid] is a valid uuid returning an error if it is not.
@@ -79,4 +69,14 @@ func (u baseUUID) validate() error {
 		return errors.Errorf("invalid uuid %q", u)
 	}
 	return nil
+}
+
+// Validate returns an error if the [StorageInstanceUUID] is not valid.
+func (u StorageInstanceUUID) Validate() error {
+	return baseUUID(u).validate()
+}
+
+// Validate returns an error if the [StoragePoolUUID] is not valid.
+func (u StoragePoolUUID) Validate() error {
+	return baseUUID(u).validate()
 }

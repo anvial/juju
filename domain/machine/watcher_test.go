@@ -37,6 +37,7 @@ import (
 	removalservice "github.com/juju/juju/domain/removal/service"
 	removalstatecontroller "github.com/juju/juju/domain/removal/state/controller"
 	removalstatemodel "github.com/juju/juju/domain/removal/state/model"
+	domainstorage "github.com/juju/juju/domain/storage"
 	"github.com/juju/juju/domain/storageprovisioning"
 	domaintesting "github.com/juju/juju/domain/testing"
 	"github.com/juju/juju/environs"
@@ -1001,7 +1002,7 @@ INSERT INTO machine_filesystem (machine_uuid, filesystem_uuid) VALUES (?, ?)
 func (s *watcherSuite) createMachineVolume(
 	c *tc.C, machineUUID string,
 ) string {
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID).String()
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID).String()
 	txn := func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 INSERT INTO storage_volume (uuid, volume_id, life_id, provision_scope_id) VALUES (?, ?, ?, ?)
@@ -1025,7 +1026,7 @@ INSERT INTO machine_volume (machine_uuid, volume_uuid) VALUES (?, ?)
 func (s *watcherSuite) createAttachedVolume(
 	c *tc.C, machineUUID string,
 ) string {
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID).String()
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID).String()
 	vaUUID := tc.Must(c, storageprovisioning.NewVolumeAttachmentUUID).String()
 	txn := func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
@@ -1053,7 +1054,7 @@ VALUES (?, ?, ?, ?, (SELECT net_node_uuid FROM machine WHERE uuid = ?))
 func (s *watcherSuite) createPlanAttachedVolume(
 	c *tc.C, machineUUID string,
 ) string {
-	volUUID := tc.Must(c, storageprovisioning.NewVolumeUUID).String()
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID).String()
 	vaUUID := tc.Must(c, storageprovisioning.NewVolumeAttachmentUUID).String()
 	txn := func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `

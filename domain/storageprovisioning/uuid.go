@@ -28,9 +28,6 @@ type VolumeAttachmentPlanUUID uuid
 // attachment in the model.
 type VolumeAttachmentUUID uuid
 
-// VolumeUUID represents the unique id for a storage volume instance.
-type VolumeUUID uuid
-
 type uuid string
 
 // NewStorageAttachmentUUID creates a new, valid storage attachment identifier.
@@ -64,12 +61,6 @@ func NewVolumeAttachmentPlanUUID() (VolumeAttachmentPlanUUID, error) {
 func NewVolumeAttachmentUUID() (VolumeAttachmentUUID, error) {
 	u, err := newUUID()
 	return VolumeAttachmentUUID(u), err
-}
-
-// NewVolumeUUID creates a new, valid storage volume identifier.
-func NewVolumeUUID() (VolumeUUID, error) {
-	u, err := newUUID()
-	return VolumeUUID(u), err
 }
 
 // newUUID creates a new UUID using the internal uuid package.
@@ -113,12 +104,6 @@ func (u VolumeAttachmentUUID) String() string {
 
 // String returns the string representation of this uuid. This function
 // satisfies the [fmt.Stringer] interface.
-func (u VolumeUUID) String() string {
-	return uuid(u).String()
-}
-
-// String returns the string representation of this uuid. This function
-// satisfies the [fmt.Stringer] interface.
 func (u uuid) String() string {
 	return string(u)
 }
@@ -145,11 +130,6 @@ func (u VolumeAttachmentPlanUUID) Validate() error {
 
 // Validate returns an error if the [VolumeAttachmentUUID] is not valid.
 func (u VolumeAttachmentUUID) Validate() error {
-	return uuid(u).validate()
-}
-
-// Validate returns an error if the [VolumeUUID] is not valid.
-func (u VolumeUUID) Validate() error {
 	return uuid(u).validate()
 }
 

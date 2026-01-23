@@ -29,6 +29,7 @@ import (
 	domainlife "github.com/juju/juju/domain/life"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
+	domainstorage "github.com/juju/juju/domain/storage"
 	"github.com/juju/juju/domain/storageprovisioning"
 	storageprovisioningerrors "github.com/juju/juju/domain/storageprovisioning/errors"
 	storageprovisioningtesting "github.com/juju/juju/domain/storageprovisioning/testing"
@@ -1934,7 +1935,7 @@ func (s *provisionerSuite) TestVolumeParamsNotFoundWithUUID(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	volUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().GetStorageResourceTagsForModel(
 		gomock.Any()).Return(map[string]string{}, nil).AnyTimes()
@@ -1960,7 +1961,7 @@ func (s *provisionerSuite) TestVolumeParams(c *tc.C) {
 	defer s.setupAPI(c).Finish()
 
 	tag := names.NewVolumeTag("123")
-	volUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().CheckVolumeForIDExists(
 		gomock.Any(), tag.Id()).Return(true, nil)
@@ -2034,7 +2035,7 @@ func (s *provisionerSuite) TestRemoveVolumeParamsNotFoundWithUUID(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	volUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().GetVolumeUUIDForID(
 		gomock.Any(), tag.Id(),
@@ -2063,7 +2064,7 @@ func (s *provisionerSuite) TestRemoveVolumeParamsNotDead(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	volUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().GetVolumeUUIDForID(
 		gomock.Any(), tag.Id(),
@@ -2090,7 +2091,7 @@ func (s *provisionerSuite) TestRemoveVolumeParams(c *tc.C) {
 	defer s.setupAPI(c).Finish()
 
 	tag := names.NewVolumeTag("123")
-	volUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().CheckVolumeForIDExists(
 		gomock.Any(), tag.Id(),
@@ -2124,7 +2125,7 @@ func (s *provisionerSuite) TestRemoveVolumeParamsWithObliterate(c *tc.C) {
 	defer s.setupAPI(c).Finish()
 
 	tag := names.NewVolumeTag("123")
-	volUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().CheckVolumeForIDExists(
 		gomock.Any(), tag.Id(),
@@ -2618,7 +2619,7 @@ func (s *provisionerSuite) TestLifeForVolume(c *tc.C) {
 	defer ctrl.Finish()
 
 	tag := names.NewVolumeTag("123")
-	volumeUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volumeUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().CheckVolumeForIDExists(
 		gomock.Any(), tag.Id()).Return(true, nil)
@@ -2674,7 +2675,7 @@ func (s *provisionerSuite) TestLifeForVolumeWithVolumeNotFound(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	volumeUUID := storageprovisioningtesting.GenVolumeUUID(c)
+	volumeUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	s.storageProvisioningService.EXPECT().GetVolumeUUIDForID(
 		gomock.Any(), tag.Id(),
@@ -4044,7 +4045,7 @@ func (s *provisionerSuite) TestRemoveWithVolumeTagNotFoundUUID(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	uuid := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	svc := s.storageProvisioningService
 	rsvc := s.removalService
@@ -4070,7 +4071,7 @@ func (s *provisionerSuite) TestRemoveWithVolumeTagNotDead(c *tc.C) {
 	s.disableAuthz(c)
 
 	tag := names.NewVolumeTag("123")
-	uuid := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	svc := s.storageProvisioningService
 	rsvc := s.removalService
@@ -4096,7 +4097,7 @@ func (s *provisionerSuite) TestRemoveWithVolumeTag(c *tc.C) {
 	defer ctrl.Finish()
 
 	tag := names.NewVolumeTag("123")
-	uuid := tc.Must(c, storageprovisioning.NewVolumeUUID)
+	uuid := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	svc := s.storageProvisioningService
 	rsvc := s.removalService
