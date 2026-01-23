@@ -1316,10 +1316,7 @@ func (s *modelStateSuite) TestGetAllMachineTargetAgentVersionByArches(c *tc.C) {
 	found, err := st.GetAllMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(found, tc.HasLen, 2)
-	c.Check(found, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	})
+	c.Check(found, tc.SameContents, []string{"amd64", "arm64"})
 }
 
 func (s *modelStateSuite) TestGetAllMachineTargetAgentVersionByArchesMultipleVersions(c *tc.C) {
@@ -1353,10 +1350,7 @@ func (s *modelStateSuite) TestGetAllMachineTargetAgentVersionByArchesMultipleVer
 	found, err := st.GetAllMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(found, tc.HasLen, 2)
-	c.Check(found, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	})
+	c.Check(found, tc.SameContents, []string{"amd64", "arm64"})
 }
 
 func (s *modelStateSuite) TestGetAllMachinesArchitectures(c *tc.C) {
@@ -1366,9 +1360,7 @@ func (s *modelStateSuite) TestGetAllMachinesArchitectures(c *tc.C) {
 
 	arches, err := st.GetAllMachinesArchitectures(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(arches, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-	})
+	c.Check(arches, tc.DeepEquals, []string{"amd64"})
 }
 
 func (s *modelStateSuite) TestGetAllMachinesArchitecturesMultiple(c *tc.C) {
@@ -1378,9 +1370,7 @@ func (s *modelStateSuite) TestGetAllMachinesArchitecturesMultiple(c *tc.C) {
 
 	arches, err := st.GetAllMachinesArchitectures(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(arches, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-	})
+	c.Check(arches, tc.DeepEquals, []string{"amd64"})
 }
 
 func (s *modelStateSuite) TestGetAllMachinesArchitecturesNoMachines(c *tc.C) {
@@ -1391,10 +1381,7 @@ func (s *modelStateSuite) TestGetAllMachinesArchitecturesNoMachines(c *tc.C) {
 
 	arches, err := st.GetAllMachinesArchitectures(c.Context())
 	c.Assert(err, tc.ErrorIsNil)
-	c.Check(arches, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	})
+	c.Check(arches, tc.SameContents, []string{"amd64", "arm64"})
 }
 
 // addMachine is a testing utility function that adds a machine with a fixed
