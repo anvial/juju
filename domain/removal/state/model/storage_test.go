@@ -1678,7 +1678,7 @@ VALUES (?, ?)
 		)
 		c.Assert(err, tc.ErrorIsNil)
 
-		vaUUID := tc.Must(c, storageprovisioning.NewVolumeAttachmentUUID)
+		vaUUID := tc.Must(c, storage.NewVolumeAttachmentUUID)
 		_, err = s.DB().ExecContext(
 			ctx,
 			`

@@ -38,11 +38,3 @@ func GenVolumeAttachmentPlanUUID(c *tc.C) storageprovisioning.VolumeAttachmentPl
 	c.Assert(err, tc.ErrorIsNil)
 	return uuid
 }
-
-// GenVolumeAttachmentUUID generates a new
-// [storageprovisioning.VolumeAttachmentUUID] for testing purposes.
-func GenVolumeAttachmentUUID(c *tc.C) storageprovisioning.VolumeAttachmentUUID {
-	uuid, err := storageprovisioning.NewVolumeAttachmentUUID()
-	c.Assert(err, tc.ErrorIsNil)
-	return uuid
-}

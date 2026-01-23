@@ -279,7 +279,7 @@ func (s *volumeSuite) TestGetVolumeAttachmentWithBlockDevice(c *tc.C) {
 // TestGetVolumeAttachmentNotFound tests that get volume attachment returns a
 // volume attachment not found error.
 func (s *volumeSuite) TestGetVolumeAttachmentNotFound(c *tc.C) {
-	vaUUID := domaintesting.GenVolumeAttachmentUUID(c)
+	vaUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	st := NewState(s.TxnRunnerFactory())
 	_, err := st.GetVolumeAttachment(c.Context(), vaUUID)
@@ -675,7 +675,7 @@ func (s *volumeSuite) TestInitialWatchStatementMachineProvisionedVolumeAttachmen
 // attachment that doesn't exist returns to the caller an error satisfying
 // [storageprovisioningerrors.VolumeAttachmentNotFound].
 func (s *volumeSuite) TestGetVolumeAttachmentLifeNotFound(c *tc.C) {
-	uuid := domaintesting.GenVolumeAttachmentUUID(c)
+	uuid := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 	st := NewState(s.TxnRunnerFactory())
 
 	_, err := st.GetVolumeAttachmentLife(c.Context(), uuid)
@@ -1025,7 +1025,7 @@ func (s *volumeSuite) TestGetVolumeRemovalParamsWithObliterateTrue(c *tc.C) {
 // error is returned when the volume attachment does not exist.
 func (s *volumeSuite) TestGetVolumeAttachmentParamsNotFound(c *tc.C) {
 	st := NewState(s.TxnRunnerFactory())
-	vaUUID := domaintesting.GenVolumeAttachmentUUID(c)
+	vaUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	_, err := st.GetVolumeAttachmentParams(c.Context(), vaUUID)
 	c.Check(err, tc.ErrorIs, storageprovisioningerrors.VolumeAttachmentNotFound)
@@ -1445,7 +1445,7 @@ func (s *volumeSuite) TestCreateVolumeAttachmentPlanAlreadyExists(c *tc.C) {
 }
 
 func (s *volumeSuite) TestCreateVolumeAttachmentPlanAttachmentNotFound(c *tc.C) {
-	vaUUID := domaintesting.GenVolumeAttachmentUUID(c)
+	vaUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 	vapUUID := domaintesting.GenVolumeAttachmentPlanUUID(c)
 
 	st := NewState(s.TxnRunnerFactory())
@@ -1702,7 +1702,7 @@ func (s *volumeSuite) TestSetVolumeAttachmentProvisionedInfoBlockDeviceNotFound(
 }
 
 func (s *volumeSuite) TestSetVolumeAttachmentProvisionedInfoNotFound(c *tc.C) {
-	vaUUID := domaintesting.GenVolumeAttachmentUUID(c)
+	vaUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	st := NewState(s.TxnRunnerFactory())
 
@@ -1740,7 +1740,7 @@ func (s *volumeSuite) TestGetBlockDeviceForVolumeAttachmentNoBlockDevice(c *tc.C
 }
 
 func (s *volumeSuite) TestGetBlockDeviceForVolumeAttachmentNotFound(c *tc.C) {
-	vaUUID := domaintesting.GenVolumeAttachmentUUID(c)
+	vaUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	st := NewState(s.TxnRunnerFactory())
 
@@ -1766,7 +1766,7 @@ WHERE  uuid = ?
 // changeVolumeAttachmentLife is a utility function for updating the life
 // value of a volume attachment.
 func (s *volumeSuite) changeVolumeAttachmentLife(
-	c *tc.C, uuid domainstorageprovisioning.VolumeAttachmentUUID, life domainlife.Life,
+	c *tc.C, uuid domainstorage.VolumeAttachmentUUID, life domainlife.Life,
 ) {
 	_, err := s.DB().Exec(`
 UPDATE storage_volume_attachment

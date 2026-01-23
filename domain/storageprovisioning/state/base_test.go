@@ -156,8 +156,8 @@ func (s *baseSuite) newMachineVolumeAttachment(
 	c *tc.C,
 	vsUUID domainstorage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
-) storageprovisioning.VolumeAttachmentUUID {
-	attachmentUUID := domaintesting.GenVolumeAttachmentUUID(c)
+) domainstorage.VolumeAttachmentUUID {
+	attachmentUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	_, err := s.DB().ExecContext(
 		c.Context(),
@@ -252,8 +252,8 @@ func (s *baseSuite) newModelVolumeAttachment(
 	c *tc.C,
 	vsUUID domainstorage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
-) storageprovisioning.VolumeAttachmentUUID {
-	attachmentUUID := domaintesting.GenVolumeAttachmentUUID(c)
+) domainstorage.VolumeAttachmentUUID {
+	attachmentUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	_, err := s.DB().ExecContext(
 		c.Context(),
@@ -635,7 +635,7 @@ func (s *baseSuite) newSimpleBlockDevice(
 
 func (s *baseSuite) changeVolumeAttachmentInfo(
 	c *tc.C,
-	uuid storageprovisioning.VolumeAttachmentUUID,
+	uuid domainstorage.VolumeAttachmentUUID,
 	blockDeviceUUID blockdevice.BlockDeviceUUID,
 	readOnly bool,
 ) {

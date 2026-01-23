@@ -28,6 +28,7 @@ import (
 	domainlife "github.com/juju/juju/domain/life"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	removalerrors "github.com/juju/juju/domain/removal/errors"
+	domainstorage "github.com/juju/juju/domain/storage"
 	storageerrors "github.com/juju/juju/domain/storage/errors"
 	"github.com/juju/juju/domain/storageprovisioning"
 	storageprovisioningerrors "github.com/juju/juju/domain/storageprovisioning/errors"
@@ -2708,7 +2709,7 @@ func (s *StorageProvisionerAPI) getFilesystemAttachmentUUID(
 
 func (s *StorageProvisionerAPI) getVolumeAttachmentUUID(
 	ctx context.Context, volTag names.VolumeTag, machineUUID machine.UUID,
-) (storageprovisioning.VolumeAttachmentUUID, error) {
+) (domainstorage.VolumeAttachmentUUID, error) {
 	rval, err := s.storageProvisioningService.GetVolumeAttachmentUUIDForVolumeIDMachine(
 		ctx, volTag.Id(), machineUUID,
 	)

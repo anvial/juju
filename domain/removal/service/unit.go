@@ -170,13 +170,13 @@ func (s *Service) RemoveUnit(
 	for _, a := range cascaded.VolumeAttachmentUUIDs {
 		if force && wait > 0 {
 			if _, err := s.volumeAttachmentScheduleRemoval(
-				ctx, storageprovisioning.VolumeAttachmentUUID(a), false, 0,
+				ctx, storage.VolumeAttachmentUUID(a), false, 0,
 			); err != nil {
 				return "", errors.Capture(err)
 			}
 		}
 		if _, err := s.volumeAttachmentScheduleRemoval(
-			ctx, storageprovisioning.VolumeAttachmentUUID(a), force, wait,
+			ctx, storage.VolumeAttachmentUUID(a), force, wait,
 		); err != nil {
 			return "", errors.Capture(err)
 		}

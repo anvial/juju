@@ -456,7 +456,7 @@ FROM (
 				ProvisionScope: domainstorageprov.ProvisionScope(
 					dbAttachmentVal.VolumeAttachmentProvisionScope.V,
 				),
-				UUID: domainstorageprov.VolumeAttachmentUUID(
+				UUID: domainstorage.VolumeAttachmentUUID(
 					dbAttachmentVal.VolumeAttachmentUUID.V,
 				),
 				VolumeUUID: domainstorage.VolumeUUID(

@@ -454,12 +454,12 @@ func makeCAASStorageInstanceProviderIDAssociations(
 	map[domainstorageprov.FilesystemUUID]string,
 	map[domainstorage.VolumeUUID]string,
 	map[domainstorageprov.FilesystemAttachmentUUID]string,
-	map[domainstorageprov.VolumeAttachmentUUID]string,
+	map[domainstorage.VolumeAttachmentUUID]string,
 ) {
 	rvalFilesystemProviderIDs := map[domainstorageprov.FilesystemUUID]string{}
 	rvalVolumeProviderIDs := map[domainstorage.VolumeUUID]string{}
 	rvalFilesystemAttachmentProviderIDs := map[domainstorageprov.FilesystemAttachmentUUID]string{}
-	rvalVolumeAttachmentProviderIDs := map[domainstorageprov.VolumeAttachmentUUID]string{}
+	rvalVolumeAttachmentProviderIDs := map[domainstorage.VolumeAttachmentUUID]string{}
 
 	storageProviderIDsToAttachmentProviderIDs := make(
 		map[string]string, len(providerFilesystemInfo),
@@ -637,7 +637,7 @@ func makeStorageAttachmentArgFromExistingStorageInstance(
 	}
 
 	if storageInstance.Volume != nil {
-		uuid, err := domainstorageprov.NewVolumeAttachmentUUID()
+		uuid, err := domainstorage.NewVolumeAttachmentUUID()
 		if err != nil {
 			return internal.CreateUnitStorageAttachmentArg{}, errors.Errorf(
 				"generating new volume attachment uuid: %w", err,
@@ -694,7 +694,7 @@ func makeStorageAttachmentArgFromNewStorageInstance(
 	}
 
 	if storageInstance.Volume != nil {
-		uuid, err := domainstorageprov.NewVolumeAttachmentUUID()
+		uuid, err := domainstorage.NewVolumeAttachmentUUID()
 		if err != nil {
 			return internal.CreateUnitStorageAttachmentArg{}, errors.Errorf(
 				"generating new volume attachment uuid: %w", err,
