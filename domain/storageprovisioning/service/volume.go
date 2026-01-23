@@ -21,7 +21,7 @@ import (
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	domainnetwork "github.com/juju/juju/domain/network"
 	networkerrors "github.com/juju/juju/domain/network/errors"
-	domainstorage "github.com/juju/juju/domain/storage"
+	"github.com/juju/juju/domain/storage"
 	"github.com/juju/juju/domain/storageprovisioning"
 	storageprovisioningerrors "github.com/juju/juju/domain/storageprovisioning/errors"
 	"github.com/juju/juju/domain/storageprovisioning/internal"
@@ -60,7 +60,7 @@ type VolumeState interface {
 
 	// GetVolume returns the volume information for the specified volume uuid.
 	GetVolume(
-		context.Context, domainstorage.VolumeUUID,
+		context.Context, storage.VolumeUUID,
 	) (storageprovisioning.Volume, error)
 
 	// GetVolumeAttachmentIDs returns the
@@ -124,7 +124,7 @@ type VolumeState interface {
 	// supplied uuid.
 	GetVolumeAttachmentUUIDForVolumeNetNode(
 		context.Context,
-		domainstorage.VolumeUUID,
+		storage.VolumeUUID,
 		domainnetwork.NetNodeUUID,
 	) (storageprovisioning.VolumeAttachmentUUID, error)
 
@@ -133,7 +133,7 @@ type VolumeState interface {
 	// uuid.
 	GetVolumeAttachmentPlanUUIDForVolumeNetNode(
 		context.Context,
-		domainstorage.VolumeUUID,
+		storage.VolumeUUID,
 		domainnetwork.NetNodeUUID,
 	) (storageprovisioning.VolumeAttachmentPlanUUID, error)
 
@@ -150,7 +150,7 @@ type VolumeState interface {
 	// - [storageprovisioningerrors.VolumeNotFound]
 	// when no volume exists for the provided volume uuid.
 	GetVolumeLife(
-		context.Context, domainstorage.VolumeUUID,
+		context.Context, storage.VolumeUUID,
 	) (domainlife.Life, error)
 
 	// GetVolumeLifeForNetNode returns a mapping of volume ID to current
@@ -168,7 +168,7 @@ type VolumeState interface {
 	// when no volume exists for the provided volume uuid.
 	GetVolumeUUIDForID(
 		context.Context, string,
-	) (domainstorage.VolumeUUID, error)
+	) (storage.VolumeUUID, error)
 
 	// GetVolumeParams returns the volume params for the supplied uuid.
 	//
@@ -176,7 +176,7 @@ type VolumeState interface {
 	// - [storageprovisioningerrors.VolumeNotFound] when no volume exists for
 	// the uuid.
 	GetVolumeParams(
-		context.Context, domainstorage.VolumeUUID,
+		context.Context, storage.VolumeUUID,
 	) (storageprovisioning.VolumeParams, error)
 
 	// GetVolumeRemovalParams returns the volume removal params for the supplied
@@ -186,7 +186,7 @@ type VolumeState interface {
 	// - [storageprovisioningerrors.VolumeNotFound] when no volume exists for
 	// the uuid.
 	GetVolumeRemovalParams(
-		context.Context, domainstorage.VolumeUUID,
+		context.Context, storage.VolumeUUID,
 	) (storageprovisioning.VolumeRemovalParams, error)
 
 	// GetVolumeAttachmentParams retrieves the attachment params for the given
@@ -202,7 +202,7 @@ type VolumeState interface {
 	// SetVolumeProvisionedInfo sets the provisioned information for the given
 	// volume.
 	SetVolumeProvisionedInfo(
-		context.Context, domainstorage.VolumeUUID,
+		context.Context, storage.VolumeUUID,
 		storageprovisioning.VolumeProvisionedInfo,
 	) error
 
@@ -439,7 +439,7 @@ func (s *Service) GetVolumeAttachmentIDs(
 // - [storageprovisioningerrors.VolumeNotFound] when no volume exists for the
 // supplied values.
 func (s *Service) GetVolumeParams(
-	ctx context.Context, uuid domainstorage.VolumeUUID,
+	ctx context.Context, uuid storage.VolumeUUID,
 ) (storageprovisioning.VolumeParams, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -463,7 +463,7 @@ func (s *Service) GetVolumeParams(
 // - [storageprovisioningerrors.VolumeNotDead] when the volume exists but was
 // expected to be dead but was not.
 func (s *Service) GetVolumeRemovalParams(
-	ctx context.Context, uuid domainstorage.VolumeUUID,
+	ctx context.Context, uuid storage.VolumeUUID,
 ) (storageprovisioning.VolumeRemovalParams, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -730,7 +730,7 @@ func (s *Service) GetVolumeAttachmentUUIDForVolumeIDUnit(
 // provided volume uuid.
 func (s *Service) GetVolumeLife(
 	ctx context.Context,
-	uuid domainstorage.VolumeUUID,
+	uuid storage.VolumeUUID,
 ) (domainlife.Life, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -756,7 +756,7 @@ func (s *Service) GetVolumeLife(
 // provided volume uuid.
 func (s *Service) GetVolumeUUIDForID(
 	ctx context.Context, volumeID string,
-) (domainstorage.VolumeUUID, error) {
+) (storage.VolumeUUID, error) {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
 
