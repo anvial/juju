@@ -7,11 +7,11 @@ import (
 	"context"
 
 	"github.com/canonical/sqlair"
+	"github.com/juju/collections/transform"
 
 	"github.com/juju/juju/core/database"
 	"github.com/juju/juju/core/semversion"
 	"github.com/juju/juju/domain"
-	"github.com/juju/juju/domain/application/architecture"
 	"github.com/juju/juju/internal/errors"
 )
 
@@ -76,11 +76,10 @@ GROUP  BY version
 // GetAllMachineTargetAgentVersionByArches returns all the given machine
 // architectures for a given agent version that have an associated agent binary
 // in the agent binary store.
-// It returns an empty map if no architectures are found.
 func (st *State) GetAllMachineTargetAgentVersionByArches(
 	ctx context.Context,
 	version string,
-) (map[architecture.Architecture]struct{}, error) {
+) ([]string, error) {
 	db, err := st.DB(ctx)
 	if err != nil {
 		return nil, errors.Capture(err)
@@ -91,8 +90,9 @@ func (st *State) GetAllMachineTargetAgentVersionByArches(
 	}
 
 	stmt, err := st.Prepare(`
-SELECT DISTINCT architecture_id AS &agentBinaryStore.*
-FROM   agent_binary_store
+SELECT DISTINCT a.name AS &agentBinaryStore.architecture_name
+FROM   agent_binary_store AS abs
+JOIN   architecture AS a ON abs.architecture_id = a.id
 WHERE  version = $agentBinaryStore.version 
 `, key)
 	if err != nil {
@@ -116,10 +116,7 @@ WHERE  version = $agentBinaryStore.version
 		return nil, errors.Capture(err)
 	}
 
-	result := make(map[architecture.Architecture]struct{})
-	for _, abs := range found {
-		result[architecture.Architecture(abs.ArchitectureID)] = struct{}{}
-	}
-
-	return result, nil
+	return transform.Slice(found, func(a agentBinaryStore) string {
+		return a.ArchitectureName
+	}), nil
 }

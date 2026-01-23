@@ -21,7 +21,6 @@ import (
 	"github.com/juju/juju/core/semversion"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
 	agentbinarystate "github.com/juju/juju/domain/agentbinary/state/model"
-	"github.com/juju/juju/domain/application/architecture"
 	schematesting "github.com/juju/juju/domain/schema/testing"
 	"github.com/juju/juju/internal/uuid"
 )
@@ -132,10 +131,7 @@ func (s *controllerStateSuite) TestGetAllMachineTargetAgentVersionByArches(c *tc
 	found, err := st.GetAllMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(found, tc.HasLen, 2)
-	c.Check(found, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	})
+	c.Check(found, tc.SameContents, []string{"amd64", "arm64"})
 }
 
 func (s *controllerStateSuite) TestGetAllMachineTargetAgentVersionByArchesMultipleVersions(c *tc.C) {
@@ -169,10 +165,7 @@ func (s *controllerStateSuite) TestGetAllMachineTargetAgentVersionByArchesMultip
 	found, err := st.GetAllMachineTargetAgentVersionByArches(c.Context(), expectedVersion.String())
 	c.Assert(err, tc.ErrorIsNil)
 	c.Assert(found, tc.HasLen, 2)
-	c.Check(found, tc.DeepEquals, map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	})
+	c.Check(found, tc.SameContents, []string{"amd64", "arm64"})
 }
 
 // registerAgentBinary is a testing utility function that registers the fact
