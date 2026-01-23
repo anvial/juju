@@ -19,7 +19,6 @@ import (
 	semversion "github.com/juju/juju/core/semversion"
 	unit "github.com/juju/juju/core/unit"
 	agentbinary0 "github.com/juju/juju/domain/agentbinary"
-	architecture "github.com/juju/juju/domain/application/architecture"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -109,10 +108,10 @@ func (m *MockModelState) EXPECT() *MockModelStateMockRecorder {
 }
 
 // GetAllMachineTargetAgentVersionByArches mocks base method.
-func (m *MockModelState) GetAllMachineTargetAgentVersionByArches(arg0 context.Context, arg1 string) (map[architecture.Architecture]struct{}, error) {
+func (m *MockModelState) GetAllMachineTargetAgentVersionByArches(arg0 context.Context, arg1 string) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllMachineTargetAgentVersionByArches", arg0, arg1)
-	ret0, _ := ret[0].(map[architecture.Architecture]struct{})
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -130,28 +129,28 @@ type MockModelStateGetAllMachineTargetAgentVersionByArchesCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockModelStateGetAllMachineTargetAgentVersionByArchesCall) Return(arg0 map[architecture.Architecture]struct{}, arg1 error) *MockModelStateGetAllMachineTargetAgentVersionByArchesCall {
+func (c *MockModelStateGetAllMachineTargetAgentVersionByArchesCall) Return(arg0 []string, arg1 error) *MockModelStateGetAllMachineTargetAgentVersionByArchesCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelStateGetAllMachineTargetAgentVersionByArchesCall) Do(f func(context.Context, string) (map[architecture.Architecture]struct{}, error)) *MockModelStateGetAllMachineTargetAgentVersionByArchesCall {
+func (c *MockModelStateGetAllMachineTargetAgentVersionByArchesCall) Do(f func(context.Context, string) ([]string, error)) *MockModelStateGetAllMachineTargetAgentVersionByArchesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateGetAllMachineTargetAgentVersionByArchesCall) DoAndReturn(f func(context.Context, string) (map[architecture.Architecture]struct{}, error)) *MockModelStateGetAllMachineTargetAgentVersionByArchesCall {
+func (c *MockModelStateGetAllMachineTargetAgentVersionByArchesCall) DoAndReturn(f func(context.Context, string) ([]string, error)) *MockModelStateGetAllMachineTargetAgentVersionByArchesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // GetAllMachinesArchitectures mocks base method.
-func (m *MockModelState) GetAllMachinesArchitectures(arg0 context.Context) (map[architecture.Architecture]struct{}, error) {
+func (m *MockModelState) GetAllMachinesArchitectures(arg0 context.Context) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllMachinesArchitectures", arg0)
-	ret0, _ := ret[0].(map[architecture.Architecture]struct{})
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -169,19 +168,19 @@ type MockModelStateGetAllMachinesArchitecturesCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockModelStateGetAllMachinesArchitecturesCall) Return(arg0 map[architecture.Architecture]struct{}, arg1 error) *MockModelStateGetAllMachinesArchitecturesCall {
+func (c *MockModelStateGetAllMachinesArchitecturesCall) Return(arg0 []string, arg1 error) *MockModelStateGetAllMachinesArchitecturesCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockModelStateGetAllMachinesArchitecturesCall) Do(f func(context.Context) (map[architecture.Architecture]struct{}, error)) *MockModelStateGetAllMachinesArchitecturesCall {
+func (c *MockModelStateGetAllMachinesArchitecturesCall) Do(f func(context.Context) ([]string, error)) *MockModelStateGetAllMachinesArchitecturesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockModelStateGetAllMachinesArchitecturesCall) DoAndReturn(f func(context.Context) (map[architecture.Architecture]struct{}, error)) *MockModelStateGetAllMachinesArchitecturesCall {
+func (c *MockModelStateGetAllMachinesArchitecturesCall) DoAndReturn(f func(context.Context) ([]string, error)) *MockModelStateGetAllMachinesArchitecturesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1022,10 +1021,10 @@ func (m *MockControllerState) EXPECT() *MockControllerStateMockRecorder {
 }
 
 // GetAllMachineTargetAgentVersionByArches mocks base method.
-func (m *MockControllerState) GetAllMachineTargetAgentVersionByArches(arg0 context.Context, arg1 string) (map[architecture.Architecture]struct{}, error) {
+func (m *MockControllerState) GetAllMachineTargetAgentVersionByArches(arg0 context.Context, arg1 string) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllMachineTargetAgentVersionByArches", arg0, arg1)
-	ret0, _ := ret[0].(map[architecture.Architecture]struct{})
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1043,19 +1042,19 @@ type MockControllerStateGetAllMachineTargetAgentVersionByArchesCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall) Return(arg0 map[architecture.Architecture]struct{}, arg1 error) *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall {
+func (c *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall) Return(arg0 []string, arg1 error) *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall) Do(f func(context.Context, string) (map[architecture.Architecture]struct{}, error)) *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall {
+func (c *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall) Do(f func(context.Context, string) ([]string, error)) *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall) DoAndReturn(f func(context.Context, string) (map[architecture.Architecture]struct{}, error)) *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall {
+func (c *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall) DoAndReturn(f func(context.Context, string) ([]string, error)) *MockControllerStateGetAllMachineTargetAgentVersionByArchesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -10,6 +10,8 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/juju/collections/set"
+
 	"github.com/juju/juju/core/agentbinary"
 	"github.com/juju/juju/core/arch"
 	corebase "github.com/juju/juju/core/base"
@@ -22,7 +24,6 @@ import (
 	"github.com/juju/juju/core/watcher"
 	"github.com/juju/juju/core/watcher/eventsource"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
-	"github.com/juju/juju/domain/application/architecture"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	modelagenterrors "github.com/juju/juju/domain/modelagent/errors"
@@ -156,7 +157,7 @@ type ModelState interface {
 
 	// GetAllMachinesArchitectures returns a map of all machine architectures in
 	// the model.
-	GetAllMachinesArchitectures(ctx context.Context) (map[architecture.Architecture]struct{}, error)
+	GetAllMachinesArchitectures(ctx context.Context) ([]string, error)
 
 	// GetAllMachineTargetAgentVersionByArches returns all the given machine
 	// architectures for a given agent version that have an associated agent binary
@@ -164,7 +165,7 @@ type ModelState interface {
 	GetAllMachineTargetAgentVersionByArches(
 		ctx context.Context,
 		version string,
-	) (map[architecture.Architecture]struct{}, error)
+	) ([]string, error)
 }
 
 // ControllerState defines the interface for interacting with the
@@ -180,7 +181,7 @@ type ControllerState interface {
 	GetAllMachineTargetAgentVersionByArches(
 		ctx context.Context,
 		version string,
-	) (map[architecture.Architecture]struct{}, error)
+	) ([]string, error)
 }
 
 // WatcherFactory provides a factory for constructing new watchers.
@@ -383,20 +384,23 @@ func (s *Service) GetMissingAgentTargetVersions(ctx context.Context) (semversion
 	}
 
 	// Get all the machines architectures in the model.
-	machineArches, err := s.modelSt.GetAllMachinesArchitectures(ctx)
+	machineArchesSlice, err := s.modelSt.GetAllMachinesArchitectures(ctx)
 	if err != nil {
 		return semversion.Zero, nil, errors.Errorf("getting all machine architectures in model: %w", err)
 	}
+	machineArches := set.NewStrings(machineArchesSlice...)
 
 	// Find any missing architectures for the target version in the model
 	// database, before checking the controller database. The look up hierarchy
 	// ensures that if a tools for a give architecture exists in complete form
 	// in the model database, we don't need to check the controller database.
-	foundModelArches, err := s.modelSt.GetAllMachineTargetAgentVersionByArches(ctx, targetVersion.String())
+	foundModelArchesSlice, err := s.modelSt.GetAllMachineTargetAgentVersionByArches(ctx, targetVersion.String())
 	if err != nil {
 		return semversion.Zero, nil, errors.Errorf("getting missing agent target versions from model: %w", err)
 	}
-	missingModelArches := removeDuplicateArches(machineArches, foundModelArches)
+	foundModelArches := set.NewStrings(foundModelArchesSlice...)
+
+	missingModelArches := machineArches.Difference(foundModelArches)
 	if len(missingModelArches) == 0 {
 		// No missing architectures from the model database.
 		return semversion.Zero, nil, nil
@@ -405,20 +409,20 @@ func (s *Service) GetMissingAgentTargetVersions(ctx context.Context) (semversion
 	// We've got some missing architectures from the model database, check
 	// the controller database for any of the missing architectures.
 
-	foundControllerArches, err := s.controllerSt.GetAllMachineTargetAgentVersionByArches(ctx, targetVersion.String())
+	foundControllerArchesSlice, err := s.controllerSt.GetAllMachineTargetAgentVersionByArches(ctx, targetVersion.String())
 	if err != nil {
 		return semversion.Zero, nil, errors.Errorf("getting missing agent target versions from controller: %w", err)
 	}
-	missingControllerArches := removeDuplicateArches(missingModelArches, foundControllerArches)
+	foundControllerArches := set.NewStrings(foundControllerArchesSlice...)
+
+	missingControllerArches := missingModelArches.Difference(foundControllerArches)
 	if len(missingControllerArches) == 0 {
 		return semversion.Zero, nil, nil
 	}
 
 	// Deduplicate the missing architectures from both model and controller
 	// databases.
-	missing := make(map[architecture.Architecture]struct{})
-	maps.Copy(missing, missingModelArches)
-	maps.Copy(missing, missingControllerArches)
+	missing := missingControllerArches.Union(missingModelArches)
 
 	arches := make([]arch.Arch, 0, len(missing))
 	for arch := range missing {
@@ -1290,30 +1294,19 @@ func (s *WatchableService) WatchModelTargetAgentVersion(ctx context.Context) (wa
 	return w, nil
 }
 
-func decodeArchitecture(a architecture.Architecture) (arch.Arch, error) {
+func decodeArchitecture(a string) (arch.Arch, error) {
 	switch a {
-	case architecture.AMD64:
+	case "amd64":
 		return arch.AMD64, nil
-	case architecture.ARM64:
+	case "arm64":
 		return arch.ARM64, nil
-	case architecture.PPC64EL:
+	case "ppc64el":
 		return arch.PPC64EL, nil
-	case architecture.RISCV64:
+	case "riscv64":
 		return arch.RISCV64, nil
-	case architecture.S390X:
+	case "s390x":
 		return arch.S390X, nil
-	case architecture.Unknown:
-		return "", nil
 	default:
 		return "", errors.Errorf("unsupported architecture %q", a)
 	}
-}
-
-func removeDuplicateArches(all, found map[architecture.Architecture]struct{}) map[architecture.Architecture]struct{} {
-	missing := make(map[architecture.Architecture]struct{})
-	maps.Copy(missing, all)
-	for arch := range found {
-		delete(missing, arch)
-	}
-	return missing
 }
