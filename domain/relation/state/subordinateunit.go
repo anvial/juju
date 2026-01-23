@@ -176,13 +176,13 @@ WHERE  u.uuid = $entityUUID.uuid
 	return dbVal, nil
 }
 
-func (st *State) getCharmIDByApplicationUUID(ctx context.Context, tx *sqlair.TX, appID string) (string, error) {
+func (s *State) getCharmIDByApplicationUUID(ctx context.Context, tx *sqlair.TX, appID string) (string, error) {
 	query := `
 SELECT charm_uuid AS &entityUUID.uuid
 FROM application
 WHERE uuid = $entityUUID.uuid;
 `
-	stmt, err := st.Prepare(query, entityUUID{})
+	stmt, err := s.Prepare(query, entityUUID{})
 	if err != nil {
 		return "", errors.Errorf("preparing query: %w", err)
 	}
