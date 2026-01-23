@@ -18,6 +18,7 @@ import (
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/user"
 	usertesting "github.com/juju/juju/core/user/testing"
+	jujuversion "github.com/juju/juju/core/version"
 	accessstate "github.com/juju/juju/domain/access/state"
 	dbcloud "github.com/juju/juju/domain/cloud/state"
 	"github.com/juju/juju/domain/credential"
@@ -72,7 +73,7 @@ func (s *stateSuite) SetUpTest(c *tc.C) {
 		false,
 		s.userUUID,
 	)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 
 	// We need to generate a cloud in the database so that we can set the model
 	// cloud.
@@ -299,6 +300,14 @@ func (s *stateSuite) TestDeleteModelImportingStatusIdempotent(c *tc.C) {
 		s.modelUUID).Scan(&count)
 	c.Assert(err, tc.ErrorIsNil)
 	c.Check(count, tc.Equals, 0)
+}
+
+func (s *stateSuite) TestGetControllerTargetVersion(c *tc.C) {
+	st := New(s.TxnRunnerFactory())
+
+	ver, err := st.GetControllerTargetVersion(c.Context())
+	c.Assert(err, tc.ErrorIsNil)
+	c.Check(ver, tc.Equals, jujuversion.Current.String())
 }
 
 // createControllerModel creates a the database for use in tests.

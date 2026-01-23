@@ -38,6 +38,7 @@ func (s *ManifoldsSuite) TestIAASNames(c *tc.C) {
 	// also fail. Search for 'ModelWorkers' to find affected vars.
 	c.Check(actual.SortedValues(), tc.SameContents, []string{
 		"agent",
+		"agent-binary-fetcher",
 		"api-caller",
 		"api-config-watcher",
 		"api-remote-relation-caller",
@@ -448,6 +449,17 @@ var expectedIAASModelManifoldsWithDependencies = map[string][]string{
 	},
 
 	"agent": {},
+
+	"agent-binary-fetcher": {
+		"agent",
+		"api-caller",
+		"domain-services",
+		"is-responsible-flag",
+		"lease-manager",
+		"migration-fortress",
+		"migration-inactive-flag",
+		"not-dead-flag",
+	},
 
 	"api-caller": {"agent"},
 

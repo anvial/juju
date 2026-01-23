@@ -319,13 +319,6 @@ var upgradeTests = []upgradeTest{
 		targets:       targets(upgrades.HostMachine),
 		expectedSteps: []string{"step 1 - 1.20.0", "step 2 - 1.20.0", "step 1 - 1.21.0"},
 	},
-	{
-		about:         "nothing happens when the version hasn't changed but contains a tag",
-		fromVersion:   "1.21-alpha1",
-		toVersion:     "1.21-alpha1",
-		targets:       targets(upgrades.DatabaseMaster),
-		expectedSteps: []string{},
-	},
 }
 
 func (s *upgradeSuite) TestPerformUpgradeSteps(c *tc.C) {

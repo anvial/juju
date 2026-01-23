@@ -85,6 +85,7 @@ func (w *updateWorker) loop() error {
 	}
 
 	if len(arches) == 0 {
+		w.logger.Debugf(ctx, "all agent binaries for version %q are present", targetVersion)
 		return nil
 	}
 
@@ -99,6 +100,8 @@ func (w *updateWorker) loop() error {
 			return errors.Annotatef(err, "retrieving external agent binary for version %q and architecture %q", targetVersion, arch)
 		}
 	}
+
+	w.logger.Infof(ctx, "successfully fetched missing agent binaries for version %q", targetVersion)
 
 	return nil
 }
