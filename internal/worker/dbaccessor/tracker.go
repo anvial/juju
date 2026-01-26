@@ -106,6 +106,8 @@ func NewTrackedDBWorker(ctx context.Context, dbApp DBApp, namespace string, opts
 		return nil, errors.Trace(err)
 	}
 
+	applyDBLimits(w.db)
+
 	if err := pragma.SetPragma(ctx, w.db, pragma.ForeignKeysPragma, true); err != nil {
 		return nil, errors.Annotate(err, "setting foreign keys pragma")
 	}
@@ -313,6 +315,8 @@ func (w *trackedDBWorker) ensureDBAliveAndOpenIfRequired(ctx context.Context, db
 			return nil, errors.Trace(err)
 		}
 
+		applyDBLimits(db)
+
 		if err := pragma.SetPragma(ctx, db, pragma.ForeignKeysPragma, true); err != nil {
 			return nil, errors.Annotate(err, "setting foreign keys pragma")
 		}
@@ -360,4 +364,26 @@ func (r *report) Set(f func(*report)) {
 	defer r.Unlock()
 
 	f(r)
+}
+
+func applyDBLimits(db *sql.DB) {
+	// Set the maximum number of idle and open connections to be the same and
+	// set to 3 (default is 0 for MaxOpenConns). From testing, it's better to
+	// have both set to the same value, and not setting these values can lead to
+	// a large number of open connections being created and not closed, which
+	// can lead to unbounded connections.
+	//
+	// If and when we change this number, be aware that a database will have 3
+	// connections per database, per dqlite App. So if we have 100 databases
+	// then that is 300 connections per dqlite App. Changing that number to
+	// match runtime.GOMAXPROCS will then be len(database) * runtime.GOMAXPROCS
+	// per dqlite App. This can lead to a lot of open connections, so be
+	// careful.
+	// If we ever move to sharding model databases across dqlite Apps,
+	// then this number can be increased, as the number of connections per
+	// dqlite App will be less because the number of databases per dqlite App
+	// will be less. Testing will need to be done to determine the best number
+	// for this.
+	db.SetMaxIdleConns(3)
+	db.SetMaxOpenConns(3)
 }
