@@ -21,7 +21,6 @@ import (
 	unittesting "github.com/juju/juju/core/unit/testing"
 	"github.com/juju/juju/core/version"
 	domainagentbinary "github.com/juju/juju/domain/agentbinary"
-	"github.com/juju/juju/domain/application/architecture"
 	applicationerrors "github.com/juju/juju/domain/application/errors"
 	machineerrors "github.com/juju/juju/domain/machine/errors"
 	modelagenterrors "github.com/juju/juju/domain/modelagent/errors"
@@ -1609,14 +1608,8 @@ func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsNonMissingInModel(c
 
 	targetVersion := semversion.MustParse("4.0.1")
 
-	machineArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
-	foundModelArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
+	machineArches := []string{"amd64", "arm64"}
+	foundModelArches := []string{"amd64", "arm64"}
 
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
 	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
@@ -1634,16 +1627,9 @@ func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsNonMissingInControl
 
 	targetVersion := semversion.MustParse("4.0.1")
 
-	machineArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
-	foundModelArches := map[architecture.Architecture]struct{}{
-		architecture.ARM64: {},
-	}
-	foundControllerArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-	}
+	machineArches := []string{"amd64", "arm64"}
+	foundModelArches := []string{"arm64"}
+	foundControllerArches := []string{"amd64"}
 
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
 	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
@@ -1662,16 +1648,9 @@ func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsArchMissing(c *tc.C
 
 	targetVersion := semversion.MustParse("4.0.1")
 
-	machineArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
-	foundModelArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-	}
-	foundControllerArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-	}
+	machineArches := []string{"amd64", "arm64"}
+	foundModelArches := []string{"amd64"}
+	foundControllerArches := []string{"amd64"}
 
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
 	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
@@ -1692,16 +1671,9 @@ func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsArchesMissing(c *tc
 
 	targetVersion := semversion.MustParse("4.0.1")
 
-	machineArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
-	foundModelArches := map[architecture.Architecture]struct{}{
-		architecture.S390X: {},
-	}
-	foundControllerArches := map[architecture.Architecture]struct{}{
-		architecture.PPC64EL: {},
-	}
+	machineArches := []string{"amd64", "arm64"}
+	foundModelArches := []string{"s390x"}
+	foundControllerArches := []string{"ppc64le"}
 
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
 	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
@@ -1735,10 +1707,7 @@ func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsGetAllMachinesArchi
 
 	targetVersion := semversion.MustParse("4.0.1")
 
-	machineArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
+	machineArches := []string{"amd64", "arm64"}
 
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
 	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, errors.New("front fell off"))
@@ -1753,13 +1722,8 @@ func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsModelGetAllMachineT
 
 	targetVersion := semversion.MustParse("4.0.1")
 
-	machineArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
-	missingModelArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-	}
+	machineArches := []string{"amd64", "arm64"}
+	missingModelArches := []string{"amd64"}
 
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
 	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)
@@ -1775,16 +1739,9 @@ func (s *modelUpgradeSuite) TestGetMissingAgentTargetVersionsControllerGetAllMac
 
 	targetVersion := semversion.MustParse("4.0.1")
 
-	machineArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-		architecture.ARM64: {},
-	}
-	missingModelArches := map[architecture.Architecture]struct{}{
-		architecture.AMD64: {},
-	}
-	missingControllerArches := map[architecture.Architecture]struct{}{
-		architecture.ARM64: {},
-	}
+	machineArches := []string{"amd64", "arm64"}
+	missingModelArches := []string{"amd64"}
+	missingControllerArches := []string{"arm64"}
 
 	s.modelState.EXPECT().GetModelTargetAgentVersion(gomock.Any()).Return(targetVersion, nil)
 	s.modelState.EXPECT().GetAllMachinesArchitectures(gomock.Any()).Return(machineArches, nil)

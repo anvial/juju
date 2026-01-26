@@ -153,3 +153,33 @@ func (s *importSubnetsSuite) TestImportSpaceWithSubnet(c *tc.C) {
 	err := op.Execute(c.Context(), model)
 	c.Assert(err, tc.ErrorIsNil)
 }
+
+func (s *importSubnetsSuite) TestImportSpaces(c *tc.C) {
+	defer s.setupMocks(c).Finish()
+
+	spUUID := networktesting.GenSpaceUUID(c)
+
+	model := description.NewModel(description.ModelArgs{})
+	model.AddSpace(description.SpaceArgs{
+		Id:         "0",
+		Name:       network.AlphaSpaceName.String(),
+		ProviderID: "alpha-provider-id",
+	})
+	model.AddSpace(description.SpaceArgs{
+		Id:         "previous-space-id",
+		Name:       "space-name",
+		ProviderID: "space-provider-id",
+	})
+
+	spaceInfo := network.SpaceInfo{
+		Name:       "space-name",
+		ProviderId: "space-provider-id",
+	}
+	// don't import the alpha space
+	s.importService.EXPECT().AddSpace(gomock.Any(), spaceInfo).
+		Return(spUUID, nil)
+
+	op := s.newImportOperation(c)
+	err := op.Execute(c.Context(), model)
+	c.Assert(err, tc.ErrorIsNil)
+}

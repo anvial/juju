@@ -30,7 +30,7 @@ func (st *State) ImportLinkLayerDevices(ctx context.Context, input []internal.Im
 			return errors.Capture(err)
 		}
 
-		llds, parents, providers, err := transformImportData(input, lookups.deviceType, lookups.virtualPortType)
+		llds, parents, providers, err := transformImportData(input, lookups.virtualPortType)
 		if err != nil {
 			return errors.Capture(err)
 		}
@@ -160,7 +160,6 @@ INSERT INTO provider_ip_address (*) VALUES ($providerIpAddressDML.*)`, providerI
 // at this time.
 func transformImportData(
 	in []internal.ImportLinkLayerDevice,
-	deviceTypeLookup map[network.LinkLayerDeviceType]int,
 	portTypeLookup map[network.VirtualPortType]int,
 ) ([]linkLayerDevice, []linkLayerDeviceParent, []providerLinkLayerDevice, error) {
 	llds := make([]linkLayerDevice, len(in))
@@ -172,11 +171,6 @@ func transformImportData(
 
 	// Fill in the linkLayerDevice and providerLinkLayerDevice structures.
 	for i, l := range in {
-		devTypeID, ok := deviceTypeLookup[l.Type]
-		if !ok {
-			return nil, nil, nil, errors.Errorf("unknown device type %q", l.Type)
-		}
-
 		portTypeID, ok := portTypeLookup[l.VirtualPortType]
 		if !ok {
 			return nil, nil, nil, errors.Errorf("unknown port type %q", l.VirtualPortType)
@@ -196,7 +190,7 @@ func transformImportData(
 			},
 			IsAutoStart:     l.IsAutoStart,
 			IsEnabled:       l.IsEnabled,
-			Type:            devTypeID,
+			Type:            int(l.Type),
 			VirtualPortType: portTypeID,
 			VLAN:            0,
 		}

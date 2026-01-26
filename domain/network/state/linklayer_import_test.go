@@ -13,6 +13,7 @@ import (
 	"github.com/juju/tc"
 
 	corenetwork "github.com/juju/juju/core/network"
+	"github.com/juju/juju/domain/network"
 	"github.com/juju/juju/domain/network/internal"
 	"github.com/juju/juju/internal/uuid"
 )
@@ -66,7 +67,7 @@ func (s *linkLayerImportSuite) TestImportLinkLayerDevices(c *tc.C) {
 			NetNodeUUID:      netNodeUUID,
 			Name:             "test",
 			MTU:              ptr(int64(1500)),
-			Type:             corenetwork.EthernetDevice,
+			Type:             network.DeviceTypeEthernet,
 			VirtualPortType:  corenetwork.NonVirtualPort,
 			MachineID:        machineName,
 			ParentDeviceName: "parent",
@@ -98,7 +99,7 @@ func (s *linkLayerImportSuite) TestImportLinkLayerDevices(c *tc.C) {
 			UUID:            uuid.MustNewUUID().String(),
 			NetNodeUUID:     netNodeUUID,
 			Name:            "parent",
-			Type:            corenetwork.EthernetDevice,
+			Type:            network.DeviceTypeEthernet,
 			VirtualPortType: corenetwork.NonVirtualPort,
 			MachineID:       machineName,
 			Addresses: []internal.ImportIPAddress{
@@ -118,7 +119,7 @@ func (s *linkLayerImportSuite) TestImportLinkLayerDevices(c *tc.C) {
 			NetNodeUUID:     netNodeUUID2,
 			Name:            "parent",
 			MTU:             ptr(int64(4328)),
-			Type:            corenetwork.EthernetDevice,
+			Type:            network.DeviceTypeEthernet,
 			VirtualPortType: corenetwork.NonVirtualPort,
 			MachineID:       machineName2,
 			ProviderID:      ptr("two"),
@@ -204,16 +205,15 @@ SELECT
       lld.net_node_uuid,
       lld.name,
       lld.mtu,
+	  lld.device_type_id,
       lld.is_auto_start,
       lld.is_enabled,
       lld.gateway_address,
       lld.vlan_tag,
       lld.mac_address
      ) AS (&readLinkLayerDevice.*),
-     lldt.name AS &readLinkLayerDevice.device_type,
      vpt.name AS &readLinkLayerDevice.virtual_port_type
 FROM link_layer_device AS lld
-JOIN link_layer_device_type AS lldt ON lld.device_type_id = lldt.id
 JOIN virtual_port_type AS vpt ON lld.virtual_port_type_id = vpt.id
 `, readLinkLayerDevice{})
 		if err != nil {
@@ -360,7 +360,7 @@ func transformImportArgToResult(
 					Int64: dereferenceOrEmpty(in.MTU),
 					Valid: isNotNil(in.MTU),
 				},
-				DeviceType:     string(in.Type),
+				DeviceType:     int(in.Type),
 				VirtualPort:    string(in.VirtualPortType),
 				IsAutoStart:    in.IsAutoStart,
 				IsEnabled:      in.IsEnabled,
@@ -383,4 +383,18 @@ type readIpAddresses struct {
 	Scope        string  `db:"scope"`
 	IsSecondary  bool    `db:"is_secondary"`
 	IsShadow     bool    `db:"is_shadow"`
+}
+
+type readLinkLayerDevice struct {
+	UUID           string         `db:"uuid"`
+	NetNodeUUID    string         `db:"net_node_uuid"`
+	Name           string         `db:"name"`
+	MTU            sql.NullInt64  `db:"mtu"`
+	MAC            sql.NullString `db:"mac_address"`
+	GatewayAddress sql.NullString `db:"gateway_address"`
+	IsAutoStart    bool           `db:"is_auto_start"`
+	IsEnabled      bool           `db:"is_enabled"`
+	DeviceType     int            `db:"device_type_id"`
+	VirtualPort    string         `db:"virtual_port_type"`
+	VLAN           int            `db:"vlan_tag"`
 }

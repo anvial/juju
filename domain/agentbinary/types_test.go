@@ -163,65 +163,6 @@ func (*typesSuite) TestAgentBinaryNotMatchingVersion(c *tc.C) {
 	})
 }
 
-// TestArchitectureFromStringNotRecognised ensures that if the string
-// architecture is not recognised then the returned Architecture is 0 with a
-// false conversion value.
-func (_ *typesSuite) TestArchitectureFromStringNotRecognised(c *tc.C) {
-	arch, converted := ArchitectureFromString("fakearch")
-	c.Check(converted, tc.IsFalse)
-	c.Check(arch, tc.Equals, Architecture(0))
-}
-
-// TestArchitectureFromString ensures that [ArchitectureFromString] correctly
-// converts known architecture strings to their corresponding [Architecture]
-// values.
-func (*typesSuite) TestArchitectureFromString(c *tc.C) {
-	tests := []struct {
-		A Architecture
-		S string
-	}{
-		{A: AMD64, S: "amd64"},
-		{A: ARM64, S: "arm64"},
-		{A: S390X, S: "s390x"},
-		{A: PPC64EL, S: "ppc64el"},
-	}
-
-	for _, test := range tests {
-		c.Run(test.S, func(t *testing.T) {
-			arch, converted := ArchitectureFromString(test.S)
-			c.Check(converted, tc.IsTrue)
-			c.Check(arch, tc.Equals, test.A)
-		})
-	}
-}
-
-// TestArchitectureToStringNotRecognised ensures that if the [Architecture]
-// value is not recognised then the returned string is empty.
-func (_ *typesSuite) TestArchitectureToStringNotRecognised(c *tc.C) {
-	c.Check(Architecture(999).String(), tc.Equals, "")
-}
-
-// TestArchitectureToString ensures that [Architecture.String] correctly
-// converts known [Architecture] values to their corresponding string.
-func (*typesSuite) TestArchitectureToString(c *tc.C) {
-	tests := []struct {
-		A Architecture
-		S string
-	}{
-		{A: AMD64, S: "amd64"},
-		{A: ARM64, S: "arm64"},
-		{A: S390X, S: "s390x"},
-		{A: PPC64EL, S: "ppc64el"},
-	}
-
-	for _, test := range tests {
-		c.Run(test.S, func(t *testing.T) {
-			val := test.A.String()
-			c.Check(val, tc.Equals, test.S)
-		})
-	}
-}
-
 // TestAgentBinaryArchitectures ensures that [AgentBinaryArchitectures]
 // correctly returns in order all of the architectures that are present in a
 // slice of [AgentBinary]s.
@@ -238,33 +179,4 @@ func (*typesSuite) TestAgentBinaryArchitectures(c *tc.C) {
 	c.Check(vals, tc.DeepEquals, []Architecture{
 		AMD64, ARM64, S390X, S390X, ARM64,
 	})
-}
-
-// TestArchitecturesNotInEmpty ensures that [ArchitectureNotIn] behaves
-// correctly when either a or b are nil and that for a nilness is preserved.
-func (*typesSuite) TestArchitecturesNotInEmpty(c *tc.C) {
-	c.Run("a and b nil", func(t *testing.T) {
-		val := ArchitectureNotIn(nil, nil)
-		tc.Check(t, val, tc.IsNil)
-	})
-
-	c.Run("a nil", func(t *testing.T) {
-		val := ArchitectureNotIn(nil, []Architecture{AMD64})
-		tc.Check(t, val, tc.IsNil)
-	})
-
-	c.Run("b nil", func(t *testing.T) {
-		val := ArchitectureNotIn([]Architecture{AMD64, ARM64}, nil)
-		tc.Check(t, val, tc.DeepEquals, []Architecture{AMD64, ARM64})
-	})
-}
-
-// TestArchitecturesNotIn is a happy path test for [ArchitectureNotIn] to ensure
-// that it correctly returns architectures in a that are not present in b.
-func (*typesSuite) TestArchitecturesNotIn(c *tc.C) {
-	a := []Architecture{S390X, PPC64EL}
-	b := []Architecture{S390X, AMD64}
-
-	val := ArchitectureNotIn(a, b)
-	c.Check(val, tc.DeepEquals, []Architecture{PPC64EL})
 }

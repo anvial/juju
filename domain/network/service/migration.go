@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	"github.com/juju/juju/core/logger"
-	"github.com/juju/juju/core/network"
+	corenetwork "github.com/juju/juju/core/network"
 	"github.com/juju/juju/core/trace"
+	"github.com/juju/juju/domain/network"
 	"github.com/juju/juju/domain/network/internal"
 	"github.com/juju/juju/internal/errors"
 )
@@ -27,10 +28,10 @@ type MigrationState interface {
 	ImportLinkLayerDevices(ctx context.Context, input []internal.ImportLinkLayerDevice) error
 
 	// GetAllSubnets returns all known subnets in the model.
-	GetAllSubnets(ctx context.Context) (network.SubnetInfos, error)
+	GetAllSubnets(ctx context.Context) (corenetwork.SubnetInfos, error)
 
 	// GetAllSpaces returns all spaces for the model.
-	GetAllSpaces(ctx context.Context) (network.SpaceInfos, error)
+	GetAllSpaces(ctx context.Context) (corenetwork.SpaceInfos, error)
 
 	// CreateCloudServices creates cloud service in state.
 	// It creates the associated netnode and link it to the application
@@ -76,7 +77,7 @@ func (s *MigrationService) ImportLinkLayerDevices(ctx context.Context, data []in
 	}
 
 	// Create a map of provider subnet ID to subnet info for quick lookup
-	subnetByProviderId := make(map[string]network.SubnetInfo)
+	subnetByProviderId := make(map[string]corenetwork.SubnetInfo)
 	for _, subnet := range subnets {
 		subnetByProviderId[subnet.ProviderId.String()] = subnet
 	}
@@ -102,8 +103,8 @@ func (s *MigrationService) transformImportLinkLayerDevice(
 	ctx context.Context,
 	device internal.ImportLinkLayerDevice,
 	namesToUUIDs map[string]string,
-	subnets network.SubnetInfos,
-	subnetByProviderId map[string]network.SubnetInfo,
+	subnets corenetwork.SubnetInfos,
+	subnetByProviderId map[string]corenetwork.SubnetInfo,
 ) (internal.ImportLinkLayerDevice, error) {
 	// Set the net node UUID
 	netNodeUUID, ok := namesToUUIDs[device.MachineID]
@@ -131,16 +132,16 @@ func (s *MigrationService) transformImportLinkLayerDevice(
 // transformImportIPAddress transforms an ImportIPAddress by finding and setting its subnet UUID
 func (s *MigrationService) transformImportIPAddress(
 	addr internal.ImportIPAddress,
-	subnets network.SubnetInfos,
-	subnetByProviderId map[string]network.SubnetInfo,
+	subnets corenetwork.SubnetInfos,
+	subnetByProviderId map[string]corenetwork.SubnetInfo,
 ) (internal.ImportIPAddress, error) {
-	if addr.ConfigType == network.ConfigLoopback {
+	if addr.ConfigType == corenetwork.ConfigLoopback {
 		// Loopback addresses will not have an associated subnet, return the
 		// original address.
 		return addr, nil
 	}
 
-	var candidateSubnets network.SubnetInfos
+	var candidateSubnets corenetwork.SubnetInfos
 
 	// If provider subnet ID is provided, use it to find the subnet
 	if addr.ProviderSubnetID != nil {
@@ -148,7 +149,7 @@ func (s *MigrationService) transformImportIPAddress(
 		if !ok {
 			return addr, errors.Errorf("no subnet found for provider subnet ID %q", *addr.ProviderSubnetID)
 		}
-		candidateSubnets = network.SubnetInfos{subnet}
+		candidateSubnets = corenetwork.SubnetInfos{subnet}
 	} else {
 		// Otherwise, use the subnet CIDR to find matching subnets
 		var err error
@@ -218,8 +219,8 @@ func (s *MigrationService) getPlaceholderLinkLayerDevices(
 			IsEnabled:       true,
 			NetNodeUUID:     service.NetNodeUUID,
 			Name:            fmt.Sprintf("placeholder for %q cloud service", service.ApplicationName),
-			Type:            network.UnknownDevice,
-			VirtualPortType: network.NonVirtualPort,
+			Type:            network.DeviceTypeUnknown,
+			VirtualPortType: corenetwork.NonVirtualPort,
 			Addresses:       transformedAddresses,
 		}
 		devices = append(devices, device)
@@ -232,20 +233,20 @@ func (s *MigrationService) getPlaceholderLinkLayerDevices(
 // finding and setting its subnet UUID
 func (s *MigrationService) transformCloudServiceAddress(
 	addr internal.ImportCloudServiceAddress,
-	spaces network.SpaceInfos,
+	spaces corenetwork.SpaceInfos,
 ) (internal.ImportIPAddress, error) {
 	// Convert the address to an ImportIPAddress
 	result := internal.ImportIPAddress{
 		UUID:         addr.UUID,
-		Type:         network.AddressType(addr.Type),
-		Scope:        network.Scope(addr.Scope),
+		Type:         corenetwork.AddressType(addr.Type),
+		Scope:        corenetwork.Scope(addr.Scope),
 		AddressValue: addr.Value,
-		ConfigType:   network.ConfigStatic,
-		Origin:       network.Origin(addr.Origin),
+		ConfigType:   corenetwork.ConfigStatic,
+		Origin:       corenetwork.Origin(addr.Origin),
 	}
 
 	// Find the space for this address
-	space := spaces.GetByID(network.SpaceUUID(addr.SpaceID))
+	space := spaces.GetByID(corenetwork.SpaceUUID(addr.SpaceID))
 	if space == nil {
 		return result, errors.Errorf("unknown space ID %q", addr.SpaceID)
 	}
@@ -259,7 +260,7 @@ func (s *MigrationService) transformCloudServiceAddress(
 	return result, errors.Capture(err)
 }
 
-func (s *MigrationService) ensureOneSubnet(subnets network.SubnetInfos) (string, error) {
+func (s *MigrationService) ensureOneSubnet(subnets corenetwork.SubnetInfos) (string, error) {
 
 	// Check if we found any subnets
 	if len(subnets) == 0 {

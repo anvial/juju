@@ -354,7 +354,7 @@ func (s *watcherSuite) TestWatchMachineProvisionedVolumes(c *tc.C) {
 
 	harness := watchertest.NewHarness(s, watchertest.NewWatcherC(c, watcher))
 	var (
-		vsOneUUID, vsTwoUUID storageprovisioning.VolumeUUID
+		vsOneUUID, vsTwoUUID domainstorage.VolumeUUID
 		vsOneID, vsTwoID     string
 		vsaTwoUUID           string
 	)
@@ -629,7 +629,7 @@ func (s *watcherSuite) TestWatchVolumeAttachmentPlans(c *tc.C) {
 
 	// Assert new volume attachment plans come out in the watcher.
 	harness.AddTest(c, func(c *tc.C) {
-		var vUUID storageprovisioning.VolumeUUID
+		var vUUID domainstorage.VolumeUUID
 		vUUID, vsOneID = s.newMachineVolume(c)
 		s.newVolumeAttachmentPlanForMachine(c, vUUID.String(), machineUUID)
 	}, func(w watchertest.WatcherC[[]string]) {
@@ -641,7 +641,7 @@ func (s *watcherSuite) TestWatchVolumeAttachmentPlans(c *tc.C) {
 
 	// Assert new volume attachment plans come out in the watcher.
 	harness.AddTest(c, func(c *tc.C) {
-		var vUUID storageprovisioning.VolumeUUID
+		var vUUID domainstorage.VolumeUUID
 		vUUID, vsTwoID = s.newMachineVolume(c)
 		vapTwoUUID = s.newVolumeAttachmentPlanForMachine(c, vUUID.String(), machineUUID)
 
@@ -1649,8 +1649,8 @@ VALUES (?, ?, ?, 0, 1)
 
 // newMachineVolume creates a new volume in the model with machine
 // provision scope. Returned is the uuid and volume id of the entity.
-func (s *watcherSuite) newMachineVolume(c *tc.C) (storageprovisioning.VolumeUUID, string) {
-	vsUUID := domaintesting.GenVolumeUUID(c)
+func (s *watcherSuite) newMachineVolume(c *tc.C) (domainstorage.VolumeUUID, string) {
+	vsUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	vsID := fmt.Sprintf("foo/%s", vsUUID.String())
 
@@ -1960,7 +1960,7 @@ VALUES (?, ?)`, instanceUUID.String(), filesystemUUID.String())
 
 func (s *watcherSuite) newStorageInstanceVolume(
 	c *tc.C, instanceUUID domainstorage.StorageInstanceUUID,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID domainstorage.VolumeUUID,
 ) {
 	err := s.TxnRunner().StdTxn(c.Context(), func(ctx context.Context, tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `

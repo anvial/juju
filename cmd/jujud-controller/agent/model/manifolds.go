@@ -26,6 +26,7 @@ import (
 	"github.com/juju/juju/internal/pki"
 	"github.com/juju/juju/internal/services"
 	"github.com/juju/juju/internal/worker/agent"
+	"github.com/juju/juju/internal/worker/agentbinaryfetcher"
 	"github.com/juju/juju/internal/worker/apicaller"
 	"github.com/juju/juju/internal/worker/apiconfigwatcher"
 	"github.com/juju/juju/internal/worker/apiremoterelationcaller"
@@ -459,6 +460,13 @@ func IAASManifolds(config ManifoldsConfig) dependency.Manifolds {
 			Clock:              config.Clock,
 			Logger:             config.LoggingContext.GetLogger("juju.worker.instancepoller"),
 		})),
+
+		agentBinaryFetcherName: ifNotMigrating(agentbinaryfetcher.Manifold(agentbinaryfetcher.ManifoldConfig{
+			DomainServicesName: domainServicesName,
+			NewWorker:          agentbinaryfetcher.New,
+			GetDomainServices:  agentbinaryfetcher.GetModelDomainServices,
+			Logger:             config.LoggingContext.GetLogger("juju.worker.agentbinaryfetcher"),
+		})),
 	}
 
 	result := commonManifolds(config)
@@ -604,6 +612,7 @@ const (
 	migrationFortressName     = "migration-fortress"
 	migrationInactiveFlagName = "migration-inactive-flag"
 	migrationMasterName       = "migration-master"
+	agentBinaryFetcherName    = "agent-binary-fetcher"
 
 	apiRemoteRelationCallerName  = "api-remote-relation-caller"
 	applicationScalerName        = "application-scaler"

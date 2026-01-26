@@ -135,8 +135,8 @@ VALUES (?, 0, ?)
 
 // newMachineVolume creates a new volume in the model with machine
 // provision scope. Returned is the uuid and volume id of the entity.
-func (s *baseSuite) newMachineVolume(c *tc.C) (storageprovisioning.VolumeUUID, string) {
-	vsUUID := domaintesting.GenVolumeUUID(c)
+func (s *baseSuite) newMachineVolume(c *tc.C) (domainstorage.VolumeUUID, string) {
+	vsUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 	vsID := strconv.FormatUint(s.nextVolumeSequenceNumber(c), 10)
 
 	_, err := s.DB().Exec(`
@@ -154,10 +154,10 @@ VALUES (?, ?, 0, 1)
 // volume uuid and net node uuid.
 func (s *baseSuite) newMachineVolumeAttachment(
 	c *tc.C,
-	vsUUID storageprovisioning.VolumeUUID,
+	vsUUID domainstorage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
-) storageprovisioning.VolumeAttachmentUUID {
-	attachmentUUID := domaintesting.GenVolumeAttachmentUUID(c)
+) domainstorage.VolumeAttachmentUUID {
+	attachmentUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	_, err := s.DB().ExecContext(
 		c.Context(),
@@ -231,8 +231,8 @@ VALUES (?, ?, ?, 0, ?, ?, 0)
 
 // newModelVolume creates a new volume in the model with model
 // provision scope. Return is the uuid and volume id of the entity.
-func (s *baseSuite) newModelVolume(c *tc.C) (storageprovisioning.VolumeUUID, string) {
-	vsUUID := domaintesting.GenVolumeUUID(c)
+func (s *baseSuite) newModelVolume(c *tc.C) (domainstorage.VolumeUUID, string) {
+	vsUUID := tc.Must(c, domainstorage.NewVolumeUUID)
 	vsID := strconv.FormatUint(s.nextVolumeSequenceNumber(c), 10)
 
 	_, err := s.DB().Exec(`
@@ -250,10 +250,10 @@ VALUES (?, ?, 0, 0)
 // volume uuid and net node uuid.
 func (s *baseSuite) newModelVolumeAttachment(
 	c *tc.C,
-	vsUUID storageprovisioning.VolumeUUID,
+	vsUUID domainstorage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
-) storageprovisioning.VolumeAttachmentUUID {
-	attachmentUUID := domaintesting.GenVolumeAttachmentUUID(c)
+) domainstorage.VolumeAttachmentUUID {
+	attachmentUUID := tc.Must(c, domainstorage.NewVolumeAttachmentUUID)
 
 	_, err := s.DB().ExecContext(
 		c.Context(),
@@ -425,7 +425,7 @@ func (s *baseSuite) nextVolumeSequenceNumber(c *tc.C) uint64 {
 
 func (s *baseSuite) newStorageInstanceVolume(
 	c *tc.C, instanceUUID domainstorage.StorageInstanceUUID,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID domainstorage.VolumeUUID,
 ) {
 	ctx := c.Context()
 	_, err := s.DB().ExecContext(ctx, `
@@ -486,7 +486,7 @@ VALUES (?, ?)`, ownerUUID.String(), storageInstanceUUID.String())
 // plan is associated with the provided volume uuid and net node uuid.
 func (s *baseSuite) newVolumeAttachmentPlan(
 	c *tc.C,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID domainstorage.VolumeUUID,
 	netNodeUUID domainnetwork.NetNodeUUID,
 ) storageprovisioning.VolumeAttachmentPlanUUID {
 	attachmentUUID := domaintesting.GenVolumeAttachmentPlanUUID(c)
@@ -635,7 +635,7 @@ func (s *baseSuite) newSimpleBlockDevice(
 
 func (s *baseSuite) changeVolumeAttachmentInfo(
 	c *tc.C,
-	uuid storageprovisioning.VolumeAttachmentUUID,
+	uuid domainstorage.VolumeAttachmentUUID,
 	blockDeviceUUID blockdevice.BlockDeviceUUID,
 	readOnly bool,
 ) {
@@ -669,7 +669,7 @@ func (s *baseSuite) changeVolumeAttachmentPlanInfo(
 
 func (s *baseSuite) changeVolumeInfo(
 	c *tc.C,
-	uuid storageprovisioning.VolumeUUID,
+	uuid domainstorage.VolumeUUID,
 	providerID string,
 	sizeMiB uint64,
 	hardwareID string,
@@ -684,7 +684,7 @@ func (s *baseSuite) changeVolumeInfo(
 
 func (s *baseSuite) changeVolumeProviderID(
 	c *tc.C,
-	uuid storageprovisioning.VolumeUUID,
+	uuid domainstorage.VolumeUUID,
 	providerID string,
 ) {
 	_, err := s.DB().Exec(
@@ -695,7 +695,7 @@ func (s *baseSuite) changeVolumeProviderID(
 
 func (s *baseSuite) removeVolumeWithObliterateValue(
 	c *tc.C,
-	uuid storageprovisioning.VolumeUUID,
+	uuid domainstorage.VolumeUUID,
 	obliterateValue bool,
 ) {
 	_, err := s.DB().Exec(

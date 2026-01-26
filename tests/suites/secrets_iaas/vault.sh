@@ -178,7 +178,7 @@ prepare_vault() {
 	export VAULT_ADDR="https://${vault_public_addr}:8200"
 	mkdir -p ~/snap/vault/common/
 	TMP=$(mktemp -d ~/snap/vault/common/cacert-XXXXX)
-	
+
 	# Wait for the certificate secret to be created by the vault charm.
 	attempt=0
 	cert_juju_secret_id=""
@@ -195,7 +195,7 @@ prepare_vault() {
 		fi
 	done
 	echo "[+] $(green 'Found vault certificate secret:') ${cert_juju_secret_id}"
-	
+
 	cert_content=$(juju show-secret "${cert_juju_secret_id}" --reveal --format=yaml | yq -r '.[] | .content.certificate')
 	if [[ -z "$cert_content" ]]; then
 		red "Failed to extract certificate from secret."

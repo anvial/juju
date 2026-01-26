@@ -274,7 +274,7 @@ FROM (
 		if dbVal.VolumeUUID.Valid {
 			v.Volume = &internal.StorageInstanceCompositionVolume{
 				ProvisionScope: domainstorageprov.ProvisionScope(dbVal.VolumeProvisionScope.V),
-				UUID:           domainstorageprov.VolumeUUID(dbVal.VolumeUUID.V),
+				UUID:           domainstorage.VolumeUUID(dbVal.VolumeUUID.V),
 			}
 		}
 
@@ -416,7 +416,7 @@ FROM (
 				ProvisionScope: domainstorageprov.ProvisionScope(
 					dbVal.VolumeProvisionScope.V,
 				),
-				UUID: domainstorageprov.VolumeUUID(
+				UUID: domainstorage.VolumeUUID(
 					dbVal.VolumeUUID.V,
 				),
 			}
@@ -456,10 +456,10 @@ FROM (
 				ProvisionScope: domainstorageprov.ProvisionScope(
 					dbAttachmentVal.VolumeAttachmentProvisionScope.V,
 				),
-				UUID: domainstorageprov.VolumeAttachmentUUID(
+				UUID: domainstorage.VolumeAttachmentUUID(
 					dbAttachmentVal.VolumeAttachmentUUID.V,
 				),
-				VolumeUUID: domainstorageprov.VolumeUUID(
+				VolumeUUID: domainstorage.VolumeUUID(
 					dbAttachmentVal.VolumeUUID.V,
 				),
 			}
@@ -766,7 +766,7 @@ func makeInsertUnitStorageOwnerArgs(
 func makeInsertMachineVolumeOwnerArgs(
 	_ context.Context,
 	machineUUID coremachine.UUID,
-	volumesToOwn []domainstorageprov.VolumeUUID,
+	volumesToOwn []domainstorage.VolumeUUID,
 ) []insertVolumeMachineOwner {
 	rval := make([]insertVolumeMachineOwner, 0, len(volumesToOwn))
 	for _, uuid := range volumesToOwn {

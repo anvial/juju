@@ -13,6 +13,7 @@ import (
 	"github.com/juju/juju/core/logger"
 	"github.com/juju/juju/core/modelmigration"
 	corenetwork "github.com/juju/juju/core/network"
+	"github.com/juju/juju/domain/network"
 	"github.com/juju/juju/domain/network/internal"
 	"github.com/juju/juju/domain/network/service"
 	"github.com/juju/juju/domain/network/state"
@@ -68,8 +69,9 @@ func (i *importOperation) Execute(ctx context.Context, model description.Model) 
 	return nil
 }
 
-func (i *importOperation) importLinkLayerDevices(ctx context.Context, modelLLD []description.LinkLayerDevice,
-	modelAddresses []description.IPAddress) error {
+func (i *importOperation) importLinkLayerDevices(
+	ctx context.Context, modelLLD []description.LinkLayerDevice, modelAddresses []description.IPAddress,
+) error {
 	if len(modelLLD) == 0 {
 		return nil
 	}
@@ -103,6 +105,10 @@ func (i *importOperation) transformLinkLayerDevices(
 		if err != nil {
 			return nil, errors.Errorf("creating UUID for link layer device %q", lld.Name())
 		}
+		deviceType, err := encodeDeviceType(lld.Type())
+		if err != nil {
+			return nil, errors.Errorf("encoding device type for link layer device %q: %w", lld.Name(), err)
+		}
 		data[i] = internal.ImportLinkLayerDevice{
 			UUID:             lldUUID.String(),
 			Name:             lld.Name(),
@@ -110,7 +116,7 @@ func (i *importOperation) transformLinkLayerDevices(
 			MTU:              nilZeroPtr(int64(lld.MTU())),
 			MACAddress:       nilZeroPtr(lld.MACAddress()),
 			ProviderID:       nilZeroPtr(lld.ProviderID()),
-			Type:             corenetwork.LinkLayerDeviceType(lld.Type()),
+			Type:             deviceType,
 			VirtualPortType:  corenetwork.VirtualPortType(lld.VirtualPortType()),
 			IsAutoStart:      lld.IsAutoStart(),
 			IsEnabled:        lld.IsUp(),
@@ -185,6 +191,27 @@ func (i *importOperation) ensureAddressWithCIDR(address description.IPAddress, a
 		return fmt.Sprintf("%s/128", address.Value())
 	}
 	return address.Value()
+}
+
+func encodeDeviceType(t string) (network.DeviceType, error) {
+	switch t {
+	case corenetwork.UnknownDevice.String():
+		return network.DeviceTypeUnknown, nil
+	case corenetwork.LoopbackDevice.String():
+		return network.DeviceTypeLoopback, nil
+	case corenetwork.EthernetDevice.String():
+		return network.DeviceTypeEthernet, nil
+	case corenetwork.VLAN8021QDevice.String():
+		return network.DeviceType8021q, nil
+	case corenetwork.BondDevice.String():
+		return network.DeviceTypeBond, nil
+	case corenetwork.BridgeDevice.String():
+		return network.DeviceTypeBridge, nil
+	case corenetwork.VXLANDevice.String():
+		return network.DeviceTypeVXLAN, nil
+	default:
+		return -1, errors.Errorf("unknown link layer device type: %q", t)
+	}
 }
 
 func nilZeroPtr[T comparable](v T) *T {

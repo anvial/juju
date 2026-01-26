@@ -15,7 +15,7 @@ import (
 	"github.com/juju/juju/core/agentbinary"
 	"github.com/juju/juju/core/arch"
 	"github.com/juju/juju/core/semversion"
-	"github.com/juju/juju/domain/agentbinary/service"
+	service "github.com/juju/juju/domain/agentbinary/service"
 	loggertesting "github.com/juju/juju/internal/logger/testing"
 	"github.com/juju/juju/internal/testhelpers"
 )
@@ -32,7 +32,7 @@ func TestWorkerSuite(t *testing.T) {
 	tc.Run(t, &workerSuite{})
 }
 
-func (s *workerSuite) TestNewWorkerGetsMissingArch(c *tc.C) {
+func (s *workerSuite) TestWorkerGetsMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	targetVersion := semversion.MustParse("4.0.1")
@@ -59,7 +59,7 @@ func (s *workerSuite) TestNewWorkerGetsMissingArch(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
-func (s *workerSuite) TestNewWorkerGetsMultipleMissingArch(c *tc.C) {
+func (s *workerSuite) TestWorkerGetsMultipleMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	targetVersion := semversion.MustParse("4.0.1")
@@ -90,7 +90,7 @@ func (s *workerSuite) TestNewWorkerGetsMultipleMissingArch(c *tc.C) {
 	workertest.CleanKill(c, w)
 }
 
-func (s *workerSuite) TestNewWorkerNoMissingArch(c *tc.C) {
+func (s *workerSuite) TestWorkerNoMissingArch(c *tc.C) {
 	defer s.setupMocks(c).Finish()
 
 	done := make(chan struct{})

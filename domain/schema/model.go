@@ -33,6 +33,13 @@ import (
 //go:embed model/sql/*.sql
 var modelSchemaDir embed.FS
 
+// ********************************************************************
+// ********************************************************************
+// DO NOT CHANGE THE ORDERING OF THE CONSTANTS IN PATCH RELEASES.
+// They are used to define the namespace IDs for changestream triggers.
+// ********************************************************************
+// ********************************************************************
+
 const (
 	customNamespaceUnitLifecycle tableNamespaceID = iota
 	customNamespaceMachineLifecycle
@@ -121,7 +128,24 @@ const (
 var modelPostPatchFilesByVersion = []struct {
 	version semversion.Number
 	files   []string
-}{}
+}{{
+	version: semversion.MustParse("4.0.1"),
+	files: []string{
+		"0035-cleanup.PATCH.sql",
+		"0036-machine-status.PATCH.sql",
+		"0037-model-migrating.PATCH.sql",
+		"0038-relation.PATCH.sql",
+		"0039-secret-metadata.PATCH.sql",
+		"0040-operator-status.PATCH.sql",
+		"0041-offer.PATCH.sql",
+		"0042-model-config.PATCH.sql",
+	},
+}, {
+	version: semversion.MustParse("4.0.2"),
+	files: []string{
+		"0043-k8s-provider-id.PATCH.sql",
+	},
+}}
 
 // ModelDDL is used to create model databases.
 func ModelDDL() *schema.Schema {

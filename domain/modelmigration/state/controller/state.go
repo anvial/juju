@@ -52,3 +52,35 @@ WHERE model_uuid = $entityUUID.uuid
 		return nil
 	})
 }
+
+// GetControllerTargetVersion returns the target controller version in use by the
+// cluster.
+func (s *State) GetControllerTargetVersion(ctx context.Context) (string, error) {
+	db, err := s.DB(ctx)
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+
+	var versionValue controllerTargetVersion
+	stmt, err := s.Prepare(`
+SELECT &controllerTargetVersion.*
+FROM   controller
+`,
+		versionValue)
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+
+	err = db.Txn(ctx, func(ctx context.Context, tx *sqlair.TX) error {
+		err := tx.Query(ctx, stmt).Get(&versionValue)
+		if errors.Is(err, sqlair.ErrNoRows) {
+			return errors.New("no controller target version has been previously set")
+		}
+		return err
+	})
+	if err != nil {
+		return "", errors.Capture(err)
+	}
+
+	return versionValue.TargetVersion, nil
+}

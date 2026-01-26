@@ -105,7 +105,7 @@ INSERT INTO agent_binary_store(version, architecture_id, object_store_uuid) VALU
 func (s *controllerStateSuite) TestGetControllerNodeVersionsEmpty(c *tc.C) {
 	st := NewControllerState(s.TxnRunnerFactory())
 	versions, err := st.GetControllerNodeVersions(c.Context())
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(versions, tc.HasLen, 0)
 }
 
@@ -123,7 +123,7 @@ func (s *controllerStateSuite) TestGetControllerNodeVersions(c *tc.C) {
 
 	// Get the versions.
 	versions, err := st.GetControllerNodeVersions(c.Context())
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(versions, tc.DeepEquals, map[string]semversion.Number{
 		id1: c1Version,
 		id2: c2Version,
@@ -146,16 +146,16 @@ func (s *controllerStateSuite) TestSetAndGetControllerVersion(c *tc.C) {
 
 	// Check initial version is reported correctly.
 	ver, err := st.GetControllerTargetVersion(c.Context())
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(ver, tc.Equals, initialVersion)
 
 	// Upgrade version.
 	err = st.SetControllerTargetVersion(c.Context(), upgradeVersion)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 
 	// Check upgraded version is reported correctly.
 	ver, err = st.GetControllerTargetVersion(c.Context())
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(ver, tc.Equals, upgradeVersion)
 }
 
@@ -176,19 +176,19 @@ func (s *controllerStateSuite) TestSetControllerVersionMultipleSetSafe(c *tc.C) 
 
 	// Upgrade version #1.
 	err = st.SetControllerTargetVersion(c.Context(), upgradeVersion)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 
 	// Upgrade version #2.
 	err = st.SetControllerTargetVersion(c.Context(), upgradeVersion)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 
 	// Upgrade version #3.
 	err = st.SetControllerTargetVersion(c.Context(), upgradeVersion)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 
 	// Check upgraded version is reported correctly.
 	ver, err := st.GetControllerTargetVersion(c.Context())
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(ver, tc.Equals, upgradeVersion)
 }
 
@@ -199,7 +199,7 @@ func (s *controllerStateSuite) TestGetAllAgentStoreBinariesForStreamEmpty(c *tc.
 	vals, err := st.GetAllAgentStoreBinariesForStream(
 		c.Context(), domainagentbinary.AgentStreamReleased,
 	)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(vals, tc.HasLen, 0)
 }
 
@@ -223,7 +223,7 @@ func (s *controllerStateSuite) TestGetAllAgentStoreBinariesForStream(c *tc.C) {
 	agentBinaries, err := st.GetAllAgentStoreBinariesForStream(
 		c.Context(), domainagentbinary.AgentStreamReleased,
 	)
-	c.Check(err, tc.ErrorIsNil)
+	c.Assert(err, tc.ErrorIsNil)
 	c.Check(agentBinaries, tc.SameContents, []domainagentbinary.AgentBinary{
 		{
 			Architecture: domainagentbinary.ARM64,

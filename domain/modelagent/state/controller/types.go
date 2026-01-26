@@ -9,6 +9,6 @@ type agentVersion struct {
 }
 
 type agentBinaryStore struct {
-	Version        string `db:"version"`
-	ArchitectureID int    `db:"architecture_id"`
+	Version          string `db:"version"`
+	ArchitectureName string `db:"architecture_name"`
 }

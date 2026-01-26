@@ -33,6 +33,7 @@ func (s *stateSuite) TestGetHardwareCharacteristics(c *tc.C) {
 	c.Check(*hc.CpuPower, tc.Equals, uint64(75))
 	c.Check(*hc.AvailabilityZone, tc.Equals, "az-1")
 	c.Check(*hc.VirtType, tc.Equals, "virtual-machine")
+	c.Check(*hc.Tags, tc.DeepEquals, []string{"tag1", "tag2"})
 }
 
 func (s *stateSuite) TestGetHardwareCharacteristicsWithoutAvailabilityZone(c *tc.C) {
@@ -68,6 +69,7 @@ func (s *stateSuite) TestGetHardwareCharacteristicsWithoutAvailabilityZone(c *tc
 	c.Check(*hc.CpuPower, tc.Equals, uint64(75))
 	c.Check(hc.AvailabilityZone, tc.IsNil)
 	c.Check(*hc.VirtType, tc.Equals, "virtual-machine")
+	c.Check(*hc.Tags, tc.DeepEquals, []string{"tag1", "tag2"})
 }
 
 func (s *stateSuite) TestAvailabilityZoneWithNoMachine(c *tc.C) {
