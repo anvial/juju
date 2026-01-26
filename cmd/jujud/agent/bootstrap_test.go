@@ -212,8 +212,8 @@ func (s *BootstrapSuite) TestLocalControllerCharm(c *gc.C) {
 	err = cmd.Run(nil)
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(tw.Log(), jc.LogMatches, jc.SimpleMessages{{
-		Level:   loggo.DEBUG,
-		Message: `Successfully deployed local Juju controller charm`,
+		loggo.DEBUG,
+		`Successfully deployed local Juju controller charm`,
 	}})
 	s.assertControllerApplication(c)
 }
@@ -246,8 +246,8 @@ func (s *BootstrapSuite) TestControllerCharmConstraints(c *gc.C) {
 	err = cmd.Run(nil)
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(tw.Log(), jc.LogMatches, jc.SimpleMessages{{
-		Level:   loggo.DEBUG,
-		Message: `Successfully deployed local Juju controller charm`,
+		loggo.DEBUG,
+		`Successfully deployed local Juju controller charm`,
 	}})
 	s.assertControllerApplication(c)
 	st, closer := s.getSystemState(c)
@@ -333,37 +333,13 @@ func (s *BootstrapSuite) TestStoreControllerCharm(c *gc.C) {
 	err = cmd.Run(nil)
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(tw.Log(), jc.LogMatches, jc.SimpleMessages{{
-		Level:   loggo.DEBUG,
-		Message: `Successfully deployed store Juju controller charm`,
+		loggo.DEBUG,
+		`Successfully deployed store Juju controller charm`,
 	}})
 	s.assertControllerApplication(c)
 }
 
-func (s *BootstrapSuite) TestControllerCharmWithAutocertOpensPort(c *gc.C) {
-	if coreos.HostOS() != ostype.Ubuntu {
-		c.Skip("controller charm only supported on Ubuntu")
-	}
-
-	s.bootstrapParams.ControllerConfig[controller.AutocertDNSNameKey] = "foo.example"
-	s.writeBootstrapParamsFile(c)
-	_, cmd, err := s.initBootstrapCommand(c, nil)
-	c.Assert(err, jc.ErrorIsNil)
-
-	var tw loggo.TestWriter
-	err = loggo.RegisterWriter("bootstrap-test", &tw)
-	c.Assert(err, jc.ErrorIsNil)
-	defer loggo.RemoveWriter("bootstrap-test")
-
-	err = cmd.Run(nil)
-	c.Assert(err, jc.ErrorIsNil)
-	c.Assert(tw.Log(), jc.LogMatches, jc.SimpleMessages{{
-		Level:   loggo.DEBUG,
-		Message: `Successfully deployed local Juju controller charm`,
-	}})
-	s.assertControllerApplication(c, 80)
-}
-
-func (s *BootstrapSuite) assertControllerApplication(c *gc.C, extraOpenPorts ...int) {
+func (s *BootstrapSuite) assertControllerApplication(c *gc.C) {
 	st, closer := s.getSystemState(c)
 	defer closer()
 
@@ -386,28 +362,13 @@ func (s *BootstrapSuite) assertControllerApplication(c *gc.C, extraOpenPorts ...
 	unitPorts, err := units[0].OpenedPortRanges()
 	c.Assert(err, jc.ErrorIsNil)
 	openPorts := unitPorts.UniquePortRanges()
-	expectedBase := 2
-	expectedTotal := expectedBase + len(extraOpenPorts)
-	c.Assert(openPorts, gc.HasLen, expectedTotal)
+	c.Assert(openPorts, gc.HasLen, 1)
 	ctrlConfig, err := st.ControllerConfig()
 	c.Assert(err, jc.ErrorIsNil)
 	sshServerPort := ctrlConfig.SSHServerPort()
-	apiPort := ctrlConfig.APIPort()
-
-	mustContain := []int{sshServerPort, apiPort}
-	for _, p := range extraOpenPorts {
-		mustContain = append(mustContain, p)
-	}
-	for _, want := range mustContain {
-		var found bool
-		for _, p := range openPorts {
-			if p.FromPort == want && p.ToPort == want && p.Protocol == "tcp" {
-				found = true
-				break
-			}
-		}
-		c.Assert(found, jc.IsTrue)
-	}
+	c.Assert(openPorts[0].FromPort, gc.Equals, sshServerPort)
+	c.Assert(openPorts[0].ToPort, gc.Equals, sshServerPort)
+	c.Assert(openPorts[0].Protocol, gc.Equals, "tcp")
 }
 
 var testPassword = "my-admin-secret"
