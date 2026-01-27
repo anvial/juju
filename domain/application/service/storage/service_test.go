@@ -94,7 +94,7 @@ func (s *serviceSuite) TestMakeUnitStorageArgs(c *tc.C) {
 			StorageName: "st2",
 			Volume: &internal.StorageInstanceCompositionVolume{
 				ProvisionScope: domainstorageprov.ProvisionScopeMachine,
-				UUID:           tc.Must(c, domainstorageprov.NewVolumeUUID),
+				UUID:           tc.Must(c, domainstorage.NewVolumeUUID),
 			},
 			UUID: tc.Must(c, domainstorage.NewStorageInstanceUUID),
 		},
@@ -102,7 +102,7 @@ func (s *serviceSuite) TestMakeUnitStorageArgs(c *tc.C) {
 			StorageName: "st2",
 			Volume: &internal.StorageInstanceCompositionVolume{
 				ProvisionScope: domainstorageprov.ProvisionScopeMachine,
-				UUID:           tc.Must(c, domainstorageprov.NewVolumeUUID),
+				UUID:           tc.Must(c, domainstorage.NewVolumeUUID),
 			},
 			UUID: tc.Must(c, domainstorage.NewStorageInstanceUUID),
 		},
@@ -239,8 +239,8 @@ func (s *serviceSuite) TestMakeIAASUnitStorageArgs(c *tc.C) {
 
 	fsUUID1 := tc.Must(c, domainstorageprov.NewFilesystemUUID)
 	fsUUID2 := tc.Must(c, domainstorageprov.NewFilesystemUUID)
-	volUUID1 := tc.Must(c, domainstorageprov.NewVolumeUUID)
-	volUUID2 := tc.Must(c, domainstorageprov.NewVolumeUUID)
+	volUUID1 := tc.Must(c, domainstorage.NewVolumeUUID)
+	volUUID2 := tc.Must(c, domainstorage.NewVolumeUUID)
 
 	expectedStorageInstances := []internal.CreateUnitStorageInstanceArg{
 		{
@@ -249,7 +249,7 @@ func (s *serviceSuite) TestMakeIAASUnitStorageArgs(c *tc.C) {
 				ProvisionScope: domainstorageprov.ProvisionScopeMachine,
 			},
 			Volume: &internal.CreateUnitStorageVolumeArg{
-				UUID:           tc.Must(c, domainstorageprov.NewVolumeUUID),
+				UUID:           tc.Must(c, domainstorage.NewVolumeUUID),
 				ProvisionScope: domainstorageprov.ProvisionScopeModel,
 			},
 		},
@@ -261,7 +261,7 @@ func (s *serviceSuite) TestMakeIAASUnitStorageArgs(c *tc.C) {
 		},
 		{
 			Volume: &internal.CreateUnitStorageVolumeArg{
-				UUID:           tc.Must(c, domainstorageprov.NewVolumeUUID),
+				UUID:           tc.Must(c, domainstorage.NewVolumeUUID),
 				ProvisionScope: domainstorageprov.ProvisionScopeModel,
 			},
 		},
@@ -302,7 +302,7 @@ func (s *serviceSuite) TestMakeIAASUnitStorageArgs(c *tc.C) {
 		},
 	)
 	c.Check(arg.VolumesToOwn, tc.SameContents,
-		[]domainstorageprov.VolumeUUID{
+		[]domainstorage.VolumeUUID{
 			volUUID1,
 			volUUID2,
 		},

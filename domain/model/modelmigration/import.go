@@ -13,7 +13,6 @@ import (
 	coreconstraints "github.com/juju/juju/core/constraints"
 	"github.com/juju/juju/core/credential"
 	coreerrors "github.com/juju/juju/core/errors"
-	coreinstance "github.com/juju/juju/core/instance"
 	"github.com/juju/juju/core/logger"
 	coremodel "github.com/juju/juju/core/model"
 	"github.com/juju/juju/core/modelmigration"
@@ -22,6 +21,7 @@ import (
 	accesserrors "github.com/juju/juju/domain/access/errors"
 	accessservice "github.com/juju/juju/domain/access/service"
 	accessstate "github.com/juju/juju/domain/access/state"
+	constraintsmigration "github.com/juju/juju/domain/constraints/modelmigration"
 	domainmodel "github.com/juju/juju/domain/model"
 	modelservice "github.com/juju/juju/domain/model/service"
 	modelmigrationservice "github.com/juju/juju/domain/model/service/migration"
@@ -304,48 +304,7 @@ func (i *importModelConstraintsOperation) Execute(
 	if descCons == nil {
 		return nil
 	}
-
-	cons := coreconstraints.Value{}
-	if allocatePublicIP := descCons.AllocatePublicIP(); allocatePublicIP {
-		cons.AllocatePublicIP = &allocatePublicIP
-	}
-	if arch := descCons.Architecture(); arch != "" {
-		cons.Arch = &arch
-	}
-	if container := coreinstance.ContainerType(descCons.Container()); container != "" {
-		cons.Container = &container
-	}
-	if cores := descCons.CpuCores(); cores != 0 {
-		cons.CpuCores = &cores
-	}
-	if power := descCons.CpuPower(); power != 0 {
-		cons.CpuPower = &power
-	}
-	if inst := descCons.InstanceType(); inst != "" {
-		cons.InstanceType = &inst
-	}
-	if mem := descCons.Memory(); mem != 0 {
-		cons.Mem = &mem
-	}
-	if disk := descCons.RootDisk(); disk != 0 {
-		cons.RootDisk = &disk
-	}
-	if source := descCons.RootDiskSource(); source != "" {
-		cons.RootDiskSource = &source
-	}
-	if spaces := descCons.Spaces(); len(spaces) > 0 {
-		cons.Spaces = &spaces
-	}
-	if tags := descCons.Tags(); len(tags) > 0 {
-		cons.Tags = &tags
-	}
-	if virt := descCons.VirtType(); virt != "" {
-		cons.VirtType = &virt
-	}
-	if zones := descCons.Zones(); len(zones) > 0 {
-		cons.Zones = &zones
-	}
-
+	cons := constraintsmigration.DecodeConstraints(descCons)
 	// If no constraints are set we will noop from here.
 	if coreconstraints.IsEmpty(&cons) {
 		return nil

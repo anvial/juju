@@ -204,7 +204,7 @@ VALUES ($agentBinaryRecord.*)
 			}
 			if existingAgentBinary.ObjectStoreUUID != agentBinary.ObjectStoreUUID {
 				return errors.Errorf(
-					"agent binary for version %q and arch %q already exists with a different SHA",
+					"agent binary for version %q and arch %v already exists with a different SHA",
 					agentBinary.Version, agentBinary.ArchitectureID,
 				).Add(agentbinaryerrors.AgentBinaryImmutable)
 			}

@@ -40,12 +40,12 @@ type architectureMap struct {
 }
 
 type agentBinaryStore struct {
-	Version        string `db:"version"`
-	ArchitectureID int    `db:"architecture_id"`
+	Version          string `db:"version"`
+	ArchitectureName string `db:"architecture_name"`
 }
 
-type architectureID struct {
-	ID int `db:"id"`
+type name struct {
+	Name string `db:"name"`
 }
 
 // machineAgentVersion represents a record from the reported machine agent

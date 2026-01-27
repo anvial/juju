@@ -334,13 +334,13 @@ func (s *Service) RemoveStorageAttachment(
 		a := *cascade.VolumeAttachmentUUID
 		if force && wait > 0 {
 			if _, err := s.volumeAttachmentScheduleRemoval(
-				ctx, storageprovisioning.VolumeAttachmentUUID(a), false, 0,
+				ctx, storage.VolumeAttachmentUUID(a), false, 0,
 			); err != nil {
 				return "", errors.Capture(err)
 			}
 		}
 		if _, err := s.volumeAttachmentScheduleRemoval(
-			ctx, storageprovisioning.VolumeAttachmentUUID(a), force, wait,
+			ctx, storage.VolumeAttachmentUUID(a), force, wait,
 		); err != nil {
 			return "", errors.Capture(err)
 		}
@@ -494,7 +494,7 @@ func (s *Service) processStorageAttachmentRemovalJob(ctx context.Context, job re
 		}
 
 		for _, vaUUID := range cascade.VolumeAttachmentUUIDs {
-			uuid := storageprovisioning.VolumeAttachmentUUID(vaUUID)
+			uuid := storage.VolumeAttachmentUUID(vaUUID)
 			_, err := s.volumeAttachmentScheduleRemoval(ctx, uuid, false, 0)
 			if err != nil {
 				return errors.Errorf(
@@ -595,7 +595,7 @@ func (s *Service) MarkStorageAttachmentAsDead(
 	}
 
 	for _, vaUUID := range cascade.VolumeAttachmentUUIDs {
-		uuid := storageprovisioning.VolumeAttachmentUUID(vaUUID)
+		uuid := storage.VolumeAttachmentUUID(vaUUID)
 		_, err := s.volumeAttachmentScheduleRemoval(ctx, uuid, false, 0)
 		if err != nil {
 			return errors.Errorf(
@@ -681,7 +681,7 @@ func (s *Service) RemoveStorageInstance(
 	}
 
 	if cascaded.VolumeUUID != nil {
-		volUUID := storageprovisioning.VolumeUUID(*cascaded.VolumeUUID)
+		volUUID := storage.VolumeUUID(*cascaded.VolumeUUID)
 		if force && wait > 0 {
 			if _, err := s.volumeScheduleRemoval(ctx, volUUID, false, 0); err != nil {
 				return errors.Capture(err)
@@ -810,7 +810,7 @@ func (s *Service) MarkFilesystemAttachmentAsDead(
 // attachment is not found.
 // - [removalerrors.EntityStillAlive] if the volume attachment is alive.
 func (s *Service) MarkVolumeAttachmentAsDead(
-	ctx context.Context, uuid storageprovisioning.VolumeAttachmentUUID,
+	ctx context.Context, uuid storage.VolumeAttachmentUUID,
 ) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -1022,7 +1022,7 @@ deleteFilesystem:
 // - [storageprovisioningerrors.VolumeNotDead] when the volume exists but was
 // expected to be dead but was not.
 func (s *Service) RemoveDeadVolume(
-	ctx context.Context, uuid storageprovisioning.VolumeUUID,
+	ctx context.Context, uuid storage.VolumeUUID,
 ) error {
 	ctx, span := trace.Start(ctx, trace.NameFromFunc())
 	defer span.End()
@@ -1057,7 +1057,7 @@ func (s *Service) RemoveDeadVolume(
 
 func (s *Service) volumeScheduleRemoval(
 	ctx context.Context,
-	volUUID storageprovisioning.VolumeUUID,
+	volUUID storage.VolumeUUID,
 	force bool, wait time.Duration,
 ) (removal.UUID, error) {
 	jobUUID, err := removal.NewUUID()
@@ -1201,7 +1201,7 @@ func (s *Service) processStorageFilesystemAttachmentRemovalJob(
 
 func (s *Service) volumeAttachmentScheduleRemoval(
 	ctx context.Context,
-	vaUUID storageprovisioning.VolumeAttachmentUUID,
+	vaUUID storage.VolumeAttachmentUUID,
 	force bool, wait time.Duration,
 ) (removal.UUID, error) {
 	jobUUID, err := removal.NewUUID()

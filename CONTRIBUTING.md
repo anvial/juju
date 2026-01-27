@@ -95,8 +95,8 @@ git checkout -b 3.6-new-stuff # your feature branch
 
 8. Make the desired changes. Test changes locally.
 
+---
 
-----------------
 <details>
 
 <summary>Further info: Docs</summary>
@@ -130,35 +130,38 @@ errors, try `make clean`, then `make run` again. For other checks, see `make
 
 </details>
 
-----------------
+---
 
-----------------
 <details>
 
 <summary>Further info: Code</summary>
 
-### Installing Go
+### Install prerequisites
 
-`juju` is written in [Go](https://go.dev/). To install Go see [Go
-docs](https://golang.org/doc/install#install).
+#### Install Go 
+To install Go see [Go docs](https://golang.org/doc/install#install).
 
-### Building Juju and its dependencies
+#### Install project dependencies
 
-Fork and clone the Juju repo, then navigate to the root directory and run `make
-install`:
-
+```sh
+make install-dependencies
 ```
-git clone https://github.com/<user>/juju.git
-cd juju
+
+### Build and install Juju
+To compile the Juju source code and install the resulting binaries into your `$GOBIN` directory (typically `~/go/bin`):
+
+```sh
 make install
 ```
+
+> Note: Ensure your PATH includes the Go bin directory so you can run the
+> `juju` command globally.
 
 ### Updating Go dependencies
 
 Juju uses Go modules to manage dependencies. To update a dependency, use the
 following, ensuring that the dependency is using a version where possible, or a
 commit hash if not available:
-
 
 ```
 go get -u github.com/the/dependency@v1.2.3
@@ -209,9 +212,7 @@ For more information see [CODING.md](CODING.md)
 
 </details>
 
-----------------
-
-
+---
 
 9. As you make your changes, ensure that you always remain in sync with the upstream:
 

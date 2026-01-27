@@ -5,7 +5,6 @@ package agentbinary
 
 import (
 	"iter"
-	"slices"
 
 	"github.com/juju/juju/core/objectstore"
 	"github.com/juju/juju/core/semversion"
@@ -51,17 +50,6 @@ type Metadata struct {
 	SHA256 string
 }
 
-// Architecture represents the architecture of the agent.
-type Architecture int
-
-const (
-	AMD64 Architecture = iota
-	ARM64
-	PPC64EL
-	S390X
-	RISCV64
-)
-
 // AgentBinaryArchitectures provides a sequence of architectures from a slice
 // of [AgentBinary]s. No deduplication is performed.
 func AgentBinaryArchitectures(abs []AgentBinary) iter.Seq[Architecture] {
@@ -74,7 +62,6 @@ func AgentBinaryArchitectures(abs []AgentBinary) iter.Seq[Architecture] {
 	}
 }
 
-// AgentBinaryCompactOnVersion is a func for use with the [slices.CompactFunc]
 // function to remove all [AgentBinary] values from a slice that have the same
 // version.
 //
@@ -100,55 +87,4 @@ func AgentBinaryNotMatchingVersion(v semversion.Number) func(AgentBinary) bool {
 // comparing two [AgentBinary] values.
 func AgentBinaryHighestVersion(a, b AgentBinary) int {
 	return a.Version.Compare(b.Version)
-}
-
-// ArchitectureNotIn returns a the slice of [Architecture]s from a that do not
-// exist in b. Nilness of a is guaranteed to be preserved.
-func ArchitectureNotIn(a, b []Architecture) []Architecture {
-	var retVal []Architecture
-	for _, archA := range a {
-		if slices.Contains(b, archA) {
-			continue
-		}
-		retVal = append(retVal, archA)
-	}
-	return retVal
-}
-
-// ArchitectureFromString takes a string representation of an architecture and
-// returns the equivalent [Architecture] value. If the string is not recognised
-// a zero value [Architecture] and false is returned.
-func ArchitectureFromString(a string) (Architecture, bool) {
-	switch a {
-	case "amd64":
-		return AMD64, true
-	case "arm64":
-		return ARM64, true
-	case "ppc64el":
-		return PPC64EL, true
-	case "s390x":
-		return S390X, true
-	case "riscv64":
-		return RISCV64, true
-	default:
-		return 0, false
-	}
-}
-
-// String returns the primitive string values for [Architecture].
-func (a Architecture) String() string {
-	switch a {
-	case AMD64:
-		return "amd64"
-	case ARM64:
-		return "arm64"
-	case PPC64EL:
-		return "ppc64el"
-	case S390X:
-		return "s390x"
-	case RISCV64:
-		return "riscv64"
-	default:
-		return ""
-	}
 }

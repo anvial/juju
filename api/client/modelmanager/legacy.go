@@ -171,6 +171,11 @@ func (c *Client) modelInfoCompat(ctx context.Context, tags []names.ModelTag) ([]
 	}
 	info := make([]params.ModelInfoResult, len(results.Results))
 	for i, r := range results.Results {
+		if r.Error != nil {
+			info[i].Error = r.Error
+			continue
+		}
+
 		result := r.Result
 		ownerTag, err := names.ParseUserTag(result.OwnerTag)
 		if err != nil {

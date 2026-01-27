@@ -186,7 +186,7 @@ VALUES (?, ?)
 
 func (s *baseStorageSuite) newStorageInstanceVolume(
 	c *tc.C, instanceUUID storage.StorageInstanceUUID,
-	volumeUUID storageprovisioning.VolumeUUID,
+	volumeUUID storage.VolumeUUID,
 ) {
 	_, err := s.DB().ExecContext(
 		c.Context(),
@@ -234,8 +234,8 @@ VALUES (?, ?, ?)`, spUUID.String(), k, v)
 
 // newVolume creates a new volume in the model with model
 // provision scope. Return is the uuid and volume id of the entity.
-func (s *baseStorageSuite) newVolume(c *tc.C) (storageprovisioning.VolumeUUID, string) {
-	vsUUID := storageprovisioningtesting.GenVolumeUUID(c)
+func (s *baseStorageSuite) newVolume(c *tc.C) (storage.VolumeUUID, string) {
+	vsUUID := tc.Must(c, storage.NewVolumeUUID)
 
 	vsID := fmt.Sprintf("foo/%s", vsUUID.String())
 
@@ -256,7 +256,7 @@ VALUES (?, ?, 0, 0)
 func (s *baseStorageSuite) newVolumeWithStatus(
 	c *tc.C,
 	sType status.StorageVolumeStatusType,
-) (storageprovisioning.VolumeUUID, string) {
+) (storage.VolumeUUID, string) {
 	vsUUID, vsID := s.newVolume(c)
 
 	_, err := s.DB().ExecContext(

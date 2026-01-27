@@ -25,13 +25,8 @@ func (environNetworking) Subnets(_ context.Context, _ []network.Id) ([]network.S
 	// Respond with place holder subnets for RI in dqlite until networking
 	// in Kubernetes is improved.
 	return []network.SubnetInfo{
-		{
-			CIDR:       "0.0.0.0/0",
-			ProviderId: "subnet-placeholder-0.0.0.0/0",
-		}, {
-			CIDR:       "::/0",
-			ProviderId: "subnet-placeholder-::/0",
-		},
+		{CIDR: "0.0.0.0/0"},
+		{CIDR: "::/0"},
 	}, nil
 }
 

@@ -106,7 +106,7 @@ type RemovalService interface {
 
 	// MarkVolumeAttachmentAsDead marks the volume attachment as dead.
 	MarkVolumeAttachmentAsDead(
-		ctx context.Context, uuid storageprovisioning.VolumeAttachmentUUID,
+		ctx context.Context, uuid domainstorage.VolumeAttachmentUUID,
 	) error
 
 	// MarkVolumeAttachmentPlanAsDead marks the volume attachment plan as dead.
@@ -123,7 +123,7 @@ type RemovalService interface {
 	// RemoveDeadVolume is to be called from the storage provisoner to finally
 	// remove a dead volume that it has been gracefully cleaned up.
 	RemoveDeadVolume(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) error
 }
 
@@ -242,13 +242,13 @@ type StorageProvisioningService interface {
 	// UUID for the supplied volume ID which is attached to the machine.
 	GetVolumeAttachmentUUIDForVolumeIDMachine(
 		ctx context.Context, volumeID string, machineUUID machine.UUID,
-	) (storageprovisioning.VolumeAttachmentUUID, error)
+	) (domainstorage.VolumeAttachmentUUID, error)
 
 	// GetVolumeAttachmentUUIDForVolumeUnit returns the volume attachment UUID
 	// for the supplied volume ID which is attached to the unit.
 	GetVolumeAttachmentUUIDForVolumeIDUnit(
 		ctx context.Context, volumeID string, unitUUID coreunit.UUID,
-	) (storageprovisioning.VolumeAttachmentUUID, error)
+	) (domainstorage.VolumeAttachmentUUID, error)
 
 	// GetVolumeParams returns the volume params for the supplied uuid.
 	//
@@ -256,13 +256,13 @@ type StorageProvisioningService interface {
 	// - [github.com/juju/juju/domain/storageprovisioning/errors.VolumeNotFound]
 	// when no volume attachment exists for the supplied values.
 	GetVolumeParams(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) (storageprovisioning.VolumeParams, error)
 
 	// GetVolumeRemovalParams returns the volume removal params for the supplied
 	// uuid.
 	GetVolumeRemovalParams(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) (storageprovisioning.VolumeRemovalParams, error)
 
 	// CheckVolumeForIDExists checks if a volume exists for the supplied volume
@@ -273,30 +273,30 @@ type StorageProvisioningService interface {
 	// volume attachment.
 	GetVolumeAttachmentParams(
 		ctx context.Context,
-		volumeAttachmentUUID storageprovisioning.VolumeAttachmentUUID,
+		volumeAttachmentUUID domainstorage.VolumeAttachmentUUID,
 	) (storageprovisioning.VolumeAttachmentParams, error)
 
 	// GetVolumeAttachmentLife returns the current life value for a volume
 	// attachment uuid.
 	GetVolumeAttachmentLife(
-		ctx context.Context, uuid storageprovisioning.VolumeAttachmentUUID,
+		ctx context.Context, uuid domainstorage.VolumeAttachmentUUID,
 	) (domainlife.Life, error)
 
 	// GetVolumeAttachment returns information about a volume attachment.
 	GetVolumeAttachment(
-		ctx context.Context, uuid storageprovisioning.VolumeAttachmentUUID,
+		ctx context.Context, uuid domainstorage.VolumeAttachmentUUID,
 	) (storageprovisioning.VolumeAttachment, error)
 
 	// GetVolumeLife returns the current life value for a volume UUID.
 	GetVolumeLife(
-		ctx context.Context, uuid storageprovisioning.VolumeUUID,
+		ctx context.Context, uuid domainstorage.VolumeUUID,
 	) (domainlife.Life, error)
 
 	// GetVolumeUUIDForID returns the UUID for a volume with the supplied
 	// id.
 	GetVolumeUUIDForID(
 		ctx context.Context, volumeID string,
-	) (storageprovisioning.VolumeUUID, error)
+	) (domainstorage.VolumeUUID, error)
 
 	// GetVolumeByID retrieves the [storageprovisioning.Volume] for the given
 	// volume ID.
@@ -307,7 +307,7 @@ type StorageProvisioningService interface {
 	// GetBlockDeviceForVolumeAttachment returns the uuid of the block device
 	// set for the specified volume attachment.
 	GetBlockDeviceForVolumeAttachment(
-		ctx context.Context, uuid storageprovisioning.VolumeAttachmentUUID,
+		ctx context.Context, uuid domainstorage.VolumeAttachmentUUID,
 	) (domainblockdevice.BlockDeviceUUID, error)
 
 	// WatchMachineProvisionedFilesystems returns a watcher that emits
@@ -402,7 +402,7 @@ type StorageProvisioningService interface {
 	// information about the provisioned volume attachment.
 	SetVolumeAttachmentProvisionedInfo(
 		ctx context.Context,
-		volumeAttachmentUUID storageprovisioning.VolumeAttachmentUUID,
+		volumeAttachmentUUID domainstorage.VolumeAttachmentUUID,
 		info storageprovisioning.VolumeAttachmentProvisionedInfo,
 	) error
 
@@ -425,7 +425,7 @@ type StorageProvisioningService interface {
 	// attachment plan in the model.
 	CreateVolumeAttachmentPlan(
 		ctx context.Context,
-		attachmentUUID storageprovisioning.VolumeAttachmentUUID,
+		attachmentUUID domainstorage.VolumeAttachmentUUID,
 		deviceType storageprovisioning.PlanDeviceType,
 		attrs map[string]string,
 	) (storageprovisioning.VolumeAttachmentPlanUUID, error)

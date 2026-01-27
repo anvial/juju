@@ -26,9 +26,6 @@ func Manifold() dependency.Manifold {
 // Lock which used to wait on or unlock the gate. This
 // allows code running outside of a dependency engine managed worker
 // to monitor or unlock the gate.
-//
-// TODO(mjs) - this can likely go away once all machine agent workers
-// are running inside the dependency engine.
 func ManifoldEx(lock Lock) dependency.Manifold {
 	return dependency.Manifold{
 		Start: func(_ context.Context, _ dependency.Getter) (worker.Worker, error) {

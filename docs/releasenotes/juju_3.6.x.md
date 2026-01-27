@@ -14,6 +14,111 @@ myst:
 Juju 3.6 series is LTS
 ```
 
+## 🔸 **Juju 3.6.13**
+🗓️ 19 Jan 2026
+
+⚙️ Features:
+
+### CLI auto-completion
+The transition to a strictly confined snap for the Juju CLI broke auto-completion.
+This releases restores that feature.
+
+* feat: snap terminal auto-completion by @nicolasbock in https://github.com/juju/juju/pull/21032
+
+### Pebble version bump
+
+* feat: update Pebble version to v1.26.0 (latest) from v1.19.2 by @benhoyt in https://github.com/juju/juju/pull/21335
+
+### Read/write timeout configuration
+Two new controller configuration attributes are available, which control HTTP read and write timeouts for
+Juju agents:
+- `http-server-read-timeout`:  the maximum duration for reading the entire HTTP request, including the body.
+- `http-server-write-timeout`:  the maximum duration before timing out HTTP write operations.
+
+The default values specify no timeouts (wait forever).
+
+* feat: allow read and write timeouts configuration. by @marceloneppel in https://github.com/juju/juju/pull/21434
+
+### Model migration dry run
+Using the `--dry-run` argument with model migration will run the pre-checks and stop
+just before migration is initiated.
+
+* feat: enable migrate to be dry run by @ale8k in https://github.com/juju/juju/pull/21552
+
+🛠️ Fixes:
+
+### LXD deployments with multiple network devices
+On LXD VMs, the netplan config omitted the stanza to match on MAC address which
+resulted in network interfaces failing to come up.
+Where the netplan config contains multiple devices obtaining a DHCP address, the
+default route metric resulted in problems for traffic egress. The netplan config
+now specifies different metrics for each interface, alleviating the problem.
+
+* fix: ensure correct netplan for multi nic lxd vm by @wallyworld in https://github.com/juju/juju/pull/21548
+* fix: avoid creating duplicate default routes for vms with multiple nics by @wallyworld in https://github.com/juju/juju/pull/21549
+
+### LXD storage readiness
+In some cases, the storage attached hook would run before storage was mounted on LXD deployments.
+This caused the hook to fail. Juju now configures the jujud systemd service to wait until storage
+is available before starting the jujud agent.
+
+* fix: wait for local storage mounts before starting jujud service by @wallyworld in https://github.com/juju/juju/pull/21304
+
+### k8s deployments
+Juju registers a mutating webhook so it can track resources created by an application.
+This release contains 2 fixes to that implementation aspect.
+Firstly, if a resource already contains a `managed-by` label, Juju will not overwrite it. This
+fixes an issue in the 3.6.11 release.
+Secondly, the webhook was registered for almost every cluster wide resource create/update event.
+Juju now only listens to events for which it has an active interest, eliminating an efficiency bottleneck
+and vastly improving the observed speed of non-trivial deployments. 
+
+* fix: overriding managed-by label by @CodingCookieRookie in https://github.com/juju/juju/pull/21477
+* fix: reduce the scope of the resources the mutating webhook matches on by @wallyworld in #21377
+
+### Fix nil pointer errors for some Juju commands
+Running `juju metadata generate-image` or `kill-controller` could result in a nil pointer error.
+
+* fix: get correct controller uuid for image metadata cli by @wallyworld in https://github.com/juju/juju/pull/21376
+* fix: handle empty credential for kill-controller by @wallyworld in https://github.com/juju/juju/pull/21514
+ 
+### Transition to modern apt mirror config for cloud init
+Where an apt mirror was specified, Juju was generating an out of date cloud init config
+for the provisioned instance. The deprecated syntax stopped working and now Juju uses the
+modern form of the cloud init config syntax.
+
+* fix: use new apt mirror spec with cloud init by @wallyworld in https://github.com/juju/juju/pull/21509
+
+### Subordinate charm compatibility
+When relating a subordinate charm to a principal charm, Juju was not validating correctly whether
+the subordinate charm supports the base (OS version) that the principal charm is deployed on.
+This could lead to subordinate units being deployed on incompatible bases, potentially causing runtime failures.
+
+* fix: relation incompatible bases issue by @CodingCookieRookie in https://github.com/juju/juju/pull/21419
+
+### Other fixes
+
+* fix: transaction rollback handling by @manadart in https://github.com/juju/juju/pull/21370
+* fix: tighten permissions on netplan config files by @wallyworld in https://github.com/juju/juju/pull/21380
+* fix: enable provisioning check of manual machines to be done by the provisioning user by @ale8k in https://github.com/juju/juju/pull/20937
+* fix(juju): fix silent failure when removing space with model constraints by @kooltuoehias in https://github.com/juju/juju/pull/21554
+
+🗒️ Docs:<br>
+This release has many doc improvements and small fixes.<br>
+Besides maintenance tasks such as fixing some broken links, highlights include:
+
+* docs: fix typos, heading levels, images in dark mode using copilot by @tmihoc in https://github.com/juju/juju/pull/21266
+* docs: refactor scale docs by @CodingCookieRookie in https://github.com/juju/juju/pull/20931
+* docs: fix virt-type in constraint and cloud docs by @tmihoc in https://github.com/juju/juju/pull/21269
+* docs: clarify refresh on k8s by @tmihoc in https://github.com/juju/juju/pull/21287
+* docs: add caveat about juju-restore tool by @tmihoc in https://github.com/juju/juju/pull/21286
+* docs: clarify canonical k8s path requirements by @tmihoc in https://github.com/juju/juju/pull/21343
+* docs: add link to lxd rules for bridge by @tmihoc in https://github.com/juju/juju/pull/21346
+* docs: clarify revision paragraph in attach-resource by @tmihoc in https://github.com/juju/juju/pull/21345
+* docs: fix metadata glitch, update multipass to cloud-init by @tmihoc in https://github.com/juju/juju/pull/21564
+* docs: improve form in hook command docs by @tmihoc in https://github.com/juju/juju/pull/21497
+* docs: add metadata to all non-autogenerated files by @tmihoc in https://github.com/juju/juju/pull/21447
+
 ## 🔸 **Juju 3.6.12**
 🗓️ 26 Nov 2025
 
