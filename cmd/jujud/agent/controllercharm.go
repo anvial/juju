@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/juju/charm/v12"
+	charm "github.com/juju/charm/v12"
 	"github.com/juju/errors"
 	"github.com/juju/schema"
-	"gopkg.in/juju/environschema.v1"
+	environschema "gopkg.in/juju/environschema.v1"
 
 	"github.com/juju/juju/agent"
 	"github.com/juju/juju/api"
@@ -65,8 +65,6 @@ type controllerCharmArgs struct {
 	isCAAS       bool
 	unitPassword string
 	sshProxyPort int
-	apiPort      int
-	needHttp     bool
 }
 
 type controllerCharmDeployer struct {
@@ -99,7 +97,7 @@ func (ccd *controllerCharmDeployer) run(st *state.State) error {
 		return err
 	}
 
-	if err := ccd.openPorts(st); err != nil {
+	if err := ccd.openProxySSHPort(st); err != nil {
 		return err
 	}
 
@@ -189,34 +187,16 @@ func (ccd *controllerCharmDeployer) finishUnitSetup(st *state.State) error {
 	}
 }
 
-func (c *controllerCharmDeployer) openPorts(st *state.State) error {
+func (c *controllerCharmDeployer) openProxySSHPort(st *state.State) error {
 	pcp, err := c.controllerUnit.OpenedPortRanges()
 	if err != nil {
 		return errors.Trace(err)
 	}
-	ports := []int{c.sshProxyPort, c.apiPort}
-	if c.needHttp {
-		ports = append(ports, 80)
-	}
-
-	for _, pr := range pcp.UniquePortRanges() {
-		if pr.Protocol != "tcp" {
-			continue
-		}
-		for _, port := range ports {
-			if port >= pr.FromPort && port <= pr.ToPort {
-				return errors.Errorf("port %d is already open ", port)
-			}
-		}
-	}
-
-	for _, port := range ports {
-		pcp.Open("", network.PortRange{
-			FromPort: port,
-			ToPort:   port,
-			Protocol: "tcp",
-		})
-	}
+	pcp.Open("", network.PortRange{
+		FromPort: c.sshProxyPort,
+		ToPort:   c.sshProxyPort,
+		Protocol: "tcp",
+	})
 	if err = st.ApplyOperation(pcp.Changes()); err != nil {
 		return errors.Trace(err)
 	}

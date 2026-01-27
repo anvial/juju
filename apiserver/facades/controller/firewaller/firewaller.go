@@ -5,6 +5,7 @@ package firewaller
 
 import (
 	"sort"
+	"strconv"
 
 	"github.com/juju/collections/set"
 	"github.com/juju/errors"
@@ -175,12 +176,25 @@ func (f *FirewallerAPI) ModelFirewallRules() (params.IngressRulesResult, error) 
 	if err != nil {
 		return params.IngressRulesResult{Error: apiservererrors.ServerError(err)}, nil
 	}
+	ctrlCfg, err := f.st.ControllerConfig()
+	if err != nil {
+		return params.IngressRulesResult{Error: apiservererrors.ServerError(err)}, nil
+	}
+	isController := f.st.IsController()
 
 	var rules []params.IngressRule
 	sshAllow := cfg.SSHAllow()
 	if len(sshAllow) != 0 {
 		portRange := params.FromNetworkPortRange(network.MustParsePortRange("22"))
 		rules = append(rules, params.IngressRule{PortRange: portRange, SourceCIDRs: sshAllow})
+	}
+	if isController {
+		portRange := params.FromNetworkPortRange(network.MustParsePortRange(strconv.Itoa(ctrlCfg.APIPort())))
+		rules = append(rules, params.IngressRule{PortRange: portRange, SourceCIDRs: []string{"0.0.0.0/0", "::/0"}})
+	}
+	if isController && ctrlCfg.AutocertDNSName() != "" {
+		portRange := params.FromNetworkPortRange(network.MustParsePortRange("80"))
+		rules = append(rules, params.IngressRule{PortRange: portRange, SourceCIDRs: []string{"0.0.0.0/0", "::/0"}})
 	}
 	return params.IngressRulesResult{
 		Rules: rules,
