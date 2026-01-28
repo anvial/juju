@@ -14,6 +14,35 @@ myst:
 Juju 3.6 series is LTS
 ```
 
+## 🔸 **Juju 3.6.14**
+
+🗓️ 28 Jan 2026
+
+This is a point release in the 3.6 LTS series focused on more accurate JAAS login errors and improving controller 
+database robustness under load. ([releases.juju.is][1])
+
+⚙️ **Features:**
+
+### Improved JAAS login error reporting
+
+Practically, `juju login` against JAAS now surfaces the actual failure (for example, OAuth device-flow errors)instead 
+of a misleading legacy error, making debugging login issues significantly easier. 
+
+* feat(fatal-login-error): add fatal login error code and logic to tryinorderloginprovider by @SimoneDutto in https://github.com/juju/juju/pull/21541
+
+🛠️ **Fixes:**
+
+### dqlite upgrade and optimisation
+
+Juju’s embedded dqlite has been upgraded to version **1.18.5**. And we introduce a back port of how we apply pool limits 
+from the 4.x branch. It was observed, that we will never reuse the existing pool connections when the load becomes 
+too high. 
+
+* feat: update dqlite 1.18.5 by @SimonRichardson in https://github.com/juju/juju/pull/21656
+* feat: update dqlite 1.18.5 deps by @SimonRichardson in https://github.com/juju/juju/pull/21658
+* feat: apply db limits to prevent pool exhaustion by @SimonRichardson in https://github.com/juju/juju/pull/21649
+
+
 ## 🔸 **Juju 3.6.13**
 🗓️ 19 Jan 2026
 
