@@ -54,7 +54,7 @@ run_model_destroy_with_container() {
 	# Container in container doesn't work consistently enough for the
 	# test, so use a virtual machine host on the lxd provider.
 	if [[ ${BOOTSTRAP_PROVIDER} == "lxd" ]]; then
-		juju add-machine --constraints="virt-type=virtual-machine"
+		juju add-machine --constraints="virt-type=virtual-machine cores=2 mem=8G"
 	else
 		juju add-machine
 	fi
